@@ -55,4 +55,9 @@ Eine Stufe öffnet sich, sobald in der vorherigen 8 von 10 Noten richtig waren. 
 - Schlüssel-Glyphen kommen aus der Schrift „Noto Music“ (Google Fonts).
 - Fortschritt liegt in `localStorage` unter dem Schlüssel `notenheld.v1`.
 
-Weitere Ideen und der didaktische Aufbau stehen in [docs/KONZEPT.md](docs/KONZEPT.md).
+## Weiterarbeiten
+
+- [docs/KONZEPT.md](docs/KONZEPT.md): Zielgruppe, Didaktik, Ausbau-Ideen
+- [docs/ARCHITEKTUR.md](docs/ARCHITEKTUR.md): Zielstruktur in Modulen, Paket-Schnittstelle
+- [docs/PLAN.md](docs/PLAN.md): Arbeitspakete A bis F mit fertigen Prompts für Claude Code
+- `CLAUDE.md`: Regeln für Claude Code im Projekt
