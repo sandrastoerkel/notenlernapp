@@ -109,7 +109,7 @@
   .note.bad .notehead, .note.bad .acc { fill: var(--bad); } .note.bad .stem { stroke: var(--bad); }
   .hit { fill: transparent; cursor: pointer; }
   .hit:hover, .hit.on { fill: var(--accent-soft); opacity: .6; }
-  .note-label { font-family: var(--display); font-weight: 700; font-size: 11px; fill: var(--accent); }
+  .note-label { font-family: var(--display); font-weight: 700; font-size: 10px; fill: var(--accent); }
   .ghost .notehead { fill: var(--accent); } .ghost .stem { stroke: var(--accent); } .ghost .acc { fill: var(--accent); }
 
   /* answers */
@@ -461,7 +461,7 @@
     for (let i = 0; i < 5; i++) s += `<line class="staff-line" x1="${X0}" x2="${X1}" y1="${TOP + i * S}" y2="${TOP + i * S}"/>`;
     s += clef === "treble"
       ? `<text class="clef" x="22" y="${BOTTOM - S}" font-size="${S * 4.2}">𝄞</text>`
-      : `<text class="clef" x="24" y="${TOP + S}" font-size="${S * 4.2}">𝄢</text>`;
+      : `<text class="clef" x="24" y="${BOTTOM + 1}" font-size="${S * 4.2}">𝄢</text>`;
     return s + inner + "</svg>";
   }
 
@@ -652,9 +652,19 @@
     for (let p = -4; p <= 12; p++) {
       const n = fromDia(base + p), cy = BOTTOM - p * (S / 2);
       inner += `<rect class="hit ${lSel && same(lSel, n) ? "on" : ""}" data-d="${base + p}" x="60" y="${cy - 3}" width="236" height="6" rx="2"/>`;
-      if (lAll) inner += `<text class="note-label" x="${X1 - 2}" y="${cy + 4}" text-anchor="end">${helm(n)}</text>`;
     }
-    if (lSel) inner += noteSvg(lSel, lClef, 170, "ghost");
+    if (lAll) {
+      // Notenreihe von der unteren Hilfslinie bis über die Zeile, Namen darunter
+      for (let p = -2; p <= 10; p++) {
+        const n = fromDia(base + p), cy = BOTTOM - p * (S / 2), x = 78 + (p + 2) * 17.5;
+        let g = `<g class="note ghost">`;
+        for (let q = -2; q >= p; q -= 2) g += `<line class="ledger" x1="${x - 9}" x2="${x + 9}" y1="${BOTTOM - q * (S / 2)}" y2="${BOTTOM - q * (S / 2)}"/>`;
+        for (let q = 10; q <= p; q += 2) g += `<line class="ledger" x1="${x - 9}" x2="${x + 9}" y1="${BOTTOM - q * (S / 2)}" y2="${BOTTOM - q * (S / 2)}"/>`;
+        g += `<ellipse class="notehead" cx="${x}" cy="${cy}" rx="5.6" ry="3.9" transform="rotate(-22 ${x} ${cy})"/>`;
+        g += `<text class="note-label" x="${x}" y="${BOTTOM + 28}" text-anchor="middle">${helm(n)}</text></g>`;
+        inner += g;
+      }
+    } else if (lSel) inner += noteSvg(lSel, lClef, 170, "ghost");
     $("#lStaff").innerHTML = staffSvg(lClef, inner);
     document.querySelectorAll("#lStaff .hit").forEach((r) => r.addEventListener("click", () => { lSel = fromDia(+r.dataset.d); play(lSel); renderLearn(); }));
     $("#lName").textContent = lSel ? gName(lSel) : "–";
