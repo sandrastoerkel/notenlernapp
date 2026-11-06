@@ -2,14 +2,16 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   starsHtml, effectiveInput, makeRound, findLevel, nextLevel, countAnswer, feedbackText,
-  resultMessage, dotsHtml, lettersHtml, choicesHtml, choicesClass, choiceCols, keyAction, blitzPoints, notesToPlay,
+  resultMessage, dotsHtml, lettersHtml, namesHtml, usesNames, nameKey, typedText, NAME_MAX,
+  choicesHtml, choicesClass, choiceCols, keyAction, blitzPoints, notesToPlay,
   playMode, revealedSvg, playSchedule, rhythmEnd, answerDelay, PLAY_GAP, BEAT_MS, RHYTHM_TAIL, DELAY_OK, DELAY_BAD,
 } from "../src/engine.js";
 import { toneEnd } from "../src/audio.js";
 import { PACKS } from "../src/packs/index.js";
 import noten from "../src/packs/noten.js";
 import { fresh } from "../src/store.js";
-import { N, same } from "../src/music.js";
+import { N, same, gName, LETTERS } from "../src/music.js";
+import akkorde from "../src/packs/akkorde.js";
 
 const key = (k, mods = {}) => ({ key: k, metaKey: false, ctrlKey: false, altKey: false, ...mods });
 
@@ -96,12 +98,8 @@ test("Raster für Auswahlknöpfe", () => {
 test("keyAction", () => {
   assert.deepEqual(keyAction(key("c")), { letter: "C" });
   assert.deepEqual(keyAction(key("H")), { letter: "H" });
-  assert.deepEqual(keyAction(key("+")), { acc: 1 });
-  assert.deepEqual(keyAction(key("#")), { acc: 1 });
-  assert.deepEqual(keyAction(key("-")), { acc: -1 });
-  assert.deepEqual(keyAction(key("b")), { acc: -1 });
-  assert.equal(keyAction(key("B")), null);
-  assert.deepEqual(keyAction(key("0")), { acc: 0 });
+  // Vorzeichen-Tasten gibt es nicht mehr (Namen werden bei Stufen mit Vorzeichen getippt)
+  for (const k of ["+", "#", "-", "b", "B", "0"]) assert.equal(keyAction(key(k)), null, k);
   assert.equal(keyAction(key("x")), null);
   assert.equal(keyAction(key("c", { ctrlKey: true })), null);
   assert.equal(keyAction(key("c", { metaKey: true })), null);
@@ -175,4 +173,77 @@ test("revealedSvg: nach der Antwort revealSvg, sonst svg", () => {
   assert.equal(revealedSvg({ svg: "<svg>a</svg>" }), "<svg>a</svg>");
   assert.equal(revealedSvg({ svg: "<svg>a</svg>", revealSvg: "<svg>b</svg>" }), "<svg>b</svg>");
   assert.equal(revealedSvg({ svg: "<svg>a</svg>", revealSvg: "" }), "<svg>a</svg>");
+});
+
+test("namesHtml: 21 Namen in drei Reihen, Spalten nach Stammton", () => {
+  const h = namesHtml();
+  const btns = [...h.matchAll(/<button class="btn" data-letter="([A-H])" data-acc="(-?\d)">([^<]+)<\/button>/g)];
+  assert.equal(btns.length, 21);
+  assert.equal((h.match(/<button/g) || []).length, 21);
+  assert.deepEqual(btns.map((m) => m[3]), [
+    "C", "D", "E", "F", "G", "A", "H",
+    "Cis", "Dis", "Eis", "Fis", "Gis", "Ais", "His",
+    "Ces", "Des", "Es", "Fes", "Ges", "As", "B",
+  ]);
+  btns.forEach((m, i) => {
+    assert.equal(m[1], LETTERS[i % 7], "Spalte " + i);
+    assert.equal(+m[2], [0, 1, -1][Math.floor(i / 7)], "Reihe " + i);
+    assert.equal(m[3], gName(N(m[1], 4, +m[2])));
+  });
+});
+
+test("usesNames: Namensraster nur bei Buchstaben-Stufen mit Vorzeichen", () => {
+  assert.equal(usesNames({ input: "letters", acc: true }), true);
+  assert.equal(usesNames({ acc: true }), true);
+  assert.equal(usesNames({ input: "letters", acc: false }), false);
+  assert.equal(usesNames({ input: "choices", acc: true }), false);
+  assert.equal(usesNames(null), false);
+  assert.deepEqual(noten.levels.filter(usesNames).map((l) => l.id), ["noten-7", "noten-8"]);
+  assert.deepEqual(akkorde.levels.filter(usesNames).map((l) => l.id), ["akkorde-3"]);
+});
+
+test("Stufen mit Namensraster: jede Antwort hat einen Knopf, Feedback mit deutschem Namen", () => {
+  const h = namesHtml();
+  for (const pack of PACKS) for (const level of pack.levels.filter(usesNames)) {
+    for (let k = 0; k < 60; k++) {
+      const q = level.question(null), a = q.answer;
+      assert.ok(h.includes(`data-letter="${a.letter}" data-acc="${a.acc}"`), `${level.id}: ${a.letter} ${a.acc}`);
+      assert.ok(q.display.includes(gName(N(a.letter, 4, a.acc))), q.display);
+      assert.ok(level.check(q, { letter: a.letter, acc: a.acc }));
+    }
+  }
+});
+
+test("nameKey: Name tippen, Enter bestätigt", () => {
+  let st = { buf: "" };
+  for (const c of ["F", "i", "s"]) st = nameKey(st.buf, key(c));
+  assert.deepEqual(st, { buf: "fis" });
+  assert.deepEqual(nameKey("fis", key("Enter")), { buf: "", answer: { letter: "F", acc: 1 } });
+  assert.deepEqual(nameKey("b", key("Enter")), { buf: "", answer: { letter: "H", acc: -1 } });
+  assert.deepEqual(nameKey("es", key("Enter")), { buf: "", answer: { letter: "E", acc: -1 } });
+  assert.deepEqual(nameKey("h", key("Enter")), { buf: "", answer: { letter: "H", acc: 0 } });
+  // ungültig: Hinweis, Puffer bleibt, keine Antwort
+  assert.deepEqual(nameKey("hes", key("Enter")), { buf: "hes", invalid: true });
+  assert.deepEqual(nameKey("eses", key("Enter")), { buf: "eses", invalid: true });
+  // Backspace, Escape
+  assert.deepEqual(nameKey("fis", key("Backspace")), { buf: "fi" });
+  assert.deepEqual(nameKey("fis", key("Escape")), { buf: "" });
+  // leerer Puffer: Enter, Backspace, Escape bleiben unbenutzt
+  for (const k of ["Enter", "Backspace", "Escape"]) assert.equal(nameKey("", key(k)), null, k);
+  // höchstens NAME_MAX Zeichen
+  assert.deepEqual(nameKey("eses", key("s")), { buf: "eses" });
+  assert.equal(NAME_MAX, 4);
+  // andere Tasten und Kombinationen
+  for (const k of ["1", "+", "#", " ", "ArrowLeft", "Shift", "ä"]) assert.equal(nameKey("f", key(k)), null, k);
+  assert.equal(nameKey("f", key("i", { ctrlKey: true })), null);
+  assert.equal(nameKey("f", key("i", { metaKey: true })), null);
+  assert.equal(nameKey(undefined, key("c")).buf, "c");
+});
+
+test("typedText: Anzeige und neutraler Hinweis", () => {
+  assert.equal(typedText(""), "");
+  assert.equal(typedText("fis"), "Eingabe: fis");
+  const t = typedText("hes", true);
+  assert.equal(t, "„hes“ ist kein Notenname. Beispiele: fis, es, b");
+  assert.ok(!/falsch|fehler/i.test(t));
 });

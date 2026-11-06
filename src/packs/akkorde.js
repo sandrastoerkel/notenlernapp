@@ -204,7 +204,7 @@ function rootLevel() {
   return {
     id: "akkorde-3", no: 3, title: "Grundton bestimmen",
     subtitle: `${clefLabel(clefs)} · ${items.length} Dreiklänge`,
-    hint: "In der Grundstellung liegt der Grundton unten, darüber Terz und Quinte. Achte auf das Vorzeichen: wähle es zuerst, dann den Buchstaben.",
+    hint: "In der Grundstellung liegt der Grundton unten, darüber Terz und Quinte. Achte auf das Vorzeichen und tippe den ganzen Namen an, z. B. Fis oder B, oder schreib ihn („fis“, „b“) und drück Enter.",
     input: "letters", acc: true, items,
     example: make(items[0]).svg,
     question(prev) { return make(pick(items, prev)); },

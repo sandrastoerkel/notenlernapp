@@ -1,7 +1,8 @@
 # Fremde Bestandteile
 
 Notenheld enthält keine fremden Programmbibliotheken. Selbst gehostet werden nur
-drei Schriften, alle unter der SIL Open Font License, Version 1.1 (OFL). Die
+drei Schriften, alle unter der SIL Open Font License, Version 1.1 (OFL), dazu ein
+einzelner Glyphen-Umriss aus Bravura (ebenfalls OFL, siehe unten). Die
 Lizenztexte liegen unverändert in `fonts/`.
 
 Bezogen am 6. November 2026 über die Google Fonts API (`fonts.googleapis.com/css2`,
@@ -34,6 +35,15 @@ Fonts ausgelieferten Teilmengen (Subsets), unverändert.
 - Gestaltung: Vernon Adams, Cyreal, Jacques Le Bailly
 - Quelle: https://fonts.google.com/specimen/Nunito, Projekt https://github.com/googlefonts/nunito
 - Lizenz: SIL Open Font License 1.1, Text aus https://github.com/google/fonts/blob/main/ofl/nunito/OFL.txt
+
+## Bravura (nur der Bassschlüssel)
+
+- Copyright © 2026, Steinberg Media Technologies GmbH (http://www.steinberg.net/), with Reserved Font Name "Bravura".
+- Quelle: https://github.com/steinbergmedia/bravura, Datei `redist/otf/Bravura.otf`, Version 1.482, bezogen am 6. November 2026
+- Verwendet: nur der Umriss der Glyphe fClef (U+E062, SMuFL), mit fontTools als SVG-Pfad ausgelesen und
+  unverändert als `BASS_CLEF_PATH` in `src/staff.js` eingesetzt. Die Schriftdatei selbst wird nicht ausgeliefert.
+- Lizenz: SIL Open Font License 1.1, Text aus https://github.com/steinbergmedia/bravura/blob/master/LICENSE.txt
+  (gleichlautend mit dem Lizenzeintrag in der Schriftdatei), abgelegt als `fonts/OFL-Bravura.txt`
 
 ## App-Icon
 

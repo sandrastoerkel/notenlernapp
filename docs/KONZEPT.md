@@ -15,7 +15,7 @@ Die Statistik zeigt die „schwachen Noten“, also die Noten mit den meisten Fe
 ## Eingabe
 
 - Buchstaben C bis H (deutsche Namen, H statt B)
-- Vorzeichen-Wahl ♭ ♮ ♯ ab Stufe 7
+- ab Stufe 7 (Vorzeichen) der ganze Name: Raster mit allen 21 Namen (C … H, Cis … His, Ces … B) oder getippt, z. B. „fis“ und Enter
 - Klaviatur (eine Oktave) für alle, die ein Tasteninstrument lernen; dort zählt die Taste, Fis und Ges sind dieselbe Taste
 - Computertastatur am Laptop
 
