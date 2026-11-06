@@ -43,6 +43,14 @@ Für Entwicklerinnen und Entwickler:
 
 Jeder Push auf `main` veröffentlicht die App über GitHub Pages (Workflow in `.github/workflows/pages.yml`). Dafür einmalig in den Repo-Einstellungen unter **Settings → Pages** als Source „GitHub Actions“ wählen.
 
+## Screenshots
+
+Smartphone-Breite (420 px), helles Farbschema. Die dunklen Fassungen liegen daneben in `docs/screens/` (`*-dunkel.png`). Neu erzeugen mit `node docs/screens/screenshots.mjs` bei laufendem Server (braucht Playwright, siehe Kopf des Skripts; keine Abhängigkeit der App).
+
+| Start | Üben | Lernen | Blitz | Statistik |
+| ----- | ---- | ------ | ----- | --------- |
+| ![Start](docs/screens/start-hell.png) | ![Üben](docs/screens/ueben-hell.png) | ![Lernen](docs/screens/lernen-hell.png) | ![Blitz](docs/screens/blitz-hell.png) | ![Statistik](docs/screens/statistik-hell.png) |
+
 ## Bereiche
 
 | Bereich    | Inhalt                                                                                  |

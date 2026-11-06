@@ -198,6 +198,8 @@ section { display: grid; gap: 14px; }
 .bar.ok > i { background: var(--ok); }
 .list { display: grid; gap: 8px; }
 .list-row { display: grid; grid-template-columns: 1fr 2fr auto; gap: 10px; align-items: center; }
+/* Schwache Stellen: Name nach Inhalt breit (z. B. „F (f'', Violin)“), Balken nimmt den Rest */
+#sWeak .list-row { grid-template-columns: auto minmax(60px, 1fr) auto; }
 /* Statistik je Stufe: Titel, Balken, Ergebnis mit Sternen; nie gespielte Stufen gedämpft */
 .level-group { gap: 8px; }
 .level-group + .level-group { padding-top: 10px; border-top: 1px solid var(--line); }
@@ -224,7 +226,7 @@ section { display: grid; gap: 14px; }
 .tab.on { color: var(--accent); }
 
 .kbd { font-family: ui-monospace, Menlo, monospace; font-size: .8rem; padding: 1px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-2); }
-.legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 6px 14px; }
+.legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 6px 14px; }
 .legend div { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px dashed var(--line); padding: 3px 0; }
 .legend-title { grid-column: 1 / -1; font-size: 1.05rem; margin-top: 10px; }
 .legend-title:first-child { margin-top: 0; }
