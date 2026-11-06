@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   starsHtml, effectiveInput, makeRound, findLevel, nextLevel, countAnswer, feedbackText,
-  resultMessage, dotsHtml, lettersHtml, choicesHtml, keyAction, blitzPoints, notesToPlay,
+  resultMessage, dotsHtml, lettersHtml, choicesHtml, choicesClass, choiceCols, keyAction, blitzPoints, notesToPlay,
 } from "../src/engine.js";
 import { PACKS } from "../src/packs/index.js";
 import noten from "../src/packs/noten.js";
@@ -70,6 +70,20 @@ test("Antwortknöpfe", () => {
   assert.equal((lettersHtml().match(/data-letter/g) || []).length, 7);
   assert.ok(lettersHtml().includes(`data-letter="H"`));
   assert.equal(choicesHtml(["a<b", "2"]), `<button class="btn" data-choice="0">a&lt;b</button><button class="btn" data-choice="1">2</button>`);
+});
+
+test("Raster für Auswahlknöpfe", () => {
+  assert.equal(choicesClass(["Sechzehntelpause", "Achtelpause"]), "choices");
+  assert.equal(choicesClass(["übermäßige Quarte", "reine Quarte", "verminderte Quinte"]), "choices");
+  assert.equal(choicesClass(["4", "2", "1", "½", "¼"]), "choices short");
+  assert.equal(choicesClass(["I", "II", "III", "IV", "V", "VI", "VII"]), "choices short");
+  assert.equal(choicesClass(["Dur", "Moll"]), "choices short");
+  assert.equal(choicesClass(["G-Dur", "D-Dur"]), "choices");
+  assert.equal(choicesClass([]), "choices");
+  assert.equal(choicesClass(undefined), "choices");
+  assert.equal(choiceCols(["4", "2", "1", "½", "¼"]), 5);
+  assert.equal(choiceCols(["I", "II", "III", "IV", "V", "VI", "VII"]), 4);
+  assert.equal(choiceCols(["Dur", "Moll"]), 2);
 });
 
 test("keyAction", () => {

@@ -169,6 +169,13 @@ Eine Stufe:
 }
 ```
 
+Auswahlknöpfe (`input: "choices"`): die Engine setzt auf das Antwortfeld die
+Klasse `choices` (zwei Spalten, lange Begriffe wie „punktierte Viertelnote“
+passen bei 420 px in eine Zeile); sind alle Texte höchstens 4 Zeichen lang
+(„½“, „VII“, „3 ♭“), zusätzlich `short` mit `--cols` Spalten (bis 6 Knöpfe in
+einer Reihe, ab 7 in zwei Reihen). Buchstaben und Klaviatur bleiben bei 7
+Spalten.
+
 Eingabeart: hat eine Stufe `input: "letters"` und hat das Kind „Klaviatur“
 gewählt (`state.input === "keys"`), nutzt die Engine die Klaviatur. Andere
 Eingabearten bleiben unverändert. Tastendrücke (Buchstaben) antworten immer als
@@ -222,6 +229,7 @@ Stufen-ID.
 - reine Hilfsfunktionen (getestet): `starsHtml`, `effectiveInput`, `makeRound`,
   `findLevel(packs, id)`, `nextLevel(pack, level)`, `countAnswer`,
   `feedbackText`, `resultMessage`, `dotsHtml`, `lettersHtml`, `choicesHtml`,
+  `choicesClass(choices)`, `choiceCols(choices)`,
   `keyAction(e)`, `blitzPoints(combo)`, `notesToPlay(q)`
 
 Ein Wechsel des Tabs beendet eine laufende Runde (Üben und Blitz) ohne Eintrag.
