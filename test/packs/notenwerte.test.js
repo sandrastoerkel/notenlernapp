@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import notenwerte, { BARS, parseBar, beatsOf, nameOf, fillChoices, barSvg, dotSvg, timeSigSvg, layoutBar, learnHtml, PITCH, DOT, TIME } from "../../src/packs/notenwerte.js";
+import notenwerte, { BARS, parseBar, beatsOf, nameOf, fillChoices, barSvg, dotSvg, timeSigSvg, layoutBar, learnHtml, PITCH, DOT, TIME, rhythmOf } from "../../src/packs/notenwerte.js";
 import { N } from "../../src/music.js";
 import { TOP, S, BOTTOM, X1 } from "../../src/staff.js";
 
@@ -175,6 +175,23 @@ test("Takt füllen: revealSvg zeigt den Takt mit dem richtigen Wert in der Lück
   }
   // die anderen Stufen brauchen keine Auflösung
   for (const l of L.slice(0, 4)) assert.equal(l.question(null).revealSvg, undefined);
+});
+
+test("Takt füllen: play ist der vollständige Takt als Rhythmus (vier Schläge)", () => {
+  for (const it of L[4].items) {
+    const q = it.make();
+    assert.equal(q.play.length, q.bar.length, it.key);
+    assert.equal(q.play.reduce((a, p) => a + p.beats, 0), 4, it.key);
+    q.play.forEach((p, i) => {
+      assert.equal(p.beats, beatsOf(q.bar[i]), it.key);
+      if (q.bar[i].rest) assert.deepEqual(p, { rest: true, beats: beatsOf(q.bar[i]) });
+      else assert.deepEqual(p, { note: PITCH, beats: beatsOf(q.bar[i]) });
+    });
+  }
+  // punktierte Werte: Viertel mit Punkt 1½, Achtel ½, halbe Pause 2
+  assert.deepEqual(rhythmOf(parseBar("4. 8 r2")).map((p) => p.beats), [1.5, 0.5, 2]);
+  // die anderen Stufen spielen nichts
+  for (const l of L.slice(0, 4)) assert.equal(l.question(null).play, undefined);
 });
 
 test("fillChoices: vier verschiedene Dauern, nach Länge sortiert", () => {

@@ -5,12 +5,16 @@
 import { LETTERS } from "./music.js";
 import { pianoSvg } from "./staff.js";
 import { recordRound, recordAnswer } from "./store.js";
-import { play, playChord } from "./audio.js";
+import { play, playChord, isMuted } from "./audio.js";
 
 export const ROUND_LENGTH = 10;
 export const DELAY_OK = 800, DELAY_BAD = 1600;
 // Abstand zwischen mehreren Tönen aus q.play
 export const PLAY_GAP = 500;
+// Rhythmus aus q.play: ein Schlag (Viertel) dauert 600 ms, also Tempo 100 Viertel pro Minute
+export const BEAT_MS = 600;
+// Pause nach dem letzten Ton eines Rhythmus, bevor die nächste Aufgabe erscheint
+export const RHYTHM_TAIL = 300;
 
 /* ---------- Reine Hilfsfunktionen ---------- */
 
@@ -88,8 +92,34 @@ export function keyAction(e) {
 // Blitz: Punkte für eine richtige Antwort bei der Serie nach dem Hochzählen (ab fünf in Folge zwei)
 export const blitzPoints = (combo) => (combo >= 5 ? 2 : 1);
 
-// Töne einer Aufgabe: q.play (nacheinander) oder q.note
-export const notesToPlay = (q) => (q.play && q.play.length ? q.play : q.note ? [q.note] : []);
+// Einträge in q.play: entweder eine Note (wie bisher, nacheinander mit PLAY_GAP) oder ein Wert mit Dauer
+// { note, beats } bzw. eine Pause { rest: true, beats }; beats in Schlägen (Viertel = 1, punktierte Viertel 1,5).
+const timed = (e) => !!e && typeof e.beats === "number";
+const noteOf = (e) => (timed(e) ? (e.rest ? null : e.note || null) : e);
+
+// Töne einer Aufgabe: q.play (nacheinander, ohne Pausen) oder q.note
+export const notesToPlay = (q) => (q.play && q.play.length ? q.play.map(noteOf).filter(Boolean) : q.note ? [q.note] : []);
+// Abspielplan für das Nacheinander: [{ note, at, dur }] mit at und dur in ms; note ist null bei Pausen,
+// dur ist null bei Einträgen ohne Dauer (dann klingt der Ton wie bisher). Einfache Noten rücken um PLAY_GAP
+// weiter, Einträge mit beats um beats · BEAT_MS.
+export function playSchedule(q) {
+  if (!(q.play && q.play.length)) return q.note ? [{ note: q.note, at: 0, dur: null }] : [];
+  let at = 0;
+  return q.play.map((e) => {
+    const dur = timed(e) ? e.beats * BEAT_MS : null;
+    const item = { note: noteOf(e), at, dur };
+    at += dur === null ? PLAY_GAP : dur;
+    return item;
+  });
+}
+// Ende des Rhythmus in ms (Ende des letzten Eintrags mit Dauer), 0 ohne Einträge mit Dauer
+export const rhythmEnd = (q) => playSchedule(q).reduce((m, s) => (s.dur === null ? m : Math.max(m, s.at + s.dur)), 0);
+// Wartezeit bis zur nächsten Aufgabe: wie bisher; klingt ein Rhythmus (und ist der Ton an), bis er
+// vorbei ist und noch RHYTHM_TAIL dazu
+export function answerDelay(q, ok, muted = false) {
+  const base = ok ? DELAY_OK : DELAY_BAD, end = muted ? 0 : rhythmEnd(q);
+  return end ? Math.max(base, end + RHYTHM_TAIL) : base;
+}
 // Abspielart: "together" (alle Töne gleichzeitig, bei q.playTogether und mehr als einem Ton), sonst "sequence"
 export const playMode = (q) => (q.playTogether && notesToPlay(q).length > 1 ? "together" : "sequence");
 
@@ -220,12 +250,16 @@ function answer(r, value, el) {
   ui.feedback.textContent = feedbackText(q, ok);
   ui.feedback.className = "feedback " + (ok ? "ok" : "bad");
   if (playMode(q) === "together") playChord(notesToPlay(q));
-  else notesToPlay(q).forEach((n, i) => { if (i === 0) play(n); else later(r, () => play(n), i * PLAY_GAP); });
+  else playSchedule(q).forEach(({ note, at, dur }) => {
+    if (!note) return; // Pause
+    const go = () => (dur === null ? play(note) : play(note, undefined, dur / 1000));
+    if (at === 0) go(); else later(r, go, at);
+  });
   later(r, () => {
     if (run !== r) return;
     r.locked = false; r.idx++;
     if (r.idx >= r.items.length) finish(r); else showQuestion(r);
-  }, ok ? DELAY_OK : DELAY_BAD);
+  }, answerDelay(q, ok, isMuted()));
 }
 
 function finish(r) {

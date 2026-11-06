@@ -3,8 +3,9 @@ import assert from "node:assert/strict";
 import {
   starsHtml, effectiveInput, makeRound, findLevel, nextLevel, countAnswer, feedbackText,
   resultMessage, dotsHtml, lettersHtml, choicesHtml, choicesClass, choiceCols, keyAction, blitzPoints, notesToPlay,
-  playMode, revealedSvg,
+  playMode, revealedSvg, playSchedule, rhythmEnd, answerDelay, PLAY_GAP, BEAT_MS, RHYTHM_TAIL, DELAY_OK, DELAY_BAD,
 } from "../src/engine.js";
+import { toneEnd } from "../src/audio.js";
 import { PACKS } from "../src/packs/index.js";
 import noten from "../src/packs/noten.js";
 import { fresh } from "../src/store.js";
@@ -116,6 +117,49 @@ test("notesToPlay", () => {
   assert.deepEqual(notesToPlay({ play: [n, n] }), [n, n]);
   assert.deepEqual(notesToPlay({ note: n }), [n]);
   assert.deepEqual(notesToPlay({}), []);
+  // Einträge mit Dauer: nur die Töne, ohne Pausen
+  assert.deepEqual(notesToPlay({ play: [{ note: n, beats: 1 }, { rest: true, beats: 1 }, { note: n, beats: 2 }] }), [n, n]);
+  assert.deepEqual(notesToPlay({ play: [{ rest: true, beats: 4 }] }), []);
+});
+
+test("playSchedule: einfache Noten mit PLAY_GAP wie bisher", () => {
+  const c = N("C", 4), e = N("E", 4);
+  assert.deepEqual(playSchedule({ play: [c, e] }), [{ note: c, at: 0, dur: null }, { note: e, at: PLAY_GAP, dur: null }]);
+  assert.deepEqual(playSchedule({ note: c }), [{ note: c, at: 0, dur: null }]);
+  assert.deepEqual(playSchedule({}), []);
+  assert.deepEqual(playSchedule({ play: [] }), []);
+  assert.equal(rhythmEnd({ play: [c, e] }), 0);
+});
+
+test("playSchedule: Rhythmus mit Dauern und Pausen", () => {
+  const h = N("H", 4);
+  assert.equal(BEAT_MS, 600);
+  // punktierte Viertel, Achtel, Viertelpause, Viertel
+  const q = { play: [{ note: h, beats: 1.5 }, { note: h, beats: 0.5 }, { rest: true, beats: 1 }, { note: h, beats: 1 }] };
+  assert.deepEqual(playSchedule(q), [
+    { note: h, at: 0, dur: 900 }, { note: h, at: 900, dur: 300 }, { note: null, at: 1200, dur: 600 }, { note: h, at: 1800, dur: 600 },
+  ]);
+  assert.equal(rhythmEnd(q), 4 * BEAT_MS);
+  // Pause am Ende zählt mit
+  assert.equal(rhythmEnd({ play: [{ note: h, beats: 2 }, { rest: true, beats: 2 }] }), 2400);
+  assert.equal(playMode(q), "sequence");
+});
+
+test("answerDelay: wartet das Ende des Rhythmus ab", () => {
+  const h = N("H", 4), bar = { play: [{ note: h, beats: 2 }, { note: h, beats: 2 }] };
+  assert.equal(answerDelay({}, true), DELAY_OK);
+  assert.equal(answerDelay({}, false), DELAY_BAD);
+  assert.equal(answerDelay({ play: [h, h, h] }, true), DELAY_OK);
+  assert.equal(answerDelay(bar, true), 2400 + RHYTHM_TAIL);
+  assert.equal(answerDelay(bar, false), 2400 + RHYTHM_TAIL);
+  assert.equal(answerDelay({ play: [{ note: h, beats: 0.5 }] }, false), DELAY_BAD);
+  // ohne Ton keine Wartezeit für den Rhythmus
+  assert.equal(answerDelay(bar, true, true), DELAY_OK);
+});
+
+test("toneEnd: Ton etwas kürzer als notiert", () => {
+  assert.ok(Math.abs(toneEnd(0.6) - 0.55) < 1e-9);
+  assert.equal(toneEnd(0.1), 0.08);
 });
 
 test("playMode: gleichzeitig nur mit playTogether und mehreren Tönen", () => {

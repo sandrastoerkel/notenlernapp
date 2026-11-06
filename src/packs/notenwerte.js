@@ -178,6 +178,11 @@ export function fillChoices(answer, rnd = Math.random) {
   return [answer, ...wrong].sort(byLength);
 }
 
+// Rhythmus des vollständigen Takts zum Abspielen nach der Antwort (Engine: { note, beats } bzw.
+// { rest: true, beats }). Alle Töne auf einer festen Höhe, dem h' aus der Notenzeile: Es geht nur um
+// die Dauern, die Tonhöhe ist bloß ein gleichbleibender Klickton.
+export const rhythmOf = (els) => els.map((e) => (e.rest ? { rest: true, beats: beatsOf(e) } : { note: PITCH, beats: beatsOf(e) }));
+
 const ITEMS_5 = BARS.flatMap((bar, b) => parseBar(bar).map((ans, gap) => ({
   key: `5:${b}:${gap}`, bar, gap, make: () => {
     const els = parseBar(bar);
@@ -186,6 +191,7 @@ const ITEMS_5 = BARS.flatMap((bar, b) => parseBar(bar).map((ans, gap) => ({
       svg: barSvg(els, gap),
       // nach der Antwort: derselbe Takt, die Lücke mit dem richtigen Wert gefüllt
       revealSvg: barSvg(els, gap, true),
+      play: rhythmOf(els),
       prompt: ans.rest ? "Welche Pause fehlt in der Lücke?" : "Welche Note fehlt in der Lücke?",
       answer: nameOf(ans), display: displayOf(ans), reveal: revealFill(ans), choices: opts.map(nameOf),
       bar: els, gap, options: opts,
