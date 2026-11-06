@@ -34,7 +34,7 @@ Auf den Startbildschirm legen:
 
 Für Entwicklerinnen und Entwickler:
 
-- Die Cache-Version steht oben in `sw.js` (`const CACHE = "notenheld-v0.2.0-2"`). Bei jedem Release erhöhen, sonst behalten installierte Geräte die alten Dateien.
+- Die Cache-Version steht oben in `sw.js` (`const CACHE = "notenheld-v0.2.0-3"`). Bei jedem Release erhöhen, sonst behalten installierte Geräte die alten Dateien.
 - Neue Dateien unter `src/`, `css/`, `fonts/` oder `icons/` in die Liste `PRECACHE` in `sw.js` eintragen; `test/sw.test.js` schlägt sonst fehl.
 - Beim Entwickeln hilft in Chrome DevTools unter Application → Service Workers „Update on reload“, damit Änderungen sofort sichtbar sind.
 - Die Icons in `icons/` sind aus einem eigenen Aquarell von Sandra Störkel erzeugt (Violinschlüssel auf Blau, Grün und Gelb). Beim maskierbaren Icon liegt der Schlüssel ganz im sicheren Kreis, der Rand ist mit den verwischten Farben des Bildes aufgefüllt. Nachweise: [THIRD_PARTY.md](THIRD_PARTY.md).
