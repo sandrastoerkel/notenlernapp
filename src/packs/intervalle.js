@@ -8,11 +8,10 @@ import {
 import { staffSvg, noteSvg } from "../staff.js";
 
 const CLEF_SHORT = { treble: "Violin", bass: "Bass" };
-// Zwei Viertelnoten nebeneinander, 60 Einheiten (5 Linienabstände) Abstand: das Vorzeichen vor der
-// zweiten Note hat genug Luft zum ersten Kopf. Ganze Noten wären übersichtlicher, aber noteSvg setzt das
-// Vorzeichen für die Breite eines schwarzen Kopfes; vor dem breiteren ganzen Kopf (1,7 LA) stößt es an
-// ([OFFEN] für Paket F: Vorzeichenabstand in staff.js je Kopfbreite, dann NOTE_VALUE = 1).
-export const X_LOW = 145, X_HIGH = 205, NOTE_VALUE = 4;
+// Zwei ganze Noten nebeneinander, 60 Einheiten (5 Linienabstände) von Kopfmitte zu Kopfmitte: das
+// Vorzeichen vor der zweiten Note hat genug Luft zum ersten Kopf (staff.js setzt Vorzeichen und
+// Hilfslinien der ganzen Note nach ihrer Kopfbreite, gemessen gegen Verovio).
+export const X_LOW = 145, X_HIGH = 205, NOTE_VALUE = 1;
 
 // Vorzeichen, die in den Aufgaben vorkommen dürfen: Stammtöne, Fis Cis Gis Dis Ais und B Es As Des Ges.
 // Eis, His, Ces und Fes bleiben weg, Doppelvorzeichen gibt es nicht.
@@ -108,6 +107,7 @@ function numberQuestion(it, rnd) {
     prompt: "Welches Intervall?",
     answer,
     display: `Intervall ${pairText(it)}: ${answer}`,
+    reveal: `Richtig wäre: ${answer} (${pairText(it)}).`,
     choices: numberChoices(num, rnd),
     play: [it.low, it.high],
     low: it.low, high: it.high, clef: it.clef,
@@ -122,6 +122,7 @@ function qualityQuestion(it, choices) {
     prompt: "Welches Intervall?",
     answer,
     display: `Intervall ${pairText(it)}: ${answer}`,
+    reveal: `Richtig wäre: ${answer} (${pairText(it)}).`,
     choices,
     play: [it.low, it.high],
     low: it.low, high: it.high, clef: it.clef,
@@ -146,6 +147,15 @@ function pickQuality(pool, prev, nums, quals) {
 
 export const FIFTHS = Array.from({ length: 15 }, (_, i) => i - 7);
 export const sigText = (f) => (f === 0 ? "keine Vorzeichen" : `${Math.abs(f)} ${f > 0 ? "♯" : "♭"}`);
+// Satzanfang für die Auflösung nach falscher Antwort: „Drei Kreuze stehen für“, „Ein Be steht für“,
+// „Ohne Vorzeichen ist es“ (das Be, Mehrzahl die Be)
+const COUNT_WORDS = ["", "Ein", "Zwei", "Drei", "Vier", "Fünf", "Sechs", "Sieben"];
+export function sigSentence(f) {
+  if (f === 0) return "Ohne Vorzeichen ist es";
+  const n = Math.abs(f), one = n === 1;
+  const sign = f > 0 ? (one ? "Kreuz" : "Kreuze") : "Be";
+  return `${COUNT_WORDS[n]} ${sign} ${one ? "steht" : "stehen"} für`;
+}
 const keyPool = () => ["treble", "bass"].flatMap((clef) => FIFTHS.map((fifths) => ({ clef, fifths })));
 export const POOL_5 = keyPool();
 export const POOL_6 = keyPool();
@@ -159,13 +169,14 @@ function shuffle(list) {
 }
 
 // Vier Tonarten: die richtige, ein Vorzeichen mehr und weniger, dieselbe Zahl mit dem anderen Vorzeichen.
-// Gleich klingende Tonarten (Fis-Dur/Ges-Dur) sind keine Ablenker. Dur: namer = majorName, Moll: minorName.
+// Gleich klingende Tonarten (Fis-Dur/Ges-Dur) stehen nie zusammen in der Auswahl: weder als Ablenker zur
+// richtigen Antwort noch zwei Ablenker untereinander (Cis-Dur/Des-Dur). Dur: namer = majorName, Moll: minorName.
 export function keyChoices(fifths, namer) {
-  const ok = (f) => f >= -7 && f <= 7 && (f === fifths || tonicPc(f) !== tonicPc(fifths));
   const picks = [fifths];
-  for (const f of [fifths - 1, fifths + 1, -fifths, fifths - 2, fifths + 2, fifths - 3, fifths + 3]) {
+  const ok = (f) => f >= -7 && f <= 7 && !picks.some((p) => p === f || tonicPc(p) === tonicPc(f));
+  for (const f of [fifths - 1, fifths + 1, -fifths, fifths - 2, fifths + 2, fifths - 3, fifths + 3, fifths - 4, fifths + 4]) {
     if (picks.length >= 4) break;
-    if (ok(f) && !picks.includes(f)) picks.push(f);
+    if (ok(f)) picks.push(f);
   }
   return shuffle(picks.map(namer));
 }
@@ -194,6 +205,7 @@ function majorQuestion(it) {
     prompt: "Welche Dur-Tonart?",
     answer,
     display: `${answer} (${sigText(it.fifths)})`,
+    reveal: `${sigSentence(it.fifths)} ${answer}.`,
     choices: keyChoices(it.fifths, majorName),
     clef: it.clef, fifths: it.fifths,
     statKey: `Dur zu ${keyStat(it)}`,
@@ -207,6 +219,7 @@ function minorQuestion(it) {
     prompt: `Parallele Molltonart zu ${majorName(it.fifths)}?`,
     answer,
     display: `${answer} (parallel zu ${majorName(it.fifths)}, ${sigText(it.fifths)})`,
+    reveal: `Die parallele Molltonart zu ${majorName(it.fifths)} ist ${answer}.`,
     choices: minorChoices(it.fifths),
     clef: it.clef, fifths: it.fifths,
     statKey: `Moll zu ${majorName(it.fifths)}`,
@@ -254,7 +267,7 @@ const levels = [
   {
     title: "Tonart aus den Vorzeichen",
     subtitle: "Violin- und Bassschlüssel · 15 Dur-Tonarten",
-    hint: "Bei Kreuzen liegt der Grundton einen Halbton über dem letzten Kreuz (Fis → G-Dur). Bei Be ist das vorletzte B der Grundton (B, Es → B-Dur); ein einzelnes B heißt F-Dur.",
+    hint: "Bei Kreuzen liegt der Grundton einen Halbton über dem letzten Kreuz (Fis → G-Dur). Bei Be-Vorzeichen ist das vorletzte Be der Grundton (B, Es → B-Dur); ein einzelnes Be steht für F-Dur.",
     items: POOL_5,
     example: keySvg({ clef: "treble", fifths: 3 }),
     question(prev) { return majorQuestion(pickKey(POOL_5, prev)); },
@@ -272,7 +285,10 @@ const levels = [
 /* ---------- Lerntafeln ---------- */
 
 // Intervalle über c' (Violinschlüssel) bzw. c (Bassschlüssel), je Zeile höchstens drei Beispiele.
-// Drei statt vier, damit das Vorzeichen der oberen Note nicht an den Kopf der unteren stößt.
+// Drei statt vier, damit das Vorzeichen der oberen Note nicht an den Kopf der unteren stößt. Ganze Noten:
+// innerhalb eines Paars 44 Einheiten (bei 40 berührte das ♯ von fis' fast die Hilfslinie von c'), von Paar
+// zu Paar 78, erstes Paar bei 78; so endet der letzte Kopf (278 + 10,3) vor dem Ende der Zeile (302).
+const PAIR_DX = 44, PAIR_STEP = 78, PAIR_X0 = 78;
 const TABLE = [
   [[1, "rein"], [2, "klein"], [2, "groß"]],
   [[3, "klein"], [3, "groß"], [4, "rein"]],
@@ -295,16 +311,18 @@ export const LEARN_ROWS = TABLE.flat().map(([num, q]) => ({ num, quality: q, nam
 // Die Überschrift setzt learn.js aus dem title der Tafel
 function intervalBoard(clef) {
   const c = clef === "treble" ? N("C", 4) : N("C", 3);
+  // Im Bassschlüssel hängt keine Note unter der Zeile (c liegt im zweiten Zwischenraum): Beschriftung 10 höher
+  const ly = clef === "treble" ? 114 : 104;
   const staves = TABLE.map((row) => {
     let inner = "";
     row.forEach(([num, q], i) => {
-      const x = 90 + i * 82, high = aboveC(c, num, q);
-      inner += noteSvg(c, clef, x, "", { value: NOTE_VALUE }) + noteSvg(high, clef, x + 40, "", { value: NOTE_VALUE });
+      const x = PAIR_X0 + i * PAIR_STEP, high = aboveC(c, num, q);
+      inner += noteSvg(c, clef, x, "", { value: NOTE_VALUE }) + noteSvg(high, clef, x + PAIR_DX, "", { value: NOTE_VALUE });
       // Beschriftung zweizeilig, damit lange Namen („übermäßige Quarte“) nicht ineinanderlaufen
-      inner += `<text class="note-label" x="${x + 20}" y="114" text-anchor="middle">${q === "groß" ? "große" : q + "e"}</text>`;
-      inner += `<text class="note-label" x="${x + 20}" y="126" text-anchor="middle">${INTERVAL_NAMES[num - 1]}</text>`;
+      inner += `<text class="note-label" x="${x + PAIR_DX / 2}" y="${ly}" text-anchor="middle">${q === "groß" ? "große" : q + "e"}</text>`;
+      inner += `<text class="note-label" x="${x + PAIR_DX / 2}" y="${ly + 12}" text-anchor="middle">${INTERVAL_NAMES[num - 1]}</text>`;
     });
-    return staffSvg(clef, inner, { height: 132 });
+    return staffSvg(clef, inner, { height: ly + 18 });
   }).join("");
   const rows = LEARN_ROWS.map((r) => `<tr><td>${r.name}</td><td class="num">${r.semitones}</td><td><b>${helm(c)}–${helm(aboveC(c, r.num, r.quality))}</b></td></tr>`).join("");
   return `<figure style="grid-column: 1 / -1; margin: 0">${staves}</figure>

@@ -2,10 +2,11 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import intervalle, {
   POOL_1, POOL_2, POOL_3, POOL_4, POOL_5, POOL_6, FIFTHS, X_LOW, X_HIGH, NOTE_VALUE, LEARN_ROWS,
-  usualNote, upperNote, intervalSvg, numberChoices, minorMajorChoices, perfectChoices, keyChoices, minorChoices, sigText, describe,
+  usualNote, upperNote, intervalSvg, numberChoices, minorMajorChoices, perfectChoices, keyChoices, minorChoices, sigText, sigSentence, describe,
 } from "../../src/packs/intervalle.js";
 import { PACKS } from "../../src/packs/index.js";
-import { N, dia, midi, intervalNumber, intervalName, INTERVAL_NAMES, majorName, minorName, intervalLabel } from "../../src/music.js";
+import { N, dia, midi, pc, SEMI, intervalNumber, intervalName, INTERVAL_NAMES, majorName, minorName, majorKeyFromKeySig, relativeMinor, intervalLabel } from "../../src/music.js";
+import { feedbackText } from "../../src/engine.js";
 import { staffSvg, noteSvg } from "../../src/staff.js";
 
 const L = intervalle.levels;
@@ -153,13 +154,14 @@ test("upperNote und usualNote", () => {
   assert.ok(usualNote(N("F", 4, 1)) && usualNote(N("G", 4, -1)));
 });
 
-test("Notation: zwei Viertelnoten nebeneinander, Vorzeichen vor der Note", () => {
-  assert.equal(NOTE_VALUE, 4);
+test("Notation: zwei ganze Noten nebeneinander, Vorzeichen vor der Note", () => {
+  assert.equal(NOTE_VALUE, 1);
   const svg = intervalSvg({ clef: "treble", low: N("H", 3), high: N("F", 4) });
   // h hängt unter der c'-Hilfslinie: eine Hilfslinie
   assert.equal((svg.match(/class="ledger"/g) || []).length, 1);
-  assert.equal((svg.match(/class="stem"/g) || []).length, 2);
-  assert.equal((svg.match(/class="notehead"/g) || []).length, 2);
+  // ganze Noten: offene Köpfe, keine Hälse
+  assert.equal((svg.match(/class="stem"/g) || []).length, 0);
+  assert.equal((svg.match(/class="notehead open"/g) || []).length, 2);
   // a'' liegt auf der ersten Hilfslinie über der Zeile, c'' in der Zeile
   assert.equal((intervalSvg({ clef: "treble", low: N("C", 5), high: N("A", 5) }).match(/class="ledger"/g) || []).length, 1);
   // Bassschlüssel: E auf der ersten Hilfslinie unter der Zeile, c' auf der ersten darüber
@@ -168,7 +170,7 @@ test("Notation: zwei Viertelnoten nebeneinander, Vorzeichen vor der Note", () =>
   assert.equal((intervalSvg({ clef: "bass", low: N("A", 3), high: N("C", 4) }).match(/class="ledger"/g) || []).length, 1);
   const withAcc = intervalSvg({ clef: "treble", low: N("C", 4), high: N("E", 4, -1) });
   const m = withAcc.match(/<text class="acc" x="([\d.]+)"/);
-  // Kopf der ersten Note reicht bis X_LOW + 7,7 (Hals nach oben bei X_LOW + 6,2), Vorzeichen beginnt deutlich dahinter
+  // Kopf der ersten (ganzen) Note reicht bis X_LOW + 10,3, das Vorzeichen beginnt deutlich dahinter
   assert.ok(m && +m[1] < X_HIGH && +m[1] > X_LOW + 20, "Vorzeichen zwischen den Noten, ohne die erste Note zu berühren");
 });
 
@@ -230,4 +232,43 @@ test("Lerntafeln", () => {
   // Intervalltabelle: 14 Zeilen mit Halbtonzahl
   assert.equal((t.match(/<tr><td>/g) || []).length, 14);
   assert.ok(t.includes('<tr><td>übermäßige Quarte</td><td class="num">6</td><td><b>c\'–fis\'</b></td></tr>'));
+});
+
+test("Feedback: ganze Sätze nach falscher Antwort (reveal)", () => {
+  const q1 = L[0].question(null);
+  assert.equal(feedbackText(q1, false), `Richtig wäre: ${q1.answer} (${q1.display.match(/Intervall (\S+):/)[1]}).`);
+  for (const l of L) for (const q of many(l, 60)) {
+    assert.ok(q.reveal && q.reveal.endsWith("."), l.id);
+    assert.ok(!/Das war ein/.test(feedbackText(q, false)), l.id);
+    assert.ok(q.reveal.includes(q.answer), l.id);
+    assert.ok(!/Fehler!|falsch|mühelos|Held|Champion/.test(q.reveal), q.reveal);
+  }
+  const iv = (low, high, l) => { for (let i = 0; i < 2000; i++) { const q = l.question(null); if (q.low.letter === low.letter && q.low.octave === low.octave && q.low.acc === low.acc && q.high.letter === high.letter && q.high.octave === high.octave && q.high.acc === high.acc) return q; } return null; };
+  assert.equal(iv(N("C", 4), N("E", 4), L[0]).reveal, "Richtig wäre: Terz (c'–e').");
+  assert.equal(iv(N("H", 4), N("F", 5), L[3]).reveal, "Richtig wäre: verminderte Quinte (h'–f'').");
+  assert.equal(sigSentence(0) + " C-Dur.", "Ohne Vorzeichen ist es C-Dur.");
+  assert.equal(sigSentence(1), "Ein Kreuz steht für");
+  assert.equal(sigSentence(3), "Drei Kreuze stehen für");
+  assert.equal(sigSentence(-1), "Ein Be steht für");
+  assert.equal(sigSentence(-4), "Vier Be stehen für");
+  for (const q of many(L[4], 200)) if (q.fifths === 3) assert.equal(q.reveal, "Drei Kreuze stehen für A-Dur.");
+  for (const q of many(L[5], 200)) if (q.fifths === -3) assert.equal(q.reveal, "Die parallele Molltonart zu Es-Dur ist c-Moll.");
+});
+
+test("Tonarten-Auswahl: nie zwei gleich klingende Tonarten, immer vier verschiedene", () => {
+  const majorPc = (f) => { const t = majorKeyFromKeySig(f); return pc(SEMI[t.letter] + t.acc); };
+  const minorPc = (f) => { const t = relativeMinor(f); return pc(SEMI[t.letter] + t.acc); };
+  const byMajor = new Map(FIFTHS.map((f) => [majorName(f), majorPc(f)]));
+  const byMinor = new Map(FIFTHS.map((f) => [minorName(f), minorPc(f)]));
+  for (const f of FIFTHS) {
+    for (let i = 0; i < 30; i++) {
+      for (const [c, m] of [[keyChoices(f, majorName), byMajor], [minorChoices(f), byMinor]]) {
+        assert.equal(c.length, 4, c.join());
+        assert.equal(new Set(c.map((n) => m.get(n))).size, 4, `${f}: ${c.join()}`);
+      }
+    }
+  }
+  // Cis-Dur: Ces-Dur darf stehen, aber nicht zusammen mit H-Dur
+  const c7 = keyChoices(7, majorName);
+  assert.ok(!(c7.includes("Ces-Dur") && c7.includes("H-Dur")), c7.join());
 });
