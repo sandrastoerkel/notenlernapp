@@ -189,6 +189,13 @@ section { display: grid; gap: 14px; }
 .bar.ok > i { background: var(--ok); }
 .list { display: grid; gap: 8px; }
 .list-row { display: grid; grid-template-columns: 1fr 2fr auto; gap: 10px; align-items: center; }
+/* Statistik je Stufe: Titel, Balken, Ergebnis mit Sternen; nie gespielte Stufen gedämpft */
+.level-group { gap: 8px; }
+.level-group + .level-group { padding-top: 10px; border-top: 1px solid var(--line); }
+.level-stat { grid-template-columns: 1.4fr 1fr auto; }
+.level-stat.muted .bar { opacity: .5; }
+.level-stat-end { gap: 8px; flex-wrap: nowrap; justify-content: flex-end; }
+@media (max-width: 480px) { .level-stat { grid-template-columns: 1fr auto; } .level-stat .bar { grid-column: 1 / -1; grid-row: 2; } }
 
 .timer { font-family: var(--display); font-size: 2.6rem; font-weight: 700; line-height: 1; }
 .timer.low { color: var(--bad); }
