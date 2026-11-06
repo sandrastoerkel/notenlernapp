@@ -194,6 +194,21 @@ test("Takt füllen: play ist der vollständige Takt als Rhythmus (vier Schläge)
   for (const l of L.slice(0, 4)) assert.equal(l.question(null).play, undefined);
 });
 
+test("Takt: einfacher dünner Taktstrich am Ende, kein Schlussstrich", () => {
+  // Ein einzelner Takt aus einem Stück endet mit einem einfachen Taktstrich (Verovio barLineWidth 0,15 LA),
+  // nicht mit dem Schlussstrich (dünn + dick). Gilt für Aufgabe und Auflösung.
+  for (const svg of [barSvg(parseBar("4. 8 r4 4"), 2), barSvg(parseBar("4. 8 r4 4"), 2, true), barSvg(parseBar("2 2"))]) {
+    const bars = svg.match(/<line class="staff-line barline"[^>]*>/g);
+    assert.equal(bars.length, 1);
+    assert.ok(bars[0].includes(`x1="${X1}" x2="${X1}"`) && bars[0].includes(`y1="${TOP}" y2="${BOTTOM}"`));
+    assert.ok(Math.abs(parseFloat(bars[0].match(/stroke-width:([\d.]+)/)[1]) / S - 0.15) < 1e-9);
+    // keine weiteren senkrechten Striche oder Balken am Zeilenende
+    const vertical = (svg.match(/<line [^>]*>/g) || []).filter((l) => /x1="([\d.]+)" x2="\1"/.test(l) && !l.includes('class="stem"'));
+    assert.equal(vertical.length, 1);
+    assert.ok(!/<rect [^>]*x="(29\d|30\d)/.test(svg));
+  }
+});
+
 test("fillChoices: vier verschiedene Dauern, nach Länge sortiert", () => {
   for (const e of [...parseBar("2. 4. 8 16"), ...parseBar("r2 r4 r8 r16")]) {
     for (let i = 0; i < 50; i++) {
