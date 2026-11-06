@@ -211,7 +211,10 @@ Lerntafel (optional, erscheint im Tab „Lernen“ als Karte):
 
 `clef` ist optional. Eine Tafel mit `clef` erscheint nur, wenn im Tab „Lernen“
 dieser Schlüssel gewählt ist; eine Tafel ohne `clef` erscheint bei beiden
-Schlüsseln.
+Schlüsseln. Alle Tafeln stehen in der Karte „Lerntafeln“ im Raster `.legend`;
+`title` zeigt die Ansicht als Überschrift (`<h3 class="legend-title">`, über
+die ganze Breite) vor dem Inhalt von `render()`. `render()` bringt deshalb
+keine eigene Hauptüberschrift mit.
 
 ## Engine (`src/engine.js`)
 
@@ -288,7 +291,8 @@ und `save` greifen auf `localStorage` zu): `KEY_V1`, `KEY_V2`, `fresh()`,
 
 `npm test` führt `node --test "test/**/*.test.js"` aus (ein Verzeichnis als
 Argument funktioniert mit Node 22 nicht). Reine Module werden direkt
-importiert. Für Module, die den DOM brauchen, gibt es keine Tests; sie sollen
+importiert; aus den Ansichten nur reine Exporte wie `learnCardsHtml`
+(`test/views/learn.test.js`). Für Module, die den DOM brauchen, gibt es keine Tests; sie sollen
 deshalb so dünn wie möglich sein und ihre Logik in reine Module auslagern.
 
 ## Stil

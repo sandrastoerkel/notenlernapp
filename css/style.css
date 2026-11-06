@@ -180,6 +180,8 @@ section { display: grid; gap: 14px; }
 .kbd { font-family: ui-monospace, Menlo, monospace; font-size: .8rem; padding: 1px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-2); }
 .legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 6px 14px; }
 .legend div { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px dashed var(--line); padding: 3px 0; }
+.legend-title { grid-column: 1 / -1; font-size: 1.05rem; margin-top: 10px; }
+.legend-title:first-child { margin-top: 0; }
 .combo { font-family: var(--display); font-weight: 700; color: var(--gold); }
 @media (max-width: 420px) {
   .hero { grid-template-columns: 1fr; }
