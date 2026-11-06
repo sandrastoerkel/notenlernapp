@@ -12,7 +12,7 @@ Service Worker laufen nicht über `file://`): `npm run dev` oder
 index.html              Shell: Kopfzeile, <main>, Tab-Leiste, lädt src/app.js als Modul
 manifest.webmanifest    PWA-Manifest (ab Paket B)
 sw.js                   Service Worker (Offline-Cache, ab Paket B)
-icons/                  App-Icons (SVG + PNG, ab Paket B)
+icons/                  App-Icons (PNG, ab Paket B)
 fonts/                  selbst gehostete Schriften (woff2) + Lizenzen (ab Paket B)
 css/style.css           alle Styles, Farb- und Schrift-Tokens auf :root
 src/
@@ -72,6 +72,30 @@ Grundstellung, 1 Sextakkord, 2 Quartsextakkord; `INVERSIONS`), `fifthUp`,
 `relativeMinorOf(tonic)`, `triadName(root, type)` („C-Dur“, „a-Moll“, „h
 vermindert“), `majorScale(tonic)`, `degreeTriad(tonic, deg)`, `ROMAN`.
 
+Erweiterung aus Paket C (Notenwerte und Pausen): `VALUES` (`[1, 2, 4, 8, 16]`),
+`beats(value, dotted)` (Schläge im 4/4-Takt, Viertel = 1, Punkt verlängert um die
+Hälfte), `beatsText(b)` („1½“, „¾“), `beatsLabel(b)` („1 Schlag“, „2 Schläge“),
+`valueName(value, rest, dotted)` („punktierte halbe Note“, „Achtelpause“).
+
+Erweiterung aus Paket D (Intervalle und Tonarten): `INTERVAL_NAMES`,
+`isPerfectNumber(num)`, `intervalNumber(a, b)`, `intervalSemitones(a, b)`,
+`semitonesFor(num, quality)`, `intervalQuality(a, b)`, `intervalLabel(num,
+quality)` („große Terz“), `intervalName(a, b)`; Tonarten aus der Vorzeichnung
+(`fifths`: Anzahl ♯ positiv, ♭ negativ): `majorKeyFromKeySig(fifths)`,
+`relativeMinor(fifths)`, `majorName(fifths)` („Fis-Dur“), `minorName(fifths)`
+(„fis-Moll“).
+
+**Bekannte Dopplungen.** Die Pakete D und E entstanden parallel und haben je
+eigene Hilfsfunktionen für dasselbe angelegt. Beide Fassungen sind getestet und
+in Gebrauch; sie werden bewusst nicht zusammengelegt (Risiko ohne Nutzen für
+v0.2.0). Neue Pakete sollen die jeweils erste Fassung nutzen:
+
+| Paket D | Paket E | gleiche Bedeutung |
+| ------- | ------- | ----------------- |
+| `intervalSemitones(a, b)` | `semis(a, b)` | Halbtonabstand von a nach b |
+| `majorKeyFromKeySig(fifths)`, `majorName(fifths)` | `majorTonic(sig)`, `MAJOR_KEYS` | Dur-Tonart aus der Vorzeichnung |
+| `relativeMinor(fifths)` | `relativeMinorOf(tonic)` | parallele Molltonart (aus der Vorzeichnung bzw. aus dem Dur-Grundton) |
+
 Pakete dürfen dieses Modul erweitern (neue Funktionen anhängen), aber keine
 bestehende Signatur ändern.
 
@@ -85,6 +109,7 @@ Höhe `H = 122`. Eine halbe Stufe sind 6 Einheiten.
 | -------- | --------- |
 | `staffSvg(clef, inner, opts)` | komplette Zeile mit Schlüssel; `inner` wird eingesetzt. Das dritte Argument ist entweder ein String (zusätzliche Klasse am `<svg>`, wie in der ersten Fassung) oder ein Objekt `{ cls, height, keySig }`: `height` darf die Höhe erhöhen, `keySig` (Anzahl ♯ als positive, ♭ als negative Zahl, höchstens 7) zeichnet Vorzeichen hinter dem Schlüssel |
 | `noteSvg(n, clef, x, cls, opts)` | Note mit Hals, Hilfslinien und Vorzeichen; `cls` ist `""`, `"ok"`, `"bad"` oder `"ghost"`; `opts.value` ist `1`, `2`, `4`, `8`, `16` (ganze bis sechzehntel, Standard 4), `opts.stemless` lässt den Hals weg |
+| `noteheadSvg(x, y, value)` | nur der Notenkopf mit Mitte (x, y), so wie ihn `noteSvg` zeichnet (ohne Hals, Hilfslinien, Vorzeichen); `value` 4, 8, 16 schwarz, 2 und 1 hohl, Standard 4. Nutzt die Ansicht „Lernen“ für „Alle Namen zeigen“ |
 | `restSvg(value, x)` | Pause (1, 2, 4, 8, 16); ganze und halbe als `<rect class="rest">`, die übrigen als Glyphe (`<text class="rest">`) |
 | `glyphSvg(char, x, y, size)` | ein Zeichen aus der Musikschrift |
 | `keySigSvg(clef, count)` | nur die Vorzeichen (wird von `staffSvg` genutzt); Kreuze in der Reihenfolge Fis Cis Gis Dis Ais Eis His, Be in der Reihenfolge B Es As Des Ges Ces Fes |
@@ -184,7 +209,8 @@ Eine Stufe:
       answer: { letter: "G", acc: 0 }, // kanonische Antwort: bei "letters" { letter, acc }, sonst String oder Zahl
       display: "G (g')",       // Text fürs Feedback: „Richtig! G (g')“ bzw. „Das war ein G (g').“
       reveal: "Richtig wäre: A-Dur.", // optional, ganzer Satz bei falscher Antwort statt „Das war ein …“
-      play: [ /* Noten */ ],   // optional, wird nach der Antwort abgespielt (nacheinander, 500 ms Abstand)
+      revealSvg: "<svg …>",    // optional, ersetzt nach der Antwort svg (richtig und falsch), z. B. der volle Takt
+      play: [ /* Noten oder { note, beats } / { rest: true, beats } */ ], // optional, nach der Antwort abgespielt
       playTogether: false,     // optional, true spielt alle Töne aus play gleichzeitig (Akkord)
       choices: ["…"],          // nur bei input "choices": 4 bis 6 Auswahlknöpfe, enthält answer
       note: N("G", 4),         // optional, die gefragte Note (Ton im Blitz, Feedback ohne Oktave)
@@ -204,6 +230,21 @@ einer Reihe, ab 7 in zwei Reihen). Buchstaben und Klaviatur bleiben bei 7
 Spalten. In der Regel 4 bis 6 Knöpfe; Ausnahmen im Paket „Dreiklänge und
 Quintenzirkel“: Stufe 1 hat laut PLAN zwei (Dur, Moll), Stufe 4 drei (die drei
 Lagen), Stufe 6 alle sieben Stufen I bis VII.
+
+Rhythmen (seit Paket F): Ein Eintrag in `play` ist entweder eine Note (wie
+bisher; mehrere Noten nacheinander im Abstand `PLAY_GAP` = 500 ms) oder ein Wert
+mit Dauer: `{ note, beats }` für einen Ton, `{ rest: true, beats }` für eine
+Pause. `beats` zählt Schläge (Viertel = 1, punktierte Viertel 1,5); ein Schlag
+dauert `BEAT_MS` = 600 ms (Tempo 100). Der Ton klingt dann `beats · 0,6 s`
+lang (`play(n, vol, dur)` in `audio.js`). Die nächste Aufgabe erscheint erst,
+wenn der Rhythmus vorbei ist, plus `RHYTHM_TAIL` = 300 ms (bei
+ausgeschaltetem Ton wie bisher nach 800 bzw. 1600 ms). Genutzt von „Takt
+füllen“: Nach der Antwort zeigt `revealSvg` den Takt mit dem fehlenden Wert in
+der Lücke (`<g class="filled">`), und der ganze Takt erklingt auf h'.
+
+`revealSvg` (seit Paket F): Ist es gesetzt, ersetzt die Engine nach der Antwort
+das SVG der Aufgabe durch `revealSvg`; die Färbung `ok`/`bad` gilt für das
+angezeigte SVG. Ohne `revealSvg` bleibt `svg` stehen (`revealedSvg(q)`).
 
 Gleichzeitiges Abspielen (seit Paket E): Setzt eine Aufgabe `playTogether: true`
 und enthält `play` mehr als einen Ton, startet die Engine alle Töne zur selben
@@ -273,6 +314,24 @@ Stufen-ID.
   `feedbackText`, `resultMessage`, `dotsHtml`, `lettersHtml`, `choicesHtml`,
   `choicesClass(choices)`, `choiceCols(choices)`,
   `keyAction(e)`, `blitzPoints(combo)`, `notesToPlay(q)`, `playMode(q)`
+- seit Paket F, ebenfalls rein und getestet: `revealedSvg(q)` (`q.revealSvg`
+  oder `q.svg`), `playSchedule(q)` (Abspielplan `[{ note, at, dur }]` in ms;
+  `note` ist `null` bei Pausen, `dur` ist `null` bei Einträgen ohne Dauer),
+  `rhythmEnd(q)` (Ende des letzten Eintrags mit Dauer in ms, sonst 0),
+  `answerDelay(q, ok, muted)` (Wartezeit bis zur nächsten Aufgabe);
+  Konstanten `ROUND_LENGTH`, `DELAY_OK`, `DELAY_BAD`, `PLAY_GAP`, `BEAT_MS`,
+  `RHYTHM_TAIL`
+- `notesToPlay(q)` liefert nur die Noten aus `play` (ohne Pausen); damit
+  bleibt `playMode` für Akkorde unverändert
+
+## Töne (`src/audio.js`)
+
+`play(n, vol = 0.22, dur)` spielt eine Note (Dreieckswelle). Ohne `dur`
+klingt sie etwa 0,9 s aus; mit `dur` (Sekunden, für Rhythmen) klingt sie
+`toneEnd(dur)` lang, also 50 ms kürzer als notiert und mindestens 80 ms,
+damit gleiche Töne hintereinander getrennt hörbar sind. `playChord(notes,
+vol)` startet mehrere Töne gleichzeitig. `setMuted(m)`, `isMuted()`. Der
+`AudioContext` entsteht erst beim ersten Ton.
 
 Ein Wechsel des Tabs beendet eine laufende Runde (Üben und Blitz) ohne Eintrag.
 
@@ -295,6 +354,39 @@ const ctx = {
 
 Tastendrücke mit Strg, Alt oder Cmd werden ignoriert, alle anderen gehen an
 `handleKey` der aktiven Ansicht.
+
+Statistik (`src/views/stats.js`, seit Paket F) exportiert reine Hilfsfunktionen
+(getestet in `test/views/stats.test.js`):
+
+- `weakList(notes, limit = 6)`: Einträge aus `state.notes` mit `bad > 0`,
+  absteigend nach `bad` (Gleichstand nach Name), `[{ key, bad, ok, pct }]`;
+  `pct` ist der Balken relativ zum größten Wert
+- `levelRow(level, entry)`: `{ id, no, title, played, best, stars, pct }`
+  für eine Stufe (`pct` = `best · 10`)
+- `levelGroups(packs, levels)`: Stufen je Paket in der Reihenfolge der
+  Registry, je Gruppe `{ id, title, rows, played, stars, maxStars }`;
+  unbekannte IDs in `state.levels` werden übergangen
+- `levelRowText(row)`: „8/10 · 3× gespielt“ bzw. „noch nicht gespielt“
+
+## Offline und Updates (`sw.js`, `src/app.js`)
+
+`sw.js` legt alle App-Dateien beim Installieren in den Cache `CACHE`
+(`notenheld-v<Version>-<Zähler>`; bei jedem Release erhöhen) und liefert sie
+„Cache zuerst“ aus; Seitenaufrufe ohne Netz bekommen `index.html`.
+`test/sw.test.js` prüft, dass jede Datei aus `src/`, `css/`, `fonts/` und
+`icons/` in `PRECACHE` steht. Beim Aktivieren löscht der Worker alte Caches
+der App und übernimmt die offenen Seiten (`clients.claim`).
+
+Updates (seit Paket F): Der neue Worker ruft beim Installieren **kein**
+`skipWaiting` auf, sondern wartet. `src/app.js` registriert den Worker (nur
+über https oder localhost) und zeigt dann über der Tab-Leiste den Hinweis
+`#updateBar` „Neue Version verfügbar“ mit „Später“ (`#updateLater`, blendet
+aus) und „Neu laden“ (`#updateReload`). „Neu laden“ schickt dem wartenden
+Worker die Nachricht `{ type: "SKIP_WAITING" }`; er ruft `skipWaiting()` auf,
+und beim folgenden `controllerchange` lädt die Seite genau einmal neu. Bei der
+ersten Installation (noch kein `controller`) erscheint kein Hinweis und die
+Seite lädt nicht neu. Kommt die App aus dem Hintergrund zurück
+(`visibilitychange`), sucht sie mit `reg.update()` nach einer neuen Version.
 
 ## Fortschritt (`src/store.js`)
 
@@ -330,7 +422,10 @@ und `save` greifen auf `localStorage` zu): `KEY_V1`, `KEY_V2`, `fresh()`,
 `npm test` führt `node --test "test/**/*.test.js"` aus (ein Verzeichnis als
 Argument funktioniert mit Node 22 nicht). Reine Module werden direkt
 importiert; aus den Ansichten nur reine Exporte wie `learnCardsHtml`
-(`test/views/learn.test.js`). Für Module, die den DOM brauchen, gibt es keine Tests; sie sollen
+(`test/views/learn.test.js`). `test/css.test.js` prüft, dass
+`css/style.css` außerhalb der `:root`-Blöcke keine Farbwerte enthält;
+`test/texte.test.js` prüft `index.html` und `src/` auf Wörter, die laut
+Konzept nicht vorkommen sollen (Tonfall). Für Module, die den DOM brauchen, gibt es keine Tests; sie sollen
 deshalb so dünn wie möglich sein und ihre Logik in reine Module auslagern.
 
 ## Stil

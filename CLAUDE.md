@@ -11,8 +11,9 @@ Statische Web-App: HTML, CSS, JavaScript, keine Abhängigkeiten, kein Build.
 
 ## Stand
 
-- Paket A erledigt (auf Branch `paket-a`): `index.html` ist nur noch die Shell, der Code liegt als ES-Module in `src/**`, Styles in `css/style.css`, Tests in `test/**` (`npm test`). Fortschritt unter `notenheld.v2`, Übernahme aus `notenheld.v1` automatisch.
-- Nächster Schritt: Welle 2 mit den Paketen B bis E (siehe `docs/PLAN.md`).
+- Paket A erledigt: `index.html` ist nur noch die Shell, der Code liegt als ES-Module in `src/**`, Styles in `css/style.css`, Tests in `test/**` (`npm test`). Fortschritt unter `notenheld.v2`, Übernahme aus `notenheld.v1` automatisch.
+- Welle 2 erledigt und zusammengeführt: B Offline/PWA, C Notenwerte und Pausen, D Intervalle und Tonarten, E Dreiklänge und Quintenzirkel.
+- In Arbeit: Paket F (Branch `paket-f`) – Integration, Statistik je Stufe, Rhythmus und vollständiger Takt bei „Takt füllen“, Update-Hinweis des Service Workers, Screenshots; Ziel ist das Release v0.2.0.
 - Starten nur über einen Webserver (`npm run dev`), ES-Module laden nicht über `file://`.
 - Veröffentlichung über GitHub Pages (`.github/workflows/pages.yml`), Pfade immer relativ.
 
