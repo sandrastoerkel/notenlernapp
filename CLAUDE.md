@@ -13,7 +13,9 @@ Statische Web-App: HTML, CSS, JavaScript, keine Abhängigkeiten, kein Build.
 
 - Paket A erledigt: `index.html` ist nur noch die Shell, der Code liegt als ES-Module in `src/**`, Styles in `css/style.css`, Tests in `test/**` (`npm test`). Fortschritt unter `notenheld.v2`, Übernahme aus `notenheld.v1` automatisch.
 - Welle 2 erledigt und zusammengeführt: B Offline/PWA, C Notenwerte und Pausen, D Intervalle und Tonarten, E Dreiklänge und Quintenzirkel.
-- In Arbeit: Paket F (Branch `paket-f`) – Integration, Statistik je Stufe, Rhythmus und vollständiger Takt bei „Takt füllen“, Update-Hinweis des Service Workers, Screenshots; Ziel ist das Release v0.2.0.
+- Paket F erledigt: Integration, Statistik je Stufe, Rhythmus und vollständiger Takt bei „Takt füllen“, Update-Hinweis des Service Workers, Screenshots (`docs/screens/`, neu erzeugen mit `docs/screens/screenshots.mjs`).
+- Release v0.2.0 (Tag `v0.2.0`, Cache `notenheld-v0.2.0-2`, `package.json` 0.2.0).
+- Nächster Schritt: Test mit einem Kind (PLAN, Paket F Schritt 7). Noch offen aus der Übergabe zu Welle 3: Installation auf iOS und Android ungetestet.
 - Starten nur über einen Webserver (`npm run dev`), ES-Module laden nicht über `file://`.
 - Veröffentlichung über GitHub Pages (`.github/workflows/pages.yml`), Pfade immer relativ.
 
