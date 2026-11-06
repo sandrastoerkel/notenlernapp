@@ -20,6 +20,25 @@ python3 -m http.server 8080
 
 Dann http://localhost:8080 öffnen. Für die Schriften braucht der Browser Internet (Google Fonts).
 
+## Offline und Installation
+
+Nach dem ersten Laden läuft Notenheld auch ohne Internet, zum Beispiel im Flugmodus. Ein Service Worker (`sw.js`) legt dafür alle Dateien der App in den Browser-Cache: HTML, CSS, JavaScript, Schriften, Icons und Manifest. Die Schriften (Noto Music, Outfit, Nunito) liegen selbst gehostet in `fonts/`, es wird nichts von Google Fonts nachgeladen.
+
+Der Service Worker startet nur über `https` (GitHub Pages) oder auf dem eigenen Rechner (`localhost`, `127.0.0.1`).
+
+Auf den Startbildschirm legen:
+
+- **iPhone und iPad (Safari):** Teilen-Knopf → „Zum Home-Bildschirm“. Die App öffnet sich dann ohne Browserleiste.
+- **Android (Chrome):** Menü ⋮ → „App installieren“ bzw. „Zum Startbildschirm hinzufügen“.
+- **Computer (Chrome, Edge):** Symbol „Installieren“ rechts in der Adressleiste.
+
+Für Entwicklerinnen und Entwickler:
+
+- Die Cache-Version steht oben in `sw.js` (`const CACHE = "notenheld-v0.2.0-1"`). Bei jedem Release erhöhen, sonst behalten installierte Geräte die alten Dateien.
+- Neue Dateien unter `src/`, `css/`, `fonts/` oder `icons/` in die Liste `PRECACHE` in `sw.js` eintragen; `test/sw.test.js` schlägt sonst fehl.
+- Beim Entwickeln hilft in Chrome DevTools unter Application → Service Workers „Update on reload“, damit Änderungen sofort sichtbar sind.
+- Die Icons in `icons/` zeigen den Violinschlüssel aus Noto Music als Pfad auf der Akzentfarbe; die PNGs sind aus den SVGs gerendert. Lizenzen der Schriften: [THIRD_PARTY.md](THIRD_PARTY.md).
+
 ## Online-Version
 
 Jeder Push auf `main` veröffentlicht die App über GitHub Pages (Workflow in `.github/workflows/pages.yml`). Dafür einmalig in den Repo-Einstellungen unter **Settings → Pages** als Source „GitHub Actions“ wählen.
