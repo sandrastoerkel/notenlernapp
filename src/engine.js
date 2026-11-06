@@ -48,7 +48,9 @@ export function countAnswer(s, q, ok) {
   return s;
 }
 
-export const feedbackText = (q, ok) => (ok ? `Richtig! ${q.display}` : `Das war ein ${q.display}.`);
+// Feedback nach der Antwort. q.reveal (optional) ist ein ganzer Satz für eine falsche Antwort, z. B.
+// „Richtig wäre: A-Dur.“, weil „Das war ein …“ nicht zu jedem Begriff passt; ohne reveal wie bisher.
+export const feedbackText = (q, ok) => (ok ? `Richtig! ${q.display}` : q.reveal || `Das war ein ${q.display}.`);
 
 export function resultMessage(stars) {
   if (stars === 3) return "Stark, fast fehlerfrei.";
@@ -64,6 +66,12 @@ export const lettersHtml = () => LETTERS.map((l) => `<button class="btn" data-le
 
 const esc = (t) => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 export const choicesHtml = (choices) => (choices || []).map((c, i) => `<button class="btn" data-choice="${i}">${esc(c)}</button>`).join("");
+// Raster für Auswahlknöpfe: Begriffe zweispaltig ("choices"); sind alle Texte kurz (höchstens 4 Zeichen,
+// z. B. „½“, „VII“, „3 ♭“), passen mehrere in eine Reihe ("choices short"). Buchstaben behalten 7 Spalten.
+export const CHOICE_SHORT = 4;
+export const choicesClass = (choices) => ((choices || []).length && choices.every((c) => String(c).length <= CHOICE_SHORT) ? "choices short" : "choices");
+// Spalten für kurze Texte: alle in einer Reihe, ab sieben Knöpfen zwei Reihen (I–VII: 4 + 3)
+export const choiceCols = (choices) => { const n = (choices || []).length; return n <= 6 ? n : Math.ceil(n / 2); };
 
 // Tastendruck deuten: { letter } für C D E F G A H, { acc } für + # (♯), - b (♭), 0 (♮), sonst null.
 // Mit Strg, Alt oder Cmd wird nichts ausgewertet.
@@ -136,6 +144,7 @@ export function startRound(level, ui, hooks) {
     input: effectiveInput(level.input, hooks.state.input),
   };
   run = r;
+  if (ui.answers) ui.answers.classList.remove("choices", "short");
   if (r.level.input === "choices") {
     if (ui.answers) ui.answers.innerHTML = "";
   } else {
@@ -166,7 +175,13 @@ function showQuestion(r) {
   ui.feedback.textContent = q.prompt || ""; ui.feedback.className = "feedback";
   if (ui.count) ui.count.textContent = `${r.idx + 1} / ${r.items.length}`;
   if (ui.dots) ui.dots.innerHTML = dotsHtml(r.results, r.idx, r.items.length);
-  if (r.level.input === "choices" && ui.answers) ui.answers.innerHTML = choicesHtml(q.choices);
+  if (r.level.input === "choices" && ui.answers) {
+    ui.answers.innerHTML = choicesHtml(q.choices);
+    ui.answers.classList.add("choices");
+    const short = choicesClass(q.choices).includes("short");
+    ui.answers.classList.toggle("short", short);
+    if (short) ui.answers.style.setProperty("--cols", choiceCols(q.choices)); else ui.answers.style.removeProperty("--cols");
+  }
   all(ui.answers, ".btn").concat(all(ui.piano, "rect")).forEach((b) => b.classList.remove("ok", "bad"));
   setMod(0);
   r.t0 = performance.now();

@@ -93,7 +93,7 @@ section { display: grid; gap: 14px; }
 .clef { font-family: var(--music); fill: var(--ink); }
 .notehead { fill: var(--ink); }
 .stem { stroke: var(--ink); stroke-width: 1.8; }
-.acc { font-family: var(--music); fill: var(--ink); font-size: 40px; }
+.acc { font-family: var(--music); fill: var(--ink); font-size: 44px; } /* = ACC_SIZE in staff.js */
 .note.ok .notehead, .note.ok .acc { fill: var(--ok); } .note.ok .stem { stroke: var(--ok); }
 .note.bad .notehead, .note.bad .acc { fill: var(--bad); } .note.bad .stem { stroke: var(--bad); }
 .hit { fill: transparent; cursor: pointer; }
@@ -106,6 +106,12 @@ section { display: grid; gap: 14px; }
 .answers .btn { padding: 14px 0; font-size: 1.2rem; font-family: var(--display); }
 .answers .btn.ok { background: var(--ok-soft); border-color: var(--ok); }
 .answers .btn.bad { background: var(--bad-soft); border-color: var(--bad); }
+/* Auswahlknöpfe (input "choices", Klasse von src/engine.js): Begriffe in zwei Spalten, kurze Texte
+   (½, VII, 3 ♭) nebeneinander; Schrift Nunito, weil Outfit Brüche (½ ¼ ¾) winzig setzt; Knöpfe dürfen schmaler als ihr Text werden und brechen dann um */
+.answers.choices { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.answers.choices.short { grid-template-columns: repeat(var(--cols, 4), minmax(0, 1fr)); } /* --cols setzt src/engine.js */
+.answers.choices .btn { min-width: 0; padding: 12px 6px; font-size: 1rem; font-family: var(--body); line-height: 1.2; overflow-wrap: anywhere; hyphens: auto; }
+.answers.choices.short .btn { font-size: 1.25rem; }
 .mods { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .mods .btn { font-family: var(--music); font-size: 1.3rem; padding: 8px 0; }
 .mods .btn.on { background: var(--accent-soft); border-color: var(--accent); }
@@ -174,24 +180,26 @@ section { display: grid; gap: 14px; }
 .kbd { font-family: ui-monospace, Menlo, monospace; font-size: .8rem; padding: 1px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-2); }
 .legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 6px 14px; }
 .legend div { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px dashed var(--line); padding: 3px 0; }
+.legend-title { grid-column: 1 / -1; font-size: 1.05rem; margin-top: 10px; }
+.legend-title:first-child { margin-top: 0; }
 .combo { font-family: var(--display); font-weight: 700; color: var(--gold); }
 @media (max-width: 420px) {
   .hero { grid-template-columns: 1fr; }
   .answers .btn { font-size: 1.05rem; padding: 12px 0; }
+  .answers.choices .btn { font-size: .95rem; padding: 12px 4px; }
+  .answers.choices.short .btn { font-size: 1.2rem; }
 }
 @media (prefers-reduced-motion: reduce) { .btn { transition: none; } }
 
 /* Ergebnisfarbe: die Engine setzt "ok" oder "bad" auf das <svg> der Notenzeile */
-svg.ok .notehead, svg.ok .acc { fill: var(--ok); } svg.ok .stem, svg.ok .flag { stroke: var(--ok); }
-svg.bad .notehead, svg.bad .acc { fill: var(--bad); } svg.bad .stem, svg.bad .flag { stroke: var(--bad); }
+svg.ok .notehead, svg.ok .acc, svg.ok .flag { fill: var(--ok); } svg.ok .stem { stroke: var(--ok); }
+svg.bad .notehead, svg.bad .acc, svg.bad .flag { fill: var(--bad); } svg.bad .stem { stroke: var(--bad); }
 
 /* Erweiterungen der Notenzeile: Fähnchen, hohle Notenköpfe, Pausen, Vorzeichen, Glyphen */
-.flag { fill: none; stroke: var(--ink); stroke-width: 1.8; }
-.note.ok .flag { stroke: var(--ok); } .note.bad .flag { stroke: var(--bad); } .ghost .flag { stroke: var(--accent); }
-.note .notehead.open { fill: none; stroke: var(--ink); stroke-width: 1.8; }
-.note.ok .notehead.open, svg.ok .note .notehead.open { stroke: var(--ok); }
-.note.bad .notehead.open, svg.bad .note .notehead.open { stroke: var(--bad); }
-.note.ghost .notehead.open { stroke: var(--accent); }
+/* Fähnchen sind gefüllte Glyphen, hohle Notenköpfe Flächen mit Loch (Farbe wie .notehead) */
+.flag { font-family: var(--music); fill: var(--ink); }
+.note.ok .flag { fill: var(--ok); } .note.bad .flag { fill: var(--bad); } .ghost .flag { fill: var(--accent); }
+.notehead.open { fill-rule: evenodd; }
 .rest, .glyph, .keysig { font-family: var(--music); fill: var(--ink); }
-.keysig { font-size: 40px; }
+.keysig { font-size: 44px; } /* = ACC_SIZE in staff.js */
 svg.ok .rest { fill: var(--ok); } svg.bad .rest { fill: var(--bad); }

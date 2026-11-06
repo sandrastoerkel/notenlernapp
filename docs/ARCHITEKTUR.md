@@ -74,30 +74,56 @@ Höhe `H = 122`. Eine halbe Stufe sind 6 Einheiten.
 | -------- | --------- |
 | `staffSvg(clef, inner, opts)` | komplette Zeile mit Schlüssel; `inner` wird eingesetzt. Das dritte Argument ist entweder ein String (zusätzliche Klasse am `<svg>`, wie in der ersten Fassung) oder ein Objekt `{ cls, height, keySig }`: `height` darf die Höhe erhöhen, `keySig` (Anzahl ♯ als positive, ♭ als negative Zahl, höchstens 7) zeichnet Vorzeichen hinter dem Schlüssel |
 | `noteSvg(n, clef, x, cls, opts)` | Note mit Hals, Hilfslinien und Vorzeichen; `cls` ist `""`, `"ok"`, `"bad"` oder `"ghost"`; `opts.value` ist `1`, `2`, `4`, `8`, `16` (ganze bis sechzehntel, Standard 4), `opts.stemless` lässt den Hals weg |
-| `restSvg(value, x)` | Pause (1, 2, 4, 8, 16) |
+| `restSvg(value, x)` | Pause (1, 2, 4, 8, 16); ganze und halbe als `<rect class="rest">`, die übrigen als Glyphe (`<text class="rest">`) |
 | `glyphSvg(char, x, y, size)` | ein Zeichen aus der Musikschrift |
 | `keySigSvg(clef, count)` | nur die Vorzeichen (wird von `staffSvg` genutzt); Kreuze in der Reihenfolge Fis Cis Gis Dis Ais Eis His, Be in der Reihenfolge B Es As Des Ges Ces Fes |
 | `pianoSvg()` | eine Oktave Klaviatur (8 weiße, 5 schwarze Tasten, 13 `rect`); Tasten tragen `data-semi` (Halbtonzahl ab C, das obere C wieder 0) |
 
 Weitere Exporte: die Maße `S`, `TOP`, `BOTTOM`, `W`, `H`, `X0`, `X1`, die
-Glyphen-Tabelle `GLYPHS` (`treble`, `bass`, `notes[1…16]`, `rests[1…16]`) und
-`WHITE`, `BLACK` (Tasten der Klaviatur). Ohne `opts` ist die Ausgabe von
-`noteSvg` und `staffSvg` identisch mit der ersten Fassung aus dem Prototyp.
+Glyphen-Tabelle `GLYPHS` (`treble`, `bass`, `notes[1…16]`, `rests[1…16]`,
+`flags[8]`, `flags[16]`), die Kopfmaße `HEAD`, `ACC_SIZE`, `ACC_DY`,
+`KEYSIG_DY` und `WHITE`, `BLACK` (Tasten der Klaviatur).
 Beim Auswerten färbt die Engine die ganze Zeile: sie setzt `ok` oder `bad` als
-Klasse auf das `<svg>`; `css/style.css` färbt dann `.notehead`, `.acc` und
-`.stem`.
+Klasse auf das `<svg>`; `css/style.css` färbt dann `.notehead`, `.acc`,
+`.flag` (Füllung) und `.stem` (Strich).
 
-Schlüssel, Pausen und Notenwerte kommen als Glyphen aus der Schrift „Noto
-Music“ (Unicode-Block Musical Symbols), Schriftgröße `4.2 * S`. Die
-Grundlinie des Violinschlüssels liegt auf der untersten Linie (`y = BOTTOM`);
-damit umschließt die Schnecke die G-Linie (zweite Linie von unten). Die
-Grundlinie des Bassschlüssels liegt knapp unter der
-untersten Linie (`y = BOTTOM + 1`); sein Kopf sitzt auf der F-Linie.
-Vorzeichen (vor Noten und als Vorzeichnung, `ACC_SIZE` = 40px) werden um `ACC_DY` bzw.
-`KEYSIG_DY` (♯ 6, ♭ 4) unter die Linie/den Zwischenraum gesetzt, damit
-die Mitte des ♯ bzw. der Bauch des ♭ genau dort liegt. Pausen werden mit Schriftgröße 48 (vier
-Linienabstände) gesetzt; ihre Grundlinie ist aus den Glyphenmaßen von Noto
-Music berechnet (siehe Kommentar in `staff.js`).
+**Notensatz.** Größe und Lage aller Zeichen sind gegen Verovio 6.4.1 mit der
+SMuFL-Schrift Bravura gemessen (Leipzig zur Kontrolle), bei 12 px pro
+Linienabstand; Messbericht vom 06.11.2026. Die Werte stehen mit Quelle als
+Kommentar in `staff.js`. Angaben in Linienabständen (LA):
+
+- Schlüssel kommen als Glyphen aus „Noto Music“, Schriftgröße `4.2 * S`. Die
+  Grundlinie des Violinschlüssels liegt auf der untersten Linie
+  (`y = BOTTOM`); die Schnecke umschließt die G-Linie. Die Grundlinie des
+  Bassschlüssels liegt bei `BOTTOM − 3,9`; die beiden Punkte stehen in den
+  Zwischenräumen über und unter der F-Linie (vorher `BOTTOM + 1`, 0,4 LA zu
+  tief).
+- Schwarzer Notenkopf: Ellipse `HEAD` (rx 7,7, ry 5,25, um −31° gedreht),
+  1,18 × 1,00 LA wie Bravura. Halbe und ganze Note sind gefüllte Pfade mit
+  Loch (`fill-rule: evenodd`), Form nach Bravura (ganze Note 1,7 LA breit).
+- Hals: Strichstärke 1,8, Außenkante bündig mit dem Kopf (Halsmitte ±6,2
+  neben der Kopfmitte), Länge 3,5 LA ab Kopfmitte; Noten außerhalb der Zeile
+  reichen bis zur Mittellinie, mit Fähnchen einen halben LA weiter. Hals
+  nach oben unterhalb der Mittellinie, ab der Mittellinie nach unten.
+- Fähnchen: Glyphen U+1D16E (eins) und U+1D16F (zwei) aus Noto Music bei
+  48px, immer rechts vom Hals; bei Hals nach unten senkrecht gespiegelt
+  (`scale(1 -1)`), sie hängen dann am unteren Ende und schwingen nach oben.
+- Vorzeichen (vor Noten und als Vorzeichnung) mit `ACC_SIZE` = 44px:
+  ♯ 2,8 LA, ♭ 2,45 LA hoch. Die Grundlinie liegt `ACC_DY`/`KEYSIG_DY`
+  (♯ 6, ♭ 5,5) unter der Linie bzw. dem Zwischenraum. Vor der Note bleibt
+  0,25 LA Abstand zum Kopf, bei jedem Notenwert: vor der breiteren ganzen
+  Note rückt das Vorzeichen um 3,15 weiter nach links. Hat die Note eine
+  Hilfslinie (durch den Kopf oder direkt daneben), rückt es um weitere 1,9:
+  Abstand zum Kopf 0,38–0,41 LA, die Hilfslinie bleibt frei (wie Verovio).
+- Hilfslinien ragen über den Kopf hinaus: bei schwarzen und halben Köpfen
+  11 Einheiten zu jeder Seite (1,83 LA lang), bei der ganzen Note 13,4
+  (2,23 LA, wie Verovio/Bravura 2,22). Die Vorzeichnung im Bassschlüssel ist dasselbe
+  Muster einen Zwischenraum tiefer; das Fes liegt unter der Zeile (von
+  Verovio bestätigt).
+- Pausen: Viertel, Achtel, Sechzehntel als Glyphen mit Schriftgröße 48
+  (vier LA), Glyphenmitte 2,0 / 2,13 / 2,625 LA unter der obersten Linie.
+  Ganze und halbe Pause sind Rechtecke (14 × 6,5): die ganze hängt an der
+  vierten Linie von unten, die halbe sitzt auf der Mittellinie.
 
 ## Themenpakete (`src/packs/*.js`)
 
@@ -134,6 +160,7 @@ Eine Stufe:
       prompt: "",              // optionale Frage über der Zeile, z. B. "Wie viele Schläge?"
       answer: { letter: "G", acc: 0 }, // kanonische Antwort: bei "letters" { letter, acc }, sonst String oder Zahl
       display: "G (g')",       // Text fürs Feedback: „Richtig! G (g')“ bzw. „Das war ein G (g').“
+      reveal: "Richtig wäre: A-Dur.", // optional, ganzer Satz bei falscher Antwort statt „Das war ein …“
       play: [ /* Noten */ ],   // optional, wird nach der Antwort abgespielt (nacheinander, 500 ms Abstand)
       choices: ["…"],          // nur bei input "choices": 4 bis 6 Auswahlknöpfe, enthält answer
       note: N("G", 4),         // optional, die gefragte Note (Ton im Blitz, Feedback ohne Oktave)
@@ -144,6 +171,13 @@ Eine Stufe:
   check(q, value) { return value === q.answer; }, // value ist bei "letters" {letter, acc}, bei "keys" eine Halbtonzahl, bei "choices" der Knopftext
 }
 ```
+
+Auswahlknöpfe (`input: "choices"`): die Engine setzt auf das Antwortfeld die
+Klasse `choices` (zwei Spalten, lange Begriffe wie „punktierte Viertelnote“
+passen bei 420 px in eine Zeile); sind alle Texte höchstens 4 Zeichen lang
+(„½“, „VII“, „3 ♭“), zusätzlich `short` mit `--cols` Spalten (bis 6 Knöpfe in
+einer Reihe, ab 7 in zwei Reihen). Buchstaben und Klaviatur bleiben bei 7
+Spalten.
 
 Eingabeart: hat eine Stufe `input: "letters"` und hat das Kind „Klaviatur“
 gewählt (`state.input === "keys"`), nutzt die Engine die Klaviatur. Andere
@@ -179,7 +213,10 @@ Lerntafel (optional, erscheint im Tab „Lernen“ als Karte):
 
 `clef` ist optional. Eine Tafel mit `clef` erscheint nur, wenn im Tab „Lernen“
 dieser Schlüssel gewählt ist; eine Tafel ohne `clef` erscheint bei beiden
-Schlüsseln.
+Schlüsseln. Alle Tafeln stehen in der Karte „Lerntafeln“ im Raster `.legend`;
+`title` zeigt die Ansicht als Überschrift (`<h3 class="legend-title">`, über
+die ganze Breite) vor dem Inhalt von `render()`. `render()` bringt deshalb
+keine eigene Hauptüberschrift mit.
 
 ## Engine (`src/engine.js`)
 
@@ -198,6 +235,7 @@ Stufen-ID.
 - reine Hilfsfunktionen (getestet): `starsHtml`, `effectiveInput`, `makeRound`,
   `findLevel(packs, id)`, `nextLevel(pack, level)`, `countAnswer`,
   `feedbackText`, `resultMessage`, `dotsHtml`, `lettersHtml`, `choicesHtml`,
+  `choicesClass(choices)`, `choiceCols(choices)`,
   `keyAction(e)`, `blitzPoints(combo)`, `notesToPlay(q)`
 
 Ein Wechsel des Tabs beendet eine laufende Runde (Üben und Blitz) ohne Eintrag.
@@ -255,7 +293,8 @@ und `save` greifen auf `localStorage` zu): `KEY_V1`, `KEY_V2`, `fresh()`,
 
 `npm test` führt `node --test "test/**/*.test.js"` aus (ein Verzeichnis als
 Argument funktioniert mit Node 22 nicht). Reine Module werden direkt
-importiert. Für Module, die den DOM brauchen, gibt es keine Tests; sie sollen
+importiert; aus den Ansichten nur reine Exporte wie `learnCardsHtml`
+(`test/views/learn.test.js`). Für Module, die den DOM brauchen, gibt es keine Tests; sie sollen
 deshalb so dünn wie möglich sein und ihre Logik in reine Module auslagern.
 
 ## Stil

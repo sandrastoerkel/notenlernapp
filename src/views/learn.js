@@ -21,8 +21,15 @@ export function init(c) {
   });
 }
 
-// Lerntafeln aller Pakete: Tafeln mit Schlüssel nur für den gewählten, Tafeln ohne Schlüssel immer
-const legendHtml = () => ctx.packs.flatMap((p) => p.learn || []).filter((card) => !card.clef || card.clef === lClef).map((card) => card.render()).join("");
+const esc = (t) => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+// Lerntafeln aller Pakete (rein, getestet): Tafeln mit Schlüssel nur für den gewählten, Tafeln ohne
+// Schlüssel immer. Der Titel einer Tafel steht als Überschrift über ihrem Inhalt (ganze Breite des Rasters).
+export const learnCardsHtml = (packs, clef) => packs.flatMap((p) => p.learn || [])
+  .filter((card) => !card.clef || card.clef === clef)
+  .map((card) => (card.title ? `<h3 class="legend-title">${esc(card.title)}</h3>` : "") + card.render())
+  .join("");
+const legendHtml = () => learnCardsHtml(ctx.packs, lClef);
 
 export function render() {
   $("#lTreble").classList.toggle("on", lClef === "treble"); $("#lBass").classList.toggle("on", lClef === "bass");
