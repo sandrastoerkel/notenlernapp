@@ -149,7 +149,8 @@ section { display: grid; gap: 14px; }
 .seg button { border: 0; background: transparent; padding: 6px 12px; font-weight: 700; cursor: pointer; font-size: .85rem; }
 .seg button.on { background: var(--accent); color: var(--accent-fg); }
 
-.feedback { min-height: 1.6em; font-weight: 800; font-family: var(--display); font-size: 1.05rem; }
+/* Nunito statt Outfit: die Bruchzeichen ½ ¼ ¾ sind in Outfit sehr klein */
+.feedback { min-height: 1.6em; font-weight: 800; font-family: var(--body); font-size: 1.05rem; }
 .feedback.ok { color: var(--ok); } .feedback.bad { color: var(--bad); }
 
 .dots { display: flex; gap: 5px; flex-wrap: wrap; }
