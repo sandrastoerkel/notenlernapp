@@ -1,24 +1,46 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { N, range, staffPos } from "../src/music.js";
-import { noteSvg, noteheadSvg, staffSvg, pianoSvg, restSvg, glyphSvg, keySigSvg, KEYSIG_DY, ACC_DY, ACC_SIZE, HEAD, GLYPHS } from "../src/staff.js";
+import { noteSvg, noteheadSvg, staffSvg, pianoSvg, restSvg, glyphSvg, keySigSvg, KEYSIG_DY, ACC_DY, ACC_SIZE, HEAD, GLYPHS, BASS_CLEF_PATH } from "../src/staff.js";
 
 const count = (s, re) => (s.match(re) || []).length;
 
 const S = 12, TOP = 34, BOTTOM = TOP + 4 * S, W = 320, H = 122, X0 = 18, X1 = 302, MID = TOP + 2 * S;
 const attr = (svg, sel, name) => { const m = svg.match(new RegExp(`<${sel}[^>]*?\\s${name}="([^"]*)"`)); return m && m[1]; };
 
-// Zeile ohne Noten: Linien wie in der ersten Fassung. Der Bassschlüssel steht seit der Messung gegen
-// Verovio/Bravura 4,9 Einheiten höher (Grundlinie BOTTOM − 3,9 statt BOTTOM + 1), damit die Punkte
-// über und unter der F-Linie liegen; der Violinschlüssel ist unverändert.
+// Zeile ohne Noten: Linien wie in der ersten Fassung. Der Bassschlüssel ist der Umriss fClef aus Bravura
+// (1000 Einheiten pro em = 4 LA, also Maßstab 12/250 = 0,048, y gespiegelt), Ursprung auf der F-Linie;
+// der Violinschlüssel ist unverändert die Glyphe aus Noto Music.
 function expectedStaff(clef, inner, extraCls) {
   let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Notenzeile" class="${extraCls || ""}">`;
   for (let i = 0; i < 5; i++) s += `<line class="staff-line" x1="${X0}" x2="${X1}" y1="${TOP + i * S}" y2="${TOP + i * S}"/>`;
   s += clef === "treble"
     ? `<text class="clef" x="22" y="${BOTTOM}" font-size="${S * 4.2}">𝄞</text>`
-    : `<text class="clef" x="24" y="${BOTTOM - 3.9}" font-size="${S * 4.2}">𝄢</text>`;
+    : `<path class="clef" transform="translate(26 ${TOP + S}) scale(0.048 -0.048)" d="${BASS_CLEF_PATH}"/>`;
   return s + inner + "</svg>";
 }
+
+test("Bassschlüssel: Ursprung der Bravura-Glyphe auf der F-Linie, Kopf und Punkte daran ausgerichtet", () => {
+  const svg = staffSvg("bass", "");
+  const m = svg.match(/<path class="clef" transform="translate\(([\d.]+) ([\d.]+)\) scale\(([\d.]+) (-[\d.]+)\)"/);
+  assert.ok(m, "Bassschlüssel als <path class=\"clef\">");
+  // F-Linie = zweite Linie von oben
+  assert.equal(Number(m[2]), TOP + S);
+  // 1 em = 1000 Einheiten = 4 Linienabstände
+  assert.equal(Number(m[3]), S / 250);
+  assert.equal(Number(m[4]), -S / 250);
+  // Umriss in Schrifteinheiten: Punkte mit Mitte bei y = ±125 (halber LA über/unter der F-Linie),
+  // Kopf um y ≈ 0, Ende des Bogens bei −635 (2,54 LA unter der F-Linie, über der untersten Linie bei −750)
+  const nums = BASS_CLEF_PATH.match(/-?\d+/g).map(Number);
+  const ys = nums.filter((_, i) => i % 2 === 1);
+  assert.equal(Math.min(...ys), -635);
+  assert.equal(Math.max(...ys), 262);
+  assert.ok(BASS_CLEF_PATH.includes("M629 180C598 180 574 156 574 125"));
+  assert.ok(BASS_CLEF_PATH.includes("M630 -71C599 -71 576 -94 576 -125"));
+  assert.ok(BASS_CLEF_PATH.includes("C186 -110 229 -66 229 -4"));
+  // kein Text-Glyph mehr für den Bassschlüssel
+  assert.ok(!svg.includes("𝄢"));
+});
 
 test("staffSvg: Linien und Schlüsselhöhe (gemessen gegen Verovio/Bravura)", () => {
   for (const clef of ["treble", "bass"]) {
@@ -106,7 +128,7 @@ test("staffSvg: fünf Linien und Schlüssel", () => {
   assert.ok(t.includes("𝄞"));
   const b = staffSvg("bass", "");
   assert.equal(count(b, /class="staff-line"/g), 5);
-  assert.ok(b.includes("𝄢"));
+  assert.ok(b.includes('<path class="clef"'));
   assert.equal(GLYPHS.treble, "𝄞");
   assert.equal(GLYPHS.bass, "𝄢");
 });

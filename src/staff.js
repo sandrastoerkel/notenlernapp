@@ -165,7 +165,10 @@ const FLATS_TREBLE = [4, 7, 3, 6, 2, 5, 1];
 // Kreuze fis cis gis dis Ais eis His, Be B es As des Ges ces Fes – das Fes liegt im Zwischenraum unter der Zeile.
 const BASS_SHIFT = -2;
 // Bassschlüssel: etwas weiter rechts, damit das erste Vorzeichen nicht an den Punkten klebt.
-const KEYSIG_X = { treble: 64, bass: 70 }, KEYSIG_STEP = 12;
+// Abstand Schlüssel → erstes Vorzeichen in beiden Schlüsseln 10,8 Einheiten (0,9 LA, im Browser gemessen):
+// Violinschlüssel rechte Kante 55,3, erstes Vorzeichen ab 66,2; Punkte des Bassschlüssels (Bravura)
+// bis 58,8, erstes Vorzeichen ab 69,7. Vorher (Noto-Glyphe, Punkte bis 61,3) stand der Bass bei 70.
+const KEYSIG_X = { treble: 64, bass: 67.5 }, KEYSIG_STEP = 12;
 // Vorzeichen (vor Noten und in der Vorzeichnung) werden mit 44px gesetzt (css/style.css .acc, .keysig).
 // Gemessen gegen Verovio/Bravura: ♯ 2,77 hoch (Bravura 2,78, Leipzig 2,77), ♭ 2,45 hoch (Bravura 2,45,
 // Leipzig 2,57). Bei 40px waren beide 9 % kleiner und ein Viertel schmaler als Bravura.
@@ -186,10 +189,17 @@ export function keySigSvg(clef, count) {
   return list.map((p, i) => `<text class="keysig" x="${x0 + i * KEYSIG_STEP}" y="${yOf(p + shift) + dy}">${sharp ? "♯" : "♭"}</text>`).join("");
 }
 
-// Bassschlüssel: die beiden Punkte liegen in den Zwischenräumen über und unter der F-Linie
-// (Referenz Bravura 0,48 / 1,47, Leipzig 0,50 / 1,45 Linienabstände unter der obersten Linie).
-// Mit der Grundlinie BOTTOM + 1 lagen sie bei 0,92 / 1,84, also 0,4 zu tief.
-const BASS_CLEF_Y = BOTTOM - 3.9;
+// Bassschlüssel: Umriss der Glyphe fClef (U+E062) aus der SMuFL-Schrift Bravura 1.482
+// (SIL Open Font License 1.1, Lizenz in fonts/OFL-Bravura.txt), mit fontTools ausgelesen.
+// Einheiten der Schrift: 1000 pro em, nach SMuFL ist 1 em = 4 Linienabstände, also 250 pro LA;
+// y zeigt nach oben, der Ursprung y = 0 liegt auf der F-Linie. Umriss: x −5..684, y −635..262,
+// also −0,02..2,74 × −2,54..+1,05 LA. Der Kopf (gefüllter Kreis, x 0..229, Mitte y ≈ −5) liegt auf der
+// F-Linie, die Punkte (Mitte y = ±125) in den Zwischenräumen darüber und darunter, der Bogen endet
+// 2,54 LA unter der F-Linie, also knapp über der untersten Linie (wie Bravura/Verovio).
+// Vorher war es die Glyphe U+1D122 aus Noto Music: Kopf 0,18 LA über der F-Linie, Ende 2,25 LA darunter.
+export const BASS_CLEF_PATH = "M252 262C78 262 0 135 0 39C0 -41 42 -110 123 -110C186 -110 229 -66 229 -4C229 60 182 100 133 100C106 100 96 93 83 93C70 93 67 101 67 111C67 151 127 224 229 224C335 224 381 120 381 -37C381 -140 359 -260 297 -356C237 -449 134 -534 10 -605C1 -610 -5 -615 -5 -623C-5 -629 -1 -635 8 -635C13 -635 19 -633 25 -630C158 -565 286 -489 392 -375C479 -281 531 -159 531 -28C531 146 425 262 252 262ZM629 180C598 180 574 156 574 125C574 94 598 70 629 70C660 70 684 94 684 125C684 156 660 180 629 180ZM630 -71C599 -71 576 -94 576 -125C576 -156 599 -179 630 -179C661 -179 684 -156 684 -125C684 -94 661 -71 630 -71Z";
+// Ursprung der Glyphe: x wie die linke Kante des alten Schlüssels, y auf der F-Linie (zweite Linie von oben).
+export const BASS_CLEF = { x: 26, y: TOP + S, scale: S / 250 };
 
 // Komplette Notenzeile mit Schlüssel; inner wird eingesetzt.
 // opts darf ein String sein (zusätzliche Klasse wie in der ersten Fassung) oder
@@ -201,7 +211,7 @@ export function staffSvg(clef, inner, opts) {
   for (let i = 0; i < 5; i++) s += `<line class="staff-line" x1="${X0}" x2="${X1}" y1="${TOP + i * S}" y2="${TOP + i * S}"/>`;
   s += clef === "treble"
     ? `<text class="clef" x="22" y="${BOTTOM}" font-size="${S * 4.2}">${GLYPHS.treble}</text>`
-    : `<text class="clef" x="24" y="${BASS_CLEF_Y}" font-size="${S * 4.2}">${GLYPHS.bass}</text>`;
+    : `<path class="clef" transform="translate(${BASS_CLEF.x} ${BASS_CLEF.y}) scale(${BASS_CLEF.scale} ${-BASS_CLEF.scale})" d="${BASS_CLEF_PATH}"/>`;
   s += keySigSvg(clef, o.keySig);
   return s + inner + "</svg>";
 }

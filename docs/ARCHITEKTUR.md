@@ -128,12 +128,20 @@ SMuFL-Schrift Bravura gemessen (Leipzig zur Kontrolle), bei 12 px pro
 Linienabstand; Messbericht vom 06.11.2026. Die Werte stehen mit Quelle als
 Kommentar in `staff.js`. Angaben in Linienabständen (LA):
 
-- Schlüssel kommen als Glyphen aus „Noto Music“, Schriftgröße `4.2 * S`. Die
-  Grundlinie des Violinschlüssels liegt auf der untersten Linie
-  (`y = BOTTOM`); die Schnecke umschließt die G-Linie. Die Grundlinie des
-  Bassschlüssels liegt bei `BOTTOM − 3,9`; die beiden Punkte stehen in den
-  Zwischenräumen über und unter der F-Linie (vorher `BOTTOM + 1`, 0,4 LA zu
-  tief).
+- Violinschlüssel: Glyphe aus „Noto Music“, Schriftgröße `4.2 * S`, die
+  Grundlinie liegt auf der untersten Linie (`y = BOTTOM`); die Schnecke
+  umschließt die G-Linie.
+- Bassschlüssel: Umriss der Glyphe fClef (U+E062) aus Bravura 1.482 als
+  `<path class="clef">` (`BASS_CLEF_PATH`, SIL OFL 1.1, Lizenz in
+  `fonts/OFL-Bravura.txt`). Nach SMuFL ist 1 em = 1000 Einheiten = 4 LA,
+  daher `scale(S/250, −S/250)`; der Ursprung (`BASS_CLEF`) liegt bei x = 26
+  auf der F-Linie (`TOP + S`). Damit sitzt der Kopf auf der F-Linie, die
+  Punkte stehen mittig in den Zwischenräumen darüber und darunter, der Bogen
+  endet 2,54 LA unter der F-Linie, knapp über der untersten Linie (im Browser
+  gemessen: Kopf +0,01, Punkte −0,51/+0,49, Oberkante −1,04, Ende +2,54 LA).
+  Die Noto-Glyphe U+1D122 vorher hatte den Kopf 0,18 LA über der F-Linie und
+  endete schon 2,25 LA darunter. Die Vorzeichnung im Bassschlüssel beginnt
+  bei x = 67,5: Abstand zu den Punkten 0,9 LA, wie beim Violinschlüssel.
 - Schwarzer Notenkopf: Ellipse `HEAD` (rx 7,7, ry 5,25, um −31° gedreht),
   1,18 × 1,00 LA wie Bravura. Halbe und ganze Note sind gefüllte Pfade mit
   Loch (`fill-rule: evenodd`), Form nach Bravura (ganze Note 1,7 LA breit).
