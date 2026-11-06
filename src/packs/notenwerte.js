@@ -97,9 +97,19 @@ const el = (v, dot = false, rest = false) => ({ v, dot, rest });
 const NOTES = VALUES.map((v) => el(v));
 const RESTS = VALUES.map((v) => el(v, false, true));
 
-// Fachbegriff mit Dauer für das Feedback. Die Engine schreibt „Das war ein …“; alle Begriffe sind
-// weiblich (die Note, die Pause), deshalb steht „Notenwert“ bzw. „Pausenwert“ davor.
-export const displayOf = (e) => `${e.rest ? "Pausenwert" : "Notenwert"}: ${nameOf(e)}, ${beatsLabel(beatsOf(e))}`;
+// Feedback: display nach richtiger Antwort („Richtig! Viertelnote (1 Schlag)“), reveal als ganzer Satz
+// nach falscher Antwort. Alle Begriffe sind weiblich (die Note, die Pause), daher „eine“.
+// Zahl und „Schlag“ bleiben in einer Zeile (geschütztes Leerzeichen)
+const beatsNb = (e) => beatsLabel(beatsOf(e)).replace(" ", "\u00a0");
+// Nach „Richtig!“ beginnt ein neuer Satz, daher groß: „Richtig! Ganze Note (4 Schläge)“.
+const withBeats = (e) => `${nameOf(e)} (${beatsNb(e)})`;
+export const displayOf = (e) => { const t = withBeats(e); return t[0].toUpperCase() + t.slice(1); };
+// Stufen 1, 2 und 4 (Name gefragt): „Das war eine Viertelnote (1 Schlag).“
+export const revealName = (e) => `Das war eine ${withBeats(e)}.`;
+// Stufen 3 und 4 (Dauer gefragt): „Richtig wäre: 1½ Schläge, denn das ist eine punktierte Viertelnote.“
+export const revealBeats = (e) => `Richtig wäre: ${beatsNb(e)}, denn das ist eine ${nameOf(e)}.`;
+// Stufe 5: „Richtig wäre eine Viertelnote, denn es fehlt noch 1 Schlag.“ / „… es fehlen noch 2 Schläge.“
+export const revealFill = (e) => `Richtig wäre eine ${nameOf(e)}, denn es ${beatsOf(e) > 1 ? "fehlen" : "fehlt"} noch ${beatsNb(e)}.`;
 const keyOf = (e) => `${e.rest ? "r" : "n"}${e.v}${e.dot ? "." : ""}`;
 
 // Zufällig aus dem Vorrat, nie dieselbe Aufgabe (key) wie prev
@@ -115,17 +125,17 @@ const BEAT_CHOICES = NOTES.map((e) => beatsText(beatsOf(e))); // 4 2 1 ½ ¼
 
 // Stufe 1: Notenwerte erkennen
 const ITEMS_1 = NOTES.map((e) => ({ key: "1:" + keyOf(e), make: () => ({
-  svg: singleSvg(e, false), prompt: "Welcher Notenwert ist das?", answer: nameOf(e), display: displayOf(e), choices: NOTE_NAMES,
+  svg: singleSvg(e, false), prompt: "Welcher Notenwert ist das?", answer: nameOf(e), display: displayOf(e), reveal: revealName(e), choices: NOTE_NAMES,
 }) }));
 
 // Stufe 2: Pausen erkennen
 const ITEMS_2 = RESTS.map((e) => ({ key: "2:" + keyOf(e), make: () => ({
-  svg: singleSvg(e, false), prompt: "Welche Pause ist das?", answer: nameOf(e), display: displayOf(e), choices: REST_NAMES,
+  svg: singleSvg(e, false), prompt: "Welche Pause ist das?", answer: nameOf(e), display: displayOf(e), reveal: revealName(e), choices: REST_NAMES,
 }) }));
 
 // Stufe 3: Wie viele Schläge? Note oder Pause im 4/4-Takt
 const ITEMS_3 = [...NOTES, ...RESTS].map((e) => ({ key: "3:" + keyOf(e), make: () => ({
-  svg: singleSvg(e, true), prompt: "Wie viele Schläge im 4/4-Takt?", answer: beatsText(beatsOf(e)), display: displayOf(e), choices: BEAT_CHOICES,
+  svg: singleSvg(e, true), prompt: "Wie viele Schläge im 4/4-Takt?", answer: beatsText(beatsOf(e)), display: displayOf(e), reveal: revealBeats(e), choices: BEAT_CHOICES,
 }) }));
 
 // Stufe 4: Punktierungen. Punktierte halbe, Viertel, Achtel; zum Vergleich auch ohne Punkt.
@@ -135,8 +145,8 @@ const DOTTED_EL = DOTTABLE.flatMap((v) => [el(v, true), el(v)]);
 const BEAT_CHOICES_4 = ["3", "2", "1½", "1", "¾", "½"];
 const NAME_CHOICES_4 = DOTTED_EL.map(nameOf); // punktierte halbe, halbe, punktierte Viertel, Viertel …
 const ITEMS_4_ALL = DOTTED_EL.flatMap((e) => [
-  { key: "4:b:" + keyOf(e), dot: e.dot, make: () => ({ svg: singleSvg(e, true), prompt: "Wie viele Schläge dauert diese Note?", answer: beatsText(beatsOf(e)), display: displayOf(e), choices: BEAT_CHOICES_4 }) },
-  { key: "4:n:" + keyOf(e), dot: e.dot, make: () => ({ svg: singleSvg(e, true), prompt: "Wie heißt dieser Notenwert?", answer: nameOf(e), display: displayOf(e), choices: NAME_CHOICES_4 }) },
+  { key: "4:b:" + keyOf(e), dot: e.dot, make: () => ({ svg: singleSvg(e, true), prompt: "Wie viele Schläge dauert diese Note?", answer: beatsText(beatsOf(e)), display: displayOf(e), reveal: revealBeats(e), choices: BEAT_CHOICES_4 }) },
+  { key: "4:n:" + keyOf(e), dot: e.dot, make: () => ({ svg: singleSvg(e, true), prompt: "Wie heißt dieser Notenwert?", answer: nameOf(e), display: displayOf(e), reveal: revealName(e), choices: NAME_CHOICES_4 }) },
 ]);
 const ITEMS_4 = ITEMS_4_ALL;
 const POOL_4 = [...ITEMS_4_ALL, ...ITEMS_4_ALL.filter((it) => it.dot)];
@@ -172,7 +182,7 @@ const ITEMS_5 = BARS.flatMap((bar, b) => parseBar(bar).map((ans, gap) => ({
     return {
       svg: barSvg(els, gap),
       prompt: ans.rest ? "Welche Pause fehlt in der Lücke?" : "Welche Note fehlt in der Lücke?",
-      answer: nameOf(ans), display: displayOf(ans), choices: opts.map(nameOf),
+      answer: nameOf(ans), display: displayOf(ans), reveal: revealFill(ans), choices: opts.map(nameOf),
       bar: els, gap, options: opts,
     };
   },
@@ -188,7 +198,7 @@ const RAW = [
   { title: "Notenwerte erkennen", subtitle: "5 Notenwerte", items: ITEMS_1, example: singleSvg(el(2), false),
     hint: "Ganze Note: hohler Kopf ohne Hals. Halbe Note: hohler Kopf mit Hals. Viertelnote: schwarzer Kopf mit Hals. Achtelnote: ein Fähnchen, Sechzehntelnote: zwei Fähnchen." },
   { title: "Pausen erkennen", subtitle: "5 Pausenwerte", items: ITEMS_2, example: singleSvg(el(4, false, true), false),
-    hint: "Die ganze Pause hängt an der vierten Linie, die halbe Pause sitzt auf der Mittellinie. Die Achtelpause hat einen Haken, die Sechzehntelpause zwei." },
+    hint: "Die ganze Pause hängt an der vierten Linie von unten, die halbe Pause sitzt auf der Mittellinie. Die Achtelpause hat einen Haken, die Sechzehntelpause zwei." },
   { title: "Wie viele Schläge?", subtitle: "4/4-Takt · Noten und Pausen", items: ITEMS_3, example: singleSvg(el(8), true),
     hint: "Im 4/4-Takt dauert eine Viertelnote einen Schlag. Ganze Note 4 Schläge, halbe 2, Achtel ½, Sechzehntel ¼. Eine Pause dauert so lang wie die Note mit demselben Wert." },
   { title: "Punktierungen", subtitle: "Punktierte halbe, Viertel und Achtel", items: ITEMS_4, pool: POOL_4, example: singleSvg(el(4, true), true),
@@ -239,7 +249,6 @@ export function learnHtml() {
   const dotted = DOTTABLE.map((v) => `<tr>${cell(el(v, true))}<td ${TD} class="small muted">${beatsText(beats(v))} + ${beatsText(beats(v) / 2)}</td><td ${TD}><b>${beatsText(beats(v, true))}</b></td></tr>`).join("");
   const th = (t) => `<th style="text-align:left;padding:4px 6px;border-bottom:1px solid var(--line);font-weight:700" class="small muted">${t}</th>`;
   return `<section style="grid-column:1/-1;min-width:0">`
-    + `<p class="eyebrow" style="margin:8px 0 4px">Notenwerte und Pausen</p>`
     + `<table ${TABLE}>${COLS}<thead><tr>${th("Note")}${th("Pause")}${th("Schläge im 4/4")}</tr></thead><tbody>${rows}</tbody></table>`
     + `<p class="eyebrow" style="margin:14px 0 4px">Punktierte Noten</p>`
     + `<table ${TABLE}>${COLS}<thead><tr>${th("Note")}${th("Rechnung")}${th("Schläge im 4/4")}</tr></thead><tbody>${dotted}</tbody></table>`

@@ -81,8 +81,40 @@ test("Stufen 1 bis 4: richtige Begriffe und Schläge", () => {
   // Taktangabe ab Stufe 3, nicht in Stufe 1 und 2
   assert.ok(!all(L[0])[0].svg.includes("timesig"));
   assert.ok(all(L[2])[0].svg.includes("timesig"));
-  assert.equal(L[0].question(null).display.split(":")[0], "Notenwert");
-  assert.equal(all(L[1])[2].display, "Pausenwert: Viertelpause, 1 Schlag");
+});
+
+test("Feedback: ganze Sätze mit „eine“, Dauer im richtigen Numerus", () => {
+  // geschütztes Leerzeichen zwischen Zahl und „Schlag“, zum Vergleichen normalisiert
+  const sp = (q) => Object.assign(q, { display: q.display.replace(/\u00a0/g, " "), reveal: q.reveal.replace(/\u00a0/g, " ") });
+  for (const l of L) for (const it of l.items) { const q = it.make(); assert.ok(/\d\u00a0Schl|[¼½¾]\u00a0Schl/.test(q.reveal), q.reveal); }
+  const all = (l) => l.items.map((it) => sp(it.make()));
+  const q4display = () => sp(L[3].items.find((it) => it.key === "4:n:n2.").make()).display;
+  const q1 = all(L[0]), q2 = all(L[1]), q3 = all(L[2]);
+  assert.equal(q1[2].display, "Viertelnote (1 Schlag)");
+  assert.equal(q1[2].reveal, "Das war eine Viertelnote (1 Schlag).");
+  assert.equal(q1[0].reveal, "Das war eine ganze Note (4 Schläge).");
+  assert.equal(q1[0].display, "Ganze Note (4 Schläge)");
+  assert.equal(q4display(), "Punktierte halbe Note (3 Schläge)");
+  assert.equal(q2[3].reveal, "Das war eine Achtelpause (½ Schlag).");
+  assert.equal(q3[1].reveal, "Richtig wäre: 2 Schläge, denn das ist eine halbe Note.");
+  assert.equal(q3[9].reveal, "Richtig wäre: ¼ Schlag, denn das ist eine Sechzehntelpause.");
+  const q4 = Object.fromEntries(L[3].items.map((it) => [it.key, sp(it.make())]));
+  assert.equal(q4["4:b:n4."].reveal, "Richtig wäre: 1½ Schläge, denn das ist eine punktierte Viertelnote.");
+  assert.equal(q4["4:n:n2."].reveal, "Das war eine punktierte halbe Note (3 Schläge).");
+  assert.equal(q4["4:b:n8."].reveal, "Richtig wäre: ¾ Schlag, denn das ist eine punktierte Achtelnote.");
+  const q5 = Object.fromEntries(L[4].items.map((it) => [it.key, sp(it.make())]));
+  const b = (s) => BARS.indexOf(s);
+  assert.equal(q5[`5:${b("2. 4")}:1`].reveal, "Richtig wäre eine Viertelnote, denn es fehlt noch 1 Schlag.");
+  assert.equal(q5[`5:${b("2. 4")}:0`].reveal, "Richtig wäre eine punktierte halbe Note, denn es fehlen noch 3 Schläge.");
+  assert.equal(q5[`5:${b("4 4 r2")}:2`].reveal, "Richtig wäre eine halbe Pause, denn es fehlen noch 2 Schläge.");
+  assert.equal(q5[`5:${b("4 r8 8 2")}:1`].reveal, "Richtig wäre eine Achtelpause, denn es fehlt noch ½ Schlag.");
+  // jede Aufgabe hat reveal, kein „Das war ein “ mit falschem Artikel, kein Doppelpunkt-Notbehelf
+  for (const l of L) for (const it of l.items) {
+    const q = sp(it.make());
+    assert.ok(q.reveal && q.reveal.endsWith("."), it.key);
+    assert.ok(!/Das war ein |Notenwert:|Pausenwert:/.test(q.reveal + q.display), it.key);
+    assert.ok(!/1 Schläge|[2-4] Schlag\b|(?<!\d)[¼½¾] Schläge|fehlen noch [¼½¾1] Schlag\b|fehlt noch \S+ Schläge/.test(q.reveal + q.display), q.reveal);
+  }
 });
 
 test("Takt füllen: jeder Takt hat genau vier Schläge", () => {
@@ -92,7 +124,8 @@ test("Takt füllen: jeder Takt hat genau vier Schläge", () => {
 });
 
 test("Takt füllen: die richtige Antwort ergibt 4, jede falsche nicht", () => {
-  for (const it of L[4].items) {
+  // jede Aufgabe 30-mal, weil die falschen Antworten zufällig gezogen werden
+  for (const it of L[4].items.flatMap((x) => Array(30).fill(x))) {
     const q = Object.assign(it.make(), { key: it.key });
     assert.equal(q.choices.length, 4);
     const others = q.bar.filter((_, i) => i !== q.gap);
@@ -180,6 +213,6 @@ test("Gemischt nutzt alle fünf Stufen", () => {
 
 test("Texte ohne unpassende Wörter", () => {
   const texts = [notenwerte.title, notenwerte.subtitle, ...L.flatMap((l) => [l.title, l.subtitle, l.hint]), learnHtml()];
-  for (const l of L) for (const it of l.items) { const q = it.make(); texts.push(q.prompt, q.display, ...q.choices); }
+  for (const l of L) for (const it of l.items) { const q = it.make(); texts.push(q.prompt, q.display, q.reveal, ...q.choices); }
   for (const t of texts) assert.ok(!/Fehler!|falsch|mühelos|Held|Champion/i.test(t), t);
 });
