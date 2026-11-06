@@ -62,3 +62,64 @@ export function valueName(value, rest = false, dotted = false) {
   const noun = rest ? "Pause" : "Note";
   return (dotted ? "punktierte " : "") + word + (joined ? noun.toLowerCase() : noun);
 }
+
+/* ---------- Intervalle (Paket D) ---------- */
+// Intervallnamen nach der Zahl 1 bis 8 (alle weiblich: die Prime, die Sekunde …)
+export const INTERVAL_NAMES = ["Prime", "Sekunde", "Terz", "Quarte", "Quinte", "Sexte", "Septime", "Oktave"];
+// Halbtöne der reinen (1, 4, 5, 8) bzw. großen (2, 3, 6, 7) Intervalle
+const PERFECT_SEMI = { 1: 0, 4: 5, 5: 7, 8: 12 };
+const MAJOR_SEMI = { 2: 2, 3: 4, 6: 9, 7: 11 };
+export const isPerfectNumber = (num) => PERFECT_SEMI[num] !== undefined;
+
+// Intervallzahl aus dem diatonischen Abstand: 1 = Prime … 8 = Oktave (aufwärts von a nach b)
+export const intervalNumber = (a, b) => dia(b) - dia(a) + 1;
+// Halbtonabstand aus den MIDI-Nummern
+export const intervalSemitones = (a, b) => midi(b) - midi(a);
+
+// Halbtonzahl eines Intervalls aus Zahl und Qualität, null wenn es die Kombination nicht gibt
+export function semitonesFor(num, quality) {
+  if (isPerfectNumber(num)) {
+    const d = { vermindert: -1, rein: 0, "übermäßig": 1 }[quality];
+    if (d === undefined || (num === 1 && d < 0)) return null;
+    return PERFECT_SEMI[num] + d;
+  }
+  if (MAJOR_SEMI[num] === undefined) return null;
+  const d = { vermindert: -2, klein: -1, "groß": 0, "übermäßig": 1 }[quality];
+  return d === undefined ? null : MAJOR_SEMI[num] + d;
+}
+
+// Qualität aus der Halbtonzahl: rein, groß, klein, vermindert, übermäßig.
+// Nur aufwärts und bis zur Oktave; sonst null.
+export function intervalQuality(a, b) {
+  const num = intervalNumber(a, b), semi = intervalSemitones(a, b);
+  if (num < 1 || num > 8 || semi < 0) return null;
+  if (isPerfectNumber(num)) {
+    return { [-1]: "vermindert", 0: "rein", 1: "übermäßig" }[semi - PERFECT_SEMI[num]] || null;
+  }
+  return { [-2]: "vermindert", [-1]: "klein", 0: "groß", 1: "übermäßig" }[semi - MAJOR_SEMI[num]] || null;
+}
+
+// Name aus Zahl und Qualität, z. B. „große Terz“, „verminderte Quinte“
+export const intervalLabel = (num, quality) => `${quality}e ${INTERVAL_NAMES[num - 1]}`;
+// Name des Intervalls von a nach b oder null
+export function intervalName(a, b) {
+  const q = intervalQuality(a, b);
+  return q ? intervalLabel(intervalNumber(a, b), q) : null;
+}
+
+/* ---------- Tonarten aus der Vorzeichnung (Paket D) ---------- */
+// fifths: Anzahl ♯ (positiv) bzw. ♭ (negativ), −7 bis 7. Grundton als { letter, acc }.
+function tonicAt(fifths, letterShift, semiShift) {
+  const letter = LETTERS[(((4 * fifths + letterShift) % 7) + 7) % 7];
+  let acc = pc(7 * fifths + semiShift) - SEMI[letter];
+  if (acc > 6) acc -= 12;
+  if (acc < -6) acc += 12;
+  return { letter, acc };
+}
+// Dur: jedes ♯ eine Quinte höher, jedes ♭ eine Quinte tiefer (0 = C, 1 = G … 7 = Cis, −7 = Ces)
+export const majorKeyFromKeySig = (fifths) => tonicAt(fifths, 0, 0);
+// Parallele Molltonart: kleine Terz unter dem Dur-Grundton (C → a, Es → c)
+export const relativeMinor = (fifths) => tonicAt(fifths, 5, -3);
+// Namen: Dur groß geschrieben („Fis-Dur“), Moll klein („fis-Moll“, „es-Moll“)
+export const majorName = (fifths) => gName(majorKeyFromKeySig(fifths)) + "-Dur";
+export const minorName = (fifths) => gName(relativeMinor(fifths)).toLowerCase() + "-Moll";
