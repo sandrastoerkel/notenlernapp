@@ -148,6 +148,35 @@ test("Takt füllen: die richtige Antwort ergibt 4, jede falsche nicht", () => {
   }
 });
 
+test("Takt füllen: revealSvg zeigt den Takt mit dem richtigen Wert in der Lücke", () => {
+  for (const it of L[4].items) {
+    const q = Object.assign(it.make(), { key: it.key });
+    const r = q.revealSvg, ans = q.bar[q.gap];
+    assert.ok(r.startsWith("<svg") && r.endsWith("</svg>"), it.key);
+    // kein Kasten mehr, dafür genau ein gefülltes Element, und zwar die Antwort
+    assert.equal(count(r, /class="gap"/g), 0, it.key);
+    assert.equal(count(r, /class="filled"/g), 1, it.key);
+    const filled = r.match(/<g class="filled">(.*?)<\/g><(?:g class="note|text class="rest|rect class="rest|line class="staff-line barline)/)[1];
+    // dasselbe Zeichen wie die anderen Elemente des Takts (elementFrom an der Stelle der Lücke)
+    assert.equal(r, q.svg.replace(/<g class="gap">.*?<\/g>/, `<g class="filled">${filled}</g>`), it.key);
+    if (ans.rest) assert.equal(count(filled, /class="rest"/g), 1, it.key);
+    else {
+      assert.equal(count(filled, /<g class="note /g), 1, it.key);
+      // ganze und halbe Note: hohler Kopf; Achtel/Sechzehntel: Fähnchen; Punkt nur bei punktierten
+      assert.equal(filled.includes("notehead open"), ans.v <= 2, it.key);
+      assert.equal(filled.includes(`class="flag"`), ans.v >= 8, it.key);
+    }
+    assert.equal(filled.includes("notehead aug"), ans.dot, it.key);
+    // vollständiger Takt: alle Noten, Pausen und Punkte gezeichnet
+    const notes = q.bar.filter((e) => !e.rest).length;
+    assert.equal(count(r, /<g class="note /g), notes, it.key);
+    assert.equal(count(r, /class="rest"/g), q.bar.length - notes, it.key);
+    assert.equal(count(r, /class="notehead aug"/g), q.bar.filter((e) => e.dot).length, it.key);
+  }
+  // die anderen Stufen brauchen keine Auflösung
+  for (const l of L.slice(0, 4)) assert.equal(l.question(null).revealSvg, undefined);
+});
+
 test("fillChoices: vier verschiedene Dauern, nach Länge sortiert", () => {
   for (const e of [...parseBar("2. 4. 8 16"), ...parseBar("r2 r4 r8 r16")]) {
     for (let i = 0; i < 50; i++) {

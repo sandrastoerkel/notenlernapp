@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {
   starsHtml, effectiveInput, makeRound, findLevel, nextLevel, countAnswer, feedbackText,
   resultMessage, dotsHtml, lettersHtml, choicesHtml, choicesClass, choiceCols, keyAction, blitzPoints, notesToPlay,
-  playMode,
+  playMode, revealedSvg,
 } from "../src/engine.js";
 import { PACKS } from "../src/packs/index.js";
 import noten from "../src/packs/noten.js";
@@ -125,4 +125,10 @@ test("playMode: gleichzeitig nur mit playTogether und mehreren Tönen", () => {
   assert.equal(playMode({ play: [n], playTogether: true }), "sequence");
   assert.equal(playMode({ note: n, playTogether: true }), "sequence");
   assert.equal(playMode({}), "sequence");
+});
+
+test("revealedSvg: nach der Antwort revealSvg, sonst svg", () => {
+  assert.equal(revealedSvg({ svg: "<svg>a</svg>" }), "<svg>a</svg>");
+  assert.equal(revealedSvg({ svg: "<svg>a</svg>", revealSvg: "<svg>b</svg>" }), "<svg>b</svg>");
+  assert.equal(revealedSvg({ svg: "<svg>a</svg>", revealSvg: "" }), "<svg>a</svg>");
 });

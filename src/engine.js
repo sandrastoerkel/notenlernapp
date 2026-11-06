@@ -1,6 +1,6 @@
 // Generischer Rundenablauf: zehn Aufgaben, Feedback, Sterne und XP.
 // Die Engine kennt kein Paket im Detail: sie ruft level.question(prev) und level.check(q, value),
-// zeigt q.svg und baut die Antwort-Elemente nach der Eingabeart.
+// zeigt q.svg (nach der Antwort q.revealSvg, falls gesetzt) und baut die Antwort-Elemente nach der Eingabeart.
 // Oben stehen reine Hilfsfunktionen (getestet in test/engine.test.js), unten der DOM-Teil.
 import { LETTERS } from "./music.js";
 import { pianoSvg } from "./staff.js";
@@ -92,6 +92,9 @@ export const blitzPoints = (combo) => (combo >= 5 ? 2 : 1);
 export const notesToPlay = (q) => (q.play && q.play.length ? q.play : q.note ? [q.note] : []);
 // Abspielart: "together" (alle Töne gleichzeitig, bei q.playTogether und mehr als einem Ton), sonst "sequence"
 export const playMode = (q) => (q.playTogether && notesToPlay(q).length > 1 ? "together" : "sequence");
+
+// SVG nach der Antwort: q.revealSvg, falls vorhanden, sonst q.svg
+export const revealedSvg = (q) => q.revealSvg || q.svg;
 
 /* ---------- Ablauf im DOM ---------- */
 
@@ -207,6 +210,11 @@ function answer(r, value, el) {
       : all(ui.answers, ".btn[data-choice]").find((b) => q.choices && q.choices[+b.dataset.choice] === a);
     if (right) right.classList.add("ok");
   }
+  // q.revealSvg (optional): SVG, das nach der Antwort statt q.svg erscheint, bei richtiger und falscher
+  // Antwort, z. B. der vollständige Takt mit dem fehlenden Wert in der Lücke. Ohne revealSvg bleibt q.svg
+  // stehen. Die Färbung (Klasse ok/bad am <svg>) gilt in beiden Fällen für das angezeigte SVG.
+  const shown = revealedSvg(q);
+  if (shown !== q.svg) ui.staff.innerHTML = shown;
   const svg = ui.staff.querySelector("svg");
   if (svg) svg.classList.add(ok ? "ok" : "bad");
   ui.feedback.textContent = feedbackText(q, ok);
