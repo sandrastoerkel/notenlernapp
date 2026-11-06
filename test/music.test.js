@@ -64,3 +64,27 @@ test("transpose: diatonische Schritte", () => {
   assert.deepEqual(transpose(N("C", 4), 7), N("C", 5));
   assert.deepEqual(transpose(N("C", 4), 3, 1), N("F", 4, 1));
 });
+
+test("Notenwerte: Schläge im 4/4-Takt", async () => {
+  const { VALUES, beats, beatsText, beatsLabel } = await import("../src/music.js");
+  assert.deepEqual(VALUES, [1, 2, 4, 8, 16]);
+  assert.deepEqual(VALUES.map((v) => beats(v)), [4, 2, 1, 0.5, 0.25]);
+  assert.equal(beats(2, true), 3);
+  assert.equal(beats(4, true), 1.5);
+  assert.equal(beats(8, true), 0.75);
+  assert.deepEqual([4, 3, 2, 1.5, 1, 0.75, 0.5, 0.25].map(beatsText), ["4", "3", "2", "1½", "1", "¾", "½", "¼"]);
+  assert.equal(beatsLabel(1), "1 Schlag");
+  assert.equal(beatsLabel(0.5), "½ Schlag");
+  assert.equal(beatsLabel(0.75), "¾ Schlag");
+  assert.equal(beatsLabel(1.5), "1½ Schläge");
+  assert.equal(beatsLabel(4), "4 Schläge");
+});
+
+test("Notenwerte: deutsche Fachbegriffe", async () => {
+  const { valueName } = await import("../src/music.js");
+  assert.deepEqual([1, 2, 4, 8, 16].map((v) => valueName(v)), ["ganze Note", "halbe Note", "Viertelnote", "Achtelnote", "Sechzehntelnote"]);
+  assert.deepEqual([1, 2, 4, 8, 16].map((v) => valueName(v, true)), ["ganze Pause", "halbe Pause", "Viertelpause", "Achtelpause", "Sechzehntelpause"]);
+  assert.equal(valueName(2, false, true), "punktierte halbe Note");
+  assert.equal(valueName(4, false, true), "punktierte Viertelnote");
+  assert.equal(valueName(8, false, true), "punktierte Achtelnote");
+});
