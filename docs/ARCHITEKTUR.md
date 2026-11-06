@@ -158,6 +158,7 @@ Eine Stufe:
       prompt: "",              // optionale Frage über der Zeile, z. B. "Wie viele Schläge?"
       answer: { letter: "G", acc: 0 }, // kanonische Antwort: bei "letters" { letter, acc }, sonst String oder Zahl
       display: "G (g')",       // Text fürs Feedback: „Richtig! G (g')“ bzw. „Das war ein G (g').“
+      reveal: "Richtig wäre: A-Dur.", // optional, ganzer Satz bei falscher Antwort statt „Das war ein …“
       play: [ /* Noten */ ],   // optional, wird nach der Antwort abgespielt (nacheinander, 500 ms Abstand)
       choices: ["…"],          // nur bei input "choices": 4 bis 6 Auswahlknöpfe, enthält answer
       note: N("G", 4),         // optional, die gefragte Note (Ton im Blitz, Feedback ohne Oktave)

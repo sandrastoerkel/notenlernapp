@@ -48,7 +48,9 @@ export function countAnswer(s, q, ok) {
   return s;
 }
 
-export const feedbackText = (q, ok) => (ok ? `Richtig! ${q.display}` : `Das war ein ${q.display}.`);
+// Feedback nach der Antwort. q.reveal (optional) ist ein ganzer Satz für eine falsche Antwort, z. B.
+// „Richtig wäre: A-Dur.“, weil „Das war ein …“ nicht zu jedem Begriff passt; ohne reveal wie bisher.
+export const feedbackText = (q, ok) => (ok ? `Richtig! ${q.display}` : q.reveal || `Das war ein ${q.display}.`);
 
 export function resultMessage(stars) {
   if (stars === 3) return "Stark, fast fehlerfrei.";

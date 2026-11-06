@@ -54,6 +54,11 @@ test("Feedback- und Ergebnistexte", () => {
   const q = { display: "Fis (fis')" };
   assert.equal(feedbackText(q, true), "Richtig! Fis (fis')");
   assert.equal(feedbackText(q, false), "Das war ein Fis (fis').");
+  // reveal ersetzt nur den Satz bei falscher Antwort
+  const k = { display: "A-Dur", reveal: "Richtig wäre: A-Dur." };
+  assert.equal(feedbackText(k, false), "Richtig wäre: A-Dur.");
+  assert.equal(feedbackText(k, true), "Richtig! A-Dur");
+  assert.equal(feedbackText({ display: "A-Dur", reveal: "" }, false), "Das war ein A-Dur.");
   assert.equal(resultMessage(3), "Stark, fast fehlerfrei.");
   // Tippfehler aus dem Prototyp („die dritte Sterne“) hier korrigiert
   assert.equal(resultMessage(2), "Gut. Noch eine Runde und der dritte Stern ist drin.");
