@@ -37,8 +37,14 @@ Fonts ausgelieferten Teilmengen (Subsets), unverändert.
 
 ## App-Icon
 
-Die Icons in `icons/` (`icon.svg`, `icon-maskable.svg` und die daraus gerenderten
-PNGs) zeigen den Violinschlüssel (U+1D11E) aus **Noto Music**, als Umriss-Pfad
-aus der Schrift übernommen. Die Glyphe stammt damit aus einer Schrift unter der
-SIL Open Font License 1.1 (Copyright 2022 The Noto Project Authors, siehe oben). Hintergrund in der
-Akzentfarbe der App (`--accent`), Schlüssel in `--accent-fg`.
+Die Icons in `icons/` (`icon-192.png`, `icon-512.png`, `icon-maskable-512.png`,
+`apple-touch-icon.png`, `favicon-32.png`, `favicon-48.png`) stammen aus einem
+eigenen, von Hand gemalten Aquarell von **Sandra Störkel** (schwarzer
+Violinschlüssel auf Blau, Grün und Gelb). Sie sind kein fremder Bestandteil und
+enthalten keine Glyphe aus Noto Music mehr.
+
+Bearbeitung: quadratisch um den Schlüssel zugeschnitten und verkleinert; die
+weißen Papierränder sind durch stark verwischte Farben aus dem Bild selbst
+ersetzt. Beim maskierbaren Icon ist die Fläche auf dieselbe Weise erweitert,
+damit der ganze Schlüssel im sicheren Kreis (80 %) liegt. Die beiden
+512-px-Dateien sind auf 256 Farben mit Fehlerstreuung reduziert (Dateigröße).

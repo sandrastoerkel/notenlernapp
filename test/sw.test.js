@@ -61,6 +61,25 @@ test("Manifest: Pflichtfelder, relative Pfade, Icons vorhanden", () => {
   for (const i of m.icons) assert.ok(existsSync(join(ROOT, i.src.slice(2))), i.src);
   assert.ok(m.icons.some((i) => i.sizes === "192x192"));
   assert.ok(m.icons.some((i) => i.sizes === "512x512" && i.purpose === "maskable"));
+  assert.ok(m.icons.some((i) => i.sizes === "512x512" && i.purpose === "any"));
+});
+
+// Breite und Höhe aus dem IHDR-Block einer PNG-Datei
+function pngSize(rel) {
+  const b = readFileSync(join(ROOT, rel));
+  assert.equal(b.toString("latin1", 1, 4), "PNG", `${rel} ist keine PNG-Datei`);
+  return `${b.readUInt32BE(16)}x${b.readUInt32BE(20)}`;
+}
+
+test("Icons: PNG-Größen stimmen mit Manifest und Dateinamen überein", () => {
+  const m = JSON.parse(readFileSync(join(ROOT, "manifest.webmanifest"), "utf8"));
+  for (const i of m.icons) {
+    assert.equal(i.type, "image/png", i.src);
+    assert.equal(pngSize(i.src.slice(2)), i.sizes, i.src);
+  }
+  assert.equal(pngSize("icons/apple-touch-icon.png"), "180x180");
+  assert.equal(pngSize("icons/favicon-32.png"), "32x32");
+  assert.equal(pngSize("icons/favicon-48.png"), "48x48");
 });
 
 test("Manifest-Farben entsprechen den Tokens --accent und --bg (hell)", () => {
