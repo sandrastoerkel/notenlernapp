@@ -7,6 +7,9 @@ let ctx = null;
 
 const current = () => engine.findLevel(ctx.packs, ctx.state.current);
 
+// Beschriftung des Startknopfs (rein, getestet): „10 Noten“ bei Buchstaben und Klaviatur, sonst „10 Aufgaben“
+export const startLabel = (level) => `Runde starten · ${engine.ROUND_LENGTH} ${(level.input || "letters") === "letters" ? "Noten" : "Aufgaben"}`;
+
 function markInput() {
   $("#inLetters").classList.toggle("on", ctx.state.input === "letters");
   $("#inKeys").classList.toggle("on", ctx.state.input === "keys");
@@ -34,8 +37,12 @@ export function render() {
   $("#pHint").textContent = level.hint;
   $("#pIntro").hidden = false; $("#pPlay").hidden = true; $("#pResult").hidden = true;
   $("#pStaff").innerHTML = level.example || "";
-  // Die Wahl Buchstaben/Klaviatur gibt es nur bei Stufen mit Buchstaben-Eingabe
-  $("#view-practice .seg").hidden = (level.input || "letters") !== "letters";
+  // Die Wahl Buchstaben/Klaviatur und der Tastatur-Hinweis gelten nur für Stufen mit Buchstaben-Eingabe;
+  // bei Auswahlknöpfen sind die Aufgaben keine einzelnen Noten
+  const letters = (level.input || "letters") === "letters";
+  $("#view-practice .seg").hidden = !letters;
+  $("#pKeys").hidden = !letters;
+  $("#pStart").textContent = startLabel(level);
   markInput();
   ctx.renderTop();
 }
