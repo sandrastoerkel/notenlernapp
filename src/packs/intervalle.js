@@ -74,7 +74,9 @@ const TREBLE = [N("C", 4), N("A", 5)], BASS = [N("E", 2), N("C", 4)];
 export const POOL_1 = numberPool("treble", ...TREBLE);
 export const POOL_2 = numberPool("bass", ...BASS);
 export const POOL_3 = qualityPool("treble", ...TREBLE, [2, 3, 6, 7], ["groß", "klein"]);
-export const POOL_4 = qualityPool("treble", ...TREBLE, [4, 5, 8], ["vermindert", "rein", "übermäßig"]);
+// Stufe 4: Quarte und Quinte rein, vermindert, übermäßig; von der Oktave nur die reine
+export const POOL_4 = qualityPool("treble", ...TREBLE, [4, 5, 8], ["vermindert", "rein", "übermäßig"])
+  .filter((it) => it.num !== 8 || it.quality === "rein");
 
 /* ---------- Auswahlknöpfe ---------- */
 
@@ -90,10 +92,13 @@ export function minorMajorChoices(num) {
   return [num, NEIGHBOUR_3[num]].sort((a, b) => a - b).flatMap((n) => [intervalLabel(n, "klein"), intervalLabel(n, "groß")]);
 }
 
-// Stufe 4: die drei Qualitäten der Zahl und das gleich klingende Nachbarintervall
-// (übermäßige Quarte ↔ verminderte Quinte, verminderte Oktave ↔ große Septime)
-const EXTRA_4 = { 4: intervalLabel(5, "vermindert"), 5: intervalLabel(4, "übermäßig"), 8: intervalLabel(7, "groß") };
+// Stufe 4: bei Quarte und Quinte die drei Qualitäten der Zahl und das gleich klingende Nachbarintervall
+// (übermäßige Quarte ↔ verminderte Quinte). Die Oktave kommt nur rein vor: dazu die große Septime und
+// die reine Quinte und Quarte, wie in Stufe 1 bis 3 der Größe nach geordnet
+const EXTRA_4 = { 4: intervalLabel(5, "vermindert"), 5: intervalLabel(4, "übermäßig") };
+const OCTAVE_4 = [intervalLabel(4, "rein"), intervalLabel(5, "rein"), intervalLabel(7, "groß"), intervalLabel(8, "rein")];
 export function perfectChoices(num) {
+  if (num === 8) return OCTAVE_4.slice();
   return [...["vermindert", "rein", "übermäßig"].map((q) => intervalLabel(num, q)), EXTRA_4[num]];
 }
 
@@ -130,7 +135,8 @@ function qualityQuestion(it, choices) {
   };
 }
 
-// Stufe 4: erst die Zahl, dann die Qualität gleich wahrscheinlich, damit „rein“ nicht überwiegt
+// Stufe 4: erst die Zahl, dann die Qualität gleich wahrscheinlich, damit „rein“ nicht überwiegt;
+// Kombinationen ohne Aufgaben im Vorrat (verminderte, übermäßige Oktave) werden neu gezogen
 function pickQuality(pool, prev, nums, quals) {
   for (let i = 0; i < 20; i++) {
     const num = nums[Math.floor(Math.random() * nums.length)], q = quals[Math.floor(Math.random() * quals.length)];

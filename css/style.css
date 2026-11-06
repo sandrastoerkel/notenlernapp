@@ -241,3 +241,14 @@ svg.bad .notehead, svg.bad .acc, svg.bad .flag { fill: var(--bad); } svg.bad .st
 .rest, .glyph, .keysig { font-family: var(--music); fill: var(--ink); }
 .keysig { font-size: 44px; } /* = ACC_SIZE in staff.js */
 svg.ok .rest { fill: var(--ok); } svg.bad .rest { fill: var(--bad); }
+
+/* Hinweis „Neue Version verfügbar“ über der Tab-Leiste (src/app.js, Service-Worker-Update) */
+.update-bar {
+  max-width: 720px; margin: 8px auto 0; padding: 8px 10px 8px 14px;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+  background: var(--accent-soft); color: var(--fg); border: 1px solid var(--accent); border-radius: 12px;
+  font-weight: 700; font-size: .9rem;
+}
+.update-bar[hidden] { display: none; }
+.update-actions { display: inline-flex; gap: 6px; }
+.update-bar .btn.small { padding: 6px 12px; }
