@@ -107,11 +107,17 @@ export function noteSvg(n, clef, x, cls, opts = {}) {
         : `<text class="flag" transform="translate(${fx} ${y2}) scale(1 -1)" x="0" y="${FLAG_TOP}" font-size="${FLAG_SIZE}">${g}</text>`;
     }
   }
-  const open = OPEN_HEADS[value];
-  s += open
-    ? `<path class="notehead open" d="${ellipsePath(x, cy, ...open.outer)}${ellipsePath(x, cy, ...open.hole)}"/>`
-    : `<ellipse class="notehead" cx="${x}" cy="${cy}" rx="${HEAD.rx}" ry="${HEAD.ry}" transform="rotate(${HEAD.rot} ${x} ${cy})"/>`;
+  s += noteheadSvg(x, cy, value);
   return s + "</g>";
+}
+
+// Nur der Notenkopf (ohne Hals, Hilfslinien, Vorzeichen) mit Mitte (x, y), wie ihn noteSvg zeichnet:
+// value 4, 8, 16 schwarz (HEAD), 2 und 1 hohl (OPEN_HEADS). Die Ansicht „Lernen“ nutzt ihn für die Notenreihe.
+export function noteheadSvg(x, y, value = 4) {
+  const open = OPEN_HEADS[value];
+  return open
+    ? `<path class="notehead open" d="${ellipsePath(x, y, ...open.outer)}${ellipsePath(x, y, ...open.hole)}"/>`
+    : `<ellipse class="notehead" cx="${x}" cy="${y}" rx="${HEAD.rx}" ry="${HEAD.ry}" transform="rotate(${HEAD.rot} ${x} ${y})"/>`;
 }
 
 // Pausen. Lage und Größe an Verovio 6.4.1/Bravura gemessen (Angaben in Linienabständen unter der obersten Linie).

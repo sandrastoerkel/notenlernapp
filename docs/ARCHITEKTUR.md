@@ -232,9 +232,12 @@ Regeln für Pakete:
 
 - Fragen werden mit reinen Funktionen erzeugt; Zufall nur über `Math.random`.
 - Kein DOM-Zugriff. Pakete liefern Daten und SVG-Strings, die Engine zeichnet.
-- Jede Stufe hat mindestens 8 unterschiedliche mögliche Aufgaben. Ausnahme:
+- Jede Stufe hat mindestens 8 unterschiedliche mögliche Aufgaben. Ausnahmen:
   Stufen 2 und 5 von „Noten lesen“ haben nur 4 Zwischenräume (bewusst so
-  belassen, im Test vermerkt).
+  belassen, im Test vermerkt). Stufen 1 und 2 von „Notenwerte und Pausen“
+  (`notenwerte-1`, `notenwerte-2`) haben nur 5 Aufgaben: die fünf Notenwerte
+  bzw. Pausenwerte von der ganzen bis zur Sechzehntel, alle auf derselben Höhe,
+  damit nur der Wert zählt (im Test `test/packs/notenwerte.test.js` vermerkt).
 - Texte auf Deutsch, Anrede „du“, Fachbegriffe wie im Musikunterricht am Gymnasium.
 - Jedes Paket hat eine Testdatei `test/packs/<id>.test.js`, die prüft: Stufen-IDs eindeutig, `question()` liefert gültige Aufgaben, `check()` erkennt die richtige Antwort und lehnt eine falsche ab, bei `choices` ist `answer` enthalten.
 
