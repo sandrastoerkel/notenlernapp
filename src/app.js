@@ -56,6 +56,57 @@ document.addEventListener("keydown", (e) => {
   if (v && v.handleKey) v.handleKey(e);
 });
 
+/* ---------- Offline-Cache und Updates ---------- */
+
+// true, sobald du „Neu laden“ getippt hast; nur dann lädt controllerchange die Seite neu
+// (bei der ersten Installation übernimmt der Worker per clients.claim ebenfalls, ohne Neuladen)
+let updateRequested = false;
+
+// Hinweis „Neue Version verfügbar“: Ein neuer Service Worker wartet, bis du „Neu laden“ tippst.
+// Erst dann übernimmt er (SKIP_WAITING), und die Seite lädt einmal neu.
+function showUpdate(reg) {
+  const bar = $("#updateBar");
+  bar.hidden = false;
+  $("#updateLater").onclick = () => { bar.hidden = true; };
+  $("#updateReload").onclick = () => {
+    updateRequested = true;
+    if (reg.waiting) reg.waiting.postMessage({ type: "SKIP_WAITING" });
+    else location.reload(); // der neue Worker ist schon aktiv
+  };
+}
+
+function watchUpdates(reg) {
+  // Beim Öffnen wartet schon ein neuer Worker (zum Beispiel aus einem früheren Besuch)
+  if (reg.waiting && navigator.serviceWorker.controller) showUpdate(reg);
+  reg.addEventListener("updatefound", () => {
+    const sw = reg.installing;
+    if (!sw) return;
+    sw.addEventListener("statechange", () => {
+      // ohne controller ist es die erste Installation: dann gibt es nichts neu zu laden
+      if (sw.state === "installed" && navigator.serviceWorker.controller) showUpdate(reg);
+    });
+  });
+  // Wer die App aus dem Hintergrund zurückholt, bekommt so ebenfalls das Update
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") reg.update().catch(() => {});
+  });
+}
+
+// Service Worker nur über https oder auf dem eigenen Rechner (localhost)
+if ("serviceWorker" in navigator && (location.protocol === "https:" || ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname))) {
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!updateRequested || reloaded) return;
+    reloaded = true;
+    location.reload();
+  });
+  const register = () => navigator.serviceWorker.register("./sw.js", { scope: "./" })
+    .then(watchUpdates)
+    .catch((err) => console.warn("Service Worker nicht registriert:", err));
+  if (document.readyState === "complete") register();
+  else window.addEventListener("load", register);
+}
+
 /* ---------- Start ---------- */
 audio.setMuted(ctx.state.muted);
 Object.values(VIEWS).forEach((v) => v.init(ctx));

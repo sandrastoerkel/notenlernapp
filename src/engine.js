@@ -1,16 +1,20 @@
 // Generischer Rundenablauf: zehn Aufgaben, Feedback, Sterne und XP.
 // Die Engine kennt kein Paket im Detail: sie ruft level.question(prev) und level.check(q, value),
-// zeigt q.svg und baut die Antwort-Elemente nach der Eingabeart.
+// zeigt q.svg (nach der Antwort q.revealSvg, falls gesetzt) und baut die Antwort-Elemente nach der Eingabeart.
 // Oben stehen reine Hilfsfunktionen (getestet in test/engine.test.js), unten der DOM-Teil.
 import { LETTERS } from "./music.js";
 import { pianoSvg } from "./staff.js";
 import { recordRound, recordAnswer } from "./store.js";
-import { play } from "./audio.js";
+import { play, playChord, isMuted } from "./audio.js";
 
 export const ROUND_LENGTH = 10;
 export const DELAY_OK = 800, DELAY_BAD = 1600;
 // Abstand zwischen mehreren Tönen aus q.play
 export const PLAY_GAP = 500;
+// Rhythmus aus q.play: ein Schlag (Viertel) dauert 600 ms, also Tempo 100 Viertel pro Minute
+export const BEAT_MS = 600;
+// Pause nach dem letzten Ton eines Rhythmus, bevor die nächste Aufgabe erscheint
+export const RHYTHM_TAIL = 300;
 
 /* ---------- Reine Hilfsfunktionen ---------- */
 
@@ -48,13 +52,15 @@ export function countAnswer(s, q, ok) {
   return s;
 }
 
-export const feedbackText = (q, ok) => (ok ? `Richtig! ${q.display}` : `Das war ein ${q.display}.`);
+// Feedback nach der Antwort. q.reveal (optional) ist ein ganzer Satz für eine falsche Antwort, z. B.
+// „Richtig wäre: A-Dur.“, weil „Das war ein …“ nicht zu jedem Begriff passt; ohne reveal wie bisher.
+export const feedbackText = (q, ok) => (ok ? `Richtig! ${q.display}` : q.reveal || `Das war ein ${q.display}.`);
 
 export function resultMessage(stars) {
-  if (stars === 3) return "Stark, fast fehlerfrei.";
+  if (stars === 3) return "Stark, fast alles richtig.";
   if (stars === 2) return "Gut. Noch eine Runde und der dritte Stern ist drin.";
-  if (stars === 1) return "Solide Basis. Schau dir die Fehler in „Lernen“ an.";
-  return "Noch wackelig. Übe zuerst in „Lernen“ mit den Merksprüchen.";
+  if (stars === 1) return "Solide Basis. Was noch unsicher ist, kannst du in „Lernen“ nachschauen.";
+  return "Noch wackelig. Übe zuerst in „Lernen“ mit den Lerntafeln.";
 }
 
 export const dotsHtml = (results, idx, total) => Array.from({ length: total }, (_, i) =>
@@ -64,6 +70,12 @@ export const lettersHtml = () => LETTERS.map((l) => `<button class="btn" data-le
 
 const esc = (t) => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 export const choicesHtml = (choices) => (choices || []).map((c, i) => `<button class="btn" data-choice="${i}">${esc(c)}</button>`).join("");
+// Raster für Auswahlknöpfe: Begriffe zweispaltig ("choices"); sind alle Texte kurz (höchstens 4 Zeichen,
+// z. B. „½“, „VII“, „3 ♭“), passen mehrere in eine Reihe ("choices short"). Buchstaben behalten 7 Spalten.
+export const CHOICE_SHORT = 4;
+export const choicesClass = (choices) => ((choices || []).length && choices.every((c) => String(c).length <= CHOICE_SHORT) ? "choices short" : "choices");
+// Spalten für kurze Texte: alle in einer Reihe, ab sieben Knöpfen zwei Reihen (I–VII: 4 + 3)
+export const choiceCols = (choices) => { const n = (choices || []).length; return n <= 6 ? n : Math.ceil(n / 2); };
 
 // Tastendruck deuten: { letter } für C D E F G A H, { acc } für + # (♯), - b (♭), 0 (♮), sonst null.
 // Mit Strg, Alt oder Cmd wird nichts ausgewertet.
@@ -80,8 +92,39 @@ export function keyAction(e) {
 // Blitz: Punkte für eine richtige Antwort bei der Serie nach dem Hochzählen (ab fünf in Folge zwei)
 export const blitzPoints = (combo) => (combo >= 5 ? 2 : 1);
 
-// Töne einer Aufgabe: q.play (nacheinander) oder q.note
-export const notesToPlay = (q) => (q.play && q.play.length ? q.play : q.note ? [q.note] : []);
+// Einträge in q.play: entweder eine Note (wie bisher, nacheinander mit PLAY_GAP) oder ein Wert mit Dauer
+// { note, beats } bzw. eine Pause { rest: true, beats }; beats in Schlägen (Viertel = 1, punktierte Viertel 1,5).
+const timed = (e) => !!e && typeof e.beats === "number";
+const noteOf = (e) => (timed(e) ? (e.rest ? null : e.note || null) : e);
+
+// Töne einer Aufgabe: q.play (nacheinander, ohne Pausen) oder q.note
+export const notesToPlay = (q) => (q.play && q.play.length ? q.play.map(noteOf).filter(Boolean) : q.note ? [q.note] : []);
+// Abspielplan für das Nacheinander: [{ note, at, dur }] mit at und dur in ms; note ist null bei Pausen,
+// dur ist null bei Einträgen ohne Dauer (dann klingt der Ton wie bisher). Einfache Noten rücken um PLAY_GAP
+// weiter, Einträge mit beats um beats · BEAT_MS.
+export function playSchedule(q) {
+  if (!(q.play && q.play.length)) return q.note ? [{ note: q.note, at: 0, dur: null }] : [];
+  let at = 0;
+  return q.play.map((e) => {
+    const dur = timed(e) ? e.beats * BEAT_MS : null;
+    const item = { note: noteOf(e), at, dur };
+    at += dur === null ? PLAY_GAP : dur;
+    return item;
+  });
+}
+// Ende des Rhythmus in ms (Ende des letzten Eintrags mit Dauer), 0 ohne Einträge mit Dauer
+export const rhythmEnd = (q) => playSchedule(q).reduce((m, s) => (s.dur === null ? m : Math.max(m, s.at + s.dur)), 0);
+// Wartezeit bis zur nächsten Aufgabe: wie bisher; klingt ein Rhythmus (und ist der Ton an), bis er
+// vorbei ist und noch RHYTHM_TAIL dazu
+export function answerDelay(q, ok, muted = false) {
+  const base = ok ? DELAY_OK : DELAY_BAD, end = muted ? 0 : rhythmEnd(q);
+  return end ? Math.max(base, end + RHYTHM_TAIL) : base;
+}
+// Abspielart: "together" (alle Töne gleichzeitig, bei q.playTogether und mehr als einem Ton), sonst "sequence"
+export const playMode = (q) => (q.playTogether && notesToPlay(q).length > 1 ? "together" : "sequence");
+
+// SVG nach der Antwort: q.revealSvg, falls vorhanden, sonst q.svg
+export const revealedSvg = (q) => q.revealSvg || q.svg;
 
 /* ---------- Ablauf im DOM ---------- */
 
@@ -136,6 +179,7 @@ export function startRound(level, ui, hooks) {
     input: effectiveInput(level.input, hooks.state.input),
   };
   run = r;
+  if (ui.answers) ui.answers.classList.remove("choices", "short");
   if (r.level.input === "choices") {
     if (ui.answers) ui.answers.innerHTML = "";
   } else {
@@ -166,7 +210,13 @@ function showQuestion(r) {
   ui.feedback.textContent = q.prompt || ""; ui.feedback.className = "feedback";
   if (ui.count) ui.count.textContent = `${r.idx + 1} / ${r.items.length}`;
   if (ui.dots) ui.dots.innerHTML = dotsHtml(r.results, r.idx, r.items.length);
-  if (r.level.input === "choices" && ui.answers) ui.answers.innerHTML = choicesHtml(q.choices);
+  if (r.level.input === "choices" && ui.answers) {
+    ui.answers.innerHTML = choicesHtml(q.choices);
+    ui.answers.classList.add("choices");
+    const short = choicesClass(q.choices).includes("short");
+    ui.answers.classList.toggle("short", short);
+    if (short) ui.answers.style.setProperty("--cols", choiceCols(q.choices)); else ui.answers.style.removeProperty("--cols");
+  }
   all(ui.answers, ".btn").concat(all(ui.piano, "rect")).forEach((b) => b.classList.remove("ok", "bad"));
   setMod(0);
   r.t0 = performance.now();
@@ -190,16 +240,26 @@ function answer(r, value, el) {
       : all(ui.answers, ".btn[data-choice]").find((b) => q.choices && q.choices[+b.dataset.choice] === a);
     if (right) right.classList.add("ok");
   }
+  // q.revealSvg (optional): SVG, das nach der Antwort statt q.svg erscheint, bei richtiger und falscher
+  // Antwort, z. B. der vollständige Takt mit dem fehlenden Wert in der Lücke. Ohne revealSvg bleibt q.svg
+  // stehen. Die Färbung (Klasse ok/bad am <svg>) gilt in beiden Fällen für das angezeigte SVG.
+  const shown = revealedSvg(q);
+  if (shown !== q.svg) ui.staff.innerHTML = shown;
   const svg = ui.staff.querySelector("svg");
   if (svg) svg.classList.add(ok ? "ok" : "bad");
   ui.feedback.textContent = feedbackText(q, ok);
   ui.feedback.className = "feedback " + (ok ? "ok" : "bad");
-  notesToPlay(q).forEach((n, i) => { if (i === 0) play(n); else later(r, () => play(n), i * PLAY_GAP); });
+  if (playMode(q) === "together") playChord(notesToPlay(q));
+  else playSchedule(q).forEach(({ note, at, dur }) => {
+    if (!note) return; // Pause
+    const go = () => (dur === null ? play(note) : play(note, undefined, dur / 1000));
+    if (at === 0) go(); else later(r, go, at);
+  });
   later(r, () => {
     if (run !== r) return;
     r.locked = false; r.idx++;
     if (r.idx >= r.items.length) finish(r); else showQuestion(r);
-  }, ok ? DELAY_OK : DELAY_BAD);
+  }, answerDelay(q, ok, isMuted()));
 }
 
 function finish(r) {

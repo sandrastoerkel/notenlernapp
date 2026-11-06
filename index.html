@@ -6,8 +6,16 @@
 <meta name="description" content="Notenheld: Noten lesen lernen im Violin- und Bassschlüssel. Für Schülerinnen und Schüler am Gymnasium.">
 <meta name="theme-color" content="#2d4fd6">
 <title>Notenheld · Noten lesen lernen</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232d4fd6'/%3E%3Ctext x='16' y='23' font-size='20' text-anchor='middle' fill='white' font-family='serif'%3E%E2%99%AA%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;700&family=Nunito:wght@400;600;700;800&family=Noto+Music&display=swap">
+<link rel="icon" href="./icons/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="icon" href="./icons/favicon-48.png" type="image/png" sizes="48x48">
+<link rel="icon" href="./icons/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Notenheld">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="preload" href="./fonts/NotoMusic-Regular-music.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="./css/style.css">
 </head>
 <body>
@@ -66,8 +74,8 @@
 
     <div id="pIntro" class="card soft stack">
       <p id="pHint" class="muted"></p>
-      <p class="small muted">Tastatur: <span class="kbd">C</span> <span class="kbd">D</span> <span class="kbd">E</span> … <span class="kbd">H</span>, Vorzeichen mit <span class="kbd">+</span> <span class="kbd">-</span> <span class="kbd">0</span></p>
-      <button class="btn primary wide" id="pStart">Runde starten · 10 Noten</button>
+      <p class="small muted" id="pKeys">Tastatur: <span class="kbd">C</span> <span class="kbd">D</span> <span class="kbd">E</span> … <span class="kbd">H</span>, Vorzeichen mit <span class="kbd">+</span> <span class="kbd">-</span> <span class="kbd">0</span></p>
+      <button class="btn primary wide" id="pStart">Runde starten · 10 Aufgaben</button>
     </div>
 
     <div id="pPlay" class="stack" hidden>
@@ -113,7 +121,7 @@
       </div>
     </div>
     <div class="card stack">
-      <p class="eyebrow">Merkhilfen</p>
+      <p class="eyebrow">Lerntafeln</p>
       <div class="legend" id="lLegend"></div>
     </div>
   </section>
@@ -136,7 +144,7 @@
     </div>
     <div class="card staff-card" id="bStaff"></div>
     <div id="bIntro" class="card soft stack">
-      <p class="muted">Jede richtige Note zählt einen Punkt. Ab fünf in Folge gibt es Bonuspunkte. Falsche Antworten brechen die Serie, kosten aber nichts.</p>
+      <p class="muted">Jede richtige Note zählt einen Punkt. Ab fünf in Folge gibt es Bonuspunkte. Eine Antwort daneben beendet die Serie, kostet aber nichts.</p>
       <button class="btn primary wide" id="bStart">Blitz starten</button>
     </div>
     <div id="bPlay" class="stack" hidden>
@@ -154,12 +162,12 @@
     </div>
     <div class="tiles" id="sTiles"></div>
     <div class="card stack">
-      <div class="row between"><h3>Schwache Noten</h3><span class="small muted">Fehler je Note</span></div>
+      <div class="row between"><h3>Schwache Stellen</h3><span class="small muted">daneben je Aufgabe</span></div>
       <div class="list" id="sWeak"></div>
     </div>
     <div class="card stack">
-      <h3>Stufen</h3>
-      <div class="list" id="sLevels"></div>
+      <div class="row between"><h3>Je Stufe</h3><span class="small muted">beste Runde von 10</span></div>
+      <div class="stack" id="sLevels"></div>
     </div>
     <div class="card soft stack">
       <p class="small muted">Der Fortschritt wird nur auf diesem Gerät im Browser gespeichert.</p>
@@ -171,6 +179,13 @@
 </main>
 
 <nav class="tabs" aria-label="Bereiche">
+  <div class="update-bar" id="updateBar" role="status" hidden>
+    <span>Neue Version verfügbar</span>
+    <span class="update-actions">
+      <button class="btn ghost small" id="updateLater">Später</button>
+      <button class="btn primary small" id="updateReload">Neu laden</button>
+    </span>
+  </div>
   <div class="tabs-inner">
     <button class="tab on" data-view="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11 12 3l9 8v10h-6v-6H9v6H3z"/></svg>Start</button>
     <button class="tab" data-view="practice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 10h16M4 14h16M4 18h16"/><circle cx="15" cy="16" r="2.5" fill="currentColor"/></svg>Üben</button>

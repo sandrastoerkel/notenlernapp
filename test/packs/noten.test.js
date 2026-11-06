@@ -6,7 +6,10 @@ import { N, same } from "../../src/music.js";
 import { staffSvg, noteSvg } from "../../src/staff.js";
 
 test("Registry enthält nur fertige Pakete", () => {
-  assert.deepEqual(PACKS.map((p) => p.id), ["noten"]);
+  // „Noten lesen“ steht vorn; weitere Pakete kommen hinzu, sobald sie gebaut sind (kein null in der Liste)
+  assert.equal(PACKS[0].id, "noten");
+  assert.ok(PACKS.every((p) => p && p.id && p.levels.length));
+  assert.equal(new Set(PACKS.map((p) => p.id)).size, PACKS.length);
 });
 
 test("acht Stufen mit eindeutigen IDs", () => {
