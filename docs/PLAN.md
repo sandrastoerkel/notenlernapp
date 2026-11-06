@@ -32,6 +32,8 @@ Branch `paket-b`, `paket-c`, …).
 
 ## Paket A: Module und Tests (Schritt 5 aus dem Gespräch)
 
+**Stand.** Erledigt auf Branch `paket-a` (Testbefehl abweichend: `node --test "test/**/*.test.js"`).
+
 **Ziel.** `index.html` in die Struktur aus ARCHITEKTUR.md aufteilen, ohne dass
 sich das Verhalten der App ändert. Tests für das Notenmodell und den Fortschritt.
 
