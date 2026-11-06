@@ -63,6 +63,12 @@ const ACC_SHIFT = { 1: r2(OPEN_HEADS[1].outer[0] - BLACK_HALF_W) };
 // die ganze Note bekommt 10,28 + 0,26 · 12 = 13,4 (2,23 LA lang), vorher 11 (ragte nur 0,06 hinaus).
 const LEDGER_HALF = { 1: 13.4 };
 const LEDGER_HALF_DEFAULT = 11;
+// Hat die Note eine Hilfslinie (durch den Kopf oder direkt daneben, z. B. c', h, a'', h''), hält Verovio das
+// Vorzeichen von der Hilfslinie frei: Abstand zum Kopf 0,38–0,40 LA statt 0,25, zur Hilfslinie 0,12–0,13
+// (Bravura und Leipzig, alle Notenwerte, gemessen an 36 Fällen). Wir rücken dann um 1,9 (0,16 LA) weiter
+// nach links: Abstand zum Kopf 0,38–0,41, zur Hilfslinie 0,07 (schwarz und halb, unsere Hilfslinie ragt
+// 0,32 hinaus) bzw. 0,13 (ganze Note). Ohne Hilfslinie unverändert.
+const ACC_LEDGER_SHIFT = 1.9;
 
 function ellipsePath(cx, cy, rx, ry, deg) {
   const t = (deg * Math.PI) / 180, dx = rx * Math.cos(t), dy = rx * Math.sin(t);
@@ -82,7 +88,8 @@ export function noteSvg(n, clef, x, cls, opts = {}) {
   for (let q = 10; q <= p; q += 2) s += ledger(q);
   if (n.acc) {
     const k = n.acc > 0 ? "sharp" : "flat";
-    s += `<text class="acc" x="${r2(x + ACC_X[k] - (ACC_SHIFT[value] || 0))}" y="${cy + ACC_DY[k]}">${n.acc > 0 ? "♯" : "♭"}</text>`;
+    const shift = (ACC_SHIFT[value] || 0) + (p <= -2 || p >= 10 ? ACC_LEDGER_SHIFT : 0);
+    s += `<text class="acc" x="${r2(x + ACC_X[k] - shift)}" y="${cy + ACC_DY[k]}">${n.acc > 0 ? "♯" : "♭"}</text>`;
   }
   // Hals nach oben unterhalb der Mittellinie, ab der Mittellinie nach unten
   const up = p < 4;

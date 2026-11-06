@@ -31,7 +31,7 @@ test("staffSvg: Linien und Schlüsselhöhe (gemessen gegen Verovio/Bravura)", ()
 // Die Notenköpfe waren in der ersten Fassung 1,08 × 0,83 Linienabstände groß (zu flach); gemessen gegen
 // Verovio 6.4.1 mit Bravura ist ein schwarzer Kopf 1,18 × 1,00 groß und um 31° gekippt.
 test("noteSvg: Notenkopf, Hals und Vorzeichen nach Referenzmaßen", () => {
-  const notes = [...range(N("A", 1), N("E", 6)), N("F", 4, 1), N("H", 4, -1), N("D", 5, -1)];
+  const notes = [...range(N("A", 1), N("E", 6)), N("F", 4, 1), N("H", 4, -1), N("D", 5, -1), N("C", 4, 1), N("H", 3, -1), N("A", 5, -1), N("H", 5, 1), N("E", 2, -1), N("D", 4, 1)];
   for (const clef of ["treble", "bass"]) {
     for (const n of notes) {
       const p = staffPos(n, clef), cy = BOTTOM - p * (S / 2), svg = noteSvg(n, clef, 170);
@@ -45,7 +45,9 @@ test("noteSvg: Notenkopf, Hals und Vorzeichen nach Referenzmaßen", () => {
       for (const cls of [undefined, "", "ok", "bad", "ghost"]) assert.ok(noteSvg(n, clef, 170, cls).startsWith(`<g class="note ${cls || ""}">`));
       if (n.acc) {
         const sharp = n.acc > 0;
-        assert.ok(svg.includes(`<text class="acc" x="${sharp ? 148 : 149}" y="${cy + (sharp ? ACC_DY.sharp : ACC_DY.flat)}">${sharp ? "♯" : "♭"}</text>`));
+        // mit Hilfslinie 1,9 weiter links (Verovio hält das Vorzeichen von der Hilfslinie frei)
+        const ax = Math.round(((sharp ? 148 : 149) - (p <= -2 || p >= 10 ? 1.9 : 0)) * 100) / 100;
+        assert.ok(svg.includes(`<text class="acc" x="${ax}" y="${cy + (sharp ? ACC_DY.sharp : ACC_DY.flat)}">${sharp ? "♯" : "♭"}</text>`));
       }
     }
   }
@@ -63,8 +65,9 @@ test("noteSvg: Vorzeichen und Hilfslinien der ganzen Note nach Kopfbreite", () =
     assert.equal(accX(h), accX(q));
     assert.equal(accX(w), Math.round((accX(q) - 3.15) * 100) / 100);
     // Abstand rechte Kante des Vorzeichens (♯ 12,1, ♭ 11,0) zum Kopf (170 − 10,28) etwa 0,25 LA
-    const gap = (170 - 10.28) - (accX(w) + (n.acc > 0 ? 12.1 : 11.0));
-    assert.ok(gap > 0.2 * S && gap < 0.3 * S, String(gap));
+    // Abstand rechte Kante des Vorzeichens zum Kopf: 0,25 LA, mit Hilfslinie etwa 0,4 LA
+    const gap = (170 - 10.28) - (accX(w) + (n.acc > 0 ? 12.1 : 11.0)), led = w.includes('class="ledger"');
+    assert.ok(led ? gap > 0.36 * S && gap < 0.44 * S : gap > 0.2 * S && gap < 0.3 * S, String(gap));
   }
   // Hilfslinie: ganze Note 13,4 zu jeder Seite (2,23 LA lang), schwarze und halbe Köpfe 11
   assert.deepEqual(ledgerX(noteSvg(N("C", 4), "treble", 170, "", { value: 1 })), [156.6, 183.4]);
@@ -72,6 +75,29 @@ test("noteSvg: Vorzeichen und Hilfslinien der ganzen Note nach Kopfbreite", () =
   assert.deepEqual(ledgerX(noteSvg(N("E", 2), "bass", 170, "", { value: 1 })), [156.6, 183.4]);
   for (const value of [2, 4, 8, 16]) assert.deepEqual(ledgerX(noteSvg(N("C", 4), "treble", 170, "", { value })), [159, 181]);
   assert.equal(count(noteSvg(N("C", 6), "treble", 170, "", { value: 1 }), /x1="156.6" x2="183.4"/g), 2);
+});
+
+// Mit Hilfslinie (durch den Kopf oder direkt daneben) steht das Vorzeichen 0,38–0,40 LA vor dem Kopf und
+// berührt die Hilfslinie nicht (Verovio 6.4.1, Bravura und Leipzig); ohne Hilfslinie unverändert.
+test("noteSvg: Vorzeichen bei Hilfslinien frei von der Hilfslinie", () => {
+  const accX = (svg) => +attr(svg, 'text class="acc"', "x");
+  const right = { 1: 12.1, [-1]: 11.0 };
+  for (const value of [1, 2, 4, 8]) {
+    const half = value === 1 ? 10.28 : 7.13;
+    for (const [n, clef] of [[N("C", 4, 1), "treble"], [N("H", 3, -1), "treble"], [N("A", 3, 1), "treble"], [N("A", 5, -1), "treble"], [N("H", 5, -1), "treble"], [N("D", 6, 1), "treble"], [N("E", 2, -1), "bass"], [N("D", 2, 1), "bass"], [N("D", 4, 1), "bass"]]) {
+      const svg = noteSvg(n, clef, 170, "", { value }), x2 = right[n.acc] + accX(svg);
+      const ledgerX1 = Math.min(...[...svg.matchAll(/class="ledger" x1="([\d.]+)"/g)].map((m) => +m[1]));
+      const gap = 170 - half - x2;
+      assert.ok(gap > 0.36 * S && gap < 0.44 * S, `${value} ${n.letter}${n.octave} ${gap}`);
+      assert.ok(ledgerX1 - x2 > 0.05 * S, `${value} ${n.letter}${n.octave} Hilfslinie`);
+    }
+  }
+  // ohne Hilfslinie byte-gleich wie vorher
+  assert.equal(accX(noteSvg(N("G", 5, 1), "treble", 170)), 148);
+  assert.equal(accX(noteSvg(N("D", 4, 1), "treble", 170)), 148);
+  assert.equal(accX(noteSvg(N("F", 2, 1), "bass", 170)), 148);
+  assert.equal(accX(noteSvg(N("H", 3, -1), "bass", 170)), 149);
+  assert.equal(accX(noteSvg(N("C", 4, 1), "treble", 170)), 146.1);
 });
 
 test("staffSvg: fünf Linien und Schlüssel", () => {

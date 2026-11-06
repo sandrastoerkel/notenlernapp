@@ -112,7 +112,9 @@ Kommentar in `staff.js`. Angaben in Linienabständen (LA):
   ♯ 2,8 LA, ♭ 2,45 LA hoch. Die Grundlinie liegt `ACC_DY`/`KEYSIG_DY`
   (♯ 6, ♭ 5,5) unter der Linie bzw. dem Zwischenraum. Vor der Note bleibt
   0,25 LA Abstand zum Kopf, bei jedem Notenwert: vor der breiteren ganzen
-  Note rückt das Vorzeichen um 3,15 weiter nach links.
+  Note rückt das Vorzeichen um 3,15 weiter nach links. Hat die Note eine
+  Hilfslinie (durch den Kopf oder direkt daneben), rückt es um weitere 1,9:
+  Abstand zum Kopf 0,38–0,41 LA, die Hilfslinie bleibt frei (wie Verovio).
 - Hilfslinien ragen über den Kopf hinaus: bei schwarzen und halben Köpfen
   11 Einheiten zu jeder Seite (1,83 LA lang), bei der ganzen Note 13,4
   (2,23 LA, wie Verovio/Bravura 2,22). Die Vorzeichnung im Bassschlüssel ist dasselbe
