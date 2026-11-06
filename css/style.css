@@ -93,7 +93,7 @@ section { display: grid; gap: 14px; }
 .clef { font-family: var(--music); fill: var(--ink); }
 .notehead { fill: var(--ink); }
 .stem { stroke: var(--ink); stroke-width: 1.8; }
-.acc { font-family: var(--music); fill: var(--ink); font-size: 24px; }
+.acc { font-family: var(--music); fill: var(--ink); font-size: 40px; }
 .note.ok .notehead, .note.ok .acc { fill: var(--ok); } .note.ok .stem { stroke: var(--ok); }
 .note.bad .notehead, .note.bad .acc { fill: var(--bad); } .note.bad .stem { stroke: var(--bad); }
 .hit { fill: transparent; cursor: pointer; }
@@ -193,5 +193,5 @@ svg.bad .notehead, svg.bad .acc { fill: var(--bad); } svg.bad .stem, svg.bad .fl
 .note.bad .notehead.open, svg.bad .note .notehead.open { stroke: var(--bad); }
 .note.ghost .notehead.open { stroke: var(--accent); }
 .rest, .glyph, .keysig { font-family: var(--music); fill: var(--ink); }
-.keysig { font-size: 24px; }
+.keysig { font-size: 40px; }
 svg.ok .rest { fill: var(--ok); } svg.bad .rest { fill: var(--bad); }

@@ -24,7 +24,7 @@ export function noteSvg(n, clef, x, cls, opts = {}) {
   let s = `<g class="note ${cls || ""}">`;
   for (let q = -2; q >= p; q -= 2) s += `<line class="ledger" x1="${x - 11}" x2="${x + 11}" y1="${yOf(q)}" y2="${yOf(q)}"/>`;
   for (let q = 10; q <= p; q += 2) s += `<line class="ledger" x1="${x - 11}" x2="${x + 11}" y1="${yOf(q)}" y2="${yOf(q)}"/>`;
-  if (n.acc) s += `<text class="acc" x="${x - 22}" y="${cy + (n.acc > 0 ? ACC_DY.sharp : ACC_DY.flat)}">${n.acc > 0 ? "♯" : "♭"}</text>`;
+  if (n.acc) s += `<text class="acc" x="${x - 24}" y="${cy + (n.acc > 0 ? ACC_DY.sharp : ACC_DY.flat)}">${n.acc > 0 ? "♯" : "♭"}</text>`;
   const up = p < 4;
   // Ganze Noten haben keinen Hals
   if (value !== 1 && !opts.stemless) {
@@ -81,11 +81,14 @@ const FLATS_TREBLE = [4, 7, 3, 6, 2, 5, 1];
 // Kreuze fis cis gis dis Ais eis His, Be B es As des Ges ces Fes – das Fes liegt im Zwischenraum unter der Zeile.
 const BASS_SHIFT = -2;
 // Bassschlüssel: etwas weiter rechts, damit das erste Vorzeichen nicht an den Punkten klebt.
-const KEYSIG_X = { treble: 64, bass: 70 }, KEYSIG_STEP = 9;
-// Senkrechter Versatz der Grundlinie gegenüber der Linie/dem Zwischenraum (gemessen an Noto Music, 24px):
+const KEYSIG_X = { treble: 64, bass: 70 }, KEYSIG_STEP = 12;
+// Vorzeichen werden mit 40px gesetzt: das ♯ ist dann gut 2½ Linienabstände hoch, das ♭ gut 2 –
+// so groß wie im Notensatz üblich (bei 24px waren sie nur etwa 1½ Linienabstände hoch, also zu klein).
+export const ACC_SIZE = 40;
+// Senkrechter Versatz der Grundlinie gegenüber der Linie/dem Zwischenraum (an Noto Music bei 40px im Browser gemessen):
 // ♯ – Mitte zwischen den Querbalken liegt 3,5 über der Grundlinie; ♭ – Mitte des Bauchs 2,5 darüber.
-export const KEYSIG_DY = { sharp: 3.5, flat: 2.5 };
-// Vorzeichen vor einzelnen Noten haben dieselbe Schriftgröße (24px) und damit denselben Versatz.
+export const KEYSIG_DY = { sharp: 6, flat: 4 };
+// Vorzeichen vor einzelnen Noten haben dieselbe Schriftgröße und damit denselben Versatz.
 export const ACC_DY = KEYSIG_DY;
 
 export function keySigSvg(clef, count) {

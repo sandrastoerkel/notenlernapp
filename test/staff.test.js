@@ -13,7 +13,7 @@ function oldNoteSvg(n, clef, x, cls) {
   for (let q = -2; q >= p; q -= 2) s += `<line class="ledger" x1="${x - 11}" x2="${x + 11}" y1="${BOTTOM - q * (S / 2)}" y2="${BOTTOM - q * (S / 2)}"/>`;
   for (let q = 10; q <= p; q += 2) s += `<line class="ledger" x1="${x - 11}" x2="${x + 11}" y1="${BOTTOM - q * (S / 2)}" y2="${BOTTOM - q * (S / 2)}"/>`;
   // Korrigiert gegenüber dem Prototyp (dort cy + 7): Vorzeichen sitzt genau auf Linie/Zwischenraum.
-  if (n.acc) s += `<text class="acc" x="${x - 22}" y="${cy + (n.acc > 0 ? 3.5 : 2.5)}">${n.acc > 0 ? "♯" : "♭"}</text>`;
+  if (n.acc) s += `<text class="acc" x="${x - 24}" y="${cy + (n.acc > 0 ? 6 : 4)}">${n.acc > 0 ? "♯" : "♭"}</text>`;
   const up = p < 4;
   s += up ? `<line class="stem" x1="${x + 6}" x2="${x + 6}" y1="${cy - 1}" y2="${cy - 40}"/>` : `<line class="stem" x1="${x - 6}" x2="${x - 6}" y1="${cy + 1}" y2="${cy + 40}"/>`;
   s += `<ellipse class="notehead" cx="${x}" cy="${cy}" rx="6.8" ry="4.6" transform="rotate(-22 ${x} ${cy})"/>`;
@@ -62,11 +62,11 @@ test("staffSvg: Höhe und Vorzeichen", () => {
   assert.equal(keySigSvg("treble", 0), "");
   assert.equal(keySigSvg("treble", undefined), "");
   // Fis steht im Violinschlüssel auf der obersten Linie (y = 34), im Bassschlüssel auf der vierten (y = 46);
-  // die Grundlinie des ♯ liegt KEYSIG_DY.sharp (3,5) tiefer, damit die Glyphenmitte auf der Linie sitzt
-  assert.ok(keySigSvg("treble", 1).includes('y="37.5"'));
-  assert.ok(keySigSvg("bass", 1).includes('y="49.5"'));
-  // B steht im Violinschlüssel auf der Mittellinie (y = 58); der Bauch des ♭ sitzt dort (Grundlinie 60,5)
-  assert.ok(keySigSvg("treble", -1).includes('y="60.5"'));
+  // die Grundlinie des ♯ liegt KEYSIG_DY.sharp (6) tiefer, damit die Glyphenmitte auf der Linie sitzt
+  assert.ok(keySigSvg("treble", 1).includes('y="40"'));
+  assert.ok(keySigSvg("bass", 1).includes('y="52"'));
+  // B steht im Violinschlüssel auf der Mittellinie (y = 58); der Bauch des ♭ sitzt dort (Grundlinie 62)
+  assert.ok(keySigSvg("treble", -1).includes('y="62"'));
   // Bass-Vorzeichen beginnen weiter rechts als im Violinschlüssel (Abstand zu den Punkten des Schlüssels)
   assert.ok(xs(keySigSvg("bass", 1))[0] > xs(keySigSvg("treble", 1))[0]);
 });
