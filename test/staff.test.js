@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { N, range, staffPos } from "../src/music.js";
-import { noteSvg, staffSvg, pianoSvg, restSvg, glyphSvg, keySigSvg, KEYSIG_DY, ACC_DY, ACC_SIZE, HEAD, GLYPHS } from "../src/staff.js";
+import { noteSvg, noteheadSvg, staffSvg, pianoSvg, restSvg, glyphSvg, keySigSvg, KEYSIG_DY, ACC_DY, ACC_SIZE, HEAD, GLYPHS } from "../src/staff.js";
 
 const count = (s, re) => (s.match(re) || []).length;
 
@@ -250,4 +250,14 @@ test("pianoSvg: 13 Tasten, Fis = 6 genau einmal", () => {
   assert.equal(count(p, /<rect/g), 13);
   assert.equal(count(p, /data-semi="6"/g), 1);
   assert.equal(count(p, /data-semi="0"/g), 2);
+});
+
+test("noteheadSvg: derselbe Kopf wie in noteSvg, für jeden Notenwert", () => {
+  const cy = BOTTOM - staffPos(N("G", 4), "treble") * (S / 2);
+  assert.equal(noteheadSvg(170, cy), `<ellipse class="notehead" cx="170" cy="${cy}" rx="${HEAD.rx}" ry="${HEAD.ry}" transform="rotate(${HEAD.rot} 170 ${cy})"/>`);
+  for (const value of [1, 2, 4, 8, 16]) {
+    const head = noteheadSvg(170, cy, value);
+    assert.ok(noteSvg(N("G", 4), "treble", 170, "", { value }).includes(head), String(value));
+    assert.equal(head.includes("open"), value <= 2, String(value));
+  }
 });

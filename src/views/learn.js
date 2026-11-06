@@ -1,6 +1,6 @@
 // Lernen: Notenzeile zum Antippen, alle Namen einblenden, Lerntafeln der Pakete
 import { fromDia, same, gName, helm, staffPos } from "../music.js";
-import { staffSvg, noteSvg, BOTTOM, S } from "../staff.js";
+import { staffSvg, noteSvg, noteheadSvg, BOTTOM, S } from "../staff.js";
 import { play } from "../audio.js";
 
 const $ = (s) => document.querySelector(s);
@@ -46,7 +46,8 @@ export function render() {
       let g = `<g class="note ghost">`;
       for (let q = -2; q >= p; q -= 2) g += `<line class="ledger" x1="${x - 9}" x2="${x + 9}" y1="${BOTTOM - q * (S / 2)}" y2="${BOTTOM - q * (S / 2)}"/>`;
       for (let q = 10; q <= p; q += 2) g += `<line class="ledger" x1="${x - 9}" x2="${x + 9}" y1="${BOTTOM - q * (S / 2)}" y2="${BOTTOM - q * (S / 2)}"/>`;
-      g += `<ellipse class="notehead" cx="${x}" cy="${cy}" rx="5.6" ry="3.9" transform="rotate(-22 ${x} ${cy})"/>`;
+      // derselbe Kopf wie bei noteSvg (Maße nach Bravura), nur ohne Hals
+      g += noteheadSvg(x, cy);
       g += `<text class="note-label" x="${x}" y="${BOTTOM + 28}" text-anchor="middle">${helm(n)}</text></g>`;
       inner += g;
     }
