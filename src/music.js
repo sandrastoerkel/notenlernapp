@@ -135,7 +135,7 @@ export const MAJOR_KEYS = Array.from({ length: 15 }, (_, i) => {
 
 // Parallele Molltonart: kleine Terz unter dem Dur-Grundton (zwei Buchstaben, drei Halbtöne),
 // Name klein geschrieben, z. B. C-Dur → a-Moll
-export function relativeMinor(tonic) {
+export function relativeMinorOf(tonic) {
   const m = spell(tonic, -2, -3);
   return { tonic: m, name: gName(m).toLowerCase() + "-Moll" };
 }

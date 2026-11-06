@@ -69,7 +69,7 @@ gestapelte Terzen), `triadQuality(lower, upper)`, `triadRoot(notes)`,
 `triadTypeOf(notes)`, `invert(notes, k)` und `inversionOf(notes)` (0
 Grundstellung, 1 Sextakkord, 2 Quartsextakkord; `INVERSIONS`), `fifthUp`,
 `fifthDown`, `majorTonic(sig)`, `MAJOR_KEYS` (15 Dur-Tonarten von Ces bis Cis),
-`relativeMinor(tonic)`, `triadName(root, type)` („C-Dur“, „a-Moll“, „h
+`relativeMinorOf(tonic)`, `triadName(root, type)` („C-Dur“, „a-Moll“, „h
 vermindert“), `majorScale(tonic)`, `degreeTriad(tonic, deg)`, `ROMAN`.
 
 Pakete dürfen dieses Modul erweitern (neue Funktionen anhängen), aber keine

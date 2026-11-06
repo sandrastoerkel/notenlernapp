@@ -68,7 +68,7 @@ test("transpose: diatonische Schritte", () => {
 /* ---------- Dreiklänge, Quintenzirkel, Stufen ---------- */
 import {
   semis, spell, triad, triadQuality, triadRoot, triadTypeOf, invert, inversionOf, INVERSIONS,
-  fifthUp, fifthDown, majorTonic, MAJOR_KEYS, relativeMinor, triadName, majorScale, degreeTriad, ROMAN,
+  fifthUp, fifthDown, majorTonic, MAJOR_KEYS, relativeMinorOf, triadName, majorScale, degreeTriad, ROMAN,
 } from "../src/music.js";
 
 const names = (ns) => ns.map(helm).join("-");
@@ -133,7 +133,7 @@ test("Quintenzirkel: Tonarten und Nachbarn", () => {
   assert.equal(gName(fifthDown(N("D", 4, -1))), "Ges");
   assert.equal(gName(majorTonic(-3)), "Es");
   assert.equal(gName(majorTonic(5)), "H");
-  const minors = MAJOR_KEYS.map((k) => relativeMinor(k.tonic).name);
+  const minors = MAJOR_KEYS.map((k) => relativeMinorOf(k.tonic).name);
   assert.deepEqual(minors, ["as-Moll", "es-Moll", "b-Moll", "f-Moll", "c-Moll", "g-Moll", "d-Moll",
     "a-Moll", "e-Moll", "h-Moll", "fis-Moll", "cis-Moll", "gis-Moll", "dis-Moll", "ais-Moll"]);
 });

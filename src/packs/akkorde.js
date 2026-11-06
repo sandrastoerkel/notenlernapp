@@ -1,7 +1,7 @@
 // Paket „Dreiklänge und Quintenzirkel“: sechs Stufen und zwei Lerntafeln (Klasse 9 bis 12)
 import {
   N, dia, midi, pc, gName, helm, staffPos, triad, invert, INVERSIONS, TRIAD_TYPES,
-  MAJOR_KEYS, relativeMinor, fifthUp, fifthDown, degreeTriad, ROMAN, triadName,
+  MAJOR_KEYS, relativeMinorOf, fifthUp, fifthDown, degreeTriad, ROMAN, triadName,
 } from "../music.js";
 import { staffSvg, noteSvg, BOTTOM, S, ACC_DY } from "../staff.js";
 
@@ -398,7 +398,7 @@ export function circleRing() {
     const list = [i <= 7 ? keyBySig(i) : null, i >= 5 ? keyBySig(i - 12) : null].filter(Boolean);
     return {
       major: list.map((k) => gName(k.tonic)).join("/"),
-      minor: list.map((k) => gName(relativeMinor(k.tonic).tonic).toLowerCase()).join("/"),
+      minor: list.map((k) => gName(relativeMinorOf(k.tonic).tonic).toLowerCase()).join("/"),
       sig: list.map((k) => (k.sig ? sigLabel(k.sig).replace(" ", "") : "0")).join("/"),
     };
   });
