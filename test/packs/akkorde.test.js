@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import akkorde, {
-  accClash, placeAccidentals, keyAcc, chordSvg, placeLow, triadLabel, CIRCLE_ITEMS, neighbour, keyBySig,
+  accClash, accTouchesLedger, placeAccidentals, keyAcc, chordSvg, placeLow, triadLabel, CIRCLE_ITEMS, neighbour, keyBySig,
   sigLabel, DEGREE_ITEMS, DEGREE_TYPES, circleRing,
 } from "../../src/packs/akkorde.js";
 import { PACKS } from "../../src/packs/index.js";
@@ -176,6 +176,9 @@ test("Stufe 5: Quintenzirkel, Nachbarn und Vorzeichen", () => {
     const enh = { "Fis-Dur": "Ges-Dur", "Ges-Dur": "Fis-Dur", "Cis-Dur": "Des-Dur", "Des-Dur": "Cis-Dur", "H-Dur": "Ces-Dur", "Ces-Dur": "H-Dur" };
     if (enh[q.answer]) assert.ok(!q.choices.includes(enh[q.answer]), q.prompt);
     const enhPairs = q.choices.filter((c) => enh[c] && q.choices.includes(enh[c]));
+    // die gefragte Tonart (auch enharmonisch) steht nicht unter den Knöpfen
+    const asked = q.prompt.split(":")[0];
+    if (q.prompt.includes("Quinte")) assert.ok(!q.choices.includes(asked) && !q.choices.includes(enh[asked]), q.prompt + " " + q.choices);
     assert.equal(enhPairs.length, 0, q.choices.join());
   }
   const es = find(l, (q) => q.prompt === "Wie viele Vorzeichen hat Es-Dur?");
@@ -299,4 +302,49 @@ test("Beispiel auf der Startkarte ist ein festes SVG", () => {
   for (const l of akkorde.levels) assert.equal(l.example, l.example.trim());
   assert.ok(L[6].example.includes('class="keysig"'));
   assert.ok(staffSvg("treble", "").startsWith("<svg"));
+});
+
+test("Satz nach falscher Antwort (reveal) ist grammatisch, ohne „Das war ein“ vor Tonarten und Anzahlen", () => {
+  const banned = /Fehler!|falsch|mühelos|Held|Champion/;
+  for (const l of akkorde.levels) for (let i = 0; i < 300; i++) {
+    const q = l.question(null);
+    assert.ok(q.reveal && q.reveal.endsWith("."), l.id);
+    assert.ok(q.prompt, l.id);
+    assert.ok(!banned.test(q.reveal + q.display + q.prompt + l.hint), l.id);
+    assert.ok(!/Das war ein (\d|keine|[A-H][a-z]*-Dur[,.]|[A-H][a-z]*-Dur$)/.test(q.reveal), q.reveal);
+  }
+  const es = find(L[5], (q) => q.prompt === "Wie viele Vorzeichen hat Es-Dur?");
+  assert.equal(es.display, "Es-Dur hat 3 ♭");
+  assert.equal(es.reveal, "Richtig wäre: 3 ♭. So viele Vorzeichen hat Es-Dur.");
+  const c = find(L[5], (q) => q.prompt === "Wie viele Vorzeichen hat C-Dur?");
+  assert.equal(c.display, "C-Dur hat keine Vorzeichen");
+  const up = find(L[5], (q) => q.prompt === "G-Dur: Welche Dur-Tonart liegt im Quintenzirkel eine Quinte höher?");
+  assert.equal(up.reveal, "Richtig wäre: D-Dur, eine Quinte höher als G-Dur.");
+  const vii = find(L[6], (q) => q.prompt === "Welche Stufe in G-Dur?" && q.answer === "VII");
+  assert.equal(vii.reveal, "Richtig wäre: VII. Der Grundton Fis ist die VII. Stufe von G-Dur (fis vermindert).");
+  const s6 = find(L[4], (q) => q.display === "Sextakkord von C-Dur");
+  assert.equal(s6.reveal, "Richtig wäre: Sextakkord. Unten liegt die Terz von C-Dur.");
+  const h = find(L[2], (q) => q.display === "verminderter Dreiklang auf h");
+  assert.equal(h.reveal, "Richtig wäre: vermindert. Das war ein verminderter Dreiklang auf h.");
+});
+
+test("Vorzeichen halten Abstand zur Hilfslinie des Akkords (wie staff.js, Verovio)", () => {
+  // ♯ berührt Hilfslinien bis zwei halbe Stufen entfernt, ♭ nur auf seiner Stufe und darunter liegende bis zwei
+  assert.ok(accTouchesLedger("sharp", -2, -2) && accTouchesLedger("sharp", 0, -2) && accTouchesLedger("sharp", 8, 10));
+  assert.ok(!accTouchesLedger("sharp", 1, -2));
+  assert.ok(accTouchesLedger("flat", -2, -2) && accTouchesLedger("flat", 8, 10));
+  assert.ok(!accTouchesLedger("flat", 0, -2) && !accTouchesLedger("flat", 7, 10));
+  const first = (svg) => Math.max(...accXs(svg).map((a) => a.x));
+  const base = Math.round((170 - 10.28 - 3 - 12.1) * 100) / 100;
+  // cis'-e'-gis': gis' (erste Spalte) ohne Hilfslinie, unverändert
+  assert.equal(first(chordSvg([N("C", 4, 1), N("E", 4), N("G", 4, 1)], "treble", 170)), base);
+  // E-Gis-H im Bass: das ♯ vor Gis ragt in die Hilfslinie des E → 1,9 weiter links
+  assert.equal(first(chordSvg([N("E", 2), N("G", 2, 1), N("H", 2)], "bass", 170)), Math.round((base - 1.9) * 100) / 100);
+  // a''-cis'''-e''': ♯ auf der Hilfslinie
+  assert.equal(first(chordSvg([N("A", 5), N("C", 6, 1), N("E", 6)], "treble", 170)), Math.round((base - 1.9) * 100) / 100);
+  // c'-es'-g': ♭ auf der untersten Linie berührt die Hilfslinie nicht
+  const flatBase = Math.round((170 - 10.28 - 3 - 11.0) * 100) / 100;
+  assert.equal(first(chordSvg([N("C", 4), N("E", 4, -1), N("G", 4)], "treble", 170)), flatBase);
+  // ohne Hilfslinie wie bisher
+  assert.equal(first(chordSvg([N("D", 4), N("F", 4, 1), N("A", 4)], "treble", 170)), base);
 });

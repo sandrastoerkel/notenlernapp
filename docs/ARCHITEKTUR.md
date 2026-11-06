@@ -142,7 +142,10 @@ ganze Noten übereinander (Köpfe aus `noteSvg`), eine gemeinsame Reihe Hilfslin
 oberstes 0,25 LA vor dem Kopf, dann das unterste, das mittlere am weitesten links;
 eng beieinander liegende Zeichen (Terz, Quarte) weichen ganz aus, ♭ im Abstand
 Quarte bis Sexte rücken nur teilweise ein (`accClash`, Werte aus Verovio 6.4.1 /
-Bravura, 06.11.2026). `opts.keySig` lässt Vorzeichen weg, die die Vorzeichnung
+Bravura, 06.11.2026). Ragt ein Vorzeichen in eine Hilfslinie des Akkords (♯ bis
+zwei halbe Stufen darüber oder darunter, ♭ auf seiner Stufe und bis zwei halbe
+Stufen darüber), rückt es wie in `staff.js` 1,9 (0,16 LA) weiter nach links
+(`accTouchesLedger`). `opts.keySig` lässt Vorzeichen weg, die die Vorzeichnung
 schon enthält.
 
 ## Themenpakete (`src/packs/*.js`)
@@ -198,7 +201,9 @@ Klasse `choices` (zwei Spalten, lange Begriffe wie „punktierte Viertelnote“
 passen bei 420 px in eine Zeile); sind alle Texte höchstens 4 Zeichen lang
 („½“, „VII“, „3 ♭“), zusätzlich `short` mit `--cols` Spalten (bis 6 Knöpfe in
 einer Reihe, ab 7 in zwei Reihen). Buchstaben und Klaviatur bleiben bei 7
-Spalten.
+Spalten. In der Regel 4 bis 6 Knöpfe; Ausnahmen im Paket „Dreiklänge und
+Quintenzirkel“: Stufe 1 hat laut PLAN zwei (Dur, Moll), Stufe 4 drei (die drei
+Lagen), Stufe 6 alle sieben Stufen I bis VII.
 
 Gleichzeitiges Abspielen (seit Paket E): Setzt eine Aufgabe `playTogether: true`
 und enthält `play` mehr als einen Ton, startet die Engine alle Töne zur selben
@@ -206,10 +211,6 @@ Zeit über `playChord(notes)` aus `src/audio.js` (gleicher Startzeitpunkt für a
 Oszillatoren, Lautstärke je Ton geteilt durch √Anzahl). Die Entscheidung trifft die
 reine Hilfsfunktion `playMode(q)` in `engine.js` (`"together"` oder `"sequence"`);
 ohne `playTogether` bleibt es beim Nacheinander mit `PLAY_GAP`.
-
-Auswahlknöpfe: in der Regel 4 bis 6. Ausnahmen im Paket „Dreiklänge und
-Quintenzirkel“: Stufe 1 hat laut PLAN zwei (Dur, Moll), Stufe 4 drei (die drei
-Lagen), Stufe 6 alle sieben Stufen I bis VII.
 
 Eingabeart: hat eine Stufe `input: "letters"` und hat das Kind „Klaviatur“
 gewählt (`state.input === "keys"`), nutzt die Engine die Klaviatur. Andere

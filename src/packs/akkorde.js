@@ -26,6 +26,15 @@ const ACC_RIGHT = { sharp: 12.1, flat: 11.0 };
 const ACC_W = { sharp: 9.84, flat: 8.76 };
 // Bravura ist etwas breiter als Noto Music; teilweise Einrückungen werden mit diesem Verhältnis übernommen
 const WIDTH_RATIO = 0.82;
+// Hilfslinien-Freiraum wie in staff.js (ACC_LEDGER_SHIFT): ragt ein Vorzeichen der ersten Spalte senkrecht
+// in eine Hilfslinie des Akkords, rückt es 1,9 (0,16 LA) weiter nach links. Verovio 6.4.1/Bravura,
+// nachgemessen am 06.11.2026 (cis'-e'-gis', c'-eis'-g', E-Gis-H, a''-cis'''-e''', ces'-g', as''-c''',
+// ges''-b'', fes''-a'', his'' über f''): ♯ 1,24 → 1,39 LA, ♭ 1,15 → 1,29 LA (linke Kante zur Kopfkante).
+// ♯ ist symmetrisch und berührt Hilfslinien bis zwei halbe Stufen darüber oder darunter; ♭ reicht nach
+// oben, es berührt Hilfslinien auf seiner Stufe und bis zwei halbe Stufen darüber (es'' unter a'' und
+// es' über c' bleiben frei).
+const ACC_LEDGER_SHIFT = 1.9;
+export const accTouchesLedger = (kind, p, q) => (kind === "sharp" ? Math.abs(q - p) <= 2 : q - p >= 0 && q - p <= 2);
 
 // Wie weit muss das Vorzeichen `low` (tiefer) gegenüber `up` (höher) ausweichen?
 // d = Abstand in halben Stufen. Ergebnis: { full: Lücke in LA } (ganz links daneben),
@@ -41,7 +50,8 @@ export function accClash(up, low, d) {
 
 // Rechte Kanten der Vorzeichen relativ zur Kopfmitte. accs: [{ p, kind }] (beliebige Reihenfolge).
 // Liefert dieselben Objekte mit r (rechte Kante, negativ = links vom Kopf).
-export function placeAccidentals(accs) {
+// ledgers: Stufen der Hilfslinien des Akkords (z. B. [-2]); berührte Vorzeichen halten Abstand.
+export function placeAccidentals(accs, ledgers = []) {
   const sorted = accs.slice().sort((a, b) => b.p - a.p);
   // Reihenfolge: oberstes, unterstes, dann von außen nach innen
   const order = [];
@@ -49,7 +59,7 @@ export function placeAccidentals(accs) {
   while (i <= j) { order.push(sorted[i++]); if (i <= j) order.push(sorted[j--]); }
   const placed = [];
   for (const a of order) {
-    let r = -HEAD_HALF - ACC_GAP;
+    let r = -HEAD_HALF - ACC_GAP - (ledgers.some((q) => accTouchesLedger(a.kind, a.p, q)) ? ACC_LEDGER_SHIFT : 0);
     for (const b of placed) {
       const up = a.p > b.p ? a : b, low = a.p > b.p ? b : a;
       const c = accClash(up.kind, low.kind, Math.abs(a.p - b.p));
@@ -77,9 +87,10 @@ export function chordSvg(notes, clef, x, opts = {}) {
   const sig = opts.keySig || 0;
   const ps = notes.map((n) => staffPos(n, clef));
   let s = `<g class="chord">`;
-  const lo = Math.min(...ps), hi = Math.max(...ps);
-  for (let q = -2; q >= lo; q -= 2) s += `<line class="ledger" x1="${r2(x - LEDGER_HALF)}" x2="${r2(x + LEDGER_HALF)}" y1="${yOf(q)}" y2="${yOf(q)}"/>`;
-  for (let q = 10; q <= hi; q += 2) s += `<line class="ledger" x1="${r2(x - LEDGER_HALF)}" x2="${r2(x + LEDGER_HALF)}" y1="${yOf(q)}" y2="${yOf(q)}"/>`;
+  const lo = Math.min(...ps), hi = Math.max(...ps), ledgers = [];
+  for (let q = -2; q >= lo; q -= 2) ledgers.push(q);
+  for (let q = 10; q <= hi; q += 2) ledgers.push(q);
+  for (const q of ledgers) s += `<line class="ledger" x1="${r2(x - LEDGER_HALF)}" x2="${r2(x + LEDGER_HALF)}" y1="${yOf(q)}" y2="${yOf(q)}"/>`;
   const accs = [];
   notes.forEach((n, i) => {
     if (n.acc !== keyAcc(n.letter, sig)) {
@@ -89,7 +100,7 @@ export function chordSvg(notes, clef, x, opts = {}) {
     // Kopf aus staff.js ohne eigene Hilfslinien und ohne Vorzeichen
     s += noteSvg(N(n.letter, n.octave, 0), clef, x, "", { value: 1 }).replace(/<line class="ledger"[^>]*\/>/g, "");
   });
-  placeAccidentals(accs).forEach((a) => {
+  placeAccidentals(accs, ledgers).forEach((a) => {
     s += `<text class="acc" x="${r2(x + a.r - ACC_RIGHT[a.kind])}" y="${yOf(a.p) + ACC_DY[a.kind]}">${a.kind === "sharp" ? "♯" : "♭"}</text>`;
   });
   return s + "</g>";
@@ -162,10 +173,13 @@ const checkChoice = (q, value) => value === q.answer;
 
 /* Stufe 1 und 2: Dreiklangstyp */
 const TYPE_NAMES = Object.fromEntries(Object.entries(TRIAD_TYPES).map(([k, t]) => [k, t.name]));
-function typeLevel(no, title, hint, types, clefs) {
+function typeLevel(no, title, hint, types, clefs, prompt) {
   const items = triadPool(types, clefs);
   const choices = types.map((t) => TYPE_NAMES[t]);
-  const make = (it) => ({ ...chordQuestion(it), answer: TYPE_NAMES[it.type], display: triadLabel(it.root, it.type), choices });
+  const make = (it) => ({
+    ...chordQuestion(it), prompt, answer: TYPE_NAMES[it.type], display: triadLabel(it.root, it.type), choices,
+    reveal: `Richtig wäre: ${TYPE_NAMES[it.type]}. Das war ein ${triadLabel(it.root, it.type)}.`,
+  });
   return {
     id: "akkorde-" + no, no, title, hint, input: "choices", items,
     subtitle: `${clefLabel(clefs)} · ${items.length} Dreiklänge`,
@@ -184,6 +198,7 @@ function rootLevel() {
     prompt: "Wie heißt der Grundton?",
     answer: { letter: it.root.letter, acc: it.root.acc },
     display: `${triadLabel(it.root, it.type)} mit Grundton ${gName(it.root)}`,
+    reveal: `Der Grundton ist ${gName(it.root)}. Das war ein ${triadLabel(it.root, it.type)}.`,
     note: it.root,
   });
   return {
@@ -211,6 +226,7 @@ function inversionLevel() {
     answer: INVERSIONS[it.inv],
     display: it.inv === 0 ? `${triadLabel(it.root, it.type)} in Grundstellung` : `${INVERSIONS[it.inv]} von ${triadName(it.root, it.type)}`,
     choices: INVERSIONS,
+    reveal: `Richtig wäre: ${INVERSIONS[it.inv]}. Unten liegt ${["der Grundton", "die Terz", "die Quinte"][it.inv]} von ${triadName(it.root, it.type)}.`,
   });
   return {
     id: "akkorde-4", no: 4, title: "Umkehrungen",
@@ -245,10 +261,11 @@ export function neighbour(k, dir) {
 
 const shuffle = (a) => { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
 
-// Ablenker ohne Enharmonik: keine zwei Knöpfe, die gleich klingen (Fis/Ges, Cis/Des, H/Ces)
-function keyChoices(answer, near) {
+// Ablenker ohne Enharmonik: keine zwei Knöpfe, die gleich klingen (Fis/Ges, Cis/Des, H/Ces), und
+// nicht die gefragte Tonart selbst (auch nicht enharmonisch, z. B. Fis-Dur bei der Frage nach Ges-Dur)
+function keyChoices(answer, near, asked) {
   const out = [answer];
-  const free = (m) => m && !out.some((o) => byPc(o.tonic) === byPc(m.tonic));
+  const free = (m) => m && byPc(m.tonic) !== byPc(asked.tonic) && !out.some((o) => byPc(o.tonic) === byPc(m.tonic));
   for (const m of [...near, ...shuffle(MAJOR_KEYS)]) { if (out.length >= 4) break; if (free(m)) out.push(m); }
   return shuffle(out).map(keyName);
 }
@@ -272,7 +289,8 @@ function circleQuestion(it) {
       svg: staffSvg("treble", chordSvg(tonicItem(k).notes, "treble", CHORD_X)),
       prompt: `Wie viele Vorzeichen hat ${k.name}?`,
       answer: sigLabel(k.sig),
-      display: `${sigLabel(k.sig)}: so viele Vorzeichen hat ${k.name}`,
+      display: `${k.name} hat ${sigLabel(k.sig)}`,
+      reveal: `Richtig wäre: ${sigLabel(k.sig)}. So viele Vorzeichen hat ${k.name}.`,
       choices: sigChoices(k.sig),
       key: it.key,
     };
@@ -283,8 +301,9 @@ function circleQuestion(it) {
     svg: staffSvg("treble", chordSvg(tonicItem(k).notes, "treble", CHORD_X, { keySig: k.sig }), { keySig: k.sig }),
     prompt: `${k.name}: Welche Dur-Tonart liegt im Quintenzirkel ${dir}?`,
     answer: ans.name,
-    display: `${ans.name}, ${dir} als ${k.name}`,
-    choices: keyChoices(ans, other ? [other] : []),
+    display: `${ans.name} liegt ${dir} als ${k.name}`,
+    reveal: `Richtig wäre: ${ans.name}, ${dir} als ${k.name}.`,
+    choices: keyChoices(ans, other ? [other] : [], k),
     key: it.key,
   };
 }
@@ -325,6 +344,7 @@ function degreeLevel() {
     prompt: `Welche Stufe in ${it.k.name}?`,
     answer: ROMAN[it.deg - 1],
     display: `${triadLabel(it.root, it.type)}, Stufe ${ROMAN[it.deg - 1]}`,
+    reveal: `Richtig wäre: ${ROMAN[it.deg - 1]}. Der Grundton ${gName(it.root)} ist die ${ROMAN[it.deg - 1]}. Stufe von ${it.k.name} (${triadName(it.root, it.type)}).`,
     // Alle sieben Stufen zur Wahl (Ausnahme von „4 bis 6 Knöpfe“, damit nichts durch Weglassen verraten wird)
     choices: ROMAN,
   });
@@ -341,8 +361,8 @@ function degreeLevel() {
 }
 
 const levels = [
-  typeLevel(1, "Dur oder Moll", "Dur: große Terz unten (4 Halbtöne), kleine oben (3). Moll: kleine Terz unten, große oben. Hör nach der Antwort genau hin.", ["dur", "moll"], ["treble", "bass"]),
-  typeLevel(2, "Vier Dreiklangstypen", "Zähle die Halbtöne: Dur 4 + 3, Moll 3 + 4, vermindert 3 + 3, übermäßig 4 + 4.", ["dur", "moll", "vermindert", "uebermaessig"], ["treble", "bass"]),
+  typeLevel(1, "Dur oder Moll", "Dur: große Terz unten (4 Halbtöne), kleine oben (3). Moll: kleine Terz unten, große oben. Hör nach der Antwort genau hin.", ["dur", "moll"], ["treble", "bass"], "Dur oder Moll?"),
+  typeLevel(2, "Vier Dreiklangstypen", "Zähle die Halbtöne: Dur 4 + 3, Moll 3 + 4, vermindert 3 + 3, übermäßig 4 + 4.", ["dur", "moll", "vermindert", "uebermaessig"], ["treble", "bass"], "Welcher Dreiklangstyp?"),
   rootLevel(),
   inversionLevel(),
   circleLevel(),
@@ -367,7 +387,7 @@ function typesSvg(clef) {
 }
 
 const WRAP = "grid-column:1/-1;display:block;border:0;padding:0";
-const typesHtml = (clef) => `<div style="${WRAP}"><p class="eyebrow" style="margin:6px 0 2px">Dreiklangstypen (Halbtöne Grundton–Terz + Terz–Quinte)</p>`
+const typesHtml = (clef) => `<div style="${WRAP}"><p class="eyebrow" style="margin:6px 0 2px">Halbtöne Grundton–Terz + Terz–Quinte</p>`
   + `<span style="display:block;width:100%">${typesSvg(clef)}</span></div>`;
 
 // Quintenzirkel als Ring aus Text: außen Dur, innen die parallelen Molltonarten, ganz innen die Vorzeichen.
@@ -397,7 +417,7 @@ function circleSvg() {
   return s + "</svg>";
 }
 
-const circleHtml = () => `<div style="${WRAP}"><p class="eyebrow" style="margin:6px 0 2px">Quintenzirkel: im Uhrzeigersinn eine Quinte höher, ein ♯ mehr bzw. ein ♭ weniger</p>${circleSvg()}`
+const circleHtml = () => `<div style="${WRAP}"><p class="eyebrow" style="margin:6px 0 2px">Im Uhrzeigersinn eine Quinte höher: ein ♯ mehr bzw. ein ♭ weniger</p>${circleSvg()}`
   + `<p class="small muted" style="margin:4px 0 0;text-align:center">Außen Dur, <span style="color:var(--accent)">innen die parallele Molltonart</span> (kleine Terz tiefer), in der Mitte die Vorzeichen.</p></div>`;
 
 export default {
