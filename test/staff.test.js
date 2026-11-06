@@ -1,46 +1,55 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { N, range, staffPos } from "../src/music.js";
-import { noteSvg, staffSvg, pianoSvg, restSvg, glyphSvg, keySigSvg, KEYSIG_DY, GLYPHS } from "../src/staff.js";
+import { noteSvg, staffSvg, pianoSvg, restSvg, glyphSvg, keySigSvg, KEYSIG_DY, ACC_DY, ACC_SIZE, HEAD, GLYPHS } from "../src/staff.js";
 
 const count = (s, re) => (s.match(re) || []).length;
 
-// Erste Fassung aus index.html als Vergleich: die Standardausgabe muss gleich bleiben
-const S = 12, TOP = 34, BOTTOM = TOP + 4 * S, W = 320, H = 122, X0 = 18, X1 = 302;
-function oldNoteSvg(n, clef, x, cls) {
-  const p = staffPos(n, clef), cy = BOTTOM - p * (S / 2);
-  let s = `<g class="note ${cls || ""}">`;
-  for (let q = -2; q >= p; q -= 2) s += `<line class="ledger" x1="${x - 11}" x2="${x + 11}" y1="${BOTTOM - q * (S / 2)}" y2="${BOTTOM - q * (S / 2)}"/>`;
-  for (let q = 10; q <= p; q += 2) s += `<line class="ledger" x1="${x - 11}" x2="${x + 11}" y1="${BOTTOM - q * (S / 2)}" y2="${BOTTOM - q * (S / 2)}"/>`;
-  // Korrigiert gegenüber dem Prototyp (dort cy + 7): Vorzeichen sitzt genau auf Linie/Zwischenraum.
-  if (n.acc) s += `<text class="acc" x="${x - 24}" y="${cy + (n.acc > 0 ? 6 : 4)}">${n.acc > 0 ? "♯" : "♭"}</text>`;
-  const up = p < 4;
-  s += up ? `<line class="stem" x1="${x + 6}" x2="${x + 6}" y1="${cy - 1}" y2="${cy - 40}"/>` : `<line class="stem" x1="${x - 6}" x2="${x - 6}" y1="${cy + 1}" y2="${cy + 40}"/>`;
-  s += `<ellipse class="notehead" cx="${x}" cy="${cy}" rx="6.8" ry="4.6" transform="rotate(-22 ${x} ${cy})"/>`;
-  return s + "</g>";
-}
-function oldStaffSvg(clef, inner, extraCls) {
+const S = 12, TOP = 34, BOTTOM = TOP + 4 * S, W = 320, H = 122, X0 = 18, X1 = 302, MID = TOP + 2 * S;
+const attr = (svg, sel, name) => { const m = svg.match(new RegExp(`<${sel}[^>]*?\\s${name}="([^"]*)"`)); return m && m[1]; };
+
+// Zeile ohne Noten: Linien wie in der ersten Fassung. Der Bassschlüssel steht seit der Messung gegen
+// Verovio/Bravura 4,9 Einheiten höher (Grundlinie BOTTOM − 3,9 statt BOTTOM + 1), damit die Punkte
+// über und unter der F-Linie liegen; der Violinschlüssel ist unverändert.
+function expectedStaff(clef, inner, extraCls) {
   let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Notenzeile" class="${extraCls || ""}">`;
   for (let i = 0; i < 5; i++) s += `<line class="staff-line" x1="${X0}" x2="${X1}" y1="${TOP + i * S}" y2="${TOP + i * S}"/>`;
   s += clef === "treble"
-    // Korrigiert gegenüber dem Prototyp (dort BOTTOM - S): die Schnecke umschließt die G-Linie.
     ? `<text class="clef" x="22" y="${BOTTOM}" font-size="${S * 4.2}">𝄞</text>`
-    : `<text class="clef" x="24" y="${BOTTOM + 1}" font-size="${S * 4.2}">𝄢</text>`;
+    : `<text class="clef" x="24" y="${BOTTOM - 3.9}" font-size="${S * 4.2}">𝄢</text>`;
   return s + inner + "</svg>";
 }
 
-test("Standardausgabe gleicht der ersten Fassung (Schlüssel- und Vorzeichenhöhe korrigiert)", () => {
+test("staffSvg: Linien und Schlüsselhöhe (gemessen gegen Verovio/Bravura)", () => {
+  for (const clef of ["treble", "bass"]) {
+    assert.equal(staffSvg(clef, "<g/>"), expectedStaff(clef, "<g/>"));
+    assert.equal(staffSvg(clef, "", "ok"), expectedStaff(clef, "", "ok"));
+    assert.equal(staffSvg(clef, "", { cls: "bad" }), expectedStaff(clef, "", "bad"));
+  }
+});
+
+// Die Notenköpfe waren in der ersten Fassung 1,08 × 0,83 Linienabstände groß (zu flach); gemessen gegen
+// Verovio 6.4.1 mit Bravura ist ein schwarzer Kopf 1,18 × 1,00 groß und um 31° gekippt.
+test("noteSvg: Notenkopf, Hals und Vorzeichen nach Referenzmaßen", () => {
   const notes = [...range(N("A", 1), N("E", 6)), N("F", 4, 1), N("H", 4, -1), N("D", 5, -1)];
   for (const clef of ["treble", "bass"]) {
     for (const n of notes) {
-      for (const cls of [undefined, "", "ok", "bad", "ghost"]) {
-        assert.equal(noteSvg(n, clef, 170, cls), oldNoteSvg(n, clef, 170, cls));
+      const p = staffPos(n, clef), cy = BOTTOM - p * (S / 2), svg = noteSvg(n, clef, 170);
+      assert.ok(svg.includes(`<ellipse class="notehead" cx="170" cy="${cy}" rx="${HEAD.rx}" ry="${HEAD.ry}" transform="rotate(${HEAD.rot} 170 ${cy})"/>`));
+      // Hals bündig mit der Außenkante des Kopfes, mindestens 3,5 Linienabstände lang, bei Noten
+      // außerhalb der Zeile bis zur Mittellinie
+      const up = p < 4, x1 = +attr(svg, 'line class="stem"', "x1"), y2 = +attr(svg, 'line class="stem"', "y2");
+      assert.equal(x1, up ? 176.2 : 163.8);
+      assert.equal(Math.abs(y2 - cy), Math.max(42, Math.abs(cy - MID)));
+      if (Math.abs(cy - MID) > 42) assert.equal(y2, MID);
+      for (const cls of [undefined, "", "ok", "bad", "ghost"]) assert.ok(noteSvg(n, clef, 170, cls).startsWith(`<g class="note ${cls || ""}">`));
+      if (n.acc) {
+        const sharp = n.acc > 0;
+        assert.ok(svg.includes(`<text class="acc" x="${sharp ? 148 : 149}" y="${cy + (sharp ? ACC_DY.sharp : ACC_DY.flat)}">${sharp ? "♯" : "♭"}</text>`));
       }
     }
-    assert.equal(staffSvg(clef, "<g/>"), oldStaffSvg(clef, "<g/>"));
-    assert.equal(staffSvg(clef, "", "ok"), oldStaffSvg(clef, "", "ok"));
-    assert.equal(staffSvg(clef, "", { cls: "bad" }), oldStaffSvg(clef, "", "bad"));
   }
+  assert.equal(ACC_SIZE, 44);
 });
 
 test("staffSvg: fünf Linien und Schlüssel", () => {
@@ -65,8 +74,8 @@ test("staffSvg: Höhe und Vorzeichen", () => {
   // die Grundlinie des ♯ liegt KEYSIG_DY.sharp (6) tiefer, damit die Glyphenmitte auf der Linie sitzt
   assert.ok(keySigSvg("treble", 1).includes('y="40"'));
   assert.ok(keySigSvg("bass", 1).includes('y="52"'));
-  // B steht im Violinschlüssel auf der Mittellinie (y = 58); der Bauch des ♭ sitzt dort (Grundlinie 62)
-  assert.ok(keySigSvg("treble", -1).includes('y="62"'));
+  // B steht im Violinschlüssel auf der Mittellinie (y = 58); Bauch und Loch des ♭ sitzen dort (Grundlinie 63,5)
+  assert.ok(keySigSvg("treble", -1).includes('y="63.5"'));
   // Bass-Vorzeichen beginnen weiter rechts als im Violinschlüssel (Abstand zu den Punkten des Schlüssels)
   assert.ok(xs(keySigSvg("bass", 1))[0] > xs(keySigSvg("treble", 1))[0]);
 });
@@ -114,8 +123,8 @@ test("noteSvg: Hilfslinien, Hals, Vorzeichen", () => {
   assert.equal(count(noteSvg(N("A", 5), "treble", 170), /class="ledger"/g), 1);
   assert.equal(count(noteSvg(N("C", 6), "treble", 170), /class="ledger"/g), 2);
   // Hals nach oben (rechts vom Kopf) bei Position < 4, sonst nach unten (links)
-  assert.ok(noteSvg(N("G", 4), "treble", 170).includes('class="stem" x1="176"'));
-  assert.ok(noteSvg(N("H", 4), "treble", 170).includes('class="stem" x1="164"'));
+  assert.ok(noteSvg(N("G", 4), "treble", 170).includes('class="stem" x1="176.2"'));
+  assert.ok(noteSvg(N("H", 4), "treble", 170).includes('class="stem" x1="163.8"'));
   assert.ok(noteSvg(N("F", 4, 1), "treble", 170).includes(">♯<"));
   assert.ok(noteSvg(N("H", 4, -1), "treble", 170).includes(">♭<"));
 });
@@ -125,22 +134,64 @@ test("noteSvg: Notenwerte und ohne Hals", () => {
   const whole = noteSvg(n, "treble", 170, "", { value: 1 });
   assert.equal(count(whole, /class="stem"/g), 0);
   assert.ok(whole.includes('class="notehead open"'));
+  // hohle Köpfe: Fläche mit Loch (zwei Teilpfade)
+  assert.equal(count(attr(whole, 'path class="notehead open"', "d"), /M/g), 2);
   const half = noteSvg(n, "treble", 170, "", { value: 2 });
   assert.equal(count(half, /class="stem"/g), 1);
   assert.ok(half.includes('class="notehead open"'));
   assert.equal(noteSvg(n, "treble", 170, "", { value: 4 }), noteSvg(n, "treble", 170));
-  assert.equal(count(noteSvg(n, "treble", 170, "", { value: 8 }), /class="flag"/g), 1);
-  assert.equal(count(noteSvg(N("D", 5), "treble", 170, "", { value: 16 }), /class="flag"/g), 2);
   const bare = noteSvg(n, "treble", 170, "", { value: 8, stemless: true });
   assert.equal(count(bare, /class="stem"|class="flag"/g), 0);
 });
 
-test("restSvg und glyphSvg", () => {
-  for (const v of [1, 2, 4, 8, 16]) {
+test("noteSvg: Fähnchen als Glyphe rechts vom Hals, bei Hals nach unten gespiegelt", () => {
+  assert.equal(GLYPHS.flags[8], "\u{1D16E}");
+  assert.equal(GLYPHS.flags[16], "\u{1D16F}");
+  for (const [n, up] of [[N("G", 4), true], [N("E", 4), true], [N("D", 5), false], [N("F", 5), false]]) {
+    for (const v of [8, 16]) {
+      const svg = noteSvg(n, "treble", 170, "", { value: v });
+      assert.equal(count(svg, /class="flag"/g), 1, "ein Zeichen, bei Sechzehnteln mit zwei Fähnchen");
+      assert.ok(svg.includes(`>${GLYPHS.flags[v]}</text>`));
+      const sx = +attr(svg, 'line class="stem"', "x1"), y2 = +attr(svg, 'line class="stem"', "y2");
+      if (up) {
+        // linke Kante der Glyphe auf der linken Halskante, Oberkante (1009/1000 em bei 48px) am Halsende
+        assert.equal(+attr(svg, 'text class="flag"', "x"), Math.round((sx - 0.9) * 100) / 100);
+        assert.equal(+attr(svg, 'text class="flag"', "y"), Math.round((y2 + 48.43) * 100) / 100);
+        assert.ok(!svg.includes("scale(1 -1)"));
+      } else {
+        assert.ok(svg.includes(`transform="translate(${Math.round((sx - 0.9) * 100) / 100} ${y2}) scale(1 -1)"`));
+      }
+      assert.equal(attr(svg, 'text class="flag"', "font-size"), "48");
+    }
+  }
+  // mit Fähnchen reicht der Hals einer Note außerhalb der Zeile einen halben Linienabstand über die Mittellinie
+  const low = noteSvg(N("A", 3), "treble", 170, "", { value: 8 });
+  assert.equal(+attr(low, 'line class="stem"', "y2"), MID - 6);
+  assert.equal(+attr(noteSvg(N("A", 3), "treble", 170), 'line class="stem"', "y2"), MID);
+});
+
+test("restSvg: Lage der Pausen (gemessen gegen Verovio/Bravura)", () => {
+  for (const v of [4, 8, 16]) {
     const r = restSvg(v, 100);
     assert.ok(r.includes('class="rest"'));
     assert.ok(r.includes(GLYPHS.rests[v]));
   }
+  // Grundlinie so, dass die Glyphenmitte bei 2,0 / 2,13 / 2,625 Linienabständen unter der obersten Linie liegt
+  const y = (v) => +attr(restSvg(v, 100), 'text class="rest"', "y");
+  assert.equal(y(4), Math.round((TOP + 2 * S + 500.5 * 0.048) * 10) / 10);
+  assert.equal(y(8), Math.round((TOP + 2.13 * S + 499.5 * 0.048) * 10) / 10);
+  assert.equal(y(16), Math.round((TOP + 2.625 * S + 499.5 * 0.048) * 10) / 10);
+  // ganze Pause hängt an der vierten Linie, halbe sitzt auf der Mittellinie
+  const whole = restSvg(1, 100), half = restSvg(2, 100);
+  assert.ok(whole.startsWith('<rect class="rest"') && half.startsWith('<rect class="rest"'));
+  assert.equal(+attr(whole, "rect", "y"), TOP + S - 0.5);
+  assert.equal(+attr(half, "rect", "y") + +attr(half, "rect", "height"), MID);
+  assert.equal(+attr(whole, "rect", "width"), 14);
+  // unbekannter Wert → Viertelpause
+  assert.equal(restSvg(3, 100), restSvg(4, 100));
+});
+
+test("glyphSvg und Glyphentabelle", () => {
   assert.equal(GLYPHS.rests[1], "\u{1D13B}");
   assert.equal(GLYPHS.notes[16], "\u{1D161}");
   assert.equal(glyphSvg("𝄞", 10, 20, 30), '<text class="glyph" x="10" y="20" font-size="30">𝄞</text>');
