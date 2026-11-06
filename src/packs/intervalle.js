@@ -292,6 +292,7 @@ const TABLE_OPEN = `<table class="small" style="grid-column: 1 / -1; width: 100%
 
 export const LEARN_ROWS = TABLE.flat().map(([num, q]) => ({ num, quality: q, name: intervalLabel(num, q), semitones: semitonesFor(num, q) }));
 
+// Die Überschrift setzt learn.js aus dem title der Tafel
 function intervalBoard(clef) {
   const c = clef === "treble" ? N("C", 4) : N("C", 3);
   const staves = TABLE.map((row) => {
@@ -306,8 +307,7 @@ function intervalBoard(clef) {
     return staffSvg(clef, inner, { height: 132 });
   }).join("");
   const rows = LEARN_ROWS.map((r) => `<tr><td>${r.name}</td><td class="num">${r.semitones}</td><td><b>${helm(c)}–${helm(aboveC(c, r.num, r.quality))}</b></td></tr>`).join("");
-  return `<h3 style="grid-column: 1 / -1">Intervalle über ${helm(c)}</h3>
-    <figure style="grid-column: 1 / -1; margin: 0">${staves}</figure>
+  return `<figure style="grid-column: 1 / -1; margin: 0">${staves}</figure>
     ${TABLE_OPEN}<thead><tr><th>Intervall</th><th>Halbtöne</th><th>Beispiel</th></tr></thead><tbody>${rows}</tbody></table>
     <p class="small muted" style="grid-column: 1 / -1">Die Zahl ergibt sich aus den Stufen (beide Noten mitgezählt), die Qualität aus den Halbtönen. Übermäßige Quarte und verminderte Quinte klingen gleich (6 Halbtöne), werden aber verschieden geschrieben.</p>`;
 }
@@ -315,8 +315,7 @@ function intervalBoard(clef) {
 function circleBoard() {
   const order = [0, 1, 2, 3, 4, 5, 6, 7, -1, -2, -3, -4, -5, -6, -7];
   const rows = order.map((f) => `<tr><td>${sigText(f)}</td><td><b>${majorName(f)}</b></td><td><b>${minorName(f)}</b></td></tr>`).join("");
-  return `<h3 style="grid-column: 1 / -1">Quintenzirkel</h3>
-    <p class="small muted" style="grid-column: 1 / -1">Vorzeichen, Dur-Tonart und parallele Molltonart. Jedes weitere ♯ führt eine Quinte höher, jedes weitere ♭ eine Quinte tiefer.</p>
+  return `<p class="small muted" style="grid-column: 1 / -1">Vorzeichen, Dur-Tonart und parallele Molltonart. Jedes weitere ♯ führt eine Quinte höher, jedes weitere ♭ eine Quinte tiefer.</p>
     ${TABLE_OPEN}<thead><tr><th>Vorzeichen</th><th>Dur</th><th>parallele Molltonart</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
@@ -327,8 +326,8 @@ export default {
   grade: "Klasse 7–9",
   levels,
   learn: [
-    { title: "Intervalle", clef: "treble", render() { return intervalBoard("treble"); } },
-    { title: "Intervalle", clef: "bass", render() { return intervalBoard("bass"); } },
+    { title: "Intervalle über c'", clef: "treble", render() { return intervalBoard("treble"); } },
+    { title: "Intervalle über c", clef: "bass", render() { return intervalBoard("bass"); } },
     { title: "Quintenzirkel", render() { return circleBoard(); } },
   ],
   blitz: null,

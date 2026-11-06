@@ -215,6 +215,9 @@ test("Stufe 6: parallele Molltonart", () => {
 test("Lerntafeln", () => {
   assert.equal(intervalle.learn.length, 3);
   assert.deepEqual(intervalle.learn.map((c) => c.clef), ["treble", "bass", undefined]);
+  // Überschriften kommen aus title (learn.js), nicht aus render()
+  assert.deepEqual(intervalle.learn.map((c) => c.title), ["Intervalle über c'", "Intervalle über c", "Quintenzirkel"]);
+  intervalle.learn.forEach((c) => assert.ok(!/<h[1-6]/.test(c.render()), c.title));
   assert.equal(LEARN_ROWS.length, 14);
   assert.deepEqual(LEARN_ROWS.map((r) => r.semitones), [0, 1, 2, 3, 4, 5, 6, 6, 7, 8, 9, 10, 11, 12]);
   const t = intervalle.learn[0].render();
