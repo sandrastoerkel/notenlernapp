@@ -52,6 +52,28 @@ test("noteSvg: Notenkopf, Hals und Vorzeichen nach Referenzmaßen", () => {
   assert.equal(ACC_SIZE, 44);
 });
 
+// Ganze Note: Kopf 1,71 LA breit statt 1,19. Vorzeichen und Hilfslinien richten sich nach der Kopfbreite
+// (Verovio 6.4.1/Bravura: Vorzeichen 0,25 LA vor dem Kopf, Hilfslinie 0,25–0,27 LA über den Kopf hinaus).
+test("noteSvg: Vorzeichen und Hilfslinien der ganzen Note nach Kopfbreite", () => {
+  const accX = (svg) => +attr(svg, 'text class="acc"', "x");
+  const ledgerX = (svg) => [+attr(svg, 'line class="ledger"', "x1"), +attr(svg, 'line class="ledger"', "x2")];
+  for (const [n, clef] of [[N("C", 4, 1), "treble"], [N("A", 5, -1), "treble"], [N("E", 2, -1), "bass"], [N("F", 4, 1), "treble"], [N("H", 4, -1), "treble"]]) {
+    const q = noteSvg(n, clef, 170), w = noteSvg(n, clef, 170, "", { value: 1 }), h = noteSvg(n, clef, 170, "", { value: 2 });
+    // halbe und Viertelnote unverändert, ganze Note 3,15 weiter links (halbe Kopfbreite 10,28 statt 7,13)
+    assert.equal(accX(h), accX(q));
+    assert.equal(accX(w), Math.round((accX(q) - 3.15) * 100) / 100);
+    // Abstand rechte Kante des Vorzeichens (♯ 12,1, ♭ 11,0) zum Kopf (170 − 10,28) etwa 0,25 LA
+    const gap = (170 - 10.28) - (accX(w) + (n.acc > 0 ? 12.1 : 11.0));
+    assert.ok(gap > 0.2 * S && gap < 0.3 * S, String(gap));
+  }
+  // Hilfslinie: ganze Note 13,4 zu jeder Seite (2,23 LA lang), schwarze und halbe Köpfe 11
+  assert.deepEqual(ledgerX(noteSvg(N("C", 4), "treble", 170, "", { value: 1 })), [156.6, 183.4]);
+  assert.deepEqual(ledgerX(noteSvg(N("A", 5), "treble", 170, "", { value: 1 })), [156.6, 183.4]);
+  assert.deepEqual(ledgerX(noteSvg(N("E", 2), "bass", 170, "", { value: 1 })), [156.6, 183.4]);
+  for (const value of [2, 4, 8, 16]) assert.deepEqual(ledgerX(noteSvg(N("C", 4), "treble", 170, "", { value })), [159, 181]);
+  assert.equal(count(noteSvg(N("C", 6), "treble", 170, "", { value: 1 }), /x1="156.6" x2="183.4"/g), 2);
+});
+
 test("staffSvg: fünf Linien und Schlüssel", () => {
   const t = staffSvg("treble", "");
   assert.equal(count(t, /class="staff-line"/g), 5);

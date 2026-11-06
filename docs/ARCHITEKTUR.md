@@ -111,7 +111,11 @@ Kommentar in `staff.js`. Angaben in Linienabständen (LA):
 - Vorzeichen (vor Noten und als Vorzeichnung) mit `ACC_SIZE` = 44px:
   ♯ 2,8 LA, ♭ 2,45 LA hoch. Die Grundlinie liegt `ACC_DY`/`KEYSIG_DY`
   (♯ 6, ♭ 5,5) unter der Linie bzw. dem Zwischenraum. Vor der Note bleibt
-  0,25 LA Abstand zum Kopf. Die Vorzeichnung im Bassschlüssel ist dasselbe
+  0,25 LA Abstand zum Kopf, bei jedem Notenwert: vor der breiteren ganzen
+  Note rückt das Vorzeichen um 3,15 weiter nach links.
+- Hilfslinien ragen über den Kopf hinaus: bei schwarzen und halben Köpfen
+  11 Einheiten zu jeder Seite (1,83 LA lang), bei der ganzen Note 13,4
+  (2,23 LA, wie Verovio/Bravura 2,22). Die Vorzeichnung im Bassschlüssel ist dasselbe
   Muster einen Zwischenraum tiefer; das Fes liegt unter der Zeile (von
   Verovio bestätigt).
 - Pausen: Viertel, Achtel, Sechzehntel als Glyphen mit Schriftgröße 48

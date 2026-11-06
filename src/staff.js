@@ -50,7 +50,19 @@ const STEM_LEN = 3.5 * S;
 const FLAG_SIZE = 48, FLAG_TOP = r2((1009 / 1000) * FLAG_SIZE);
 // Vorzeichen vor der Note: rechte Kante 0,25 Linienabstände vor dem Kopf (Referenz 0,23–0,25; vorher 0,54–0,62).
 // Noto Music: ♯ reicht bis 275/1000 em, ♭ bis 249/1000 em (bei 44px: 12,1 bzw. 11,0).
+// Die Werte gelten für den schwarzen Kopf (halbe Breite 7,13 = 0,59 LA) und ebenso für die halbe Note.
 const ACC_X = { sharp: -22, flat: -21 };
+// Die ganze Note ist breiter (halbe Breite 10,28 = 0,86 LA statt 7,13): Vorzeichen rücken um die
+// Differenz 3,15 weiter nach links, damit der Abstand zum Kopf gleich bleibt (Verovio 6.4.1/Bravura
+// und Leipzig: 0,23–0,25 LA bei jedem Notenwert; nachgemessen an ♯/♭ vor f', g', h', es'' und f).
+const BLACK_HALF_W = 7.13;
+const ACC_SHIFT = { 1: r2(OPEN_HEADS[1].outer[0] - BLACK_HALF_W) };
+// Hilfslinien: halbe Länge ab Kopfmitte. Verovio lässt die Hilfslinie bei jedem Notenwert 0,25–0,27 LA
+// über den Kopf hinausragen (Bravura: ganze Note 2,22 LA lang, Viertel 1,70; Leipzig 2,15 bzw. 1,80).
+// Schwarze und halbe Köpfe behalten 11 (1,83 LA lang, ragt 0,32 hinaus, innerhalb der Toleranz);
+// die ganze Note bekommt 10,28 + 0,26 · 12 = 13,4 (2,23 LA lang), vorher 11 (ragte nur 0,06 hinaus).
+const LEDGER_HALF = { 1: 13.4 };
+const LEDGER_HALF_DEFAULT = 11;
 
 function ellipsePath(cx, cy, rx, ry, deg) {
   const t = (deg * Math.PI) / 180, dx = rx * Math.cos(t), dy = rx * Math.sin(t);
@@ -64,11 +76,13 @@ export function noteSvg(n, clef, x, cls, opts = {}) {
   const value = opts.value || 4;
   const p = staffPos(n, clef), cy = yOf(p);
   let s = `<g class="note ${cls || ""}">`;
-  for (let q = -2; q >= p; q -= 2) s += `<line class="ledger" x1="${x - 11}" x2="${x + 11}" y1="${yOf(q)}" y2="${yOf(q)}"/>`;
-  for (let q = 10; q <= p; q += 2) s += `<line class="ledger" x1="${x - 11}" x2="${x + 11}" y1="${yOf(q)}" y2="${yOf(q)}"/>`;
+  const lh = LEDGER_HALF[value] || LEDGER_HALF_DEFAULT;
+  const ledger = (q) => `<line class="ledger" x1="${r2(x - lh)}" x2="${r2(x + lh)}" y1="${yOf(q)}" y2="${yOf(q)}"/>`;
+  for (let q = -2; q >= p; q -= 2) s += ledger(q);
+  for (let q = 10; q <= p; q += 2) s += ledger(q);
   if (n.acc) {
     const k = n.acc > 0 ? "sharp" : "flat";
-    s += `<text class="acc" x="${x + ACC_X[k]}" y="${cy + ACC_DY[k]}">${n.acc > 0 ? "♯" : "♭"}</text>`;
+    s += `<text class="acc" x="${r2(x + ACC_X[k] - (ACC_SHIFT[value] || 0))}" y="${cy + ACC_DY[k]}">${n.acc > 0 ? "♯" : "♭"}</text>`;
   }
   // Hals nach oben unterhalb der Mittellinie, ab der Mittellinie nach unten
   const up = p < 4;
