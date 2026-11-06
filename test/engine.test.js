@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   starsHtml, effectiveInput, makeRound, findLevel, nextLevel, countAnswer, feedbackText,
   resultMessage, dotsHtml, lettersHtml, choicesHtml, choicesClass, choiceCols, keyAction, blitzPoints, notesToPlay,
+  playMode,
 } from "../src/engine.js";
 import { PACKS } from "../src/packs/index.js";
 import noten from "../src/packs/noten.js";
@@ -115,4 +116,13 @@ test("notesToPlay", () => {
   assert.deepEqual(notesToPlay({ play: [n, n] }), [n, n]);
   assert.deepEqual(notesToPlay({ note: n }), [n]);
   assert.deepEqual(notesToPlay({}), []);
+});
+
+test("playMode: gleichzeitig nur mit playTogether und mehreren Tönen", () => {
+  const n = N("C", 4);
+  assert.equal(playMode({ play: [n, n, n], playTogether: true }), "together");
+  assert.equal(playMode({ play: [n, n, n] }), "sequence");
+  assert.equal(playMode({ play: [n], playTogether: true }), "sequence");
+  assert.equal(playMode({ note: n, playTogether: true }), "sequence");
+  assert.equal(playMode({}), "sequence");
 });

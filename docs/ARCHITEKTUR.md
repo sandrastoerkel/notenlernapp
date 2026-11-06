@@ -61,6 +61,17 @@ Exporte (alle rein, ohne Seiteneffekte):
 | `same(a, b)`        | Gleichheit                                                                |
 | `transpose(n, steps, acc)` | Stammton um diatonische Schritte verschieben                       |
 
+Erweiterung aus Paket E (Dreiklänge und Quintenzirkel), ebenfalls rein:
+`semis(a, b)` (Halbtonabstand), `spell(n, steps, semi)` (Ton über Buchstabenschritte
+und Halbtöne, `null` bei Doppelvorzeichen), `TRIAD_TYPES` (`dur` 4+3, `moll` 3+4,
+`vermindert` 3+3, `uebermaessig` 4+4), `triad(root, type)` (Grundstellung als
+gestapelte Terzen), `triadQuality(lower, upper)`, `triadRoot(notes)`,
+`triadTypeOf(notes)`, `invert(notes, k)` und `inversionOf(notes)` (0
+Grundstellung, 1 Sextakkord, 2 Quartsextakkord; `INVERSIONS`), `fifthUp`,
+`fifthDown`, `majorTonic(sig)`, `MAJOR_KEYS` (15 Dur-Tonarten von Ces bis Cis),
+`relativeMinorOf(tonic)`, `triadName(root, type)` („C-Dur“, „a-Moll“, „h
+vermindert“), `majorScale(tonic)`, `degreeTriad(tonic, deg)`, `ROMAN`.
+
 Pakete dürfen dieses Modul erweitern (neue Funktionen anhängen), aber keine
 bestehende Signatur ändern.
 
@@ -125,6 +136,18 @@ Kommentar in `staff.js`. Angaben in Linienabständen (LA):
   Ganze und halbe Pause sind Rechtecke (14 × 6,5): die ganze hängt an der
   vierten Linie von unten, die halbe sitzt auf der Mittellinie.
 
+**Akkorde.** `src/packs/akkorde.js` setzt Dreiklänge mit `chordSvg(notes, clef, x, opts)`:
+ganze Noten übereinander (Köpfe aus `noteSvg`), eine gemeinsame Reihe Hilfslinien
+(1,12 LA je Seite, wie Verovio bei ganzen Noten) und Vorzeichen in Spalten:
+oberstes 0,25 LA vor dem Kopf, dann das unterste, das mittlere am weitesten links;
+eng beieinander liegende Zeichen (Terz, Quarte) weichen ganz aus, ♭ im Abstand
+Quarte bis Sexte rücken nur teilweise ein (`accClash`, Werte aus Verovio 6.4.1 /
+Bravura, 06.11.2026). Ragt ein Vorzeichen in eine Hilfslinie des Akkords (♯ bis
+zwei halbe Stufen darüber oder darunter, ♭ auf seiner Stufe und bis zwei halbe
+Stufen darüber), rückt es wie in `staff.js` 1,9 (0,16 LA) weiter nach links
+(`accTouchesLedger`). `opts.keySig` lässt Vorzeichen weg, die die Vorzeichnung
+schon enthält.
+
 ## Themenpakete (`src/packs/*.js`)
 
 Ein Paket ist ein Default-Export mit dieser Form:
@@ -162,6 +185,7 @@ Eine Stufe:
       display: "G (g')",       // Text fürs Feedback: „Richtig! G (g')“ bzw. „Das war ein G (g').“
       reveal: "Richtig wäre: A-Dur.", // optional, ganzer Satz bei falscher Antwort statt „Das war ein …“
       play: [ /* Noten */ ],   // optional, wird nach der Antwort abgespielt (nacheinander, 500 ms Abstand)
+      playTogether: false,     // optional, true spielt alle Töne aus play gleichzeitig (Akkord)
       choices: ["…"],          // nur bei input "choices": 4 bis 6 Auswahlknöpfe, enthält answer
       note: N("G", 4),         // optional, die gefragte Note (Ton im Blitz, Feedback ohne Oktave)
       clef: "treble",          // optional, Schlüssel der Aufgabe (damit prev nicht wiederholt wird)
@@ -177,7 +201,16 @@ Klasse `choices` (zwei Spalten, lange Begriffe wie „punktierte Viertelnote“
 passen bei 420 px in eine Zeile); sind alle Texte höchstens 4 Zeichen lang
 („½“, „VII“, „3 ♭“), zusätzlich `short` mit `--cols` Spalten (bis 6 Knöpfe in
 einer Reihe, ab 7 in zwei Reihen). Buchstaben und Klaviatur bleiben bei 7
-Spalten.
+Spalten. In der Regel 4 bis 6 Knöpfe; Ausnahmen im Paket „Dreiklänge und
+Quintenzirkel“: Stufe 1 hat laut PLAN zwei (Dur, Moll), Stufe 4 drei (die drei
+Lagen), Stufe 6 alle sieben Stufen I bis VII.
+
+Gleichzeitiges Abspielen (seit Paket E): Setzt eine Aufgabe `playTogether: true`
+und enthält `play` mehr als einen Ton, startet die Engine alle Töne zur selben
+Zeit über `playChord(notes)` aus `src/audio.js` (gleicher Startzeitpunkt für alle
+Oszillatoren, Lautstärke je Ton geteilt durch √Anzahl). Die Entscheidung trifft die
+reine Hilfsfunktion `playMode(q)` in `engine.js` (`"together"` oder `"sequence"`);
+ohne `playTogether` bleibt es beim Nacheinander mit `PLAY_GAP`.
 
 Eingabeart: hat eine Stufe `input: "letters"` und hat das Kind „Klaviatur“
 gewählt (`state.input === "keys"`), nutzt die Engine die Klaviatur. Andere
@@ -236,7 +269,7 @@ Stufen-ID.
   `findLevel(packs, id)`, `nextLevel(pack, level)`, `countAnswer`,
   `feedbackText`, `resultMessage`, `dotsHtml`, `lettersHtml`, `choicesHtml`,
   `choicesClass(choices)`, `choiceCols(choices)`,
-  `keyAction(e)`, `blitzPoints(combo)`, `notesToPlay(q)`
+  `keyAction(e)`, `blitzPoints(combo)`, `notesToPlay(q)`, `playMode(q)`
 
 Ein Wechsel des Tabs beendet eine laufende Runde (Üben und Blitz) ohne Eintrag.
 
