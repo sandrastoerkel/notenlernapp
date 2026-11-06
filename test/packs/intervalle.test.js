@@ -141,7 +141,7 @@ test("Stufe 4: Quarte und Quinte rein, vermindert, übermäßig, Oktave nur rein
   assert.equal(new Set(many(L[3], 600).map((q) => q.answer)).size, 7);
   assert.deepEqual(perfectChoices(4), ["verminderte Quarte", "reine Quarte", "übermäßige Quarte", "verminderte Quinte"]);
   assert.deepEqual(perfectChoices(5), ["verminderte Quinte", "reine Quinte", "übermäßige Quinte", "übermäßige Quarte"]);
-  assert.deepEqual(perfectChoices(8), ["verminderte Oktave", "reine Oktave", "übermäßige Oktave", "große Septime"]);
+  assert.deepEqual(perfectChoices(8), ["reine Quarte", "reine Quinte", "große Septime", "reine Oktave"]);
 });
 
 test("Stufe 4: in 2000 Aufgaben nie eine verminderte oder übermäßige Oktave", () => {
@@ -153,6 +153,8 @@ test("Stufe 4: in 2000 Aufgaben nie eine verminderte oder übermäßige Oktave",
     assert.notEqual(q.answer, "verminderte Oktave");
     assert.notEqual(q.answer, "übermäßige Oktave");
     assert.ok(!["verminderte Oktave", "übermäßige Oktave"].includes(intervalName(q.low, q.high)));
+    assert.ok(q.choices.includes(q.answer));
+    assert.ok(!q.choices.some((c) => c === "verminderte Oktave" || c === "übermäßige Oktave"));
   }
   assert.ok(qs.some((q) => q.answer === "reine Oktave"));
 });
