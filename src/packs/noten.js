@@ -41,8 +41,8 @@ const RAW = [
   { clef: "bass", title: "Linien im Bassschlüssel", hint: "Im Bassschlüssel liegt alles zwei Stufen tiefer. Die Linien von unten: G H D F A. Die beiden Punkte des Schlüssels umschließen das F.", items: pool("bass", [N("G", 2), N("H", 2), N("D", 3), N("F", 3), N("A", 3)]) },
   { clef: "bass", title: "Zwischenräume im Bassschlüssel", hint: "Die Zwischenräume von unten: A C E G.", items: pool("bass", [N("A", 2), N("C", 3), N("E", 3), N("G", 3)]) },
   { clef: "bass", title: "Bassschlüssel mit Hilfslinien", hint: "Das c' liegt im Bassschlüssel auf einer Hilfslinie über der Zeile, das E ganz unten.", items: pool("bass", range(N("E", 2), N("C", 4))) },
-  { clef: "treble", title: "Vorzeichen ♯ und ♭", hint: "♯ erhöht um einen Halbton (Fis, Cis, Gis). ♭ erniedrigt (B, Es, As, Des). Wähle zuerst das Vorzeichen, dann den Buchstaben.", acc: true, items: pool("treble", [N("F", 4, 1), N("C", 5, 1), N("G", 4, 1), N("D", 5, 1), N("H", 4, -1), N("E", 5, -1), N("A", 4, -1), N("D", 5, -1)]) },
-  { clef: "both", title: "Alles gemischt", hint: "Beide Schlüssel, alle Lagen, hin und wieder ein Vorzeichen. Schau zuerst auf den Schlüssel.", acc: true, items: [] },
+  { clef: "treble", title: "Vorzeichen ♯ und ♭", hint: "♯ erhöht um einen Halbton (Fis, Cis, Gis). ♭ erniedrigt (B, Es, As, Des). Tippe den ganzen Namen an oder schreib ihn, z. B. „fis“ und Enter.", acc: true, items: pool("treble", [N("F", 4, 1), N("C", 5, 1), N("G", 4, 1), N("D", 5, 1), N("H", 4, -1), N("E", 5, -1), N("A", 4, -1), N("D", 5, -1)]) },
+  { clef: "both", title: "Alles gemischt", hint: "Beide Schlüssel, alle Lagen, hin und wieder ein Vorzeichen. Schau zuerst auf den Schlüssel. Die Namen ohne Vorzeichen stehen in der obersten Reihe.", acc: true, items: [] },
 ];
 RAW[7].items = [...RAW[2].items, ...RAW[5].items, ...RAW[6].items];
 
