@@ -61,7 +61,7 @@ test("Feedback- und Ergebnistexte", () => {
   assert.equal(feedbackText(k, false), "Richtig wäre: A-Dur.");
   assert.equal(feedbackText(k, true), "Richtig! A-Dur");
   assert.equal(feedbackText({ display: "A-Dur", reveal: "" }, false), "Das war ein A-Dur.");
-  assert.equal(resultMessage(3), "Stark, fast fehlerfrei.");
+  assert.equal(resultMessage(3), "Stark, fast alles richtig.");
   // Tippfehler aus dem Prototyp („die dritte Sterne“) hier korrigiert
   assert.equal(resultMessage(2), "Gut. Noch eine Runde und der dritte Stern ist drin.");
   assert.ok(resultMessage(1).startsWith("Solide Basis"));

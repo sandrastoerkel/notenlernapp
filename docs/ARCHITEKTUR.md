@@ -215,7 +215,7 @@ Eine Stufe:
       choices: ["…"],          // nur bei input "choices": 4 bis 6 Auswahlknöpfe, enthält answer
       note: N("G", 4),         // optional, die gefragte Note (Ton im Blitz, Feedback ohne Oktave)
       clef: "treble",          // optional, Schlüssel der Aufgabe (damit prev nicht wiederholt wird)
-      statKey: "G (g', Violin)", // optional, Eintrag in der Liste „Schwache Noten“
+      statKey: "G (g', Violin)", // optional, Eintrag in der Liste „Schwache Stellen“
     };
   },
   check(q, value) { return value === q.answer; }, // value ist bei "letters" {letter, acc}, bei "keys" eine Halbtonzahl, bei "choices" der Knopftext

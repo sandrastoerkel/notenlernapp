@@ -51,7 +51,7 @@ Jeder Push auf `main` veröffentlicht die App über GitHub Pages (Workflow in `.
 | Üben       | Zehn Noten pro Runde, Eingabe über Buchstaben oder Klaviatur, Ton, Sterne               |
 | Lernen     | Notenzeile zum Antippen, Merksprüche, alle Namen einblenden                             |
 | Blitz      | 60 Sekunden, beide Schlüssel, Serienbonus, Rekord                                       |
-| Statistik  | Schwache Noten, Sterne je Stufe, Fortschritt zurücksetzen                               |
+| Statistik  | Schwache Stellen, Sterne je Stufe, Fortschritt zurücksetzen                             |
 
 ## Stufen
 

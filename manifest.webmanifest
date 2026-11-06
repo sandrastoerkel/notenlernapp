@@ -1,7 +1,7 @@
 {
   "name": "Notenheld",
   "short_name": "Notenheld",
-  "description": "Noten lesen lernen im Violin- und Bassschlüssel. Für Schülerinnen und Schüler am Gymnasium.",
+  "description": "Musiktheorie üben im Violin- und Bassschlüssel: Noten lesen, Notenwerte und Pausen, Intervalle und Tonarten, Dreiklänge und Quintenzirkel. Für Schülerinnen und Schüler am Gymnasium.",
   "lang": "de",
   "dir": "ltr",
   "start_url": "./",

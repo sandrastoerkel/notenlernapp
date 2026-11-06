@@ -60,7 +60,7 @@ export function render() {
   const starsTotal = Object.values(s.levels).reduce((a, st) => a + (st.stars || 0), 0);
   const allLevels = ctx.packs.flatMap((p) => p.levels);
   $("#sTiles").innerHTML = [
-    ["Noten beantwortet", s.answered], ["Trefferquote", acc === null ? "–" : acc + " %"], ["Sterne", `${starsTotal} / ${allLevels.length * 3}`],
+    ["Aufgaben beantwortet", s.answered], ["Trefferquote", acc === null ? "–" : acc + " %"], ["Sterne", `${starsTotal} / ${allLevels.length * 3}`],
     ["Tage in Folge", s.dayStreak], ["Blitz-Rekord", s.blitzRecord], ["Längste Serie", s.bestCombo],
   ].map(([k, v]) => `<div class="tile"><p class="eyebrow">${k}</p><p class="big num">${v}</p></div>`).join("");
   const weak = weakList(s.notes, 6);

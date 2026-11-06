@@ -7,8 +7,8 @@ let ctx = null;
 
 const current = () => engine.findLevel(ctx.packs, ctx.state.current);
 
-// Beschriftung des Startknopfs (rein, getestet): „10 Noten“ bei Buchstaben und Klaviatur, sonst „10 Aufgaben“
-export const startLabel = (level) => `Runde starten · ${engine.ROUND_LENGTH} ${(level.input || "letters") === "letters" ? "Noten" : "Aufgaben"}`;
+// Beschriftung des Startknopfs (rein, getestet): in allen Paketen „10 Aufgaben“
+export const startLabel = () => `Runde starten · ${engine.ROUND_LENGTH} Aufgaben`;
 
 function markInput() {
   $("#inLetters").classList.toggle("on", ctx.state.input === "letters");

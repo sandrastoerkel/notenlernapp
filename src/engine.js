@@ -57,7 +57,7 @@ export function countAnswer(s, q, ok) {
 export const feedbackText = (q, ok) => (ok ? `Richtig! ${q.display}` : q.reveal || `Das war ein ${q.display}.`);
 
 export function resultMessage(stars) {
-  if (stars === 3) return "Stark, fast fehlerfrei.";
+  if (stars === 3) return "Stark, fast alles richtig.";
   if (stars === 2) return "Gut. Noch eine Runde und der dritte Stern ist drin.";
   if (stars === 1) return "Solide Basis. Was noch unsicher ist, kannst du in „Lernen“ nachschauen.";
   return "Noch wackelig. Übe zuerst in „Lernen“ mit den Lerntafeln.";
