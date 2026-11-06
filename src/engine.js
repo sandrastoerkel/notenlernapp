@@ -5,7 +5,7 @@
 import { LETTERS } from "./music.js";
 import { pianoSvg } from "./staff.js";
 import { recordRound, recordAnswer } from "./store.js";
-import { play } from "./audio.js";
+import { play, playChord } from "./audio.js";
 
 export const ROUND_LENGTH = 10;
 export const DELAY_OK = 800, DELAY_BAD = 1600;
@@ -90,6 +90,8 @@ export const blitzPoints = (combo) => (combo >= 5 ? 2 : 1);
 
 // Töne einer Aufgabe: q.play (nacheinander) oder q.note
 export const notesToPlay = (q) => (q.play && q.play.length ? q.play : q.note ? [q.note] : []);
+// Abspielart: "together" (alle Töne gleichzeitig, bei q.playTogether und mehr als einem Ton), sonst "sequence"
+export const playMode = (q) => (q.playTogether && notesToPlay(q).length > 1 ? "together" : "sequence");
 
 /* ---------- Ablauf im DOM ---------- */
 
@@ -209,7 +211,8 @@ function answer(r, value, el) {
   if (svg) svg.classList.add(ok ? "ok" : "bad");
   ui.feedback.textContent = feedbackText(q, ok);
   ui.feedback.className = "feedback " + (ok ? "ok" : "bad");
-  notesToPlay(q).forEach((n, i) => { if (i === 0) play(n); else later(r, () => play(n), i * PLAY_GAP); });
+  if (playMode(q) === "together") playChord(notesToPlay(q));
+  else notesToPlay(q).forEach((n, i) => { if (i === 0) play(n); else later(r, () => play(n), i * PLAY_GAP); });
   later(r, () => {
     if (run !== r) return;
     r.locked = false; r.idx++;
