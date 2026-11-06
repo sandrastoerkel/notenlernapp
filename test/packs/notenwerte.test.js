@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import notenwerte, { BARS, parseBar, beatsOf, nameOf, fillChoices, barSvg, dotSvg, timeSigSvg, layoutBar, learnHtml, PITCH, DOT, TIME } from "../../src/packs/notenwerte.js";
+import notenwerte, { BARS, parseBar, beatsOf, nameOf, fillChoices, barSvg, dotSvg, timeSigSvg, layoutBar, learnHtml, PITCH, DOT, TIME, rhythmOf } from "../../src/packs/notenwerte.js";
 import { N } from "../../src/music.js";
 import { TOP, S, BOTTOM, X1 } from "../../src/staff.js";
 
@@ -145,6 +145,67 @@ test("Takt füllen: die richtige Antwort ergibt 4, jede falsche nicht", () => {
     assert.equal(count(q.svg, /class="rest"/g), rests, it.key);
     assert.equal(count(q.svg, /class="notehead aug"/g), others.filter((e) => e.dot).length);
     assert.ok(q.svg.includes("timesig") && q.svg.includes("barline"));
+  }
+});
+
+test("Takt füllen: revealSvg zeigt den Takt mit dem richtigen Wert in der Lücke", () => {
+  for (const it of L[4].items) {
+    const q = Object.assign(it.make(), { key: it.key });
+    const r = q.revealSvg, ans = q.bar[q.gap];
+    assert.ok(r.startsWith("<svg") && r.endsWith("</svg>"), it.key);
+    // kein Kasten mehr, dafür genau ein gefülltes Element, und zwar die Antwort
+    assert.equal(count(r, /class="gap"/g), 0, it.key);
+    assert.equal(count(r, /class="filled"/g), 1, it.key);
+    const filled = r.match(/<g class="filled">(.*?)<\/g><(?:g class="note|text class="rest|rect class="rest|line class="staff-line barline)/)[1];
+    // dasselbe Zeichen wie die anderen Elemente des Takts (elementFrom an der Stelle der Lücke)
+    assert.equal(r, q.svg.replace(/<g class="gap">.*?<\/g>/, `<g class="filled">${filled}</g>`), it.key);
+    if (ans.rest) assert.equal(count(filled, /class="rest"/g), 1, it.key);
+    else {
+      assert.equal(count(filled, /<g class="note /g), 1, it.key);
+      // ganze und halbe Note: hohler Kopf; Achtel/Sechzehntel: Fähnchen; Punkt nur bei punktierten
+      assert.equal(filled.includes("notehead open"), ans.v <= 2, it.key);
+      assert.equal(filled.includes(`class="flag"`), ans.v >= 8, it.key);
+    }
+    assert.equal(filled.includes("notehead aug"), ans.dot, it.key);
+    // vollständiger Takt: alle Noten, Pausen und Punkte gezeichnet
+    const notes = q.bar.filter((e) => !e.rest).length;
+    assert.equal(count(r, /<g class="note /g), notes, it.key);
+    assert.equal(count(r, /class="rest"/g), q.bar.length - notes, it.key);
+    assert.equal(count(r, /class="notehead aug"/g), q.bar.filter((e) => e.dot).length, it.key);
+  }
+  // die anderen Stufen brauchen keine Auflösung
+  for (const l of L.slice(0, 4)) assert.equal(l.question(null).revealSvg, undefined);
+});
+
+test("Takt füllen: play ist der vollständige Takt als Rhythmus (vier Schläge)", () => {
+  for (const it of L[4].items) {
+    const q = it.make();
+    assert.equal(q.play.length, q.bar.length, it.key);
+    assert.equal(q.play.reduce((a, p) => a + p.beats, 0), 4, it.key);
+    q.play.forEach((p, i) => {
+      assert.equal(p.beats, beatsOf(q.bar[i]), it.key);
+      if (q.bar[i].rest) assert.deepEqual(p, { rest: true, beats: beatsOf(q.bar[i]) });
+      else assert.deepEqual(p, { note: PITCH, beats: beatsOf(q.bar[i]) });
+    });
+  }
+  // punktierte Werte: Viertel mit Punkt 1½, Achtel ½, halbe Pause 2
+  assert.deepEqual(rhythmOf(parseBar("4. 8 r2")).map((p) => p.beats), [1.5, 0.5, 2]);
+  // die anderen Stufen spielen nichts
+  for (const l of L.slice(0, 4)) assert.equal(l.question(null).play, undefined);
+});
+
+test("Takt: einfacher dünner Taktstrich am Ende, kein Schlussstrich", () => {
+  // Ein einzelner Takt aus einem Stück endet mit einem einfachen Taktstrich (Verovio barLineWidth 0,15 LA),
+  // nicht mit dem Schlussstrich (dünn + dick). Gilt für Aufgabe und Auflösung.
+  for (const svg of [barSvg(parseBar("4. 8 r4 4"), 2), barSvg(parseBar("4. 8 r4 4"), 2, true), barSvg(parseBar("2 2"))]) {
+    const bars = svg.match(/<line class="staff-line barline"[^>]*>/g);
+    assert.equal(bars.length, 1);
+    assert.ok(bars[0].includes(`x1="${X1}" x2="${X1}"`) && bars[0].includes(`y1="${TOP}" y2="${BOTTOM}"`));
+    assert.ok(Math.abs(parseFloat(bars[0].match(/stroke-width:([\d.]+)/)[1]) / S - 0.15) < 1e-9);
+    // keine weiteren senkrechten Striche oder Balken am Zeilenende
+    const vertical = (svg.match(/<line [^>]*>/g) || []).filter((l) => /x1="([\d.]+)" x2="\1"/.test(l) && !l.includes('class="stem"'));
+    assert.equal(vertical.length, 1);
+    assert.ok(!/<rect [^>]*x="(29\d|30\d)/.test(svg));
   }
 });
 

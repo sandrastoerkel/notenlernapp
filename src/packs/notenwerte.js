@@ -81,10 +81,13 @@ export function layoutBar(els, gap = -1) {
   return w.map((wi) => { const l = r2(left); left += c * wi; return l; });
 }
 
-// Ganzer 4/4-Takt mit Taktangabe und Taktstrich; gap = Index der Lücke (oder -1)
-export function barSvg(els, gap = -1) {
+// Ganzer 4/4-Takt mit Taktangabe und Taktstrich; gap = Index der Lücke (oder -1).
+// filled = true zeichnet statt des Kastens den fehlenden Wert in die Lücke (Auflösung nach der Antwort);
+// die Abstände bleiben wie in der Aufgabe, damit nichts verrutscht.
+export function barSvg(els, gap = -1, filled = false) {
   const xs = layoutBar(els, gap);
-  const inner = timeSigSvg() + els.map((el, i) => (i === gap ? gapSvg(xs[i]) : elementFrom(el, xs[i]))).join("") + barlineSvg();
+  const at = (el, i) => (i !== gap ? elementFrom(el, xs[i]) : filled ? `<g class="filled">${elementFrom(el, xs[i])}</g>` : gapSvg(xs[i]));
+  const inner = timeSigSvg() + els.map(at).join("") + barlineSvg();
   return staffSvg(CLEF, inner);
 }
 
@@ -175,12 +178,20 @@ export function fillChoices(answer, rnd = Math.random) {
   return [answer, ...wrong].sort(byLength);
 }
 
+// Rhythmus des vollständigen Takts zum Abspielen nach der Antwort (Engine: { note, beats } bzw.
+// { rest: true, beats }). Alle Töne auf einer festen Höhe, dem h' aus der Notenzeile: Es geht nur um
+// die Dauern, die Tonhöhe ist bloß ein gleichbleibender Klickton.
+export const rhythmOf = (els) => els.map((e) => (e.rest ? { rest: true, beats: beatsOf(e) } : { note: PITCH, beats: beatsOf(e) }));
+
 const ITEMS_5 = BARS.flatMap((bar, b) => parseBar(bar).map((ans, gap) => ({
   key: `5:${b}:${gap}`, bar, gap, make: () => {
     const els = parseBar(bar);
     const opts = fillChoices(ans);
     return {
       svg: barSvg(els, gap),
+      // nach der Antwort: derselbe Takt, die Lücke mit dem richtigen Wert gefüllt
+      revealSvg: barSvg(els, gap, true),
+      play: rhythmOf(els),
       prompt: ans.rest ? "Welche Pause fehlt in der Lücke?" : "Welche Note fehlt in der Lücke?",
       answer: nameOf(ans), display: displayOf(ans), reveal: revealFill(ans), choices: opts.map(nameOf),
       bar: els, gap, options: opts,
