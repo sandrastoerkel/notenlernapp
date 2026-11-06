@@ -46,6 +46,14 @@
   --bad-soft: #fbe1de;
   --gold: #e0a416;
   --gold-soft: #fff1cc;
+  /* Klaviatur: Tasten sehen hell und dunkel gleich aus (weiß und schwarz wie am Instrument), daher ohne dunkle Variante */
+  --key-white: #ffffff;
+  --key-white-hover: #e8ecff;
+  --key-white-edge: #2b2f45;
+  --key-black: #1a1d2c;
+  --key-black-hover: #3b4166;
+  --key-black-edge: #0a0b12;
+  --key-label: #3c4260;
   --display: 'Outfit', system-ui, sans-serif;
   --body: 'Nunito', system-ui, sans-serif;
   --music: 'Noto Music', 'Bravura', 'Segoe UI Symbol', serif;
@@ -159,13 +167,13 @@ section { display: grid; gap: 14px; }
 
 /* piano */
 .piano svg { width: 100%; height: auto; display: block; max-width: 100%; }
-.wkey { fill: #ffffff; stroke: #2b2f45; stroke-width: 1.2; cursor: pointer; }
-.wkey:hover { fill: #e8ecff; }
-.bkey { fill: #1a1d2c; stroke: #0a0b12; cursor: pointer; }
-.bkey:hover { fill: #3b4166; }
+.wkey { fill: var(--key-white); stroke: var(--key-white-edge); stroke-width: 1.2; cursor: pointer; }
+.wkey:hover { fill: var(--key-white-hover); }
+.bkey { fill: var(--key-black); stroke: var(--key-black-edge); cursor: pointer; }
+.bkey:hover { fill: var(--key-black-hover); }
 .wkey.ok { fill: var(--ok-soft); } .wkey.bad { fill: var(--bad-soft); }
 .bkey.ok { fill: var(--ok); } .bkey.bad { fill: var(--bad); }
-.klabel { font-family: var(--display); font-size: 11px; fill: #3c4260; pointer-events: none; }
+.klabel { font-family: var(--display); font-size: 11px; fill: var(--key-label); pointer-events: none; }
 
 /* levels */
 .levels { display: grid; gap: 8px; }
