@@ -74,7 +74,9 @@ const TREBLE = [N("C", 4), N("A", 5)], BASS = [N("E", 2), N("C", 4)];
 export const POOL_1 = numberPool("treble", ...TREBLE);
 export const POOL_2 = numberPool("bass", ...BASS);
 export const POOL_3 = qualityPool("treble", ...TREBLE, [2, 3, 6, 7], ["groß", "klein"]);
-export const POOL_4 = qualityPool("treble", ...TREBLE, [4, 5, 8], ["vermindert", "rein", "übermäßig"]);
+// Stufe 4: Quarte und Quinte rein, vermindert, übermäßig; von der Oktave nur die reine
+export const POOL_4 = qualityPool("treble", ...TREBLE, [4, 5, 8], ["vermindert", "rein", "übermäßig"])
+  .filter((it) => it.num !== 8 || it.quality === "rein");
 
 /* ---------- Auswahlknöpfe ---------- */
 
@@ -130,7 +132,8 @@ function qualityQuestion(it, choices) {
   };
 }
 
-// Stufe 4: erst die Zahl, dann die Qualität gleich wahrscheinlich, damit „rein“ nicht überwiegt
+// Stufe 4: erst die Zahl, dann die Qualität gleich wahrscheinlich, damit „rein“ nicht überwiegt;
+// Kombinationen ohne Aufgaben im Vorrat (verminderte, übermäßige Oktave) werden neu gezogen
 function pickQuality(pool, prev, nums, quals) {
   for (let i = 0; i < 20; i++) {
     const num = nums[Math.floor(Math.random() * nums.length)], q = quals[Math.floor(Math.random() * quals.length)];

@@ -35,7 +35,7 @@ test("Texte: keine verbotenen Wörter, Anrede du", () => {
 });
 
 test("mindestens 8 unterschiedliche Aufgaben je Stufe", () => {
-  assert.deepEqual([POOL_1, POOL_2, POOL_3, POOL_4, POOL_5, POOL_6].map((p) => p.length), [76, 76, 147, 133, 30, 30]);
+  assert.deepEqual([POOL_1, POOL_2, POOL_3, POOL_4, POOL_5, POOL_6].map((p) => p.length), [76, 76, 147, 115, 30, 30]);
   L.forEach((l) => {
     assert.ok(l.items.length >= 8, l.id);
     const seen = new Set(many(l, 400).map((q) => q.svg + q.prompt));
@@ -118,28 +118,43 @@ test("Stufe 3: nur Sekunde, Terz, Sexte, Septime, groß oder klein, aus den Halb
   assert.deepEqual(minorMajorChoices(7), ["kleine Sexte", "große Sexte", "kleine Septime", "große Septime"]);
 });
 
-test("Stufe 4: Quarte, Quinte, Oktave rein, vermindert, übermäßig", () => {
+test("Stufe 4: Quarte und Quinte rein, vermindert, übermäßig, Oktave nur rein", () => {
   const names = new Set(POOL_4.map((it) => intervalName(it.low, it.high)));
-  for (const num of [4, 5, 8]) for (const q of ["vermindert", "rein", "übermäßig"]) assert.ok(names.has(intervalLabel(num, q)), intervalLabel(num, q));
-  assert.equal(names.size, 9);
+  for (const num of [4, 5]) for (const q of ["vermindert", "rein", "übermäßig"]) assert.ok(names.has(intervalLabel(num, q)), intervalLabel(num, q));
+  assert.ok(names.has("reine Oktave"));
+  assert.equal(names.size, 7);
   for (const it of POOL_4) {
     const d = describe({ low: it.low, high: it.high });
     assert.ok([4, 5, 8].includes(d.num));
     const base = { 4: 5, 5: 7, 8: 12 }[d.num];
     assert.equal(d.semi - base, { vermindert: -1, rein: 0, "übermäßig": 1 }[d.quality]);
     assert.ok(usualNote(it.low) && usualNote(it.high));
+    if (d.num === 8) assert.equal(d.quality, "rein");
   }
   // Beispiele aus dem Unterricht sind im Vorrat
   const has = (low, high, name) => POOL_4.some((it) => dia(it.low) === dia(low) && it.low.acc === low.acc && dia(it.high) === dia(high) && it.high.acc === high.acc && intervalName(it.low, it.high) === name);
   assert.ok(has(N("F", 4), N("H", 4), "übermäßige Quarte"));
   assert.ok(has(N("H", 4), N("F", 5), "verminderte Quinte"));
-  assert.ok(has(N("F", 4, 1), N("F", 5), "verminderte Oktave"));
-  assert.ok(has(N("C", 4), N("C", 5, 1), "übermäßige Oktave"));
-  // alle neun Kombinationen kommen in einer längeren Folge vor
-  assert.equal(new Set(many(L[3], 600).map((q) => q.answer)).size, 9);
+  assert.ok(has(N("C", 4), N("C", 5), "reine Oktave"));
+  assert.ok(has(N("F", 4, 1), N("F", 5, 1), "reine Oktave"));
+  // alle sieben Kombinationen kommen in einer längeren Folge vor
+  assert.equal(new Set(many(L[3], 600).map((q) => q.answer)).size, 7);
   assert.deepEqual(perfectChoices(4), ["verminderte Quarte", "reine Quarte", "übermäßige Quarte", "verminderte Quinte"]);
   assert.deepEqual(perfectChoices(5), ["verminderte Quinte", "reine Quinte", "übermäßige Quinte", "übermäßige Quarte"]);
   assert.deepEqual(perfectChoices(8), ["verminderte Oktave", "reine Oktave", "übermäßige Oktave", "große Septime"]);
+});
+
+test("Stufe 4: in 2000 Aufgaben nie eine verminderte oder übermäßige Oktave", () => {
+  // die Theorie in music.js kennt beide weiterhin, nur Stufe 4 fragt sie nicht ab
+  assert.equal(intervalName(N("C", 4), N("C", 5, -1)), "verminderte Oktave");
+  assert.equal(intervalName(N("C", 4), N("C", 5, 1)), "übermäßige Oktave");
+  const qs = many(L[3], 2000);
+  for (const q of qs) {
+    assert.notEqual(q.answer, "verminderte Oktave");
+    assert.notEqual(q.answer, "übermäßige Oktave");
+    assert.ok(!["verminderte Oktave", "übermäßige Oktave"].includes(intervalName(q.low, q.high)));
+  }
+  assert.ok(qs.some((q) => q.answer === "reine Oktave"));
 });
 
 test("upperNote und usualNote", () => {
