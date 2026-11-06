@@ -85,6 +85,12 @@ quality)` („große Terz“), `intervalName(a, b)`; Tonarten aus der Vorzeichnu
 `relativeMinor(fifths)`, `majorName(fifths)` („Fis-Dur“), `minorName(fifths)`
 („fis-Moll“).
 
+Erweiterung aus Paket F2 (Namensraster): `NAME_ACCS` (`[0, 1, -1]`, Reihenfolge
+der Reihen im Raster), `parseNoteName(str)` (deutscher Name → `{ letter, acc }`
+oder `null`; groß oder klein, Leerzeichen am Rand egal; gültig sind genau die
+21 Namen, die `gName` für die Stammtöne ohne, mit ♯ und mit ♭ liefert, also
+„es“, „as“, „b“, nicht „hes“, „ass“ oder „eses“).
+
 **Bekannte Dopplungen.** Die Pakete D und E entstanden parallel und haben je
 eigene Hilfsfunktionen für dasselbe angelegt. Beide Fassungen sind getestet und
 in Gebrauch; sie werden bewusst nicht zusammengelegt (Risiko ohne Nutzen für
@@ -208,7 +214,7 @@ Eine Stufe:
   hint: "Text auf der Startkarte der Stufe",
   example: "<svg …>",          // optional, festes SVG für die Startkarte (vor der Runde)
   input: "letters",            // "letters" | "choices" | "keys"
-  acc: false,                  // optional, true zeigt bei "letters" die Knöpfe ♭ ♮ ♯
+  acc: false,                  // optional, true zeigt bei "letters" das Namensraster (21 Namen) statt C–H
   items: [ /* … */ ],          // optional, Vorrat der Aufgaben (nur für Tests und Blitz)
   question(prev) {             // liefert eine neue Aufgabe, nie dieselbe wie prev
     return {
@@ -263,8 +269,27 @@ ohne `playTogether` bleibt es beim Nacheinander mit `PLAY_GAP`.
 
 Eingabeart: hat eine Stufe `input: "letters"` und hat das Kind „Klaviatur“
 gewählt (`state.input === "keys"`), nutzt die Engine die Klaviatur. Andere
-Eingabearten bleiben unverändert. Tastendrücke (Buchstaben) antworten immer als
-`{ letter, acc }` mit dem gerade gewählten Vorzeichen.
+Eingabearten bleiben unverändert.
+
+Namensraster (seit Paket F2, `acc: true` bei `input: "letters"`, geprüft mit
+`usesNames(level)`): Statt der Buchstaben C–H und einer Vorzeichen-Wahl wählt
+man den ganzen deutschen Namen. `namesHtml()` baut drei Reihen zu sieben
+Knöpfen, die Spalten gehören zum selben Stammton: C D E F G A H, darunter
+Cis Dis Eis Fis Gis Ais His, darunter Ces Des Es Fes Ges As B (in der
+H-Spalte also H, His, B). Die Beschriftung kommt aus `gName`; jeder Knopf trägt
+`data-letter` und `data-acc` und antwortet als `{ letter, acc }`, `check()` der
+Pakete bleibt gleich. Auf der Computertastatur tippt man den Namen
+(`c cis ces d dis des e eis es f fis fes g gis ges a ais as h his b`, groß oder
+klein) und bestätigt mit Enter; Backspace löscht ein Zeichen, Escape leert.
+Der Puffer steht unter den Knöpfen („Eingabe: fis“, Element `ui.typed`). Ein
+Name, den es nicht gibt („hes“, „eses“), zeigt einen neutralen Hinweis und
+zählt nicht als Antwort. Gedeutet wird mit `parseNoteName(str)` aus
+`music.js`, der Puffer mit `nameKey(buf, e)`. Das Tippen geht auch, wenn die
+Klaviatur gewählt ist.
+
+Ohne `acc` antwortet ein Buchstabe auf der Tastatur sofort als
+`{ letter, acc: 0 }` (Knöpfe C–H). Die frühere Vorzeichen-Wahl (Knöpfe ♭ ♮ ♯,
+Tasten `+` `-` `0`, `setMod`) gibt es nicht mehr.
 
 Blitz-Modus (optional, die Ansicht nimmt das erste Paket mit `blitz`):
 
@@ -311,17 +336,23 @@ Antwort-Elemente nach `input` und vergibt Sterne (5/7/9 richtige = 1/2/3) und
 XP (10 je richtige Antwort, 20 je Stern). Ergebnisse landen im Store unter der
 Stufen-ID.
 
-- `ui`: `{ staff, feedback, count, dots, answers, mods, piano }` (DOM-Elemente)
+- `ui`: `{ staff, feedback, count, dots, answers, typed, piano }` (DOM-Elemente;
+  `typed` zeigt den getippten Namen, nur bei Stufen mit Namensraster)
 - `hooks`: `{ state, save, onFinish(result) }`; `result` ist
   `{ correct, total, stars, gained, avg, results }`
 - weitere Funktionen für die Ansichten: `stop()` (laufende Runde abbrechen,
-  Zeitgeber löschen), `isRunning()`, `setMod(acc)`, `setInput(pref)`,
+  Zeitgeber löschen), `isRunning()`, `setInput(pref)`,
   `handleKey(e)` (gibt `true` zurück, wenn die Taste verwendet wurde)
 - reine Hilfsfunktionen (getestet): `starsHtml`, `effectiveInput`, `makeRound`,
   `findLevel(packs, id)`, `nextLevel(pack, level)`, `countAnswer`,
   `feedbackText`, `resultMessage`, `dotsHtml`, `lettersHtml`, `choicesHtml`,
   `choicesClass(choices)`, `choiceCols(choices)`,
-  `keyAction(e)`, `blitzPoints(combo)`, `notesToPlay(q)`, `playMode(q)`
+  `keyAction(e)` (nur noch `{ letter }` für C–H oder `null`), `blitzPoints(combo)`,
+  `notesToPlay(q)`, `playMode(q)`
+- seit Paket F2 (Namensraster), rein und getestet: `usesNames(level)`,
+  `namesHtml()` (21 Knöpfe), `nameKey(buf, e)` (Taste auf den Puffer anwenden:
+  `null` oder `{ buf, answer?, invalid? }`), `typedText(buf, invalid)`,
+  Konstante `NAME_MAX` (4 Zeichen); entfallen: `setMod(acc)`
 - seit Paket F, ebenfalls rein und getestet: `revealedSvg(q)` (`q.revealSvg`
   oder `q.svg`), `playSchedule(q)` (Abspielplan `[{ note, at, dur }]` in ms;
   `note` ist `null` bei Pausen, `dur` ist `null` bei Einträgen ohne Dauer),

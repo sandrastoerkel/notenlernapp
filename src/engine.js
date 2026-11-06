@@ -2,7 +2,7 @@
 // Die Engine kennt kein Paket im Detail: sie ruft level.question(prev) und level.check(q, value),
 // zeigt q.svg (nach der Antwort q.revealSvg, falls gesetzt) und baut die Antwort-Elemente nach der Eingabeart.
 // Oben stehen reine Hilfsfunktionen (getestet in test/engine.test.js), unten der DOM-Teil.
-import { LETTERS } from "./music.js";
+import { LETTERS, NAME_ACCS, N, gName, parseNoteName } from "./music.js";
 import { pianoSvg } from "./staff.js";
 import { recordRound, recordAnswer } from "./store.js";
 import { play, playChord, isMuted } from "./audio.js";
@@ -68,6 +68,15 @@ export const dotsHtml = (results, idx, total) => Array.from({ length: total }, (
 
 export const lettersHtml = () => LETTERS.map((l) => `<button class="btn" data-letter="${l}">${l}</button>`).join("");
 
+// Namensraster für Stufen mit Vorzeichen (acc: true bei "letters"): drei Reihen zu je sieben Knöpfen,
+// oben ohne Vorzeichen (C … H), dann mit ♯ (Cis … His), unten mit ♭ (Ces … B). Die Spalten gehören
+// zum selben Stammton (H-Spalte: H, His, B). Die Beschriftung kommt aus gName.
+export const namesHtml = () => NAME_ACCS.map((acc) => LETTERS.map((l) =>
+  `<button class="btn" data-letter="${l}" data-acc="${acc}">${gName(N(l, 4, acc))}</button>`).join("")).join("");
+
+// Stufe mit Namensraster und getipptem Namen?
+export const usesNames = (level) => !!level && (level.input || "letters") === "letters" && !!level.acc;
+
 const esc = (t) => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 export const choicesHtml = (choices) => (choices || []).map((c, i) => `<button class="btn" data-choice="${i}">${esc(c)}</button>`).join("");
 // Raster für Auswahlknöpfe: Begriffe zweispaltig ("choices"); sind alle Texte kurz (höchstens 4 Zeichen,
@@ -77,16 +86,39 @@ export const choicesClass = (choices) => ((choices || []).length && choices.ever
 // Spalten für kurze Texte: alle in einer Reihe, ab sieben Knöpfen zwei Reihen (I–VII: 4 + 3)
 export const choiceCols = (choices) => { const n = (choices || []).length; return n <= 6 ? n : Math.ceil(n / 2); };
 
-// Tastendruck deuten: { letter } für C D E F G A H, { acc } für + # (♯), - b (♭), 0 (♮), sonst null.
+// Tastendruck deuten (Stufen ohne Vorzeichen und Blitz): { letter } für C D E F G A H, sonst null.
 // Mit Strg, Alt oder Cmd wird nichts ausgewertet.
 export function keyAction(e) {
   if (e.metaKey || e.ctrlKey || e.altKey) return null;
   const k = e.key.toUpperCase();
   if (LETTERS.includes(k)) return { letter: k };
-  if (e.key === "+" || e.key === "#") return { acc: 1 };
-  if (e.key === "-" || e.key === "b") return { acc: -1 };
-  if (e.key === "0") return { acc: 0 };
   return null;
+}
+
+// Getippter Name (Stufen mit Namensraster): höchstens so viele Zeichen im Puffer
+export const NAME_MAX = 4;
+// Taste auf den Puffer anwenden. Ergebnis null (Taste nicht verwendet) oder { buf, answer?, invalid? }:
+// Buchstaben a–z hängen an (klein, bis NAME_MAX), Backspace löscht das letzte Zeichen, Escape leert,
+// Enter bestätigt: gültiger Name → answer { letter, acc } und leerer Puffer, sonst invalid (Puffer bleibt).
+// Enter, Backspace und Escape bei leerem Puffer bleiben unbenutzt (z. B. Enter auf einem Knopf).
+export function nameKey(buf, e) {
+  if (e.metaKey || e.ctrlKey || e.altKey) return null;
+  buf = buf || "";
+  if (e.key === "Enter") {
+    if (!buf) return null;
+    const answer = parseNoteName(buf);
+    return answer ? { buf: "", answer } : { buf, invalid: true };
+  }
+  if (e.key === "Backspace") return buf ? { buf: buf.slice(0, -1) } : null;
+  if (e.key === "Escape") return buf ? { buf: "" } : null;
+  if (/^[a-z]$/i.test(e.key)) return { buf: buf.length < NAME_MAX ? buf + e.key.toLowerCase() : buf };
+  return null;
+}
+
+// Anzeige des getippten Namens unter den Knöpfen; invalid: neutraler Hinweis, zählt nicht als Antwort
+export function typedText(buf, invalid = false) {
+  if (invalid) return `„${buf}“ ist kein Notenname. Beispiele: fis, es, b`;
+  return buf ? `Eingabe: ${buf}` : "";
 }
 
 // Blitz: Punkte für eine richtige Antwort bei der Serie nach dem Hochzählen (ab fünf in Folge zwei)
@@ -146,11 +178,9 @@ export function stop() {
 
 export const isRunning = () => !!run;
 
-// Vorzeichen-Auswahl (♭ ♮ ♯) setzen
-export function setMod(a) {
-  if (!run) return;
-  run.modAcc = a;
-  all(run.ui.mods, ".btn").forEach((b) => b.classList.toggle("on", +b.dataset.acc === a));
+// Getippten Namen anzeigen (nur bei Stufen mit Namensraster)
+function showTyped(r, text) {
+  if (r.ui.typed) r.ui.typed.textContent = text;
 }
 
 // Eingabeart während der Runde wechseln (Buchstaben oder Klaviatur)
@@ -161,47 +191,45 @@ export function setInput(pref) {
 }
 
 function applyInput(r) {
-  const { answers, mods, piano } = r.ui;
+  const { answers, typed, piano } = r.ui;
   const keys = r.input === "keys";
   if (answers) answers.hidden = keys;
-  if (mods) mods.hidden = r.input !== "letters" || !r.level.acc;
+  // Getippte Namen gehen auch bei der Klaviatur; die Zeile gibt es nur bei Stufen mit Namensraster
+  if (typed) typed.hidden = !usesNames(r.level);
   if (piano) piano.hidden = !keys;
 }
 
 // Runde starten.
-// ui: { staff, feedback, count, dots, answers, mods, piano } (DOM-Elemente)
+// ui: { staff, feedback, count, dots, answers, typed, piano } (DOM-Elemente; typed zeigt den getippten Namen)
 // hooks: { state, save, onFinish({ correct, total, stars, gained, avg, results }) }
 export function startRound(level, ui, hooks) {
   stop();
   const r = {
     level, ui, hooks, items: makeRound(level), idx: 0, correct: 0, results: [], times: [],
-    locked: false, modAcc: 0, t0: 0, timers: new Set(),
+    locked: false, buf: "", t0: 0, timers: new Set(),
     input: effectiveInput(level.input, hooks.state.input),
   };
   run = r;
-  if (ui.answers) ui.answers.classList.remove("choices", "short");
+  if (ui.answers) ui.answers.classList.remove("choices", "short", "names");
   if (r.level.input === "choices") {
     if (ui.answers) ui.answers.innerHTML = "";
   } else {
-    if (ui.answers) ui.answers.innerHTML = lettersHtml();
+    if (ui.answers) ui.answers.innerHTML = usesNames(level) ? namesHtml() : lettersHtml();
+    if (ui.answers) ui.answers.classList.toggle("names", usesNames(level));
     if (ui.piano) ui.piano.innerHTML = pianoSvg();
   }
   // Ereignisse per Delegation; Zuweisung ersetzt die Handler der vorigen Runde
   if (ui.answers) ui.answers.onclick = (e) => {
     const b = e.target.closest(".btn");
     if (!b || run !== r) return;
-    if (b.dataset.letter) answer(r, { letter: b.dataset.letter, acc: r.modAcc }, b);
+    if (b.dataset.letter) answer(r, { letter: b.dataset.letter, acc: b.dataset.acc !== undefined ? +b.dataset.acc : 0 }, b);
     else if (b.dataset.choice !== undefined) answer(r, r.items[r.idx].choices[+b.dataset.choice], b);
   };
   if (ui.piano) ui.piano.onclick = (e) => {
     const k = e.target.closest("rect[data-semi]");
     if (k && run === r) answer(r, +k.dataset.semi, k);
   };
-  if (ui.mods) ui.mods.onclick = (e) => {
-    const b = e.target.closest(".btn[data-acc]");
-    if (b && run === r) setMod(+b.dataset.acc);
-  };
-  setMod(0); applyInput(r); showQuestion(r);
+  applyInput(r); showQuestion(r);
 }
 
 function showQuestion(r) {
@@ -218,7 +246,7 @@ function showQuestion(r) {
     if (short) ui.answers.style.setProperty("--cols", choiceCols(q.choices)); else ui.answers.style.removeProperty("--cols");
   }
   all(ui.answers, ".btn").concat(all(ui.piano, "rect")).forEach((b) => b.classList.remove("ok", "bad"));
-  setMod(0);
+  r.buf = ""; showTyped(r, "");
   r.t0 = performance.now();
 }
 
@@ -236,7 +264,7 @@ function answer(r, value, el) {
     // Richtige Antwort markieren: Buchstabe bzw. Auswahlknopf
     const a = q.answer;
     const right = a && typeof a === "object" && a.letter
-      ? ui.answers && ui.answers.querySelector(`.btn[data-letter="${a.letter}"]`)
+      ? letterButton(ui.answers, a)
       : all(ui.answers, ".btn[data-choice]").find((b) => q.choices && q.choices[+b.dataset.choice] === a);
     if (right) right.classList.add("ok");
   }
@@ -272,19 +300,33 @@ function finish(r) {
   if (hooks.onFinish) hooks.onFinish(result);
 }
 
-// Tastatur: true, wenn die Taste verwendet wurde. Buchstaben antworten unabhängig von der
-// Eingabeart (mit dem gewählten Vorzeichen), nicht aber bei Auswahlknöpfen.
+// Knopf zu einer Antwort { letter, acc }: im Namensraster Buchstabe und Vorzeichen, sonst nur der Buchstabe
+function letterButton(root, a) {
+  if (!root) return null;
+  return root.querySelector(`.btn[data-letter="${a.letter}"][data-acc="${a.acc || 0}"]`)
+    || root.querySelector(`.btn[data-letter="${a.letter}"]:not([data-acc])`);
+}
+
+// Tastatur: true, wenn die Taste verwendet wurde (unabhängig von der Eingabeart, nicht bei Auswahlknöpfen).
+// Ohne Vorzeichen antwortet ein Buchstabe sofort. Mit Namensraster wird der Name getippt (fis, es, b)
+// und mit Enter bestätigt; ein ungültiger Name zeigt einen Hinweis und zählt nicht.
 export function handleKey(e) {
   if (!run || run.locked || run.level.input === "choices") return false;
-  const a = keyAction(e);
-  if (!a) return false;
-  if (a.letter) {
-    const r = run;
-    const btn = r.ui.answers ? r.ui.answers.querySelector(`.btn[data-letter="${a.letter}"]`) : null;
-    answer(r, { letter: a.letter, acc: r.modAcc }, btn);
+  const r = run;
+  if (usesNames(r.level)) {
+    const k = nameKey(r.buf, e);
+    if (!k) return false;
     e.preventDefault();
+    r.buf = k.buf;
+    if (k.answer) {
+      showTyped(r, typedText(gName(N(k.answer.letter, 4, k.answer.acc)).toLowerCase()));
+      answer(r, k.answer, letterButton(r.ui.answers, k.answer));
+    } else showTyped(r, typedText(k.buf, !!k.invalid));
     return true;
   }
-  setMod(a.acc);
+  const a = keyAction(e);
+  if (!a) return false;
+  answer(r, { letter: a.letter, acc: 0 }, letterButton(r.ui.answers, a));
+  e.preventDefault();
   return true;
 }

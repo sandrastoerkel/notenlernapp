@@ -250,3 +250,20 @@ export function degreeTriad(tonic, deg) {
   const tone = (k) => { const i = deg - 1 + k; const n = sc[i % 7]; return N(n.letter, n.octave + Math.floor(i / 7), n.acc); };
   return [tone(0), tone(2), tone(4)];
 }
+
+/* ---------- Notennamen lesen (Namensraster und Tastatur, Paket F2) ---------- */
+// Vorzeichen der drei Reihen im Namensraster: ohne, ♯ (Cis …), ♭ (Ces …)
+export const NAME_ACCS = [0, 1, -1];
+
+// Deutschen Notennamen deuten: "fis" → { letter: "F", acc: 1 }, "b" → { letter: "H", acc: -1 }.
+// Groß und klein egal, Leerzeichen am Rand zählen nicht. Gültig sind genau die 21 Namen, die gName
+// für die sieben Stammtöne ohne, mit ♯ und mit ♭ liefert (also "es", "as", "b"); andere
+// Schreibweisen wie "hes", "ees", "bes" oder Doppelvorzeichen ("eses") ergeben null.
+export function parseNoteName(str) {
+  const s = String(str == null ? "" : str).trim().toLowerCase();
+  if (!s) return null;
+  for (const acc of NAME_ACCS) {
+    for (const letter of LETTERS) if (gName(N(letter, 4, acc)).toLowerCase() === s) return { letter, acc };
+  }
+  return null;
+}

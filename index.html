@@ -74,7 +74,7 @@
 
     <div id="pIntro" class="card soft stack">
       <p id="pHint" class="muted"></p>
-      <p class="small muted" id="pKeys">Tastatur: <span class="kbd">C</span> <span class="kbd">D</span> <span class="kbd">E</span> … <span class="kbd">H</span>, Vorzeichen mit <span class="kbd">+</span> <span class="kbd">-</span> <span class="kbd">0</span></p>
+      <p class="small muted" id="pKeys">Tastatur: <span class="kbd">C</span> <span class="kbd">D</span> <span class="kbd">E</span> … <span class="kbd">H</span></p>
       <button class="btn primary wide" id="pStart">Runde starten · 10 Aufgaben</button>
     </div>
 
@@ -84,12 +84,8 @@
         <span class="small muted num" id="pCount">1 / 10</span>
       </div>
       <p class="feedback" id="pFeedback" aria-live="polite"></p>
-      <div id="pMods" class="mods" hidden>
-        <button class="btn" data-acc="-1" title="b (erniedrigt)">♭</button>
-        <button class="btn on" data-acc="0" title="ohne Vorzeichen">♮</button>
-        <button class="btn" data-acc="1" title="Kreuz (erhöht)">♯</button>
-      </div>
       <div class="answers" id="pAnswers"></div>
+      <p class="typed small muted" id="pTyped" aria-live="polite" hidden></p>
       <div class="piano card" id="pPiano" hidden></div>
     </div>
 

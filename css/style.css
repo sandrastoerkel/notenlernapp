@@ -150,9 +150,11 @@ section { display: grid; gap: 14px; }
 .answers.choices.short { grid-template-columns: repeat(var(--cols, 4), minmax(0, 1fr)); } /* --cols setzt src/engine.js */
 .answers.choices .btn { min-width: 0; padding: 12px 6px; font-size: 1rem; font-family: var(--body); line-height: 1.2; overflow-wrap: anywhere; hyphens: auto; }
 .answers.choices.short .btn { font-size: 1.25rem; }
-.mods { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.mods .btn { font-family: var(--music); font-size: 1.3rem; padding: 8px 0; }
-.mods .btn.on { background: var(--accent-soft); border-color: var(--accent); }
+/* Namensraster (Stufen mit Vorzeichen, Klasse von src/engine.js): 3 Reihen × 7 Spalten, C … H, Cis … His,
+   Ces … B; Namen bis drei Zeichen passen bei 420 px in eine Spalte */
+.answers.names { gap: 6px; }
+.answers.names .btn { min-width: 0; padding: 12px 0; font-size: 1.05rem; }
+.typed { min-height: 1.45em; margin: 0; text-align: center; }
 .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
 .seg button { border: 0; background: transparent; padding: 6px 12px; font-weight: 700; cursor: pointer; font-size: .85rem; }
 .seg button.on { background: var(--accent); color: var(--accent-fg); }

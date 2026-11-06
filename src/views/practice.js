@@ -10,6 +10,16 @@ const current = () => engine.findLevel(ctx.packs, ctx.state.current);
 // Beschriftung des Startknopfs (rein, getestet): in allen Paketen „10 Aufgaben“
 export const startLabel = () => `Runde starten · ${engine.ROUND_LENGTH} Aufgaben`;
 
+// Tastatur-Hinweis auf der Startkarte (rein, getestet): ohne Vorzeichen Buchstaben, mit Namensraster
+// der ganze Name und Enter
+const kbd = (t) => `<span class="kbd">${t}</span>`;
+export const keysHint = (level) => (engine.usesNames(level)
+  ? `Tastatur: Namen tippen, z. B. ${kbd("fis")} ${kbd("es")} ${kbd("b")}, dann ${kbd("Enter")}. ${kbd("⌫")} löscht, ${kbd("Esc")} leert.`
+  : `Tastatur: ${kbd("C")} ${kbd("D")} ${kbd("E")} … ${kbd("H")}`);
+
+// Beschriftung der Wahl Buchstaben/Klaviatur (rein, getestet): mit Namensraster „Namen“
+export const lettersLabel = (level) => (engine.usesNames(level) ? "Namen" : "Buchstaben");
+
 function markInput() {
   $("#inLetters").classList.toggle("on", ctx.state.input === "letters");
   $("#inKeys").classList.toggle("on", ctx.state.input === "keys");
@@ -42,6 +52,8 @@ export function render() {
   const letters = (level.input || "letters") === "letters";
   $("#view-practice .seg").hidden = !letters;
   $("#pKeys").hidden = !letters;
+  $("#pKeys").innerHTML = keysHint(level);
+  $("#inLetters").textContent = lettersLabel(level);
   $("#pStart").textContent = startLabel(level);
   markInput();
   ctx.renderTop();
@@ -52,7 +64,7 @@ function startRound() {
   $("#pIntro").hidden = true; $("#pResult").hidden = true; $("#pPlay").hidden = false;
   engine.startRound(level, {
     staff: $("#pStaff"), feedback: $("#pFeedback"), count: $("#pCount"), dots: $("#pDots"),
-    answers: $("#pAnswers"), mods: $("#pMods"), piano: $("#pPiano"),
+    answers: $("#pAnswers"), typed: $("#pTyped"), piano: $("#pPiano"),
   }, { state: ctx.state, save: ctx.save, onFinish: showResult });
 }
 

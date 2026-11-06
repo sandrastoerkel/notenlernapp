@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { N, dia, fromDia, staffPos, midi, freq, pc, gName, helm, range, same, transpose } from "../src/music.js";
+import { N, dia, fromDia, staffPos, midi, freq, pc, gName, helm, range, same, transpose, parseNoteName, NAME_ACCS, LETTERS } from "../src/music.js";
 
 test("staffPos: Violin- und Bassschlüssel", () => {
   assert.equal(staffPos(N("E", 4), "treble"), 0);
@@ -279,4 +279,35 @@ test("Tonleiter und Stufenakkorde in Dur", () => {
     assert.deepEqual(t, ["dur", "moll", "moll", "dur", "dur", "moll", "vermindert"], k.name);
   }
   assert.deepEqual(ROMAN, ["I", "II", "III", "IV", "V", "VI", "VII"]);
+});
+
+test("parseNoteName: alle 21 deutschen Namen", () => {
+  const all = {
+    c: ["C", 0], d: ["D", 0], e: ["E", 0], f: ["F", 0], g: ["G", 0], a: ["A", 0], h: ["H", 0],
+    cis: ["C", 1], dis: ["D", 1], eis: ["E", 1], fis: ["F", 1], gis: ["G", 1], ais: ["A", 1], his: ["H", 1],
+    ces: ["C", -1], des: ["D", -1], es: ["E", -1], fes: ["F", -1], ges: ["G", -1], as: ["A", -1], b: ["H", -1],
+  };
+  assert.equal(Object.keys(all).length, 21);
+  for (const [name, [letter, acc]] of Object.entries(all)) {
+    assert.deepEqual(parseNoteName(name), { letter, acc }, name);
+    assert.deepEqual(parseNoteName(name.toUpperCase()), { letter, acc }, name.toUpperCase());
+    // Rückweg über gName
+    assert.equal(gName(N(letter, 4, acc)).toLowerCase(), name);
+  }
+  assert.deepEqual(NAME_ACCS, [0, 1, -1]);
+  // jede Kombination aus Stammton und Vorzeichen hat genau einen Namen
+  for (const acc of NAME_ACCS) for (const l of LETTERS) assert.deepEqual(parseNoteName(gName(N(l, 4, acc))), { letter: l, acc });
+});
+
+test("parseNoteName: Groß/klein, Leerzeichen, falsche Schreibweisen", () => {
+  assert.deepEqual(parseNoteName("Fis"), { letter: "F", acc: 1 });
+  assert.deepEqual(parseNoteName("ais "), { letter: "A", acc: 1 });
+  assert.deepEqual(parseNoteName("  B"), { letter: "H", acc: -1 });
+  assert.deepEqual(parseNoteName("ES"), { letter: "E", acc: -1 });
+  for (const bad of ["hes", "bes", "ees", "aes", "ass", "eses", "ases", "fisis", "x", "", "  ", "f is", "cis-", "fi", "is", "es-dur"]) {
+    assert.equal(parseNoteName(bad), null, JSON.stringify(bad));
+  }
+  assert.deepEqual(parseNoteName("his "), { letter: "H", acc: 1 });
+  assert.equal(parseNoteName(null), null);
+  assert.equal(parseNoteName(undefined), null);
 });

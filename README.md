@@ -76,7 +76,7 @@ Eine Stufe öffnet sich, sobald in der vorherigen 8 von 10 Noten richtig waren. 
 
 ## Tastatur
 
-`C` `D` `E` `F` `G` `A` `H` antworten, `+` setzt ♯, `-` setzt ♭, `0` hebt das Vorzeichen auf.
+`C` `D` `E` `F` `G` `A` `H` antworten sofort. In Stufen mit Vorzeichen tippst du den ganzen Namen (`fis`, `es`, `b` …) und bestätigst mit `Enter`; `Backspace` löscht ein Zeichen, `Esc` leert die Eingabe. Auf dem Bildschirm stehen dort alle 21 Namen von C bis B in drei Reihen.
 
 ## Technik
 
