@@ -17,14 +17,6 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="preload" href="./fonts/NotoMusic-Regular-music.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="./css/style.css">
-<script>
-  // Offline-Cache: Service Worker nur über https oder auf dem eigenen Rechner (localhost)
-  if ("serviceWorker" in navigator && (location.protocol === "https:" || ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname))) {
-    window.addEventListener("load", () => {
-      navigator.serviceWorker.register("./sw.js", { scope: "./" }).catch((err) => console.warn("Service Worker nicht registriert:", err));
-    });
-  }
-</script>
 </head>
 <body>
 
@@ -187,6 +179,13 @@
 </main>
 
 <nav class="tabs" aria-label="Bereiche">
+  <div class="update-bar" id="updateBar" role="status" hidden>
+    <span>Neue Version verfügbar</span>
+    <span class="update-actions">
+      <button class="btn ghost small" id="updateLater">Später</button>
+      <button class="btn primary small" id="updateReload">Neu laden</button>
+    </span>
+  </div>
   <div class="tabs-inner">
     <button class="tab on" data-view="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11 12 3l9 8v10h-6v-6H9v6H3z"/></svg>Start</button>
     <button class="tab" data-view="practice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 10h16M4 14h16M4 18h16"/><circle cx="15" cy="16" r="2.5" fill="currentColor"/></svg>Üben</button>

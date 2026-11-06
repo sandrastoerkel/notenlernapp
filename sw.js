@@ -41,12 +41,19 @@ const PRECACHE = [
 ];
 
 self.addEventListener("install", (event) => {
-  // cache: "reload" umgeht den HTTP-Cache, damit wirklich die Dateien dieses Releases im Cache landen
+  // cache: "reload" umgeht den HTTP-Cache, damit wirklich die Dateien dieses Releases im Cache landen.
+  // Kein skipWaiting hier: Ein Update wartet, bis du in der App „Neu laden“ tippst (siehe message),
+  // sonst liefe die offene Seite mit altem Code gegen den neuen Cache. Die erste Installation
+  // wird ohnehin sofort aktiv.
   event.waitUntil(
     caches.open(CACHE)
       .then((cache) => cache.addAll(PRECACHE.map((url) => new Request(url, { cache: "reload" }))))
-      .then(() => self.skipWaiting())
   );
+});
+
+// „Neu laden“ in der App: den wartenden Worker sofort übernehmen lassen
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
