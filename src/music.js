@@ -36,3 +36,29 @@ export const same = (a, b) => a.letter === b.letter && a.octave === b.octave && 
 
 // Stammton um diatonische Schritte verschieben (positiv nach oben), Vorzeichen neu setzen
 export const transpose = (n, steps, acc = 0) => fromDia(dia(n) + steps, acc);
+
+/* ---------- Notenwerte (Paket „Notenwerte und Pausen“) ---------- */
+// Notenwerte als Nenner: 1 ganze, 2 halbe, 4 Viertel, 8 Achtel, 16 Sechzehntel
+export const VALUES = [1, 2, 4, 8, 16];
+
+// Dauer in Schlägen, wenn die Viertelnote einen Schlag zählt (4/4-Takt):
+// ganze 4, halbe 2, Viertel 1, Achtel ½, Sechzehntel ¼. Ein Punkt verlängert um die Hälfte des Wertes
+// (punktierte halbe 3, punktierte Viertel 1½, punktierte Achtel ¾). Pausen dauern wie die Note.
+export const beats = (value, dotted = false) => (4 / value) * (dotted ? 1.5 : 1);
+
+// Schläge als Text mit Bruchzeichen: 4, 3, 1½, ½, ¼, ¾ … (nur Vielfache von ¼)
+export function beatsText(b) {
+  const q = Math.round(b * 4), whole = Math.floor(q / 4), frac = ["", "¼", "½", "¾"][q % 4];
+  return whole === 0 ? frac || "0" : `${whole}${frac}`;
+}
+
+// „1 Schlag“, „½ Schlag“, „2 Schläge“, „1½ Schläge“
+export const beatsLabel = (b) => `${beatsText(b)} ${b > 1 ? "Schläge" : "Schlag"}`;
+
+// Deutscher Fachbegriff: „ganze Note“, „Viertelnote“, „Achtelpause“, „punktierte halbe Note“ …
+const VALUE_WORD = { 1: ["ganze ", false], 2: ["halbe ", false], 4: ["Viertel", true], 8: ["Achtel", true], 16: ["Sechzehntel", true] };
+export function valueName(value, rest = false, dotted = false) {
+  const [word, joined] = VALUE_WORD[value];
+  const noun = rest ? "Pause" : "Note";
+  return (dotted ? "punktierte " : "") + word + (joined ? noun.toLowerCase() : noun);
+}
