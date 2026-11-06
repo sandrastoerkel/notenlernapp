@@ -12,7 +12,8 @@ function oldNoteSvg(n, clef, x, cls) {
   let s = `<g class="note ${cls || ""}">`;
   for (let q = -2; q >= p; q -= 2) s += `<line class="ledger" x1="${x - 11}" x2="${x + 11}" y1="${BOTTOM - q * (S / 2)}" y2="${BOTTOM - q * (S / 2)}"/>`;
   for (let q = 10; q <= p; q += 2) s += `<line class="ledger" x1="${x - 11}" x2="${x + 11}" y1="${BOTTOM - q * (S / 2)}" y2="${BOTTOM - q * (S / 2)}"/>`;
-  if (n.acc) s += `<text class="acc" x="${x - 22}" y="${cy + 7}">${n.acc > 0 ? "♯" : "♭"}</text>`;
+  // Korrigiert gegenüber dem Prototyp (dort cy + 7): Vorzeichen sitzt genau auf Linie/Zwischenraum.
+  if (n.acc) s += `<text class="acc" x="${x - 22}" y="${cy + (n.acc > 0 ? 3.5 : 2.5)}">${n.acc > 0 ? "♯" : "♭"}</text>`;
   const up = p < 4;
   s += up ? `<line class="stem" x1="${x + 6}" x2="${x + 6}" y1="${cy - 1}" y2="${cy - 40}"/>` : `<line class="stem" x1="${x - 6}" x2="${x - 6}" y1="${cy + 1}" y2="${cy + 40}"/>`;
   s += `<ellipse class="notehead" cx="${x}" cy="${cy}" rx="6.8" ry="4.6" transform="rotate(-22 ${x} ${cy})"/>`;
@@ -22,12 +23,13 @@ function oldStaffSvg(clef, inner, extraCls) {
   let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Notenzeile" class="${extraCls || ""}">`;
   for (let i = 0; i < 5; i++) s += `<line class="staff-line" x1="${X0}" x2="${X1}" y1="${TOP + i * S}" y2="${TOP + i * S}"/>`;
   s += clef === "treble"
-    ? `<text class="clef" x="22" y="${BOTTOM - S}" font-size="${S * 4.2}">𝄞</text>`
+    // Korrigiert gegenüber dem Prototyp (dort BOTTOM - S): die Schnecke umschließt die G-Linie.
+    ? `<text class="clef" x="22" y="${BOTTOM}" font-size="${S * 4.2}">𝄞</text>`
     : `<text class="clef" x="24" y="${BOTTOM + 1}" font-size="${S * 4.2}">𝄢</text>`;
   return s + inner + "</svg>";
 }
 
-test("Standardausgabe gleicht der ersten Fassung", () => {
+test("Standardausgabe gleicht der ersten Fassung (Schlüssel- und Vorzeichenhöhe korrigiert)", () => {
   const notes = [...range(N("A", 1), N("E", 6)), N("F", 4, 1), N("H", 4, -1), N("D", 5, -1)];
   for (const clef of ["treble", "bass"]) {
     for (const n of notes) {

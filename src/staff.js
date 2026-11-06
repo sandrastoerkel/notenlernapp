@@ -16,14 +16,15 @@ const yOf = (p) => BOTTOM - p * (S / 2);
 
 // Note mit Hals, Hilfslinien und Vorzeichen.
 // cls: "", "ok", "bad" oder "ghost"; opts.value: 1, 2, 4, 8, 16 (Standard 4); opts.stemless: ohne Hals.
-// Ohne opts ist die Ausgabe identisch mit der ersten Fassung aus index.html.
+// Ohne opts entspricht die Ausgabe der ersten Fassung aus index.html, nur das Vorzeichen sitzt jetzt
+// genau auf der Linie bzw. im Zwischenraum (vorher 3,5 bzw. 4,5 Einheiten zu tief).
 export function noteSvg(n, clef, x, cls, opts = {}) {
   const value = opts.value || 4;
   const p = staffPos(n, clef), cy = yOf(p);
   let s = `<g class="note ${cls || ""}">`;
   for (let q = -2; q >= p; q -= 2) s += `<line class="ledger" x1="${x - 11}" x2="${x + 11}" y1="${yOf(q)}" y2="${yOf(q)}"/>`;
   for (let q = 10; q <= p; q += 2) s += `<line class="ledger" x1="${x - 11}" x2="${x + 11}" y1="${yOf(q)}" y2="${yOf(q)}"/>`;
-  if (n.acc) s += `<text class="acc" x="${x - 22}" y="${cy + 7}">${n.acc > 0 ? "♯" : "♭"}</text>`;
+  if (n.acc) s += `<text class="acc" x="${x - 22}" y="${cy + (n.acc > 0 ? ACC_DY.sharp : ACC_DY.flat)}">${n.acc > 0 ? "♯" : "♭"}</text>`;
   const up = p < 4;
   // Ganze Noten haben keinen Hals
   if (value !== 1 && !opts.stemless) {
@@ -84,6 +85,8 @@ const KEYSIG_X = { treble: 64, bass: 70 }, KEYSIG_STEP = 9;
 // Senkrechter Versatz der Grundlinie gegenüber der Linie/dem Zwischenraum (gemessen an Noto Music, 24px):
 // ♯ – Mitte zwischen den Querbalken liegt 3,5 über der Grundlinie; ♭ – Mitte des Bauchs 2,5 darüber.
 export const KEYSIG_DY = { sharp: 3.5, flat: 2.5 };
+// Vorzeichen vor einzelnen Noten haben dieselbe Schriftgröße (24px) und damit denselben Versatz.
+export const ACC_DY = KEYSIG_DY;
 
 export function keySigSvg(clef, count) {
   if (!count) return "";
@@ -103,7 +106,7 @@ export function staffSvg(clef, inner, opts) {
   let s = `<svg viewBox="0 0 ${W} ${h}" role="img" aria-label="Notenzeile" class="${o.cls || ""}">`;
   for (let i = 0; i < 5; i++) s += `<line class="staff-line" x1="${X0}" x2="${X1}" y1="${TOP + i * S}" y2="${TOP + i * S}"/>`;
   s += clef === "treble"
-    ? `<text class="clef" x="22" y="${BOTTOM - S}" font-size="${S * 4.2}">${GLYPHS.treble}</text>`
+    ? `<text class="clef" x="22" y="${BOTTOM}" font-size="${S * 4.2}">${GLYPHS.treble}</text>`
     : `<text class="clef" x="24" y="${BOTTOM + 1}" font-size="${S * 4.2}">${GLYPHS.bass}</text>`;
   s += keySigSvg(clef, o.keySig);
   return s + inner + "</svg>";

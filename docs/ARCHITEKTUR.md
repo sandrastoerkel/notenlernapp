@@ -89,9 +89,13 @@ Klasse auf das `<svg>`; `css/style.css` färbt dann `.notehead`, `.acc` und
 
 Schlüssel, Pausen und Notenwerte kommen als Glyphen aus der Schrift „Noto
 Music“ (Unicode-Block Musical Symbols), Schriftgröße `4.2 * S`. Die
-Grundlinie des Violinschlüssels liegt auf der zweiten Linie von unten
-(`y = BOTTOM - S`, die G-Linie), die des Bassschlüssels knapp unter der
-untersten Linie (`y = BOTTOM + 1`). Pausen werden mit Schriftgröße 48 (vier
+Grundlinie des Violinschlüssels liegt auf der untersten Linie (`y = BOTTOM`);
+damit umschließt die Schnecke die G-Linie (zweite Linie von unten). Die
+Grundlinie des Bassschlüssels liegt knapp unter der
+untersten Linie (`y = BOTTOM + 1`); sein Kopf sitzt auf der F-Linie.
+Vorzeichen (vor Noten und als Vorzeichnung, 24px) werden um `ACC_DY` bzw.
+`KEYSIG_DY` (♯ 3,5, ♭ 2,5) unter die Linie/den Zwischenraum gesetzt, damit
+die Mitte des ♯ bzw. der Bauch des ♭ genau dort liegt. Pausen werden mit Schriftgröße 48 (vier
 Linienabstände) gesetzt; ihre Grundlinie ist aus den Glyphenmaßen von Noto
 Music berechnet (siehe Kommentar in `staff.js`).
 
