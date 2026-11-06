@@ -24,6 +24,21 @@ test("sw.js hat eine versionierte Cache-Konstante", () => {
   assert.match(sw, /^const CACHE = "notenheld-v\d+\.\d+\.\d+-\d+";$/m);
 });
 
+test("Cache-Version passt zur Version in package.json", () => {
+  // Erinnerung beim Release: wer package.json hochzählt, muss auch CACHE erhöhen
+  const { version } = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
+  assert.match(sw, new RegExp(`^const CACHE = "notenheld-v${version.replace(/\./g, "\\.")}-\\d+";$`, "m"));
+});
+
+test("jede lokale Datei aus index.html und dem Manifest steht in der Liste", () => {
+  const html = readFileSync(join(ROOT, "index.html"), "utf8");
+  const m = JSON.parse(readFileSync(join(ROOT, "manifest.webmanifest"), "utf8"));
+  const refs = [...html.matchAll(/\s(?:href|src)="([^"#:]+)"/g)].map((x) => x[1]).filter((u) => u !== "./sw.js");
+  refs.push(...m.icons.map((i) => i.src));
+  assert.ok(refs.length > 5);
+  for (const r of refs) assert.ok(list.includes(r.startsWith("./") ? r : `./${r}`), `fehlt in sw.js: ${r}`);
+});
+
 test("Precache-Liste ist nicht leer und ohne Doppelte", () => {
   assert.ok(list.length > 10);
   assert.equal(new Set(list).size, list.length);

@@ -61,14 +61,18 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const req = event.request;
   if (req.method !== "GET" || new URL(req.url).origin !== self.location.origin) return;
-  // Cache zuerst, bei Fehlschlag Netz; Seitenaufrufe ohne Netz bekommen index.html
+  // Cache zuerst, bei Fehlschlag Netz; Seitenaufrufe ohne Netz bekommen index.html.
+  // Nur im eigenen Cache suchen: alle Apps unter sandrastoerkel.github.io teilen sich einen
+  // Cache-Speicher, und ein abgebrochenes Update kann einen halb gefüllten neuen Cache hinterlassen.
   event.respondWith(
-    caches.match(req, { ignoreSearch: req.mode === "navigate" }).then((hit) => {
-      if (hit) return hit;
-      return fetch(req).catch((err) => {
-        if (req.mode === "navigate") return caches.match("./index.html");
-        throw err;
-      });
-    })
+    caches.open(CACHE).then((cache) =>
+      cache.match(req, { ignoreSearch: req.mode === "navigate" }).then((hit) => {
+        if (hit) return hit;
+        return fetch(req).catch((err) => {
+          if (req.mode === "navigate") return cache.match("./index.html").then((page) => page || Promise.reject(err));
+          throw err;
+        });
+      })
+    )
   );
 });
