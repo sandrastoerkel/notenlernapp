@@ -1,0 +1,11 @@
+{
+  "name": "notenheld",
+  "version": "0.2.0",
+  "description": "Notenheld: Noten lesen lernen im Violin- und Bassschlüssel",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test \"test/**/*.test.js\"",
+    "dev": "python3 -m http.server 8080"
+  }
+}

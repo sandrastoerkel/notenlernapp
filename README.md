@@ -2,19 +2,23 @@
 
 Noten lesen lernen im Violin- und Bassschlüssel, gedacht für Schülerinnen und Schüler am Gymnasium (Klasse 5 bis 12). Deutsche Notennamen (H, B, Fis, Es), Oktavschreibweise wie im Musikunterricht (c, c', c'').
 
-Die App ist eine einzelne HTML-Datei ohne Server, ohne Konto und ohne Tracking. Der Fortschritt wird nur im Browser des Geräts gespeichert.
+Die App ist eine statische Web-App ohne Konto und ohne Tracking. Der Fortschritt wird nur im Browser des Geräts gespeichert.
 
 ## Starten
 
-Datei `index.html` im Browser öffnen, fertig. Für Ton und Schriften braucht der Browser Internet (Google Fonts).
+Die App besteht aus ES-Modulen. Browser laden Module nicht über `file://`, ein Doppelklick auf `index.html` zeigt deshalb nur eine leere Seite. Stattdessen einen kleinen Webserver im Projektordner starten:
 
-Alternativ lokal über einen kleinen Webserver:
+```sh
+npm run dev
+```
+
+oder ohne npm:
 
 ```sh
 python3 -m http.server 8080
 ```
 
-Dann http://localhost:8080 öffnen.
+Dann http://localhost:8080 öffnen. Für die Schriften braucht der Browser Internet (Google Fonts).
 
 ## Online-Version
 
@@ -50,10 +54,12 @@ Eine Stufe öffnet sich, sobald in der vorherigen 8 von 10 Noten richtig waren. 
 ## Technik
 
 - Reines HTML, CSS und JavaScript, keine Abhängigkeiten, kein Build.
+- Der Code ist in ES-Module aufgeteilt: `src/music.js` (Notenmodell), `src/staff.js` (SVG-Zeichner), `src/store.js` (Fortschritt), `src/engine.js` (Rundenablauf), `src/packs/` (Themenpakete), `src/views/` (die fünf Bereiche), `src/app.js` (Verdrahtung). Styles in `css/style.css`. Details in [docs/ARCHITEKTUR.md](docs/ARCHITEKTUR.md).
+- Tests mit dem eingebauten Test-Runner von Node: `npm test` (ohne npm: `node --test "test/**/*.test.js"`).
 - Notenzeile, Noten und Klaviatur werden als SVG gezeichnet.
 - Töne entstehen per Web Audio API (keine Audiodateien).
 - Schlüssel-Glyphen kommen aus der Schrift „Noto Music“ (Google Fonts).
-- Fortschritt liegt in `localStorage` unter dem Schlüssel `notenheld.v1`.
+- Fortschritt liegt in `localStorage` unter dem Schlüssel `notenheld.v2`. Ältere Daten unter `notenheld.v1` werden beim ersten Start automatisch übernommen (der alte Eintrag bleibt unverändert liegen).
 
 ## Weiterarbeiten
 

@@ -11,8 +11,9 @@ Statische Web-App: HTML, CSS, JavaScript, keine Abhängigkeiten, kein Build.
 
 ## Stand
 
-- `index.html` ist noch die eine Datei aus dem ersten Prototyp (8 Stufen „Noten lesen“).
-- Paket A (Aufteilung in Module + Tests) ist der nächste Schritt. Erst danach B bis E.
+- Paket A erledigt (auf Branch `paket-a`): `index.html` ist nur noch die Shell, der Code liegt als ES-Module in `src/**`, Styles in `css/style.css`, Tests in `test/**` (`npm test`). Fortschritt unter `notenheld.v2`, Übernahme aus `notenheld.v1` automatisch.
+- Nächster Schritt: Welle 2 mit den Paketen B bis E (siehe `docs/PLAN.md`).
+- Starten nur über einen Webserver (`npm run dev`), ES-Module laden nicht über `file://`.
 - Veröffentlichung über GitHub Pages (`.github/workflows/pages.yml`), Pfade immer relativ.
 
 ## Regeln
