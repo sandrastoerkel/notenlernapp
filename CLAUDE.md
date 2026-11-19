@@ -28,3 +28,18 @@ Statische Web-App: HTML, CSS, JavaScript, keine Abhängigkeiten, kein Build.
 - Farben nur über die Tokens auf `:root` (hell und dunkel).
 - Vor jedem Commit: `npm test` (sobald vorhanden) und die App im Browser prüfen.
 - Rechner: MacBook M4. Lokaler Server: `python3 -m http.server 8080`.
+
+## Feste Entscheidungen (Sandra, November 2026)
+
+- Der Name „Notenheld“ bleibt. Bewusste Ausnahme von der Wortliste („Held“); in UI-Texten das Wort sonst nicht verwenden.
+- Eigenes App-Icon: Violinschlüssel auf Aquarell (Sandras Bild). Lizenz für das Bild noch offen.
+- Keine Begleit- oder Comic-Figuren (kein Drache, kein Schaf).
+- Vorzeichen-Noten (ab Stufe 7): Namensraster mit 21 Namen (C … H, Cis … His, Ces … B) oder tippen („fis“ und Enter). Kein ♭/♯-Schalter.
+- Bassschlüssel als Bravura-Umriss: Kopf auf der F-Linie, Punkte in den Zwischenräumen darüber und darunter. Nicht zurück zur Noto-Glyphe.
+- Abgrenzung: Ohrwurmfänger (privates Repo `ohrwurmfaenger`) ist eine eigene App mit anderem Ansatz (Klang zuerst). Code und Texte nicht vermischen.
+
+## Arbeitsweise
+
+- Nur auf eigenem Zweig arbeiten. Push, Tag, Deploy und Löschen nur mit Sandras ausdrücklichem Ja.
+- Jeder Push auf `main` geht sofort live (GitHub Pages).
+- Status und Übergaben: `~/Documents/Sandra-Cowork/PROJECTS/notenheld/01_STATUS.md`.

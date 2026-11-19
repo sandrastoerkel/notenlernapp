@@ -85,7 +85,7 @@ Eine Stufe öffnet sich, sobald in der vorherigen 8 von 10 Noten richtig waren. 
 - Tests mit dem eingebauten Test-Runner von Node: `npm test` (ohne npm: `node --test "test/**/*.test.js"`).
 - Notenzeile, Noten und Klaviatur werden als SVG gezeichnet.
 - Töne entstehen per Web Audio API (keine Audiodateien).
-- Schlüssel-Glyphen kommen aus der Schrift „Noto Music“, selbst gehostet in `fonts/` (Nachweise in [THIRD_PARTY.md](THIRD_PARTY.md)).
+- Violinschlüssel aus der Schrift „Noto Music“ (selbst gehostet in `fonts/`), Bassschlüssel als Umriss aus „Bravura“ (OFL, `fonts/OFL-Bravura.txt`). Nachweise in [THIRD_PARTY.md](THIRD_PARTY.md).
 - Fortschritt liegt in `localStorage` unter dem Schlüssel `notenheld.v2`. Ältere Daten unter `notenheld.v1` werden beim ersten Start automatisch übernommen (der alte Eintrag bleibt unverändert liegen).
 
 ## Weiterarbeiten
