@@ -208,7 +208,7 @@ function oddPool(clefs, keys) {
 
 export const ITEMS_5 = oddPool(["treble", "bass"], KEYS_4);
 
-function oddQuestion(it) {
+export function oddQuestion(it) {
   const key = keyName(it.notes[0]), right = gName(it.notes[it.i]), answer = gName(it.moved);
   return {
     key: it.key,
@@ -337,7 +337,7 @@ const TABLE_OPEN = `<table class="small" style="grid-column: 1 / -1; width: 100%
 function planBoard(clef) {
   const notes = scaleNotes(TONICS[clef].C), names = notes.map(helm);
   return `<figure style="grid-column: 1 / -1; margin: 0">${scaleSvg(notes, clef, { marks: [[2, 3], [6, 7]] })}</figure>
-    <p style="grid-column: 1 / -1; margin: 0; text-align: center"><b>Ganz Ganz Halb · Ganz · Ganz Ganz Halb</b></p>
+    <p style="grid-column: 1 / -1; margin: 0; text-align: center"><b>Ganz Ganz Halb · Ganz · Ganz Ganz Halb</b></p>
     <p class="small muted" style="grid-column: 1 / -1">Die Klammern zeigen die Halbtonschritte: ${names[2]}–${names[3]} und ${names[6]}–${names[7]}, also zwischen der 3. und 4. und der 7. und 8. Stufe. Die Tonleiter besteht aus zwei gleich gebauten Vierergruppen (Ganz – Ganz – Halb): ${names.slice(0, 4).join(" ")} und ${names.slice(4).join(" ")}. Dazwischen liegt ein Ganztonschritt.</p>`;
 }
 

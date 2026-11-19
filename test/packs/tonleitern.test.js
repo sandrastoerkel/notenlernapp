@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import tonleitern, {
+import tonleitern, { oddQuestion,
   TONICS, KEYS_2, KEYS_4, ITEMS_1, ITEMS_2, ITEMS_3, ITEMS_4, ITEMS_5, ITEMS_6,
   scaleNotes, scaleSvg, scaleX, sigList, sigChoices, fifthsOf, pickStep, usualNote, keyName,
   STEP_WHOLE, STEP_HALF, HALF_P, SCALE_W, SHARP_ORDER, FLAT_ORDER,
@@ -183,12 +183,13 @@ test("Stufe 5: genau eine Note weicht um einen Halbton ab und ist die Antwort", 
     assert.ok(q.revealSvg.includes('class="note ok"'));
   }
   const g = ITEMS_5.find((x) => x.key === "treble:G:6:-1");
-  const q = { ...L[4].question(null) };
   assert.equal(gName(g.moved), "F");
   // Text der Auflösung am Beispiel G-Dur
-  const gq = L[4].question({ key: "x" });
-  assert.ok(gq.reveal.includes(", nicht "));
-  assert.ok(q);
+  const gq = oddQuestion(g);
+  assert.equal(gq.prompt, "Welcher Ton passt nicht in G-Dur?");
+  assert.equal(gq.answer, "F");
+  assert.equal(gq.reveal, "In G-Dur heißt die 7. Stufe Fis, nicht F.");
+  assert.equal(gq.display, "F passt nicht: In G-Dur heißt die 7. Stufe Fis.");
 });
 
 test("Stufe 6: Vorzeichen in der Reihenfolge der Vorzeichnung, vier Knöpfe", () => {
@@ -269,7 +270,7 @@ test("staffSvg: Breite optional, ohne Angabe unverändert", () => {
 test("Lerntafeln: Bauplan je Schlüssel, Tabelle der Dur-Tonleitern", () => {
   assert.deepEqual(tonleitern.learn.map((b) => [b.title, b.clef]), [["Bauplan Dur", "treble"], ["Bauplan Dur", "bass"], ["Dur-Tonleitern bis 4 Vorzeichen", undefined]]);
   const t = tonleitern.learn[0].render();
-  assert.ok(t.includes("Ganz Ganz Halb · Ganz · Ganz Ganz Halb"));
+  assert.ok(t.includes("Ganz\u00a0Ganz\u00a0Halb · Ganz · Ganz\u00a0Ganz\u00a0Halb"));
   assert.equal((t.match(/class="bracket"/g) || []).length, 2);
   assert.ok(t.includes("e'–f'") && t.includes("h'–c''") && t.includes("Vierergruppen"));
   assert.ok(!/Tetrachord/i.test(t));
