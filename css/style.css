@@ -135,6 +135,8 @@ section { display: grid; gap: 14px; }
 .note.ok .notehead, .note.ok .acc { fill: var(--ok); } .note.ok .stem { stroke: var(--ok); }
 .note.bad .notehead, .note.bad .acc { fill: var(--bad); } .note.bad .stem { stroke: var(--bad); }
 .note.warn .notehead, .note.warn .acc { fill: var(--gold); } .note.warn .stem { stroke: var(--gold); }
+/* Notenkarte: noch nicht genug geübt (neu), grau statt blau */
+.note.new .notehead, .note.new .acc { fill: var(--muted); } .note.new .stem { stroke: var(--muted); }
 .hit { fill: transparent; cursor: pointer; }
 .hit:hover, .hit.on { fill: var(--accent-soft); opacity: .6; }
 .note-label { font-family: var(--display); font-weight: 700; font-size: 10px; fill: var(--accent); }
@@ -222,7 +224,7 @@ section { display: grid; gap: 14px; }
 .heat-key { display: inline-flex; align-items: center; gap: 6px; font-size: .85rem; }
 .heat-dot { display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-right: 6px; vertical-align: middle; background: var(--accent); }
 .heat-key .heat-dot { margin-right: 0; }
-.heat-dot.ok { background: var(--ok); } .heat-dot.warn { background: var(--gold); } .heat-dot.bad { background: var(--bad); }
+.heat-dot.ok { background: var(--ok); } .heat-dot.warn { background: var(--gold); } .heat-dot.bad { background: var(--bad); } .heat-dot.new { background: var(--muted); }
 .heat-acc { grid-template-columns: 1fr auto 3.5em; width: 100%; text-align: left; border: 1px solid transparent; border-radius: 8px;
   background: transparent; color: var(--ink); font: inherit; padding: 4px 6px; cursor: pointer; }
 .heat-acc .num { text-align: right; }

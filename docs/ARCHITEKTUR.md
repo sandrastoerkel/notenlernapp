@@ -115,7 +115,7 @@ Höhe `H = 122`. Eine halbe Stufe sind 6 Einheiten.
 | Funktion | Bedeutung |
 | -------- | --------- |
 | `staffSvg(clef, inner, opts)` | komplette Zeile mit Schlüssel; `inner` wird eingesetzt. Das dritte Argument ist entweder ein String (zusätzliche Klasse am `<svg>`, wie in der ersten Fassung) oder ein Objekt `{ cls, height, keySig }`: `height` darf die Höhe erhöhen, `keySig` (Anzahl ♯ als positive, ♭ als negative Zahl, höchstens 7) zeichnet Vorzeichen hinter dem Schlüssel |
-| `noteSvg(n, clef, x, cls, opts)` | Note mit Hals, Hilfslinien und Vorzeichen; `cls` ist `""`, `"ok"`, `"bad"`, `"warn"` (langsam, Notenkarte, Token `--gold`) oder `"ghost"`; `opts.value` ist `1`, `2`, `4`, `8`, `16` (ganze bis sechzehntel, Standard 4), `opts.stemless` lässt den Hals weg |
+| `noteSvg(n, clef, x, cls, opts)` | Note mit Hals, Hilfslinien und Vorzeichen; `cls` ist `""`, `"ok"`, `"bad"`, `"warn"` (langsam, Notenkarte, Token `--gold`), `"new"` (neu, Notenkarte, Token `--muted`) oder `"ghost"` (Lernen, Token `--accent`); `opts.value` ist `1`, `2`, `4`, `8`, `16` (ganze bis sechzehntel, Standard 4), `opts.stemless` lässt den Hals weg |
 | `noteheadSvg(x, y, value)` | nur der Notenkopf mit Mitte (x, y), so wie ihn `noteSvg` zeichnet (ohne Hals, Hilfslinien, Vorzeichen); `value` 4, 8, 16 schwarz, 2 und 1 hohl, Standard 4. Nutzt die Ansicht „Lernen“ für „Alle Namen zeigen“ |
 | `restSvg(value, x)` | Pause (1, 2, 4, 8, 16); ganze und halbe als `<rect class="rest">`, die übrigen als Glyphe (`<text class="rest">`) |
 | `glyphSvg(char, x, y, size)` | ein Zeichen aus der Musikschrift |
@@ -413,7 +413,7 @@ Statistik (`src/views/stats.js`, seit Paket F) exportiert reine Hilfsfunktionen
   7 Zellen; `heatAccList(notes)` die Vorzeichen-Noten aus Stufe 7;
   `heatCell(n, clef, entry)` → `{ key, n, clef, name, helm, status, cls, ok,
   total, pct, avg, detail }`. `cls` folgt `HEAT_CLS` (sicher `"ok"`, langsam
-  `"warn"`, unsicher `"bad"`, neu `"ghost"`); unter jeder Note stehen Name und
+  `"warn"`, unsicher `"bad"`, neu `"new"`, grau über `--muted`; das Blau `ghost` bleibt der Ansicht „Lernen“); unter jeder Note stehen Name und
   Trefferquote, Antippen zeigt `detail`, z. B. „Fis (fis', Violin): 12 von 15
   richtig, im Schnitt 2,1 s“. `pct` und `avg` kommen wie die Farbe aus
   `recent` (letzte 12 Antworten); weicht das von der Gesamtzahl ab, lautet

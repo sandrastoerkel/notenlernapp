@@ -72,7 +72,7 @@ test("heatRows: alle Stammtöne je Schlüssel in Zeilen zu höchstens 7", () => 
   assert.deepEqual(t.flat().map((c) => c.helm), ["c'", "d'", "e'", "f'", "g'", "a'", "h'", "c''", "d''", "e''", "f''", "g''", "a''"]);
   const b = heatRows({}, "bass");
   assert.deepEqual(b.flat().map((c) => c.helm), ["E", "F", "G", "A", "H", "c", "d", "e", "f", "g", "a", "h", "c'"]);
-  assert.ok(t.flat().every((c) => c.status === "neu" && c.cls === "ghost" && c.pct === null));
+  assert.ok(t.flat().every((c) => c.status === "neu" && c.cls === "new" && c.pct === null));
 });
 
 test("heatRows: Zustand, Klasse, Trefferquote und Detailtext", () => {
@@ -113,4 +113,7 @@ test("heatAccList, heatCell, heatX, Legende", () => {
   assert.equal(heatCell(N("F", 4, 1), "treble").key, "Fis (fis', Violin)");
   assert.equal(heatX(0), 88); assert.equal(heatX(6), 288);
   assert.deepEqual(Object.keys(HEAT_CLS).sort(), HEAT_LEGEND.map(([s]) => s).sort());
+  // „neu“ grau (eigene Klasse), nicht das Blau aus „Lernen“
+  assert.equal(HEAT_CLS.neu, "new");
+  assert.ok(Object.values(HEAT_CLS).every((c) => c !== "ghost"));
 });

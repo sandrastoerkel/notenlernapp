@@ -54,8 +54,9 @@ export function levelGroups(packs, levels) {
 // Kurztext für eine Stufe: „8/10 · 3× gespielt“ bzw. „noch nicht gespielt“
 export const levelRowText = (r) => (r.played > 0 ? `${r.best}/10 · ${r.played}× gespielt` : "noch nicht gespielt");
 
-// Notenkarte: Klasse des Notenkopfs je Zustand (Farbe nur über Tokens in css/style.css)
-export const HEAT_CLS = { sicher: "ok", langsam: "warn", unsicher: "bad", neu: "ghost" };
+// Notenkarte: Klasse des Notenkopfs je Zustand (Farbe nur über Tokens in css/style.css);
+// „neu“ ist grau (Klasse new, Token --muted), damit es nicht mit dem Blau aus „Lernen“ (ghost) verwechselt wird
+export const HEAT_CLS = { sicher: "ok", langsam: "warn", unsicher: "bad", neu: "new" };
 // Legende in der Reihenfolge der Anzeige
 export const HEAT_LEGEND = [
   ["sicher", "sicher"],

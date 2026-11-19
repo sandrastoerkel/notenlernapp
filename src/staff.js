@@ -77,7 +77,7 @@ function ellipsePath(cx, cy, rx, ry, deg) {
 }
 
 // Note mit Hals, Hilfslinien und Vorzeichen.
-// cls: "", "ok", "bad", "warn" (langsam, Notenkarte) oder "ghost"; opts.value: 1, 2, 4, 8, 16 (Standard 4); opts.stemless: ohne Hals.
+// cls: "", "ok", "bad", "warn" (langsam, Notenkarte), "new" (neu, Notenkarte) oder "ghost"; opts.value: 1, 2, 4, 8, 16 (Standard 4); opts.stemless: ohne Hals.
 export function noteSvg(n, clef, x, cls, opts = {}) {
   const value = opts.value || 4;
   const p = staffPos(n, clef), cy = yOf(p);
