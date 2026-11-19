@@ -1,4 +1,4 @@
-// Adaptive Auswahl: Zustand je Aufgabe aus { ok, bad, sec, timed } und gewichtete Zufallsauswahl.
+// Adaptive Auswahl: Zustand je Aufgabe aus { ok, bad, sec, timed, hist, hsec } und gewichtete Zufallsauswahl.
 // Rein, ohne DOM. Getestet in test/adapt.test.js.
 
 // Startwerte zum Justieren nach dem Test mit Kindern, keine Forschungswerte.
@@ -23,10 +23,12 @@ export const GEWICHT = { neu: 2, unsicher: 4, langsam: 2, sicher: 1 };
 // Mit mindestens MIN_ANTWORTEN Einträgen im Verlauf hist ("1" richtig, "0" falsch, die letzten FENSTER)
 // zählt nur der Verlauf, die Zeit aus hsec (die letzten FENSTER Zeiten richtiger Antworten).
 // Sonst zählen die Gesamtwerte ok, bad, sec, timed (alte Spielstände ohne Verlauf).
+// Beschädigte Einträge (hist kein Text, hsec keine Liste oder mit anderen Werten als Zahlen) ergeben nie NaN.
 export function recent(entry) {
-  const e = entry || {}, hist = typeof e.hist === "string" ? e.hist : "";
+  const e = entry || {}, hist = typeof e.hist === "string" ? e.hist.slice(-FENSTER) : "";
   if (hist.length >= MIN_ANTWORTEN) {
-    const hsec = Array.isArray(e.hsec) ? e.hsec : [];
+    // beschädigte Daten: nur endliche Zahlen ab 0 zählen, höchstens FENSTER Stück
+    const hsec = (Array.isArray(e.hsec) ? e.hsec : []).filter((t) => typeof t === "number" && Number.isFinite(t) && t >= 0).slice(-FENSTER);
     const ok = [...hist].filter((c) => c === "1").length;
     return { ok, n: hist.length, timed: hsec.length, avg: hsec.length ? hsec.reduce((a, b) => a + b, 0) / hsec.length : null };
   }

@@ -64,6 +64,19 @@ test("recent: alte Spielstände ohne Verlauf nutzen die Gesamtwerte", () => {
   assert.deepEqual(recent(undefined), { ok: 0, n: 0, timed: 0, avg: null });
 });
 
+test("recent: beschädigte Einträge ergeben nie NaN", () => {
+  // hist kein Text: Gesamtwerte zählen
+  assert.deepEqual(recent({ ok: 7, bad: 1, hist: 111111, hsec: "x" }), { ok: 7, n: 8, timed: 0, avg: null });
+  // hsec keine Liste: keine Zeit, nicht langsam
+  assert.deepEqual(recent({ hist: "111111", hsec: "9,9,9" }), { ok: 6, n: 6, timed: 0, avg: null });
+  // hsec mit anderen Werten als Zahlen: nur die Zahlen zählen
+  const r = recent({ hist: "111111", hsec: [2, null, "9", NaN, -1, 4, Infinity] });
+  assert.deepEqual(r, { ok: 6, n: 6, timed: 2, avg: 3 });
+  assert.equal(status({ hist: "111111", hsec: [null, NaN, "9"] }), "sicher");
+  // zu lange Felder: nur die letzten FENSTER Einträge
+  assert.deepEqual(recent({ hist: "0".repeat(20) + "1".repeat(12), hsec: Array(20).fill(9).concat(Array(12).fill(2)) }), { ok: 12, n: 12, timed: 12, avg: 2 });
+});
+
 test("Ausreißer: ein Wegschauen macht eine Note nicht langsam", () => {
   // fünf Antworten à 2 s und eine gedeckelte à 10 s: im Schnitt 3,3 s
   assert.equal(status({ ok: 6, bad: 0, hist: "111111", hsec: [2, 2, 2, 2, 2, 10] }), "sicher");
