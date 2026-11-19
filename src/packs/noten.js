@@ -1,6 +1,7 @@
 // Paket „Noten lesen“: acht Stufen im Violin- und Bassschlüssel (aus dem ersten Prototyp übernommen)
 import { N, range, same, midi, pc, gName, helm } from "../music.js";
 import { staffSvg, noteSvg } from "../staff.js";
+import { pickWeighted } from "../adapt.js";
 
 const pool = (clef, notes) => notes.map((n) => ({ n, clef }));
 const clefLabel = (clef) => (clef === "both" ? "Beide Schlüssel" : clef === "treble" ? "Violinschlüssel" : "Bassschlüssel");
@@ -14,6 +15,9 @@ export function pick(items, prev) {
   const list = cand.length ? cand : items;
   return list[Math.floor(Math.random() * list.length)];
 }
+
+// Schlüssel für Vorrats-Einträge ({ n, clef }) und Aufgaben ({ note, clef }) gleichermaßen
+const itemKey = (x) => statKey(x.n || x.note, x.clef);
 
 function makeQuestion(it) {
   return {
@@ -58,11 +62,20 @@ const levels = RAW.map((r, i) => ({
   items: r.items,
   // Feste Beispielnote für die Startkarte der Stufe
   example: makeQuestion(r.items[0]).svg,
-  question(prev) { return makeQuestion(pick(r.items, prev)); },
+  // Mit ctx.notes (Fortschritt je Note) öfter die Noten, die noch nicht sitzen; sonst gleichverteilt
+  question(prev, ctx) {
+    return makeQuestion(ctx && ctx.notes ? pickWeighted(r.items, itemKey, ctx.notes, prev) : pick(r.items, prev));
+  },
   check: checkNote,
 }));
 
 export const BLITZ_POOL = [...RAW[2].items, ...RAW[5].items];
+
+// Noten für die Notenkarte in der Statistik: Stammtöne aus Stufe 3 (Violin) und 6 (Bass),
+// Vorzeichen-Noten aus Stufe 7
+export const HEAT_NOTES = { treble: RAW[2].items, bass: RAW[5].items, acc: RAW[6].items };
+// Alle Schlüssel von „Noten lesen“ (für den Hinweis auf der Startseite)
+export const NOTE_KEYS = [...new Set(RAW.flatMap((r) => r.items.map(itemKey)))];
 
 const LEGEND = {
   treble: [["Linien (unten → oben)", "E G H D F"], ["Merkspruch", "Es Geht Hurtig Durch Fleiß"], ["Zwischenräume", "F A C E"], ["Merkspruch", "Fritz Aß Citronen-Eis"], ["Hilfslinie unten", "c' (eingestrichenes C)"], ["Schlüssel-Kringel", "umschließt die G-Linie"]],

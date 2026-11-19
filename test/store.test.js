@@ -47,9 +47,40 @@ test("recordAnswer", () => {
   recordAnswer(s, "Fis (fis', Violin)", false);
   assert.equal(s.answered, 2);
   assert.equal(s.correct, 1);
-  assert.deepEqual(s.notes["Fis (fis', Violin)"], { ok: 1, bad: 1 });
+  assert.deepEqual(s.notes["Fis (fis', Violin)"], { ok: 1, bad: 1, sec: 0, timed: 0, last: today() });
   assert.equal(accuracy(s), 50);
   assert.equal(accuracy(fresh()), null);
+});
+
+test("recordAnswer: Zeit zählt nur bei richtigen Antworten", () => {
+  const now = new Date("2026-11-19T08:00:00Z");
+  const s = fresh();
+  recordAnswer(s, "G (g', Violin)", true, 2.5, now);
+  recordAnswer(s, "G (g', Violin)", false, 9, now);
+  recordAnswer(s, "G (g', Violin)", true, 1.25, now);
+  recordAnswer(s, "G (g', Violin)", true, undefined, now);
+  recordAnswer(s, "G (g', Violin)", true, NaN, now);
+  recordAnswer(s, "G (g', Violin)", true, -1, now);
+  assert.deepEqual(s.notes["G (g', Violin)"], { ok: 5, bad: 1, sec: 3.75, timed: 2, last: "2026-11-19" });
+});
+
+test("recordAnswer: alte Einträge ohne sec, timed und last", () => {
+  const now = new Date("2026-11-19T08:00:00Z");
+  const s = fresh();
+  s.notes["A (a', Violin)"] = { ok: 3, bad: 2 };
+  recordAnswer(s, "A (a', Violin)", true, 2, now);
+  assert.deepEqual(s.notes["A (a', Violin)"], { ok: 4, bad: 2, sec: 2, timed: 1, last: "2026-11-19" });
+  s.notes["H (h', Violin)"] = { ok: 1, bad: 0 };
+  recordAnswer(s, "H (h', Violin)", false, 3, now);
+  assert.deepEqual(s.notes["H (h', Violin)"], { ok: 1, bad: 1, sec: 0, timed: 0, last: "2026-11-19" });
+});
+
+test("load: alter v2-Spielstand mit { ok, bad } lädt unverändert", () => {
+  const old = { xp: 50, notes: { "C (c', Violin)": { ok: 2, bad: 5 } } };
+  const st = memStorage({ [KEY_V2]: JSON.stringify(old) });
+  const s = load(st);
+  assert.deepEqual(s.notes, old.notes);
+  assert.equal(s.xp, 50);
 });
 
 const V1 = {

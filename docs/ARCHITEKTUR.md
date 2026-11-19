@@ -20,6 +20,7 @@ src/
   staff.js              SVG-Zeichner für Notenzeile, Noten, Pausen, Vorzeichen, Klaviatur (liefert Strings)
   audio.js              Töne per Web Audio
   store.js              Fortschritt: Zustand, Freischaltung, Serie, Persistenz
+  adapt.js              adaptive Auswahl: Zustand je Note (neu, unsicher, langsam, sicher), Gewichte (seit Paket G)
   engine.js             generischer Rundenablauf (10 Aufgaben, Feedback, Sterne, XP)
   packs/index.js        Registry aller Themenpakete
   packs/noten.js        Paket „Noten lesen“ (8 Stufen)
@@ -30,7 +31,7 @@ src/
   views/practice.js     Üben (nutzt engine.js)
   views/learn.js        Lernen (Notenzeile zum Antippen, Lerntafeln der Pakete)
   views/blitz.js        Blitz (60 Sekunden)
-  views/stats.js        Statistik
+  views/stats.js        Statistik (mit Notenkarte seit Paket G)
   app.js                Navigation und Verdrahtung
 test/                   node --test; eine Datei je Modul, z. B. test/music.test.js
 docs/                   Konzept und Architektur
@@ -114,7 +115,7 @@ Höhe `H = 122`. Eine halbe Stufe sind 6 Einheiten.
 | Funktion | Bedeutung |
 | -------- | --------- |
 | `staffSvg(clef, inner, opts)` | komplette Zeile mit Schlüssel; `inner` wird eingesetzt. Das dritte Argument ist entweder ein String (zusätzliche Klasse am `<svg>`, wie in der ersten Fassung) oder ein Objekt `{ cls, height, keySig }`: `height` darf die Höhe erhöhen, `keySig` (Anzahl ♯ als positive, ♭ als negative Zahl, höchstens 7) zeichnet Vorzeichen hinter dem Schlüssel |
-| `noteSvg(n, clef, x, cls, opts)` | Note mit Hals, Hilfslinien und Vorzeichen; `cls` ist `""`, `"ok"`, `"bad"` oder `"ghost"`; `opts.value` ist `1`, `2`, `4`, `8`, `16` (ganze bis sechzehntel, Standard 4), `opts.stemless` lässt den Hals weg |
+| `noteSvg(n, clef, x, cls, opts)` | Note mit Hals, Hilfslinien und Vorzeichen; `cls` ist `""`, `"ok"`, `"bad"`, `"warn"` (langsam, Notenkarte, Token `--gold`) oder `"ghost"`; `opts.value` ist `1`, `2`, `4`, `8`, `16` (ganze bis sechzehntel, Standard 4), `opts.stemless` lässt den Hals weg |
 | `noteheadSvg(x, y, value)` | nur der Notenkopf mit Mitte (x, y), so wie ihn `noteSvg` zeichnet (ohne Hals, Hilfslinien, Vorzeichen); `value` 4, 8, 16 schwarz, 2 und 1 hohl, Standard 4. Nutzt die Ansicht „Lernen“ für „Alle Namen zeigen“ |
 | `restSvg(value, x)` | Pause (1, 2, 4, 8, 16); ganze und halbe als `<rect class="rest">`, die übrigen als Glyphe (`<text class="rest">`) |
 | `glyphSvg(char, x, y, size)` | ein Zeichen aus der Musikschrift |
@@ -216,7 +217,7 @@ Eine Stufe:
   input: "letters",            // "letters" | "choices" | "keys"
   acc: false,                  // optional, true zeigt bei "letters" das Namensraster (21 Namen) statt C–H
   items: [ /* … */ ],          // optional, Vorrat der Aufgaben (nur für Tests und Blitz)
-  question(prev) {             // liefert eine neue Aufgabe, nie dieselbe wie prev
+  question(prev, ctx) {        // liefert eine neue Aufgabe, nie dieselbe wie prev; ctx siehe unten
     return {
       svg: "<svg …>",          // fertiges SVG (meist staffSvg(...))
       prompt: "",              // optionale Frage über der Zeile, z. B. "Wie viele Schläge?"
@@ -229,7 +230,7 @@ Eine Stufe:
       choices: ["…"],          // nur bei input "choices": 4 bis 6 Auswahlknöpfe, enthält answer
       note: N("G", 4),         // optional, die gefragte Note (Ton im Blitz, Feedback ohne Oktave)
       clef: "treble",          // optional, Schlüssel der Aufgabe (damit prev nicht wiederholt wird)
-      statKey: "G (g', Violin)", // optional, Eintrag in der Liste „Schwache Stellen“
+      statKey: "G (g', Violin)", // optional, Eintrag in state.notes („Schwache Stellen“, Notenkarte)
     };
   },
   check(q, value) { return value === q.answer; }, // value ist bei "letters" {letter, acc}, bei "keys" eine Halbtonzahl, bei "choices" der Knopftext
@@ -406,6 +407,40 @@ Statistik (`src/views/stats.js`, seit Paket F) exportiert reine Hilfsfunktionen
   Registry, je Gruppe `{ id, title, rows, played, stars, maxStars }`;
   unbekannte IDs in `state.levels` werden übergangen
 - `levelRowText(row)`: „8/10 · 3× gespielt“ bzw. „noch nicht gespielt“
+- Notenkarte (seit Paket G, Container `#sHeat`): `heatRows(notes, clef, perRow = 7)`
+  liefert für `"treble"` oder `"bass"` die Stammtöne aus `HEAT_NOTES` in
+  `packs/noten.js` (Violin c' bis a'', Bass E bis c') als Zeilen zu höchstens
+  7 Zellen; `heatAccList(notes)` die Vorzeichen-Noten aus Stufe 7;
+  `heatCell(n, clef, entry)` → `{ key, n, clef, name, helm, status, cls, ok,
+  total, pct, avg, detail }`. `cls` folgt `HEAT_CLS` (sicher `"ok"`, langsam
+  `"warn"`, unsicher `"bad"`, neu `"ghost"`); unter jeder Note stehen Name und
+  Trefferquote, Antippen zeigt `detail`, z. B. „Fis (fis', Violin): 12 von 15
+  richtig, im Schnitt 2,1 s“.
+
+## Adaptive Auswahl (`src/adapt.js`, seit Paket G)
+
+Rein, ohne DOM, getestet in `test/adapt.test.js`. Die Startwerte stehen als
+Konstanten oben in der Datei und sind zum Justieren nach dem Test mit Kindern
+gedacht, keine Forschungswerte: `MIN_ANTWORTEN = 6`, `QUOTE_SICHER = 0.7`,
+`LANGSAM_SEK = 4`, `ANTEIL_ZUFALL = 0.3`, `GEWICHT = { neu: 2, unsicher: 4,
+langsam: 2, sicher: 1 }`.
+
+- `status(entry)`: `"neu"` (weniger als 6 Antworten), `"unsicher"`
+  (Trefferquote unter 70 %), `"langsam"` (sonst, wenn die richtigen Antworten
+  im Schnitt über 4 s dauern; Einträge ohne Zeitmessung nie), `"sicher"`
+- `weight(entry)`: Gewicht nach `GEWICHT`
+- `pickWeighted(items, keyOf, notes, prev, rand = Math.random)`: nie dieselbe
+  Aufgabe wie `prev` (Vergleich über `keyOf`); mit Wahrscheinlichkeit 0,3
+  gleichverteilt, sonst nach Gewicht; ohne `notes` gleichverteilt
+- `countUnsure(notes, keys)`: Anzahl unsicherer Einträge (Hinweis auf der
+  Startseite bei „Noten lesen“, Schlüssel aus `NOTE_KEYS` in `packs/noten.js`;
+  Text aus `unsureText(k)` in `views/home.js`)
+
+Die Engine ruft `question(prev, ctx)` mit `ctx = { notes: state.notes }`
+(`makeRound(level, count, ctx)`). Pakete ohne zweiten Parameter laufen
+unverändert. Bisher nutzt nur „Noten lesen“ (Stufen 1 bis 8) die gewichtete
+Auswahl, Blitz nicht. Die Aufgaben einer Runde entstehen beim Start, die
+Gewichte wirken also ab der nächsten Runde.
 
 ## Offline und Updates (`sw.js`, `src/app.js`)
 
@@ -435,11 +470,18 @@ Zustand (persistiert unter `localStorage["notenheld.v2"]`):
 {
   xp, dayStreak, lastDay,
   levels: { "noten-1": { stars, best, played } },
-  notes: { "G (g', Violin)": { ok, bad } },   // schwache Noten
+  notes: { "G (g', Violin)": { ok, bad, sec, timed, last } },   // je Aufgabe (statKey)
   answered, correct, bestCombo, blitzRecord,
   unlockAll, muted, input, current: "noten-1",
 }
 ```
+
+Ein Eintrag in `notes` (seit Paket G): `ok` und `bad` zählen richtige und
+falsche Antworten, `sec` ist die Summe der Antwortzeiten richtiger Antworten
+in Sekunden, `timed` deren Anzahl, `last` der Tag der letzten Antwort
+(`today()`). Blitz zählt keine Zeit. Ältere Einträge haben nur `{ ok, bad }`;
+fehlende Felder gelten als 0 bzw. `null`, deshalb ist keine Migration nötig
+und der Schlüssel bleibt `notenheld.v2`.
 
 Freischaltung: die erste Stufe jedes Pakets ist offen. Jede weitere öffnet
 sich, wenn die vorherige Stufe desselben Pakets `best >= 8` hat, oder wenn
@@ -452,7 +494,7 @@ und `save` greifen auf `localStorage` zu): `KEY_V1`, `KEY_V2`, `fresh()`,
 `load()`, `save(s)`, `migrateV1(v1)`, `today(now)`, `touchStreak(s, now)`,
 `isUnlocked(s, pack, levelId)`, `starsFor(correct)`,
 `recordRound(s, levelId, correct)` → `{ stars, gained }`,
-`recordAnswer(s, key, ok)`, `recordBlitz(s, score, bestCombo)` →
+`recordAnswer(s, key, ok, sec, now)` (`sec` optional, zählt nur bei richtigen Antworten), `recordBlitz(s, score, bestCombo)` →
 `{ record, gained }`, `reset(s)` (behält nur `muted` und `input`),
 `accuracy(s)`.
 

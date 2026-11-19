@@ -51,7 +51,28 @@ test("countAnswer zählt und vermerkt schwache Noten", () => {
   countAnswer(s, { statKey: "Fis (fis', Violin)" }, true);
   countAnswer(s, {}, true);
   assert.equal(s.answered, 3); assert.equal(s.correct, 2);
-  assert.deepEqual(s.notes, { "Fis (fis', Violin)": { ok: 1, bad: 1 } });
+  const e = s.notes["Fis (fis', Violin)"];
+  assert.equal(e.ok, 1); assert.equal(e.bad, 1);
+  assert.equal(Object.keys(s.notes).length, 1);
+});
+
+test("countAnswer reicht die Zeit durch; ohne Zeit (Blitz) bleibt sie leer", () => {
+  const s = fresh();
+  countAnswer(s, { statKey: "G (g', Violin)" }, true, 2.5);
+  countAnswer(s, { statKey: "G (g', Violin)" }, true);
+  assert.equal(s.notes["G (g', Violin)"].sec, 2.5);
+  assert.equal(s.notes["G (g', Violin)"].timed, 1);
+});
+
+test("makeRound gibt ctx an question weiter; Pakete ohne zweiten Parameter laufen weiter", () => {
+  const seen = [];
+  let k = 0;
+  const level = { question(prev, ctx) { seen.push(ctx); return { id: k++ }; } };
+  const ctx = { notes: {} };
+  assert.equal(makeRound(level, 3, ctx).length, 3);
+  assert.ok(seen.every((c) => c === ctx));
+  assert.equal(makeRound({ question: () => ({}) }, 2).length, 2);
+  for (const p of PACKS) for (const l of p.levels) assert.equal(makeRound(l, 3, { notes: {} }).length, 3, l.id);
 });
 
 test("Feedback- und Ergebnistexte", () => {

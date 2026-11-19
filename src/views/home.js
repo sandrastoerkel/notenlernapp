@@ -1,6 +1,8 @@
 // Startseite: Begrüßung, Trefferquote, Pakete mit ihren Stufen
 import { isUnlocked, accuracy } from "../store.js";
 import { findLevel, starsHtml } from "../engine.js";
+import { countUnsure } from "../adapt.js";
+import { NOTE_KEYS } from "../packs/noten.js";
 
 const $ = (s) => document.querySelector(s);
 let ctx = null;
@@ -27,6 +29,11 @@ function levelHtml(s, pack, l) {
       </button>`;
 }
 
+// Hinweis auf der Karte „Noten lesen“, wenn Noten noch unsicher sind (Anzahl aus countUnsure in adapt.js)
+export const unsureText = (k) => (k === 1
+  ? "1 Note sitzt noch nicht. Sie kommt in den Runden öfter dran."
+  : `${k} Noten sitzen noch nicht. Sie kommen in den Runden öfter dran.`);
+
 export function render() {
   const s = ctx.state;
   ctx.renderTop();
@@ -37,8 +44,10 @@ export function render() {
   $("#homeSub").textContent = s.dayStreak >= 2 ? `${s.dayStreak} Tage in Folge geübt. Eine Runde heute hält die Serie am Leben.` : "Eine Runde dauert etwa zwei Minuten. Zehn Noten, dann gibt es Sterne.";
   $("#unlockAll").textContent = s.unlockAll ? "Demo-Freischaltung aufheben" : "Alle Stufen öffnen (Demo)";
   // Je Paket ein Abschnitt: Überschrift, dann die Stufen
+  const unsure = countUnsure(s.notes, NOTE_KEYS);
   $("#levelList").innerHTML = ctx.packs.map((pack) => `<section class="levels" data-pack="${pack.id}">
       <h2>${pack.title}</h2>
+      ${pack.id === "noten" && unsure ? `<p class="small muted unsure-hint">${unsureText(unsure)}</p>` : ""}
       ${pack.levels.map((l) => levelHtml(s, pack, l)).join("")}
     </section>`).join("");
 }

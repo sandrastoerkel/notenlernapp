@@ -77,11 +77,23 @@ export function recordRound(s, levelId, correct, now = new Date()) {
   return { stars, gained };
 }
 
-// Eine Antwort zählen und in der Liste der schwachen Noten vermerken
-export function recordAnswer(s, key, ok) {
+// Eine Antwort zählen und je Aufgabe vermerken: { ok, bad, sec, timed, last }.
+// sec ist die Summe der Antwortzeiten richtiger Antworten in Sekunden, timed deren Anzahl,
+// last der Tag der letzten Antwort. sec (optional) zählt nur bei richtigen Antworten.
+// Alte Einträge ohne sec, timed oder last gelten als 0 bzw. null; keine Migration nötig.
+export function recordAnswer(s, key, ok, sec, now = new Date()) {
   s.answered++; if (ok) s.correct++;
-  s.notes[key] = s.notes[key] || { ok: 0, bad: 0 };
-  s.notes[key][ok ? "ok" : "bad"]++;
+  const e = s.notes[key] || {};
+  e.ok = (e.ok || 0) + (ok ? 1 : 0);
+  e.bad = (e.bad || 0) + (ok ? 0 : 1);
+  e.sec = e.sec || 0;
+  e.timed = e.timed || 0;
+  if (ok && typeof sec === "number" && Number.isFinite(sec) && sec >= 0) {
+    e.sec = Math.round((e.sec + sec) * 100) / 100;
+    e.timed++;
+  }
+  e.last = today(now);
+  s.notes[key] = e;
   return s;
 }
 

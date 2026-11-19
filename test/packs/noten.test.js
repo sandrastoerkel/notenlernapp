@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import noten, { BLITZ_POOL, statKey, checkNote } from "../../src/packs/noten.js";
+import noten, { BLITZ_POOL, statKey, checkNote, HEAT_NOTES, NOTE_KEYS } from "../../src/packs/noten.js";
 import { PACKS } from "../../src/packs/index.js";
 import { N, same } from "../../src/music.js";
 import { staffSvg, noteSvg } from "../../src/staff.js";
@@ -117,4 +117,43 @@ test("Lerntafeln", () => {
   assert.equal(noten.learn.length, 2);
   assert.deepEqual(noten.learn.map((c) => c.clef), ["treble", "bass"]);
   noten.learn.forEach((c) => assert.ok(c.render().includes("<div")));
+});
+
+test("question mit ctx: gültig, nie doppelt, unsichere Note kommt öfter", () => {
+  const level = noten.levels[0]; // E G H D F im Violinschlüssel
+  const weak = statKey(N("G", 4), "treble");
+  const notes = { [weak]: { ok: 1, bad: 9 } };
+  // die anderen vier sitzen sicher
+  for (const it of level.items) if (statKey(it.n, it.clef) !== weak) notes[statKey(it.n, it.clef)] = { ok: 10, bad: 0, sec: 10, timed: 10 };
+  let prev = null, hits = 0;
+  for (let i = 0; i < 2000; i++) {
+    const q = level.question(prev, { notes });
+    assert.ok(level.check(q, q.answer));
+    if (prev) assert.ok(!(same(q.note, prev.note) && q.clef === prev.clef));
+    if (q.statKey === weak) hits++;
+    prev = q;
+  }
+  // gleichverteilt (ohne Wiederholung) wäre es ein Fünftel; mit Gewicht etwa 30 %
+  assert.ok(hits > 2000 * 0.25, `hits=${hits}`);
+});
+
+test("question ohne ctx wie bisher", () => {
+  for (const l of noten.levels) {
+    const q = l.question(null);
+    assert.ok(l.check(q, q.answer), l.id);
+    const q2 = l.question(q, undefined);
+    assert.ok(!(same(q2.note, q.note) && q2.clef === q.clef), l.id);
+  }
+});
+
+test("HEAT_NOTES und NOTE_KEYS", () => {
+  assert.equal(HEAT_NOTES.treble.length, 13);
+  assert.ok(same(HEAT_NOTES.treble[0].n, N("C", 4)) && same(HEAT_NOTES.treble[12].n, N("A", 5)));
+  assert.equal(HEAT_NOTES.bass.length, 13);
+  assert.ok(same(HEAT_NOTES.bass[0].n, N("E", 2)) && same(HEAT_NOTES.bass[12].n, N("C", 4)));
+  assert.equal(HEAT_NOTES.acc.length, 8);
+  assert.ok(HEAT_NOTES.acc.every((it) => it.n.acc !== 0 && it.clef === "treble"));
+  // eindeutig, und jede Aufgabe aus allen acht Stufen hat einen Schlüssel
+  assert.equal(new Set(NOTE_KEYS).size, NOTE_KEYS.length);
+  for (const l of noten.levels) for (const it of l.items) assert.ok(NOTE_KEYS.includes(statKey(it.n, it.clef)));
 });

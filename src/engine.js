@@ -1,5 +1,5 @@
 // Generischer Rundenablauf: zehn Aufgaben, Feedback, Sterne und XP.
-// Die Engine kennt kein Paket im Detail: sie ruft level.question(prev) und level.check(q, value),
+// Die Engine kennt kein Paket im Detail: sie ruft level.question(prev, ctx) und level.check(q, value),
 // zeigt q.svg (nach der Antwort q.revealSvg, falls gesetzt) und baut die Antwort-Elemente nach der Eingabeart.
 // Oben stehen reine Hilfsfunktionen (getestet in test/engine.test.js), unten der DOM-Teil.
 import { LETTERS, NAME_ACCS, N, gName, parseNoteName } from "./music.js";
@@ -23,10 +23,12 @@ export const starsHtml = (k) => `<span class="stars">${"★".repeat(k)}<span cla
 // Eingabeart: die Wahl „Klaviatur“ (state.input === "keys") ersetzt "letters"; andere Arten bleiben
 export const effectiveInput = (levelInput, pref) => ((levelInput || "letters") === "letters" && pref === "keys" ? "keys" : levelInput || "letters");
 
-// Zehn Aufgaben nacheinander erzeugen, jede verschieden von der vorherigen
-export function makeRound(level, count = ROUND_LENGTH) {
+// Zehn Aufgaben nacheinander erzeugen, jede verschieden von der vorherigen.
+// ctx (optional, z. B. { notes: state.notes }) geht als zweiter Parameter an question;
+// Pakete ohne zweiten Parameter laufen unverändert.
+export function makeRound(level, count = ROUND_LENGTH, ctx) {
   const out = [];
-  for (let i = 0; i < count; i++) out.push(level.question(i ? out[i - 1] : null));
+  for (let i = 0; i < count; i++) out.push(level.question(i ? out[i - 1] : null, ctx));
   return out;
 }
 
@@ -45,9 +47,10 @@ export function nextLevel(pack, level) {
   return i >= 0 ? pack.levels[i + 1] || null : null;
 }
 
-// Antwort zählen; mit q.statKey auch in der Liste der schwachen Noten
-export function countAnswer(s, q, ok) {
-  if (q.statKey) return recordAnswer(s, q.statKey, ok);
+// Antwort zählen; mit q.statKey auch je Aufgabe, sec (optional) ist die Antwortzeit in Sekunden.
+// Blitz übergibt keine Zeit, weil dort der Zeitdruck die Werte verfälschen würde.
+export function countAnswer(s, q, ok, sec) {
+  if (q.statKey) return recordAnswer(s, q.statKey, ok, sec);
   s.answered++; if (ok) s.correct++;
   return s;
 }
@@ -205,7 +208,7 @@ function applyInput(r) {
 export function startRound(level, ui, hooks) {
   stop();
   const r = {
-    level, ui, hooks, items: makeRound(level), idx: 0, correct: 0, results: [], times: [],
+    level, ui, hooks, items: makeRound(level, ROUND_LENGTH, { notes: hooks.state.notes }), idx: 0, correct: 0, results: [], times: [],
     locked: false, buf: "", t0: 0, timers: new Set(),
     input: effectiveInput(level.input, hooks.state.input),
   };
@@ -255,9 +258,10 @@ function answer(r, value, el) {
   const q = r.items[r.idx], { ui, hooks } = r;
   const ok = !!r.level.check(q, value);
   r.locked = true;
-  r.results.push(ok); r.times.push((performance.now() - r.t0) / 1000);
+  const sec = (performance.now() - r.t0) / 1000;
+  r.results.push(ok); r.times.push(sec);
   if (ok) r.correct++;
-  countAnswer(hooks.state, q, ok);
+  countAnswer(hooks.state, q, ok, sec);
   hooks.save();
   if (el) el.classList.add(ok ? "ok" : "bad");
   if (!ok) {

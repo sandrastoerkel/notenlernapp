@@ -134,6 +134,7 @@ section { display: grid; gap: 14px; }
 .acc { font-family: var(--music); fill: var(--ink); font-size: 44px; } /* = ACC_SIZE in staff.js */
 .note.ok .notehead, .note.ok .acc { fill: var(--ok); } .note.ok .stem { stroke: var(--ok); }
 .note.bad .notehead, .note.bad .acc { fill: var(--bad); } .note.bad .stem { stroke: var(--bad); }
+.note.warn .notehead, .note.warn .acc { fill: var(--gold); } .note.warn .stem { stroke: var(--gold); }
 .hit { fill: transparent; cursor: pointer; }
 .hit:hover, .hit.on { fill: var(--accent-soft); opacity: .6; }
 .note-label { font-family: var(--display); font-weight: 700; font-size: 10px; fill: var(--accent); }
@@ -207,6 +208,24 @@ section { display: grid; gap: 14px; }
 .level-group + .level-group { padding-top: 10px; border-top: 1px solid var(--line); }
 .level-stat { grid-template-columns: 1.4fr 1fr auto; }
 .level-stat.muted .bar { opacity: .5; }
+/* Notenkarte: Notenzeile, darunter Name und Trefferquote je Note an derselben x-Position wie der Kopf */
+.heat-row svg { width: 100%; height: auto; display: block; }
+.heat-labels { position: relative; height: 38px; margin-top: -16px; }
+.heat-cell { position: absolute; top: 0; transform: translateX(-50%); display: grid; justify-items: center; gap: 1px;
+  min-width: 0; padding: 3px 1px; border: 1px solid transparent; border-radius: 8px; background: transparent;
+  color: var(--ink); font: inherit; font-size: .72rem; line-height: 1.15; white-space: nowrap; cursor: pointer; }
+.heat-cell b { font-family: var(--display); font-size: .95rem; }
+@media (max-width: 400px) { .heat-cell { font-size: .62rem; letter-spacing: -.02em; } .heat-cell b { font-size: .85rem; } }
+.heat-cell.on, .heat-acc.on { border-color: var(--accent); background: var(--accent-soft); }
+.heat-detail { min-height: 1.4em; }
+.heat-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.heat-key { display: inline-flex; align-items: center; gap: 6px; font-size: .85rem; }
+.heat-dot { display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-right: 6px; vertical-align: middle; background: var(--accent); }
+.heat-key .heat-dot { margin-right: 0; }
+.heat-dot.ok { background: var(--ok); } .heat-dot.warn { background: var(--gold); } .heat-dot.bad { background: var(--bad); }
+.heat-acc { grid-template-columns: 1fr auto 3.5em; width: 100%; text-align: left; border: 1px solid transparent; border-radius: 8px;
+  background: transparent; color: var(--ink); font: inherit; padding: 4px 6px; cursor: pointer; }
+.heat-acc .num { text-align: right; }
 .level-stat-end { gap: 8px; flex-wrap: nowrap; justify-content: flex-end; }
 @media (max-width: 480px) { .level-stat { grid-template-columns: 1fr auto; } .level-stat .bar { grid-column: 1 / -1; grid-row: 2; } }
 

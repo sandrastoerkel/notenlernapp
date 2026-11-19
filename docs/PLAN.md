@@ -16,6 +16,7 @@ anzufassen.
 | 1     | A (Module und Tests)                     | Grundlage; alle anderen bauen auf die Modulstruktur auf  |
 | 2     | B, C, D, E (parallel möglich)            | berühren jeweils eigene Dateien, siehe Dateilisten        |
 | 3     | F (Integration und Veröffentlichung)     | zusammenführen, prüfen, Screenshots, Release             |
+| 4     | G (Noten-Heatmap, adaptive Auswahl)      | nach v0.2.0; nutzt die vorhandenen `statKey`s            |
 
 Vor Welle 2 muss Welle 1 gemergt und `npm test` grün sein. Welle 2 kann mit
 vier Agenten gleichzeitig laufen (am besten je ein Git-Worktree oder je ein
@@ -303,6 +304,102 @@ main, bringe npm test zum Laufen, prüfe alle Tabs im Browser bei 420 px in
 hell und dunkel und lege Screenshots in docs/screens/ ab. Erhöhe die
 Cache-Version, setze Tag v0.2.0 und pushe. Berichte, was du nicht prüfen
 konntest.
+```
+
+---
+
+## Paket G: Noten-Heatmap und adaptive Auswahl
+
+Vorbild: die Heatmap und der adaptive „Garage“-Modus von Times Tables Rock
+Stars, übertragen auf Noten. Ausgangsstand `main` 907b017 (v0.2.0 + Doku).
+
+**Ziel.** Die App merkt sich je Note, wie sicher und wie schnell sie sitzt,
+zeigt das als farbige Notenzeile in der Statistik und stellt in den Runden
+öfter die Noten, die noch nicht sitzen. Kein Server, keine neuen
+Abhängigkeiten, Fortschritt bleibt in `notenheld.v2`.
+
+**Ausgangslage im Code.**
+
+- `store.recordAnswer(s, key, ok)` zählt je `statKey` schon `{ ok, bad }`.
+- `engine.js` misst die Antwortzeit schon (`r.times`), speichert sie aber
+  nicht dauerhaft.
+- `level.question(prev)` wählt zufällig aus (`pick` in `packs/noten.js`) und
+  kennt den Fortschritt nicht.
+- Die Statistik zeigt nur die sechs Einträge mit den meisten Fehlern
+  (`weakList`).
+
+**Dateien.** `src/adapt.js` (neu), `test/adapt.test.js` (neu), `src/store.js`,
+`src/engine.js`, `src/packs/noten.js`, `src/views/stats.js`,
+`src/views/home.js` (Schritt 6), `src/staff.js` (nur neue Klasse `"warn"`),
+`css/style.css`, `index.html` (nur Container `#sHeat`), `sw.js` (`adapt.js`
+in `PRECACHE`, Cache erhöhen), `test/store.test.js`, `test/engine.test.js`,
+`test/views/stats.test.js`, `test/packs/noten.test.js`, `docs/ARCHITEKTUR.md`,
+`docs/PLAN.md`.
+
+**Schritte.**
+
+1. **Store erweitern, ohne neue Version.** `recordAnswer(s, key, ok, sec)`
+   bekommt einen optionalen vierten Parameter. Ein Eintrag in `s.notes` wird
+   zu `{ ok, bad, sec, timed, last }`: `sec` ist die Summe der Antwortzeiten
+   richtiger Antworten in Sekunden, `timed` deren Anzahl, `last` der Tag
+   (`today()`). Fehlende Felder in alten Daten gelten als 0 bzw. `null`;
+   keine Migration nötig, `notenheld.v2` bleibt.
+2. **Engine reicht Zeit und Fortschritt durch.** `countAnswer(s, q, ok, sec)`
+   gibt die gemessene Zeit an `recordAnswer` weiter. Blitz zählt die Zeit
+   nicht (dort spielt Tempo-Druck mit). `makeRound(level, count, ctx)` ruft
+   `level.question(prev, ctx)` mit `ctx = { notes: s.notes }`. Pakete ohne
+   zweiten Parameter laufen unverändert weiter.
+3. **`src/adapt.js` (rein, ohne DOM).** `status(entry)`: `"neu"` (weniger als
+   6 Antworten), `"unsicher"` (Trefferquote unter 70 %), `"langsam"`
+   (Trefferquote ab 70 %, aber im Schnitt über 4 s), `"sicher"` (sonst). Die
+   Grenzen 6 / 70 % / 4 s sind Startwerte zum Justieren nach dem Test mit
+   Kindern, keine Forschungswerte; als Konstanten oben in der Datei.
+   `weight(entry)`: neu 2, unsicher 4, langsam 2, sicher 1.
+   `pickWeighted(items, keyOf, notes, prev, rand = Math.random)`: wählt mit
+   Gewichten, nie dieselbe Aufgabe wie `prev`; mit Wahrscheinlichkeit 0,3
+   gleichverteilt, damit gemischt bleibt und auch sichere Noten wiederkommen.
+4. **Paket „Noten lesen“ nutzt die Auswahl.** `question(prev, ctx)` nimmt
+   `pickWeighted`, wenn `ctx?.notes` da ist, sonst wie bisher `pick`. Andere
+   Pakete können später folgen (ihre `statKey`s gibt es schon).
+5. **Heatmap in der Statistik.** Neue Karte „Notenkarte“ oberhalb der
+   schwachen Noten: je Schlüssel eine Notenzeile mit allen Stammtönen aus
+   „Noten lesen“ (Violin c' bis a'', Bass E bis c'), zwei Zeilen je Schlüssel
+   bei 420 px Breite. Notenkopf-Farbe nach `status`: sicher `"ok"`, langsam
+   `"warn"` (Token `--gold`), unsicher `"bad"`, neu `"ghost"`. Nicht nur
+   Farbe: unter jeder Note Name und Trefferquote in Prozent; Antippen zeigt
+   z. B. „Fis (fis', Violin): 12 von 15 richtig, im Schnitt 2,1 s“. Darunter
+   eine Legende mit den vier Zuständen. Vorzeichen-Noten (Stufe 7) als eigene
+   kleine Liste darunter.
+6. **Startseite.** Auf der Karte von „Noten lesen“ ein Hinweis „3 Noten sitzen
+   noch nicht“, wenn es unsichere Noten gibt.
+7. **Tests.** `test/adapt.test.js`: `status` für alle vier Fälle und
+   Grenzwerte; `pickWeighted` mit festem `rand` (unsichere Note kommt öfter,
+   `prev` nie doppelt, leere `notes` = gleichverteilt).
+   `test/store.test.js`: alte Einträge ohne `sec` funktionieren; `sec` und
+   `timed` zählen nur bei richtigen Antworten.
+   `test/views/stats.test.js`: reine Funktion `heatRows(notes, clef)`.
+8. **Doku.** `docs/ARCHITEKTUR.md`: zweiter Parameter `ctx` bei `question`,
+   neues Modul `adapt.js`, Felder in `notes`.
+
+**Akzeptanz.**
+
+- `npm test` grün; alte Spielstände laden ohne Fehler.
+- Nach einigen Runden mit absichtlichen Fehlern bei einer Note taucht diese
+  Note in den nächsten Runden spürbar öfter auf.
+- Notenkarte in hell und dunkel bei 420 px lesbar, ohne Konsolenfehler.
+- Keine Änderung an Freischaltung, Sternen und XP.
+
+**Prompt (Claude Code, Opus).**
+
+```
+Read CLAUDE.md, docs/ARCHITEKTUR.md and docs/PLAN.md, then the section
+"Paket G: Noten-Heatmap und adaptive Auswahl". Work on branch paket-g.
+Start in plan mode: show me your plan and wait for my OK. Then implement
+exactly the listed steps and files, no other files. Keep notenheld.v2
+backward compatible (no migration). No npm dependencies, no build step.
+Run npm test, check the stats tab and a few practice rounds in the browser
+at 420 px in light and dark mode. UI text, comments and commit message in
+German. Do not push.
 ```
 
 ---

@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { weakList, levelRow, levelGroups, levelRowText } from "../../src/views/stats.js";
+import { weakList, levelRow, levelGroups, levelRowText, heatRows, heatCell, heatAccList, heatX, HEAT_CLS, HEAT_LEGEND } from "../../src/views/stats.js";
+import { N } from "../../src/music.js";
 import { PACKS } from "../../src/packs/index.js";
 
 test("weakList: nur Einträge mit bad > 0, absteigend, begrenzt, Balken relativ", () => {
@@ -63,4 +64,42 @@ test("levelGroups: je Paket in Registry-Reihenfolge, unbekannte IDs übergangen"
 test("levelRowText: Ergebnis und Anzahl oder Hinweis", () => {
   assert.equal(levelRowText({ played: 3, best: 8 }), "8/10 · 3× gespielt");
   assert.equal(levelRowText({ played: 0, best: 0 }), "noch nicht gespielt");
+});
+
+test("heatRows: alle Stammtöne je Schlüssel in Zeilen zu höchstens 7", () => {
+  const t = heatRows({}, "treble");
+  assert.deepEqual(t.map((r) => r.length), [7, 6]);
+  assert.deepEqual(t.flat().map((c) => c.helm), ["c'", "d'", "e'", "f'", "g'", "a'", "h'", "c''", "d''", "e''", "f''", "g''", "a''"]);
+  const b = heatRows({}, "bass");
+  assert.deepEqual(b.flat().map((c) => c.helm), ["E", "F", "G", "A", "H", "c", "d", "e", "f", "g", "a", "h", "c'"]);
+  assert.ok(t.flat().every((c) => c.status === "neu" && c.cls === "ghost" && c.pct === null));
+});
+
+test("heatRows: Zustand, Klasse, Trefferquote und Detailtext", () => {
+  const notes = {
+    "G (g', Violin)": { ok: 12, bad: 3, sec: 25.2, timed: 12 },
+    "A (a', Violin)": { ok: 2, bad: 6 },
+    "H (h', Violin)": { ok: 8, bad: 0, sec: 48, timed: 8 },
+    "F (f, Bass)": { ok: 1, bad: 0 },
+  };
+  const cells = heatRows(notes, "treble").flat();
+  const g = cells.find((c) => c.helm === "g'");
+  assert.equal(g.status, "sicher"); assert.equal(g.cls, "ok"); assert.equal(g.pct, 80);
+  assert.equal(g.detail, "G (g', Violin): 12 von 15 richtig, im Schnitt 2,1 s");
+  const a = cells.find((c) => c.helm === "a'");
+  assert.equal(a.cls, "bad"); assert.equal(a.pct, 25);
+  assert.equal(a.detail, "A (a', Violin): 2 von 8 richtig");
+  assert.equal(cells.find((c) => c.helm === "h'").cls, "warn");
+  assert.equal(cells.find((c) => c.helm === "c'").detail, "C (c', Violin): noch nicht geübt");
+  const f = heatRows(notes, "bass").flat().find((c) => c.helm === "f");
+  assert.equal(f.status, "neu"); assert.equal(f.pct, 100);
+});
+
+test("heatAccList, heatCell, heatX, Legende", () => {
+  const list = heatAccList({ "Fis (fis', Violin)": { ok: 0, bad: 7 } });
+  assert.deepEqual(list.map((c) => c.name), ["Fis", "Cis", "Gis", "Dis", "B", "Es", "As", "Des"]);
+  assert.equal(list[0].status, "unsicher");
+  assert.equal(heatCell(N("F", 4, 1), "treble").key, "Fis (fis', Violin)");
+  assert.equal(heatX(0), 88); assert.equal(heatX(6), 288);
+  assert.deepEqual(Object.keys(HEAT_CLS).sort(), HEAT_LEGEND.map(([s]) => s).sort());
 });
