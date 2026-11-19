@@ -1,7 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  status, weight, pickWeighted, countUnsure, MIN_ANTWORTEN, QUOTE_SICHER, LANGSAM_SEK, ANTEIL_ZUFALL, GEWICHT,
+  status, recent, weight, pickWeighted, countUnsure, MIN_ANTWORTEN, QUOTE_SICHER, LANGSAM_SEK, ANTEIL_ZUFALL, GEWICHT,
+  FENSTER, ZEIT_DECKEL, MIN_ZEITEN,
 } from "../src/adapt.js";
 
 // Zufallsfolge aus festen Werten (wiederholt sich)
@@ -12,6 +13,7 @@ const lcg = (seed = 1) => () => { seed = (seed * 1103515245 + 12345) % 214748364
 test("Startwerte", () => {
   assert.equal(MIN_ANTWORTEN, 6); assert.equal(QUOTE_SICHER, 0.7); assert.equal(LANGSAM_SEK, 4); assert.equal(ANTEIL_ZUFALL, 0.3);
   assert.deepEqual(GEWICHT, { neu: 2, unsicher: 4, langsam: 2, sicher: 1 });
+  assert.equal(FENSTER, 12); assert.equal(ZEIT_DECKEL, 10); assert.equal(MIN_ZEITEN, 3);
 });
 
 test("status: alle vier Fälle", () => {
@@ -34,6 +36,37 @@ test("status: Grenzwerte", () => {
   assert.equal(status({ ok: 10, bad: 0, sec: 40.1, timed: 10 }), "langsam");
   // alte Einträge ohne Zeitmessung können nicht langsam sein
   assert.equal(status({ ok: 10, bad: 0 }), "sicher");
+  // langsam erst ab MIN_ZEITEN gemessenen Zeiten
+  assert.equal(status({ ok: 10, bad: 0, sec: 18, timed: 2 }), "sicher");
+  assert.equal(status({ ok: 10, bad: 0, sec: 27, timed: 3 }), "langsam");
+});
+
+test("status und recent: Fenster der letzten Antworten", () => {
+  // 20 alte Fehler, dann 12 richtige: insgesamt 12 von 32 (37 %), im Fenster 12 von 12
+  const e = { ok: 12, bad: 20, hist: "1".repeat(12), hsec: Array(12).fill(2), sec: 24, timed: 12 };
+  assert.deepEqual(recent(e), { ok: 12, n: 12, timed: 12, avg: 2 });
+  assert.equal(status(e), "sicher");
+  // im Fenster 8 von 12 (67 %): unsicher, auch wenn insgesamt viel richtig war
+  assert.equal(status({ ok: 90, bad: 4, hist: "111100001111", hsec: [] }), "unsicher");
+  // langsam aus den Zeiten im Fenster, nicht aus der Gesamtsumme
+  assert.equal(status({ ok: 12, bad: 0, sec: 12, timed: 12, hist: "1".repeat(12), hsec: [5, 5, 5] }), "langsam");
+  assert.equal(status({ ok: 12, bad: 0, sec: 120, timed: 12, hist: "1".repeat(12), hsec: [2, 2, 2] }), "sicher");
+  // weniger als MIN_ZEITEN Zeiten im Fenster: nicht langsam
+  assert.equal(status({ ok: 12, bad: 0, hist: "1".repeat(12), hsec: [9, 9] }), "sicher");
+});
+
+test("recent: alte Spielstände ohne Verlauf nutzen die Gesamtwerte", () => {
+  // Verlauf kürzer als MIN_ANTWORTEN: Gesamtwerte zählen
+  assert.equal(status({ ok: 2, bad: 8, hist: "11111" }), "unsicher");
+  assert.deepEqual(recent({ ok: 2, bad: 8, hist: "11111" }), { ok: 2, n: 10, timed: 0, avg: null });
+  // ab MIN_ANTWORTEN Einträgen im Verlauf zählt nur der Verlauf
+  assert.equal(status({ ok: 8, bad: 8, hist: "111111" }), "sicher");
+  assert.deepEqual(recent(undefined), { ok: 0, n: 0, timed: 0, avg: null });
+});
+
+test("Ausreißer: ein Wegschauen macht eine Note nicht langsam", () => {
+  // fünf Antworten à 2 s und eine gedeckelte à 10 s: im Schnitt 3,3 s
+  assert.equal(status({ ok: 6, bad: 0, hist: "111111", hsec: [2, 2, 2, 2, 2, 10] }), "sicher");
 });
 
 test("weight je Zustand", () => {

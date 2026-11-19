@@ -5,6 +5,7 @@ import {
   starsFor, recordRound, recordAnswer, recordBlitz, reset, accuracy,
 } from "../src/store.js";
 import noten from "../src/packs/noten.js";
+import { FENSTER, ZEIT_DECKEL } from "../src/adapt.js";
 
 // Einfacher Ersatz für localStorage
 function memStorage(init = {}) {
@@ -47,7 +48,7 @@ test("recordAnswer", () => {
   recordAnswer(s, "Fis (fis', Violin)", false);
   assert.equal(s.answered, 2);
   assert.equal(s.correct, 1);
-  assert.deepEqual(s.notes["Fis (fis', Violin)"], { ok: 1, bad: 1, sec: 0, timed: 0, last: today() });
+  assert.deepEqual(s.notes["Fis (fis', Violin)"], { ok: 1, bad: 1, sec: 0, timed: 0, last: today(), hist: "10", hsec: [] });
   assert.equal(accuracy(s), 50);
   assert.equal(accuracy(fresh()), null);
 });
@@ -61,7 +62,7 @@ test("recordAnswer: Zeit zählt nur bei richtigen Antworten", () => {
   recordAnswer(s, "G (g', Violin)", true, undefined, now);
   recordAnswer(s, "G (g', Violin)", true, NaN, now);
   recordAnswer(s, "G (g', Violin)", true, -1, now);
-  assert.deepEqual(s.notes["G (g', Violin)"], { ok: 5, bad: 1, sec: 3.75, timed: 2, last: "2026-11-19" });
+  assert.deepEqual(s.notes["G (g', Violin)"], { ok: 5, bad: 1, sec: 3.75, timed: 2, last: "2026-11-19", hist: "101111", hsec: [2.5, 1.25] });
 });
 
 test("recordAnswer: alte Einträge ohne sec, timed und last", () => {
@@ -69,10 +70,32 @@ test("recordAnswer: alte Einträge ohne sec, timed und last", () => {
   const s = fresh();
   s.notes["A (a', Violin)"] = { ok: 3, bad: 2 };
   recordAnswer(s, "A (a', Violin)", true, 2, now);
-  assert.deepEqual(s.notes["A (a', Violin)"], { ok: 4, bad: 2, sec: 2, timed: 1, last: "2026-11-19" });
+  assert.deepEqual(s.notes["A (a', Violin)"], { ok: 4, bad: 2, sec: 2, timed: 1, last: "2026-11-19", hist: "1", hsec: [2] });
   s.notes["H (h', Violin)"] = { ok: 1, bad: 0 };
   recordAnswer(s, "H (h', Violin)", false, 3, now);
-  assert.deepEqual(s.notes["H (h', Violin)"], { ok: 1, bad: 1, sec: 0, timed: 0, last: "2026-11-19" });
+  assert.deepEqual(s.notes["H (h', Violin)"], { ok: 1, bad: 1, sec: 0, timed: 0, last: "2026-11-19", hist: "0", hsec: [] });
+});
+
+test("recordAnswer: Zeit höchstens ZEIT_DECKEL Sekunden", () => {
+  const s = fresh();
+  recordAnswer(s, "G (g', Violin)", true, 120);
+  recordAnswer(s, "G (g', Violin)", true, 10);
+  recordAnswer(s, "G (g', Violin)", true, 9.5);
+  const e = s.notes["G (g', Violin)"];
+  assert.equal(ZEIT_DECKEL, 10);
+  assert.equal(e.sec, 29.5); assert.equal(e.timed, 3);
+  assert.deepEqual(e.hsec, [10, 10, 9.5]);
+});
+
+test("recordAnswer: Verlauf hält nur die letzten FENSTER Antworten", () => {
+  const s = fresh();
+  for (let i = 0; i < 20; i++) recordAnswer(s, "C (c', Violin)", false);
+  for (let i = 0; i < 15; i++) recordAnswer(s, "C (c', Violin)", true, i + 1);
+  const e = s.notes["C (c', Violin)"];
+  assert.equal(FENSTER, 12);
+  assert.equal(e.ok, 15); assert.equal(e.bad, 20);
+  assert.equal(e.hist, "1".repeat(12));
+  assert.deepEqual(e.hsec, [4, 5, 6, 7, 8, 9, 10, 10, 10, 10, 10, 10]);
 });
 
 test("load: alter v2-Spielstand mit { ok, bad } lädt unverändert", () => {

@@ -389,6 +389,13 @@ in `PRECACHE`, Cache erhöhen), `test/store.test.js`, `test/engine.test.js`,
 - Notenkarte in hell und dunkel bei 420 px lesbar, ohne Konsolenfehler.
 - Keine Änderung an Freischaltung, Sternen und XP.
 
+**Nachtrag 19.11.2026 (Entscheidungen Sandra nach dem ersten Test).**
+Antwortzeit zählt höchstens 10 s; „langsam“ erst ab 3 gemessenen richtigen
+Antworten; Zustand, Trefferquote und Zeit in der Notenkarte nur aus den
+letzten 12 Antworten (Gesamtzahlen bleiben in der Detailzeile). Neue Felder
+`hist` und `hsec` in `notes`, weiter ohne Migration. Startwerte, nach dem
+Test mit einem Kind justieren.
+
 **Prompt (Claude Code, Opus).**
 
 ```

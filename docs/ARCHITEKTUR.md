@@ -415,7 +415,9 @@ Statistik (`src/views/stats.js`, seit Paket F) exportiert reine Hilfsfunktionen
   total, pct, avg, detail }`. `cls` folgt `HEAT_CLS` (sicher `"ok"`, langsam
   `"warn"`, unsicher `"bad"`, neu `"ghost"`); unter jeder Note stehen Name und
   Trefferquote, Antippen zeigt `detail`, z. B. „Fis (fis', Violin): 12 von 15
-  richtig, im Schnitt 2,1 s“.
+  richtig, im Schnitt 2,1 s“. `pct` und `avg` kommen wie die Farbe aus
+  `recent` (letzte 12 Antworten); weicht das von der Gesamtzahl ab, lautet
+  `detail` z. B. „… zuletzt 11 von 12 richtig (insgesamt 30 von 45) …“.
 
 ## Adaptive Auswahl (`src/adapt.js`, seit Paket G)
 
@@ -423,11 +425,17 @@ Rein, ohne DOM, getestet in `test/adapt.test.js`. Die Startwerte stehen als
 Konstanten oben in der Datei und sind zum Justieren nach dem Test mit Kindern
 gedacht, keine Forschungswerte: `MIN_ANTWORTEN = 6`, `QUOTE_SICHER = 0.7`,
 `LANGSAM_SEK = 4`, `ANTEIL_ZUFALL = 0.3`, `GEWICHT = { neu: 2, unsicher: 4,
-langsam: 2, sicher: 1 }`.
+langsam: 2, sicher: 1 }`, `FENSTER = 12`, `ZEIT_DECKEL = 10`, `MIN_ZEITEN = 3`
+(die letzten drei festgelegt von Sandra am 19.11.2026).
 
-- `status(entry)`: `"neu"` (weniger als 6 Antworten), `"unsicher"`
-  (Trefferquote unter 70 %), `"langsam"` (sonst, wenn die richtigen Antworten
-  im Schnitt über 4 s dauern; Einträge ohne Zeitmessung nie), `"sicher"`
+- `recent(entry)`: Kennzahlen `{ ok, n, timed, avg }`. Hat der Verlauf `hist`
+  mindestens 6 Einträge, zählen nur die letzten 12 Antworten und die letzten
+  12 Zeiten aus `hsec`; sonst die Gesamtwerte (alte Spielstände). So hält ein
+  früher oft falsch gelesener Ton eine Note nicht lange rot.
+- `status(entry)`: aus `recent`: `"neu"` (weniger als 6 Antworten),
+  `"unsicher"` (Trefferquote unter 70 %), `"langsam"` (sonst, wenn mindestens
+  3 Zeiten gemessen sind und die richtigen Antworten im Schnitt über 4 s
+  dauern; Einträge ohne Zeitmessung nie), `"sicher"`
 - `weight(entry)`: Gewicht nach `GEWICHT`
 - `pickWeighted(items, keyOf, notes, prev, rand = Math.random)`: nie dieselbe
   Aufgabe wie `prev` (Vergleich über `keyOf`); mit Wahrscheinlichkeit 0,3
@@ -470,7 +478,7 @@ Zustand (persistiert unter `localStorage["notenheld.v2"]`):
 {
   xp, dayStreak, lastDay,
   levels: { "noten-1": { stars, best, played } },
-  notes: { "G (g', Violin)": { ok, bad, sec, timed, last } },   // je Aufgabe (statKey)
+  notes: { "G (g', Violin)": { ok, bad, sec, timed, last, hist, hsec } },   // je Aufgabe (statKey)
   answered, correct, bestCombo, blitzRecord,
   unlockAll, muted, input, current: "noten-1",
 }
@@ -479,7 +487,10 @@ Zustand (persistiert unter `localStorage["notenheld.v2"]`):
 Ein Eintrag in `notes` (seit Paket G): `ok` und `bad` zählen richtige und
 falsche Antworten, `sec` ist die Summe der Antwortzeiten richtiger Antworten
 in Sekunden, `timed` deren Anzahl, `last` der Tag der letzten Antwort
-(`today()`). Blitz zählt keine Zeit. Ältere Einträge haben nur `{ ok, bad }`;
+(`today()`). Jede Zeit zählt höchstens 10 s (`ZEIT_DECKEL`). `hist` ist ein
+Text aus den letzten 12 Ergebnissen (`"1"` richtig, `"0"` falsch, neueste
+hinten), `hsec` die letzten 12 gemessenen Zeiten richtiger Antworten. Blitz
+zählt keine Zeit. Ältere Einträge haben nur `{ ok, bad }`;
 fehlende Felder gelten als 0 bzw. `null`, deshalb ist keine Migration nötig
 und der Schlüssel bleibt `notenheld.v2`.
 

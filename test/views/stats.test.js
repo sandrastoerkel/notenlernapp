@@ -95,6 +95,17 @@ test("heatRows: Zustand, Klasse, Trefferquote und Detailtext", () => {
   assert.equal(f.status, "neu"); assert.equal(f.pct, 100);
 });
 
+test("heatCell: Farbe, Quote und Zeit aus dem Fenster, Detail mit Gesamtzahl", () => {
+  // 20 alte Fehler, dann 12 richtige à 2 s
+  const e = { ok: 12, bad: 20, sec: 24, timed: 12, hist: "1".repeat(12), hsec: Array(12).fill(2) };
+  const c = heatCell(N("G", 4), "treble", e);
+  assert.equal(c.status, "sicher"); assert.equal(c.cls, "ok"); assert.equal(c.pct, 100);
+  assert.equal(c.detail, "G (g', Violin): zuletzt 12 von 12 richtig (insgesamt 12 von 32), im Schnitt 2,0 s");
+  // Fenster noch nicht voll und gleich der Gesamtzahl: kein „zuletzt“
+  const d = heatCell(N("G", 4), "treble", { ok: 5, bad: 1, sec: 10, timed: 5, hist: "111110", hsec: [2, 2, 2, 2, 2] });
+  assert.equal(d.detail, "G (g', Violin): 5 von 6 richtig, im Schnitt 2,0 s");
+});
+
 test("heatAccList, heatCell, heatX, Legende", () => {
   const list = heatAccList({ "Fis (fis', Violin)": { ok: 0, bad: 7 } });
   assert.deepEqual(list.map((c) => c.name), ["Fis", "Cis", "Gis", "Dis", "B", "Es", "As", "Des"]);

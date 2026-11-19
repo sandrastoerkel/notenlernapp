@@ -10,17 +10,37 @@ export const QUOTE_SICHER = 0.7;
 export const LANGSAM_SEK = 4;
 // Anteil der Züge, die gleichverteilt sind, damit gemischt bleibt und auch sichere Noten wiederkommen.
 export const ANTEIL_ZUFALL = 0.3;
+// Der Zustand kommt nur aus den letzten FENSTER Antworten, damit alte Fehler eine Note nicht lange rot halten.
+export const FENSTER = 12;
+// Eine einzelne Antwortzeit zählt höchstens so viele Sekunden (Wegschauen soll nicht langsam machen).
+export const ZEIT_DECKEL = 10;
+// Erst ab so vielen gemessenen richtigen Antworten kann eine Note langsam sein.
+export const MIN_ZEITEN = 3;
 // Gewichte je Zustand
 export const GEWICHT = { neu: 2, unsicher: 4, langsam: 2, sicher: 1 };
 
+// Kennzahlen, aus denen der Zustand berechnet wird: { ok, n, timed, avg }.
+// Mit mindestens MIN_ANTWORTEN Einträgen im Verlauf hist ("1" richtig, "0" falsch, die letzten FENSTER)
+// zählt nur der Verlauf, die Zeit aus hsec (die letzten FENSTER Zeiten richtiger Antworten).
+// Sonst zählen die Gesamtwerte ok, bad, sec, timed (alte Spielstände ohne Verlauf).
+export function recent(entry) {
+  const e = entry || {}, hist = typeof e.hist === "string" ? e.hist : "";
+  if (hist.length >= MIN_ANTWORTEN) {
+    const hsec = Array.isArray(e.hsec) ? e.hsec : [];
+    const ok = [...hist].filter((c) => c === "1").length;
+    return { ok, n: hist.length, timed: hsec.length, avg: hsec.length ? hsec.reduce((a, b) => a + b, 0) / hsec.length : null };
+  }
+  const ok = e.ok || 0, timed = e.timed || 0;
+  return { ok, n: ok + (e.bad || 0), timed, avg: timed ? (e.sec || 0) / timed : null };
+}
+
 // Zustand eines Eintrags: "neu", "unsicher", "langsam" oder "sicher".
-// Einträge ohne Zeitmessung (alte Spielstände) können nicht langsam sein.
+// Langsam erst ab MIN_ZEITEN gemessenen Zeiten; alte Spielstände ohne Zeitmessung sind nie langsam.
 export function status(entry) {
-  const ok = (entry && entry.ok) || 0, bad = (entry && entry.bad) || 0, n = ok + bad;
-  if (n < MIN_ANTWORTEN) return "neu";
-  if (ok / n < QUOTE_SICHER) return "unsicher";
-  const timed = entry.timed || 0;
-  if (timed > 0 && (entry.sec || 0) / timed > LANGSAM_SEK) return "langsam";
+  const r = recent(entry);
+  if (r.n < MIN_ANTWORTEN) return "neu";
+  if (r.ok / r.n < QUOTE_SICHER) return "unsicher";
+  if (r.timed >= MIN_ZEITEN && r.avg > LANGSAM_SEK) return "langsam";
   return "sicher";
 }
 

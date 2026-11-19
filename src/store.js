@@ -1,6 +1,7 @@
 // Fortschritt: Zustand, Freischaltung, Serie, Persistenz.
 // Alle Funktionen außer load und save sind rein bis auf das Verändern des übergebenen
 // Zustands; nur load und save greifen auf localStorage zu.
+import { FENSTER, ZEIT_DECKEL } from "./adapt.js";
 
 export const KEY_V1 = "notenheld.v1";
 export const KEY_V2 = "notenheld.v2";
@@ -77,10 +78,12 @@ export function recordRound(s, levelId, correct, now = new Date()) {
   return { stars, gained };
 }
 
-// Eine Antwort zählen und je Aufgabe vermerken: { ok, bad, sec, timed, last }.
+// Eine Antwort zählen und je Aufgabe vermerken: { ok, bad, sec, timed, last, hist, hsec }.
 // sec ist die Summe der Antwortzeiten richtiger Antworten in Sekunden, timed deren Anzahl,
-// last der Tag der letzten Antwort. sec (optional) zählt nur bei richtigen Antworten.
-// Alte Einträge ohne sec, timed oder last gelten als 0 bzw. null; keine Migration nötig.
+// last der Tag der letzten Antwort. sec (optional) zählt nur bei richtigen Antworten und
+// höchstens mit ZEIT_DECKEL Sekunden. hist sind die letzten FENSTER Ergebnisse ("1"/"0"),
+// hsec die letzten FENSTER gemessenen Zeiten richtiger Antworten (für den Zustand in adapt.js).
+// Alte Einträge ohne diese Felder gelten als 0, null bzw. leer; keine Migration nötig.
 export function recordAnswer(s, key, ok, sec, now = new Date()) {
   s.answered++; if (ok) s.correct++;
   const e = s.notes[key] || {};
@@ -88,9 +91,13 @@ export function recordAnswer(s, key, ok, sec, now = new Date()) {
   e.bad = (e.bad || 0) + (ok ? 0 : 1);
   e.sec = e.sec || 0;
   e.timed = e.timed || 0;
+  e.hist = ((typeof e.hist === "string" ? e.hist : "") + (ok ? "1" : "0")).slice(-FENSTER);
+  e.hsec = Array.isArray(e.hsec) ? e.hsec : [];
   if (ok && typeof sec === "number" && Number.isFinite(sec) && sec >= 0) {
-    e.sec = Math.round((e.sec + sec) * 100) / 100;
+    const t = Math.round(Math.min(sec, ZEIT_DECKEL) * 100) / 100;
+    e.sec = Math.round((e.sec + t) * 100) / 100;
     e.timed++;
+    e.hsec = [...e.hsec, t].slice(-FENSTER);
   }
   e.last = today(now);
   s.notes[key] = e;

@@ -3,7 +3,7 @@ import { reset, accuracy } from "../store.js";
 import { starsHtml } from "../engine.js";
 import { gName, helm } from "../music.js";
 import { staffSvg, noteSvg } from "../staff.js";
-import { status, MIN_ANTWORTEN, QUOTE_SICHER, LANGSAM_SEK } from "../adapt.js";
+import { status, recent, MIN_ANTWORTEN, QUOTE_SICHER, LANGSAM_SEK, FENSTER } from "../adapt.js";
 import { HEAT_NOTES, statKey } from "../packs/noten.js";
 
 const $ = (s) => document.querySelector(s);
@@ -67,15 +67,18 @@ export const HEAT_LEGEND = [
 const sec1 = (v) => v.toFixed(1).replace(".", ",");
 
 // Eine Zelle der Notenkarte zu einer Note im Schlüssel clef ("treble" oder "bass").
-// pct ist die Trefferquote in Prozent oder null, avg die mittlere Zeit richtiger Antworten oder null.
+// pct und avg passen zur Farbe: sie kommen wie der Zustand aus recent (die letzten FENSTER
+// Antworten, bei alten Spielständen die Gesamtwerte). pct in Prozent oder null, avg in s oder null.
+// Die Detailzeile nennt zusätzlich die Gesamtzahl, wenn sie davon abweicht.
 export function heatCell(n, clef, entry) {
   const e = entry || {};
-  const ok = e.ok || 0, total = ok + (e.bad || 0), timed = e.timed || 0;
-  const st = status(e), key = statKey(n, clef);
-  const pct = total ? Math.round((100 * ok) / total) : null;
-  const avg = timed ? (e.sec || 0) / timed : null;
+  const ok = e.ok || 0, total = ok + (e.bad || 0);
+  const r = recent(e), st = status(e), key = statKey(n, clef);
+  const pct = r.n ? Math.round((100 * r.ok) / r.n) : null;
+  const avg = r.avg;
+  const part = r.n < total ? `zuletzt ${r.ok} von ${r.n} richtig (insgesamt ${ok} von ${total})` : `${ok} von ${total} richtig`;
   const detail = total
-    ? `${key}: ${ok} von ${total} richtig${avg === null ? "" : `, im Schnitt ${sec1(avg)} s`}`
+    ? `${key}: ${part}${avg === null ? "" : `, im Schnitt ${sec1(avg)} s`}`
     : `${key}: noch nicht geübt`;
   return { key, n, clef, name: gName(n), helm: helm(n), status: st, cls: HEAT_CLS[st], ok, total, pct, avg, detail };
 }
@@ -124,7 +127,7 @@ function heatRowHtml(row) {
 function heatHtml(notes) {
   const legend = HEAT_LEGEND.map(([st, label]) => `<span class="heat-key"><i class="heat-dot ${HEAT_CLS[st]}"></i>${label}</span>`).join("");
   const acc = heatAccList(notes).map((c) => `<button type="button" class="list-row heat-acc" data-detail="${attr(c.detail)}"><b><i class="heat-dot ${c.cls}"></i>${c.name} (${c.helm})</b><span class="small muted">${c.status}</span><span class="small num">${pctText(c)}</span></button>`).join("");
-  return `<div class="row between"><h3>Notenkarte</h3><span class="small muted">Trefferquote je Note</span></div>
+  return `<div class="row between"><h3>Notenkarte</h3><span class="small muted">je Note aus den letzten ${FENSTER} Antworten</span></div>
     <p class="eyebrow">Violinschlüssel</p>${heatRows(notes, "treble").map(heatRowHtml).join("")}
     <p class="eyebrow">Bassschlüssel</p>${heatRows(notes, "bass").map(heatRowHtml).join("")}
     <p class="small heat-detail" id="sHeatDetail" aria-live="polite">Tippe auf eine Note für die Einzelwerte.</p>
