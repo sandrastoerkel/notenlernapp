@@ -25,6 +25,7 @@ src/
   packs/index.js        Registry aller Themenpakete
   packs/noten.js        Paket „Noten lesen“ (8 Stufen)
   packs/notenwerte.js   Paket „Notenwerte und Pausen“
+  packs/tonleitern.js   Paket „Tonleitern“ (Dur bis 4 Vorzeichen, seit Welle 5)
   packs/intervalle.js   Paket „Intervalle und Tonarten“
   packs/akkorde.js      Paket „Dreiklänge und Quintenzirkel“
   views/home.js         Startseite: Pakete und Stufen
@@ -109,12 +110,12 @@ bestehende Signatur ändern.
 ## Notenzeile (`src/staff.js`)
 
 Alle Funktionen liefern SVG-Markup als String. Konstanten: Linienabstand
-`S = 12`, oberste Linie `TOP = 34`, unterste Linie `BOTTOM = 82`, Breite 320,
+`S = 12`, oberste Linie `TOP = 34`, unterste Linie `BOTTOM = 82`, Breite 320 (Standard, siehe `opts.width`),
 Höhe `H = 122`. Eine halbe Stufe sind 6 Einheiten.
 
 | Funktion | Bedeutung |
 | -------- | --------- |
-| `staffSvg(clef, inner, opts)` | komplette Zeile mit Schlüssel; `inner` wird eingesetzt. Das dritte Argument ist entweder ein String (zusätzliche Klasse am `<svg>`, wie in der ersten Fassung) oder ein Objekt `{ cls, height, keySig }`: `height` darf die Höhe erhöhen, `keySig` (Anzahl ♯ als positive, ♭ als negative Zahl, höchstens 7) zeichnet Vorzeichen hinter dem Schlüssel |
+| `staffSvg(clef, inner, opts)` | komplette Zeile mit Schlüssel; `inner` wird eingesetzt. Das dritte Argument ist entweder ein String (zusätzliche Klasse am `<svg>`, wie in der ersten Fassung) oder ein Objekt `{ cls, height, keySig, width }`: `height` darf die Höhe erhöhen, `width` ändert die Breite (Standard 320, Ausgabe dann unverändert; die Linien enden 18 vor dem rechten Rand, nur `scaleSvg` nutzt 368), `keySig` (Anzahl ♯ als positive, ♭ als negative Zahl, höchstens 7) zeichnet Vorzeichen hinter dem Schlüssel |
 | `noteSvg(n, clef, x, cls, opts)` | Note mit Hals, Hilfslinien und Vorzeichen; `cls` ist `""`, `"ok"`, `"bad"`, `"warn"` (langsam, Notenkarte, Token `--gold`), `"new"` (neu, Notenkarte, Token `--muted`) oder `"ghost"` (Lernen, Token `--accent`); `opts.value` ist `1`, `2`, `4`, `8`, `16` (ganze bis sechzehntel, Standard 4), `opts.stemless` lässt den Hals weg |
 | `noteheadSvg(x, y, value)` | nur der Notenkopf mit Mitte (x, y), so wie ihn `noteSvg` zeichnet (ohne Hals, Hilfslinien, Vorzeichen); `value` 4, 8, 16 schwarz, 2 und 1 hohl, Standard 4. Nutzt die Ansicht „Lernen“ für „Alle Namen zeigen“ |
 | `restSvg(value, x)` | Pause (1, 2, 4, 8, 16); ganze und halbe als `<rect class="rest">`, die übrigen als Glyphe (`<text class="rest">`) |
@@ -175,6 +176,17 @@ Kommentar in `staff.js`. Angaben in Linienabständen (LA):
   (vier LA), Glyphenmitte 2,0 / 2,13 / 2,625 LA unter der obersten Linie.
   Ganze und halbe Pause sind Rechtecke (14 × 6,5): die ganze hängt an der
   vierten Linie von unten, die halbe sitzt auf der Mittellinie.
+
+**Tonleitern.** `src/packs/tonleitern.js` setzt acht Noten in eine Zeile mit
+`scaleSvg(notes, clef, opts)`: schwarze Köpfe ohne Hals (`noteSvg(…, { stemless: true })`),
+`staffSvg` mit `width: 368`, Noten bei x = 84 + 36·i (bei 320 Einheiten stießen in Bass-D-Dur
+h–cis' und Bass-E-Dur E–Fis die Vorzeichen an den Kopf davor). Mit `keySig` (Vorzeichnung, Stufe 6
+nach der Antwort) beginnen die Noten bei x = 126 im Abstand 30 und stehen ohne eigene Vorzeichen.
+Optionen: `mark: [i, i + 1]` bzw. `marks` (Nachbarnoten in `--accent`, Klasse `mark`, dazu eine
+eckige Klammer `.bracket` darunter, damit es nicht nur an der Farbe hängt), `gap: i` (gestrichelter
+Kasten `.gap-box` mit „?“ auf Höhe der Mittellinie statt der Note), `cls: { i: "ok" }` (einzelne
+Note färben), `keySig`, `svgCls`. Im Browser gemessen (getBBox): kein Vorzeichen berührt den Kopf
+davor oder den Schlüssel, in allen Tonleitern der Stufen 3 bis 6 und ihren Auflösungen.
 
 **Akkorde.** `src/packs/akkorde.js` setzt Dreiklänge mit `chordSvg(notes, clef, x, opts)`:
 ganze Noten übereinander (Köpfe aus `noteSvg`), eine gemeinsame Reihe Hilfslinien
@@ -244,7 +256,9 @@ passen bei 420 px in eine Zeile); sind alle Texte höchstens 4 Zeichen lang
 einer Reihe, ab 7 in zwei Reihen). Buchstaben und Klaviatur bleiben bei 7
 Spalten. In der Regel 4 bis 6 Knöpfe; Ausnahmen im Paket „Dreiklänge und
 Quintenzirkel“: Stufe 1 hat laut PLAN zwei (Dur, Moll), Stufe 4 drei (die drei
-Lagen), Stufe 6 alle sieben Stufen I bis VII.
+Lagen), Stufe 6 alle sieben Stufen I bis VII. Im Paket „Tonleitern“ haben Stufe 1 und 2
+(`tonleitern-1`, `tonleitern-2`) nur zwei Knöpfe („Ganztonschritt“, „Halbtonschritt“); Halbtöne
+werden dort mit Wahrscheinlichkeit 0,4 gezogen. Raten reicht in etwa 5,5 % der Runden für 8 von 10.
 
 Rhythmen (seit Paket F): Ein Eintrag in `play` ist entweder eine Note (wie
 bisher; mehrere Noten nacheinander im Abstand `PLAY_GAP` = 500 ms) oder ein Wert

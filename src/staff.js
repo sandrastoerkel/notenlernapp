@@ -203,12 +203,14 @@ export const BASS_CLEF = { x: 26, y: TOP + S, scale: S / 250 };
 
 // Komplette Notenzeile mit Schlüssel; inner wird eingesetzt.
 // opts darf ein String sein (zusätzliche Klasse wie in der ersten Fassung) oder
-// { cls, height, keySig }: height erhöht die Höhe, keySig = Anzahl ♯ (positiv) bzw. ♭ (negativ).
+// { cls, height, keySig, width }: height erhöht die Höhe, keySig = Anzahl ♯ (positiv) bzw. ♭ (negativ),
+// width ändert die Breite (Standard W = 320; die Linien enden dann W − X1 = 18 vor dem rechten Rand).
 export function staffSvg(clef, inner, opts) {
   const o = typeof opts === "string" ? { cls: opts } : (opts || {});
   const h = o.height && o.height > H ? o.height : H;
-  let s = `<svg viewBox="0 0 ${W} ${h}" role="img" aria-label="Notenzeile" class="${o.cls || ""}">`;
-  for (let i = 0; i < 5; i++) s += `<line class="staff-line" x1="${X0}" x2="${X1}" y1="${TOP + i * S}" y2="${TOP + i * S}"/>`;
+  const w = o.width && o.width > 0 ? o.width : W, x1 = w - (W - X1);
+  let s = `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Notenzeile" class="${o.cls || ""}">`;
+  for (let i = 0; i < 5; i++) s += `<line class="staff-line" x1="${X0}" x2="${x1}" y1="${TOP + i * S}" y2="${TOP + i * S}"/>`;
   s += clef === "treble"
     ? `<text class="clef" x="22" y="${BOTTOM}" font-size="${S * 4.2}">${GLYPHS.treble}</text>`
     : `<path class="clef" transform="translate(${BASS_CLEF.x} ${BASS_CLEF.y}) scale(${BASS_CLEF.scale} ${-BASS_CLEF.scale})" d="${BASS_CLEF_PATH}"/>`;

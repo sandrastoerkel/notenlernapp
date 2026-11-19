@@ -1,7 +1,7 @@
 // Service Worker von Notenheld: legt alle App-Dateien in einen versionierten Cache,
 // damit die App nach dem ersten Laden auch ohne Netz läuft.
 // Bei jedem Release CACHE erhöhen, sonst bekommen Geräte die neuen Dateien nicht.
-const CACHE = "notenheld-v0.2.0-5";
+const CACHE = "notenheld-v0.2.0-6";
 
 // Alle Dateien der App, relativ zum Ort von sw.js (GitHub Pages liegt unter /notenlernapp/).
 // test/sw.test.js prüft, dass jede Datei aus src/, css/, fonts/ und icons/ hier steht.
@@ -20,6 +20,7 @@ const PRECACHE = [
   "./src/packs/index.js",
   "./src/packs/noten.js",
   "./src/packs/notenwerte.js",
+  "./src/packs/tonleitern.js",
   "./src/packs/intervalle.js",
   "./src/packs/akkorde.js",
   "./src/views/home.js",

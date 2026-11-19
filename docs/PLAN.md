@@ -17,6 +17,7 @@ anzufassen.
 | 2     | B, C, D, E (parallel möglich)            | berühren jeweils eigene Dateien, siehe Dateilisten        |
 | 3     | F (Integration und Veröffentlichung)     | zusammenführen, prüfen, Screenshots, Release             |
 | 4     | G (Noten-Heatmap, adaptive Auswahl)      | nach v0.2.0; nutzt die vorhandenen `statKey`s            |
+| 5     | Tonleitern (Stufen 1–6, Dur)             | Kl. 5–6, vor den Intervall-Stufen 7 ff. und den Hörstufen |
 
 Vor Welle 2 muss Welle 1 gemergt und `npm test` grün sein. Welle 2 kann mit
 vier Agenten gleichzeitig laufen (am besten je ein Git-Worktree oder je ein
@@ -410,6 +411,153 @@ German. Do not push.
 ```
 
 ---
+
+## Paket „Tonleitern“ (Klasse 5–6), Stufen 1–6
+
+Ausgangsstand: Branch `paket-tonleitern` von `main` be8996e (Paket G mit
+Nachbesserung: Zeit-Deckel 10 s, „langsam“ ab 3 Zeiten, Fenster 12 Antworten,
+Cache `notenheld-v0.2.0-5`). Grundlage: `claude/DIDAKTIK-intervalle-tonleitern.md`
+(Projekt-Doc, 19.11.2026) und LehrplanPLUS Gymnasium Musik Kl. 5
+(Dur-Tonleitern mit verschiedenen Grundtönen, Ganz- und Halbtonschritt).
+
+**Ziel.** Neues Paket `tonleitern` nach der Schnittstelle in ARCHITEKTUR.md,
+auf der Startseite zwischen „Notenwerte und Pausen“ und „Intervalle und
+Tonarten“. Nur Dur, nur bis 4 Vorzeichen, keine Doppelvorzeichen, keine
+Eis/His/Ces/Fes. Moll (Stufen 7–8: a e h d g c f, alle drei Formen) kommt in
+einem späteren Paket und hängt hinten an (`tonleitern-7` ff.), damit keine
+Migration nötig ist.
+
+**Dateien.** `src/packs/tonleitern.js` (neu), `test/packs/tonleitern.test.js`
+(neu), `src/packs/index.js` (Reihenfolge), `sw.js` (Datei in `PRECACHE`,
+Cache `notenheld-v0.2.0-6`), `css/style.css` (nur neue Klassen über
+vorhandene Tokens), `src/views/stats.js` + `css/style.css` (Schritt 0),
+`docs/ARCHITEKTUR.md`, `docs/PLAN.md`, `README.md`/`CLAUDE.md` (Cache, Stand).
+`src/music.js` nur anhängend, falls nötig (`majorScale` gibt es schon).
+`engine.js` bleibt unverändert; `staff.js` bekommt nur die optionale Breite
+`opts.width` in `staffSvg` (Schritt 2).
+
+**Tonleitern im Paket.** Dur-Tonleiter aufwärts über eine Oktave, acht Noten
+(`majorScale(tonic)` + Grundton eine Oktave höher), als Vorzeichen vor den
+Noten (keine Vorzeichnung), außer in Stufe 6 nach der Antwort.
+Tonarten: bis 2 Vorzeichen C G D F B; bis 4 dazu A E Es As.
+Lage Violinschlüssel: Grundton c' bis a' (C D E F G A in Oktave 4: c'–c'' …
+a'–a''; Es es'–es'', As as'–as''), B-Dur b–b'. Lage Bassschlüssel: C und D
+in der kleinen Oktave (c–c', d–d'), E F G A B Es As in der großen Oktave
+(E–e … B–b, Es–es, As–as). So braucht keine Tonleiter mehr als eine Hilfslinie.
+
+**Schritte.**
+
+0. **Notenkarte: „neu“ grau statt blau** (Sandra, 19.11.: ja). In
+   `src/views/stats.js` `HEAT_CLS.neu` auf eine neue Klasse `"new"`;
+   `css/style.css`: `.note.new .notehead` und Hals/Vorzeichen in
+   `var(--muted)`, hell und dunkel. Legende der Notenkarte entsprechend.
+   Die Klasse `ghost` (Lernen) bleibt blau. Test in `test/views/stats.test.js`
+   anpassen.
+1. **Gerüst.** `src/packs/tonleitern.js` mit `id: "tonleitern"`,
+   `title: "Tonleitern"`, `subtitle: "Dur-Tonleitern bauen und lesen"`,
+   `grade: "Klasse 5–6"`, `blitz: null`. In `packs/index.js` zwischen
+   `notenwerte` und `intervalle`.
+2. **Acht Noten in einer Zeile.** Hilfsfunktion `scaleSvg(notes, clef, opts)`
+   im Paket: schwarze Notenköpfe ohne Hals (`noteSvg(..., { stemless: true })`),
+   `staffSvg` bekommt `opts.width` (Standard 320); `scaleSvg` nutzt 368, Noten
+   bei x = 84 + 36·i (bei 320 stießen in Bass-D-Dur h–cis' und Bass-E-Dur
+   E–Fis Vorzeichen an den Kopf davor). Mit `keySig` (Stufe 6, Auflösung)
+   beginnen die Noten bei x = 126, Abstand 30.
+   Optionen: `mark: [i, i+1]` (zwei Nachbarnoten hervorgehoben, Klasse
+   `mark` über `--accent`, dazu eine eckige Klammer unter beiden Noten, damit
+   es nicht nur an der Farbe hängt), `gap: i` (statt der Note eine
+   gestrichelte Lücke mit „?“ auf Höhe der Mittellinie), `cls: { i: "ok" }`
+   (einzelne Note färben), `keySig`. Prüfen im Browser bei 420 px und bei
+   320 px Breite: kein Vorzeichen berührt den Kopf davor, Klammer und Lücke
+   lesbar; ausdrücklich prüfen: Bass D-Dur und E-Dur, B-Dur im Violinschlüssel
+   (b und c' auf Hilfslinien), erstes ♭ direkt nach dem Schlüssel (b, es', Es).
+   Die Breite in ARCHITEKTUR.md eintragen.
+3. **Stufen** (alle mit `play` nach der Antwort: Stufe 1–2 die beiden
+   markierten Töne, Stufe 3–6 die ganze Tonleiter als `{ note, beats: 0.5 }`,
+   also 300 ms je Ton, die Engine wartet bis zum Ende):
+   1. **Halbtöne in C-Dur.** C-Dur im Violin- (c'–c'') und Bassschlüssel
+      (c–c'), zwei Nachbarnoten markiert. Frage „Ganzton oder Halbton?“,
+      Knöpfe „Ganztonschritt“, „Halbtonschritt“. 14 Aufgaben. Hinweis:
+      „In C-Dur liegen die Halbtonschritte zwischen e und f und zwischen h und
+      c, also zwischen der 3. und 4. und der 7. und 8. Stufe. Auf der Klaviatur:
+      Dort liegt keine schwarze Taste dazwischen.“ Halbtöne werden mit
+      Wahrscheinlichkeit 0,4 gezogen (sonst kämen sie nur 2 von 7 Mal).
+      Nur zwei Knöpfe: Ausnahme von „4 bis 6“, in ARCHITEKTUR.md eintragen
+      (Raten reicht in etwa 5,5 % der Runden für 8 von 10).
+   2. **Bauplan der Dur-Tonleiter.** Wie Stufe 1, aber G D F B (Violin), mit
+      Vorzeichen. 28 Aufgaben. Hinweis: „Jede Dur-Tonleiter hat denselben
+      Bauplan: Ganz – Ganz – Halb – Ganz – Ganz – Ganz – Halb. Die Halbtöne
+      liegen immer zwischen der 3. und 4. und der 7. und 8. Stufe. Achte auf die
+      Vorzeichen: In D-Dur ist e'–fis' ein Ganzton, fis'–g' ein Halbton.“ (Begriff
+      „Tetrachord“ nicht verwenden, bis Sandra entscheidet; Text spricht von
+      zwei gleich gebauten Vierergruppen nur in der Lerntafel.)
+   3. **Welcher Ton fehlt?** C G D F B, Violinschlüssel, eine Note (Stufe
+      2–7) ist eine Lücke. Eingabe Namensraster (`input: "letters"`,
+      `acc: true`), Antwort `{ letter, acc }`. 30 Aufgaben. Nach der Antwort
+      `revealSvg`: Tonleiter vollständig, die eingesetzte Note gefärbt.
+      Mit Klaviatur zählt die Tonklasse (wie in „Noten lesen“, Fis = Ges).
+   4. **Welcher Ton fehlt? Bis 4 Vorzeichen.** Alle neun Tonarten, beide
+      Schlüssel. 108 Aufgaben.
+   5. **Welcher Ton passt nicht?** Tonleiter (bis 4 Vorzeichen, beide
+      Schlüssel), bei genau einer Note (Stufe 2–7) ist das Vorzeichen um einen
+      Halbton verschoben (das Vorzeichen fehlt oder es steht eines zu viel), nur übliche
+      Vorzeichen (keine Eis/His/Ces/Fes). Frage „Welcher Ton passt nicht in G-Dur?“ (Tonart in der Frage),
+      Knöpfe: die sechs Namen der Noten 2–7, wie sie dastehen (`gName`,
+      kurz, eine Reihe). `revealSvg`: richtige Tonleiter, berichtigte Note
+      grün. Auflösung z. B. „In G-Dur heißt die 7. Stufe Fis, nicht F.“
+      144 Aufgaben (72 je Schlüssel). Im Code nicht das Wort „falsch“
+      verwenden, auch nicht in Bezeichnern (Wortliste prüft den Code).
+   6. **Tonleiter und Vorzeichen.** Tonleiter mit Vorzeichen vor den Noten
+      (bis 4, beide Schlüssel). Frage „Welche Vorzeichen stehen vorne?“
+      Knöpfe: Reihen in der Reihenfolge der Vorzeichnung, z. B. „Fis, Cis“,
+      „Fis“, „Fis, Cis, Gis“, „B, Es“; „keine“ für C-Dur. Vier Knöpfe:
+      richtig, ein Vorzeichen mehr, eins weniger, gleiche Zahl mit der anderen
+      Sorte. Ränder: C-Dur „keine“, „Fis“, „B“, „Fis, Cis“; bei 4 Vorzeichen
+      eins weniger, zwei weniger, andere Sorte. Hinweis enthält: „Der Grundton
+      steht zweimal da, sein Vorzeichen zählt nur einmal.“ `revealSvg`: dieselbe Tonleiter mit
+      Vorzeichnung hinter dem Schlüssel und ohne Vorzeichen vor den Noten.
+      18 Aufgaben (9 Tonarten × 2 Schlüssel).
+   statKeys: Stufe 1–2 „Halbton e–f“ / „Ganzton f–g“ bzw. mit Vorzeichen
+   („Ganzton e–fis“), Stufe 3–4 „G-Dur, 7. Stufe (Lücke)“, Stufe 5
+   „G-Dur, 7. Stufe (Suchen)“, Stufe 6 „Vorzeichen von G-Dur“.
+   Jede Aufgabe setzt `display` und `reveal`, z. B. „Richtig wäre:
+   Halbtonschritt (e'–f').“, „Richtig wäre: Fis (G-Dur, 7. Stufe).“,
+   „Richtig wäre: Fis, Cis (D-Dur).“
+4. **Lerntafeln.** „Bauplan Dur“ (`clef: "treble"` und Bass-Variante):
+   C-Dur mit Klammern an den Halbtönen, darunter „Ganz Ganz Halb · Ganz ·
+   Ganz Ganz Halb“, Satz zu den zwei gleich gebauten Vierergruppen.
+   „Dur-Tonleitern bis 4 Vorzeichen“ (ohne Schlüssel): Tabelle Tonart, Töne,
+   Vorzeichen, Reihenfolge wie im Quintenzirkel (C G D A E, F B Es As).
+   Liedanfänge: nicht in diesem Paket (sie gehören zu den Intervall-Hörstufen
+   und müssen vorher Lied für Lied geprüft werden).
+5. **Tests** `test/packs/tonleitern.test.js`: Paket registriert und steht vor
+   `intervalle`; sechs Stufen, IDs `tonleitern-1` … `-6`; jede Stufe ≥ 8
+   Aufgaben, Zahlen festgehalten; jede gezeigte Tonleiter hat Halbtöne genau
+   bei 3–4 und 7–8 (über `midi`); nur übliche Vorzeichen, kein Doppelvorzeichen;
+   Lage innerhalb der festgelegten Bereiche; `check` nimmt die richtige und
+   lehnt eine falsche Antwort ab (auch Klaviatur-Zahl); bei `choices` ist
+   `answer` enthalten, Knöpfe eindeutig; Stufe 5: genau eine Note weicht ab
+   und ist die Antwort; Stufe 6: Knopftexte stimmen mit der Vorzeichen-
+   Reihenfolge Fis Cis Gis Dis / B Es As Des überein; nie dieselbe Aufgabe
+   zweimal hintereinander; Wortliste (`texte.test.js`) bleibt grün.
+   `test/sw.test.js` prüft `PRECACHE` automatisch.
+6. **Doku.** ARCHITEKTUR.md: Paket in der Liste, `scaleSvg`, ggf.
+   `staffSvg`-Breite. PLAN.md: dieser Abschnitt + Reihenfolge-Tabelle (Welle
+   5). README/CLAUDE.md: Stand, Cache -6.
+
+**Akzeptanz.**
+
+- `npm test` grün (am Mac Ausgabe „ℹ pass …“).
+- Browser 420 px hell und dunkel (zusätzlich 320 px): alle sechs Stufen eine
+  Runde gespielt, acht Noten lesbar, nichts überlappt, keine Konsolenfehler,
+  alter Spielstand lädt, Freischaltung (ab 8 Richtigen) wie bei den anderen
+  Paketen.
+- Knopf „Fis, Cis, Gis, Dis“ bricht bei 320 px nicht unschön um.
+- Ton nach der Antwort: Tonleiter vollständig und sauber hintereinander.
+- Keine Änderung an Sternen, XP und den anderen Paketen (außer Schritt 0).
+
+**Offen für Sandra.** Begriff „Tetrachord“ im Unterricht? (bis dahin nur
+„Vierergruppe“ in der Lerntafel).
 
 ## Später (nicht geplant, nur notiert)
 
