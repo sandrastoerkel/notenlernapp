@@ -441,7 +441,13 @@ export function valueDemo(e) {
 const rowOf = (e) => VALUES.indexOf(e.v);
 // Element in der Farbe des Schritts (Klasse nw-s1 bzw. nw-s2 färbt Kopf, Hals, Fähnchen, Punkt und Pause)
 const tinted = (svg, step) => `<g class="nw-s${step}">${svg}</g>`;
-const beatsStaff = (e, step) => staffSvg(CLEF, timeSigSvg() + (step ? tinted(elementAt(e, DEMO_X), step) : elementAt(e, DEMO_X)));
+// dot (nur punktierte Noten): 0 – der Punkt bleibt schwarz (Schritt 1 heißt „ohne den Punkt“), 2 – der Punkt
+// grün (Bild „Punkt: die Hälfte dazu“, Schritt 2)
+const dotTinted = (svg, step, dot) => `<g class="nw-s${step} nw-dot${dot}">${svg}</g>`;
+const beatsStaff = (e, step, dot = 0) => {
+  const note = elementAt(e, DEMO_X);
+  return staffSvg(CLEF, timeSigSvg() + (!step ? note : e.dot ? dotTinted(note, step, dot) : tinted(note, step)));
+};
 
 export function beatsDemo(e) {
   const base = baseOf(e), bb = beatsOf(base), name = nameOf(e), baseName = nameOf(base);
@@ -455,7 +461,7 @@ export function beatsDemo(e) {
       body: say(beatsStaff(e, 1), pyr({ hit: rowOf(e) })),
     },
   ];
-  if (e.dot) frames.push({ step: 2, text: `Punkt: die Hälfte dazu → ${beatsText(bb)} + ${beatsText(bb / 2)}`, body: say(beatsStaff(e, 1), pyr({ hit: rowOf(e), add: rowOf(e) + 1 })) });
+  if (e.dot) frames.push({ step: 2, text: `Punkt: die Hälfte dazu → ${beatsText(bb)} + ${beatsText(bb / 2)}`, body: say(beatsStaff(e, 1, 2), pyr({ hit: rowOf(e), add: rowOf(e) + 1 })) });
   frames.push({
     step: 3, tones: e.rest ? [] : [PITCH],
     result: {

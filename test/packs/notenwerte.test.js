@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import notenwerte, {
   BARS, parseBar, beatsOf, nameOf, fillChoices, barSvg, dotSvg, timeSigSvg, layoutBar, learnHtml, PITCH, DOT, TIME, rhythmOf,
   MISSING_CHOICES, BEAT_CHOICES_4, ITEMS_8, ITEMS_1, ITEMS_4, ITEMS_6, BOARDS, valueDemo, beatsDemo, barDemo, countLabels, REST_COUNTS_IN_PARENS,
@@ -562,7 +563,7 @@ test("Vorführung „So bestimmst du die Dauer“: 4 Bilder, mit Punkt 5, die gr
     assert.ok(d.frames[2].body.includes(`class="nw-pyr-row hit" data-row="${row}"`), it.key);
     // Schritt 1 nennt keine Schläge
     assert.ok(!/Schl|[¼½¾]|\d/.test(d.frames[1].text), d.frames[1].text);
-    assert.ok(d.frames[1].body.includes('class="nw-s1"'));
+    assert.match(d.frames[1].body, /class="nw-s1( nw-dot0)?"/);
     if (e.dot) {
       assert.ok(d.frames[3].body.includes(`class="nw-pyr-row add" data-row="${row + 1}"`), it.key);
       assert.ok(d.frames[1].text.startsWith("Ohne den Punkt: "));
@@ -576,6 +577,13 @@ test("Vorführung „So bestimmst du die Dauer“: 4 Bilder, mit Punkt 5, die gr
     "Punkt: die Hälfte dazu → 1 + ½", "Punktierte Viertelnote = 1½ Schläge",
   ]);
   assert.equal(nb(beatsDemo(parseBar("r8")[0]).frames[2].text), "Achtelpause = ½ Schlag, so lang wie die Achtelnote");
+  // Punktierte Note: in Schritt 1 („ohne den Punkt“) bleibt der Punkt schwarz, im Bild „die Hälfte dazu“ ist er grün
+  const dotCls = (f) => (f.body.match(/class="nw-s\d nw-dot(\d)"/) || [])[1] || null;
+  assert.deepEqual(beatsDemo(parseBar("4.")[0]).frames.map(dotCls), [null, "0", "0", "2", null]);
+  assert.deepEqual(beatsDemo(parseBar("4")[0]).frames.map(dotCls), [null, null, null, null]);
+  const css = readFileSync(new URL("../../css/style.css", import.meta.url), "utf8");
+  assert.match(css, /\.nw-dot0 \.notehead\.aug \{ fill: var\(--ink\); \}/);
+  assert.match(css, /\.nw-dot2 \.notehead\.aug \{ fill: var\(--step2\); \}/);
 });
 
 const segsOf = (body) => [...body.matchAll(/class="nw-seg s(\d)" data-from="([\d.]+)" data-to="([\d.]+)"/g)].map((m) => [+m[1], +m[2], +m[3]]);

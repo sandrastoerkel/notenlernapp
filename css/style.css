@@ -348,6 +348,9 @@ section { display: grid; gap: 14px; }
 .nw-ring.empty { stroke-dasharray: 4 3; }
 .nw-s1 .notehead, .nw-s1 .flag, .nw-s1 .rest { fill: var(--step1); } .nw-s1 .stem { stroke: var(--step1); }
 .nw-s2 .notehead, .nw-s2 .flag, .nw-s2 .rest { fill: var(--step2); } .nw-s2 .stem { stroke: var(--step2); }
+/* Vorführung „Dauer“ bei punktierten Noten: Schritt 1 gilt ohne den Punkt (bleibt schwarz), im Bild „die Hälfte dazu“ ist er grün */
+.nw-dot0 .notehead.aug { fill: var(--ink); }
+.nw-dot2 .notehead.aug { fill: var(--step2); }
 .nw-sum { width: 100%; max-width: 300px; height: auto; display: block; margin: 0 auto; }
 .nw-sum-field { fill: var(--surface); stroke: var(--line); stroke-width: 1; }
 .nw-sum-field.beat { fill: var(--family); }
