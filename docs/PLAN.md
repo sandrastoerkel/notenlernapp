@@ -18,6 +18,7 @@ anzufassen.
 | 3     | F (Integration und Veröffentlichung)     | zusammenführen, prüfen, Screenshots, Release             |
 | 4     | G (Noten-Heatmap, adaptive Auswahl)      | nach v0.2.0; nutzt die vorhandenen `statKey`s            |
 | 5     | Tonleitern (Stufen 1–6, Dur)             | Kl. 5–6, vor den Intervall-Stufen 7 ff. und den Hörstufen |
+| 6     | Intervalle 7–12 (Kl. 5–6)                | nach den Tonleitern (Ganz-/Halbton); vor Dreiklängen Schritt für Schritt und den Hörstufen |
 
 Vor Welle 2 muss Welle 1 gemergt und `npm test` grün sein. Welle 2 kann mit
 vier Agenten gleichzeitig laufen (am besten je ein Git-Worktree oder je ein
@@ -578,6 +579,100 @@ in der kleinen Oktave (c–c', d–d'), E F G A B Es As in der großen Oktave
 4. Kopfzeile bei 320 px: Tonknopf wurde abgeschnitten; `.icon-btn { flex: none }`
    und engere Abstände unter 360 px.
 5. Cache `notenheld-v0.2.0-7`.
+
+## Paket „Intervalle 7–12“ (Klasse 5–6), Welle 6
+
+Ausgangsstand: Branch `paket-intervalle`, abgezweigt erst nach dem Commit von
+`tonleitern-feinschliff` (Cache `notenheld-v0.2.0-7`, Engine-Option `keepRow`,
+`label` in `scaleSvg`). Grundlage: `claude/DIDAKTIK-intervalle-tonleitern.md`,
+LehrplanPLUS Gymnasium Musik Kl. 5 (Ganz-/Halbtonschritt, diatonische
+Intervalle) und Kl. 6 (Intervalle bis zur Oktave rein/groß/klein, schriftlich
+genau; übermäßig/vermindert nur MuG). Didaktik wie bei den Tonleitern: erst
+die Stufen zählen, dann die Halbtöne; bauen; Fehler finden; Lerntafel als
+Bauplan.
+
+**Ziel.** Das Paket „Intervalle und Tonarten“ bekommt sechs neue Stufen,
+hinten angehängt (`intervalle-7` … `-12`), kein Umbau von Spielständen.
+Plan freigegeben von Sandra am 20.11.2026. Danach: Paket „Dreiklänge Schritt für Schritt“ (Kl. 6), zuletzt Hörstufen. In den
+neuen Stufen nur rein, groß, klein (Sekunde bis Oktave, keine Prime), kein
+vermindert/übermäßig, keine Doppelvorzeichen, keine Eis/His/Ces/Fes.
+Hörstufen kommen in einem späteren Paket. Klassenangabe: „Klasse 5–9“.
+
+**Zwei Denkschritte sichtbar (Stufen 8–12).** Jede Rückmeldung zeigt den Weg,
+z. B. „e'–g': 3 Stufen → Terz · 3 Halbtöne → kleine Terz“.
+
+**Freischaltung.** Neues Feld `requires: "<Stufen-ID>"` (`src/store.js`
+`isUnlocked` + Hilfsfunktion `unlockedBy`, genutzt von `home.js` und
+`practice.js`): 7 ← 1 · 8 ← 7 · 9 ← 8 · 10 ← 9 · 11 ← 10 · 12 ← 11.
+Gesperrte Stufen zeigen „frei nach Stufe X“; die Ergebniskarte nennt die
+richtige nächste Stufe (nach Stufe 1 auch Stufe 7). Unbekannte ID → gesperrt.
+
+**Stufen.**
+
+7. **Ganzton oder Halbton?** Zwei Noten im Sekundabstand aufwärts, Violin-
+   und Bassschlüssel. Zwei Knöpfe, Halbtöne mit Wahrscheinlichkeit 0,5. Keine
+   chromatischen Halbtöne (f–fis). Vorzeichen (Sandra, 20.11.): nur Stammtöne und Fis, Cis, B, Es (beide Noten).
+8. **Groß, klein, rein.** Aufwärts, Violin- und Bassschlüssel, 11 Namen.
+   Vier Knöpfe: vier in der Größenfolge aufeinanderfolgende Namen, die die
+   richtige Antwort enthalten, Fensteranfang zufällig (wie `numberChoices`).
+   Hinweis erklärt „rein“ (Quarte 5, Quinte 7, Oktave 12 Halbtöne).
+9. **Intervalle abwärts.** Violinschlüssel, links die obere, rechts die
+   untere Note, `play` obere zuerst. Knöpfe wie 8.
+10. **Intervall bauen.** „Baue eine große Terz über e'.“ Links die gegebene
+    Note, nach der Antwort rechts die gebaute (grün, mit Namen, `keepRow`).
+    `input: "letters"`, `acc: true`, `namesOnly: true` (Schreibweise zählt:
+    gis ≠ as; Klaviatur-Wahl ausgeblendet, `effectiveInput` mit drittem
+    Parameter). Gegebene Note und Lösung Stammtöne oder übliche Vorzeichen,
+    beide in c'–a''. Die reine Oktave bleibt drin (Sandra, 20.11.: als leichte Aufgabe).
+11. **Intervall bauen abwärts.** „Baue eine kleine Terz unter g'.“ Sonst wie 10.
+12. **Fehler finden.** Eine Mitschülerin hat gebaut: „große Terz über e'“ →
+    e'–g'. Frage „Stimmt das?“ Knöpfe: „stimmt“, „falsche Zahl (Stufen)“,
+    „ein Halbton zu viel“, „ein Halbton zu wenig“. Trainiert genau die zwei
+    Denkschritte. Etwa ein Viertel der Aufgaben stimmt.
+
+**Lerntafel neu: „So bestimmst du ein Intervall“.** 1. Stufen zählen (beide
+Noten mit) → Zahl. 2. Halbtöne zählen → groß/klein bzw. rein. Beispiel e'–g'
+mit Klammer, Tabelle der 11 Intervalle mit Halbtonzahl. Hinweis: Fis ist
+nicht Ges – beim Bauen zählt der Buchstabe.
+
+statKeys eigen (nicht mit tonleitern-1/2 vermischt): „Halbton e–f
+(Sekunde)“, „große Terz“, „große Terz abwärts“, „große Terz bauen“,
+„große Terz abwärts bauen“, „große Terz (Fehler)“.
+
+**Dateien.** `src/packs/intervalle.js`, `test/packs/intervalle.test.js`,
+`src/store.js` + Test, `src/views/home.js`, `src/views/practice.js` + Test,
+`src/engine.js` + Test (`namesOnly`), `src/music.js` nur anhängend
+(`lowerNote`), `sw.js` (Cache `notenheld-v0.2.0-8`), Doku (ARCHITEKTUR,
+PLAN Welle 6, README/CLAUDE.md).
+
+**Tests.** Neue Stufen 7–12 mit festgehaltenen Zahlen; Name passt zu Stufen
+und Halbtönen (aus unterer/oberer Note berechnet); Richtung bei 9 und 11;
+Bauaufgaben prüfen Buchstabe + Vorzeichen; Fehler-Aufgaben: genau die
+genannte Fehlerart liegt vor; Knöpfe eindeutig, Antwort an jeder Stelle
+möglich; `requires` inkl. alter Spielstände; Stufen 1–6 unverändert (76, 76,
+147, 115, 30, 30); bisherige Sammeltests auf die neuen Formen angepasst.
+
+**Umgesetzt (Branch `paket-intervalle`).** Aufgaben je Stufe: 7: 51 (Violin
+und Bass), 8: 408, 9: 206, 10: 206, 11: 206, 12: 904 (206 „stimmt“, 452
+„Zahl stimmt nicht“, 128 „ein Halbton zu viel“, 118 „ein Halbton zu wenig“);
+Stufen 1–6 unverändert (76, 76, 147, 115, 30, 30). Entscheidungen bei der
+Umsetzung: Der Knopf heißt „Zahl stimmt nicht (Stufen)“ statt „falsche Zahl
+(Stufen)“, weil die Wortliste (`test/texte.test.js`) „falsch“ im Code
+verbietet. In Stufe 12 ist das gezeigte Intervall bei „Zahl stimmt nicht“
+selbst rein, groß oder klein (Nachbarbuchstabe der richtigen Note); bei „ein
+Halbton zu viel/zu wenig“ nennt die Rückmeldung nur die Halbtonzahl, nicht
+„übermäßig“/„vermindert“, und die obere Note liegt immer über der unteren.
+In Stufe 12 wird erst die Antwort gleich verteilt gezogen (also ein Viertel
+„stimmt“), dann das Intervall, dann die Aufgabe. Stufe 8 nutzt die
+statKeys von Stufe 3 („große Terz“), wie im Plan genannt. Lerntafel „So
+bestimmst du ein Intervall“ steht als erste Tafel des Pakets (ohne
+Schlüssel). Ergebniskarte: nach Stufe 1 der Knopf „Stufe 2“ und „Stufe 7
+ist offen“, unter 8 Richtigen „Stufe 2 und 7 öffnen sich ab 8 Richtigen“;
+nach Stufe 6 „Stufe 7 ist frei nach Stufe 1“. Cache `notenheld-v0.2.0-8`.
+
+**Akzeptanz.** `npm test` grün; Browser 420 und 320 px, hell und dunkel:
+jede neue Stufe eine Runde mit richtiger und falscher Antwort, nichts
+überlappt, keine Konsolenfehler, Freischaltung richtig, alter Spielstand lädt.
 
 ## Später (nicht geplant, nur notiert)
 

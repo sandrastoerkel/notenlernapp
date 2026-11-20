@@ -56,12 +56,32 @@ export function touchStreak(s, now = new Date()) {
   return s;
 }
 
-// Erste Stufe eines Pakets ist offen; jede weitere ab best >= 8 in der vorherigen Stufe oder mit unlockAll
+// Stufe, deren Ergebnis eine Stufe freischaltet: das Feld requires (Stufen-ID im selben Paket, seit
+// Paket „Intervalle 7–12“), sonst die Stufe davor. null für die erste Stufe (ohne requires), für
+// unbekannte Stufen und für ein requires, das es im Paket nicht gibt (die Stufe bleibt dann gesperrt).
+export function unlockedBy(pack, levelId) {
+  const i = pack.levels.findIndex((l) => l.id === levelId);
+  if (i < 0) return null;
+  const req = pack.levels[i].requires;
+  if (req !== undefined) return pack.levels.find((l) => l.id === req) || null;
+  return i === 0 ? null : pack.levels[i - 1];
+}
+
+// Stufen, die das Ergebnis von levelId freischaltet (in der Reihenfolge des Pakets)
+export const unlocks = (pack, levelId) => pack.levels.filter((l) => {
+  const by = unlockedBy(pack, l.id);
+  return !!by && by.id === levelId;
+});
+
+// Erste Stufe eines Pakets ist offen; jede weitere ab best >= 8 in der Stufe, die sie freischaltet
+// (unlockedBy), oder mit unlockAll. Eine Stufe mit unbekanntem requires bleibt gesperrt.
 export function isUnlocked(s, pack, levelId) {
   const i = pack.levels.findIndex((l) => l.id === levelId);
   if (i < 0) return false;
-  if (i === 0 || s.unlockAll) return true;
-  return ((s.levels[pack.levels[i - 1].id] || {}).best || 0) >= 8;
+  if (s.unlockAll) return true;
+  const by = unlockedBy(pack, levelId);
+  if (!by) return i === 0 && pack.levels[i].requires === undefined;
+  return ((s.levels[by.id] || {}).best || 0) >= 8;
 }
 
 export const starsFor = (c) => (c >= 9 ? 3 : c >= 7 ? 2 : c >= 5 ? 1 : 0);

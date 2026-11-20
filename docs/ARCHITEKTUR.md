@@ -26,7 +26,7 @@ src/
   packs/noten.js        Paket „Noten lesen“ (8 Stufen)
   packs/notenwerte.js   Paket „Notenwerte und Pausen“
   packs/tonleitern.js   Paket „Tonleitern“ (Dur bis 4 Vorzeichen, seit Welle 5)
-  packs/intervalle.js   Paket „Intervalle und Tonarten“
+  packs/intervalle.js   Paket „Intervalle und Tonarten“ (12 Stufen; 7–12 seit Welle 6)
   packs/akkorde.js      Paket „Dreiklänge und Quintenzirkel“
   views/home.js         Startseite: Pakete und Stufen
   views/practice.js     Üben (nutzt engine.js)
@@ -92,6 +92,10 @@ der Reihen im Raster), `parseNoteName(str)` (deutscher Name → `{ letter, acc }
 oder `null`; groß oder klein, Leerzeichen am Rand egal; gültig sind genau die
 21 Namen, die `gName` für die Stammtöne ohne, mit ♯ und mit ♭ liefert, also
 „es“, „as“, „b“, nicht „hes“, „ass“ oder „eses“).
+
+Erweiterung aus Paket „Intervalle 7–12“: `lowerNote(high, num, quality)` (untere Note
+`num − 1` Buchstaben tiefer mit der Halbtonzahl aus `semitonesFor`; `null` bei Doppelvorzeichen oder
+unbekannter Kombination), Gegenstück zu `upperNote` im Paket.
 
 **Bekannte Dopplungen.** Die Pakete D und E entstanden parallel und haben je
 eigene Hilfsfunktionen für dasselbe angelegt. Beide Fassungen sind getestet und
@@ -203,6 +207,16 @@ Stufen darüber), rückt es wie in `staff.js` 1,9 (0,16 LA) weiter nach links
 (`accTouchesLedger`). `opts.keySig` lässt Vorzeichen weg, die die Vorzeichnung
 schon enthält.
 
+**Intervalle 7–12.** `src/packs/intervalle.js` (seit Welle 6): zwei ganze Noten bei `X_LOW`/`X_HIGH`
+wie in Stufe 1–4 (`intervalSvg`; Stufe 9 abwärts mit der oberen Note links). Bauaufgaben (Stufe 10, 11):
+`buildSvg(it)` zeigt nur die gegebene Note (links), `buildRevealSvg(it)` beide, die gebaute rechts grün
+(`noteSvg(…, "ok")`) mit ihrem Namen darunter (`note-label ok`, 18 Einheiten, unter dem tiefsten Punkt
+beider Noten, `lowestY` wie in „Tonleitern“); Frage und Auflösung haben dieselbe Höhe (`buildHeight`,
+mindestens 122), die Karte springt nicht. Dazu `q.keepRow`. Hilfen: `SIZE_ORDER`/`SIZE_NAMES` (die elf
+Intervalle rein/groß/klein der Größe nach), `sizeChoices(name, rnd)` (vier aufeinanderfolgende Namen,
+Fensteranfang gleich verteilt), `stepsText(a, b)` (die zwei Denkschritte als Text), `checkBuild`
+(Buchstabe und Vorzeichen), `VERDICTS` (Stufe 12). `lowerNote(high, num, quality)` in `music.js`.
+
 ## Themenpakete (`src/packs/*.js`)
 
 Ein Paket ist ein Default-Export mit dieser Form:
@@ -231,6 +245,8 @@ Eine Stufe:
   example: "<svg …>",          // optional, festes SVG für die Startkarte (vor der Runde)
   input: "letters",            // "letters" | "choices" | "keys"
   acc: false,                  // optional, true zeigt bei "letters" das Namensraster (21 Namen) statt C–H
+  namesOnly: false,            // optional, true: nur Namensraster, keine Klaviatur (die Schreibweise zählt, gis ≠ as)
+  requires: "intervalle-1",    // optional, Stufen-ID im selben Paket, deren best >= 8 diese Stufe öffnet (sonst die Stufe davor)
   items: [ /* … */ ],          // optional, Vorrat der Aufgaben (nur für Tests und Blitz)
   question(prev, ctx) {        // liefert eine neue Aufgabe, nie dieselbe wie prev; ctx siehe unten
     return {
@@ -263,6 +279,7 @@ Quintenzirkel“: Stufe 1 hat laut PLAN zwei (Dur, Moll), Stufe 4 drei (die drei
 Lagen), Stufe 6 alle sieben Stufen I bis VII. Im Paket „Tonleitern“ haben Stufe 1 und 2
 (`tonleitern-1`, `tonleitern-2`) nur zwei Knöpfe („Ganztonschritt“, „Halbtonschritt“); Halbtöne
 werden dort mit Wahrscheinlichkeit 0,4 gezogen. Raten reicht in etwa 5,5 % der Runden für 8 von 10.
+Ebenso `intervalle-7` („Ganzton oder Halbton?“, zwei Knöpfe, Halbtöne mit Wahrscheinlichkeit 0,5).
 
 Rhythmen (seit Paket F): Ein Eintrag in `play` ist entweder eine Note (wie
 bisher; mehrere Noten nacheinander im Abstand `PLAY_GAP` = 500 ms) oder ein Wert
@@ -294,7 +311,12 @@ ohne `playTogether` bleibt es beim Nacheinander mit `PLAY_GAP`.
 
 Eingabeart: hat eine Stufe `input: "letters"` und hat das Kind „Klaviatur“
 gewählt (`state.input === "keys"`), nutzt die Engine die Klaviatur. Andere
-Eingabearten bleiben unverändert.
+Eingabearten bleiben unverändert. Ausnahme `namesOnly: true` (seit Paket
+„Intervalle 7–12“, Stufen 10 und 11 „Intervall bauen“): `effectiveInput(levelInput,
+pref, namesOnly)` bleibt dann bei `"letters"` (Namensraster), beide Aufrufe in
+`engine.js` geben `level.namesOnly` weiter, und `practice.js` blendet die Wahl
+Namen/Klaviatur aus. Grund: Beim Bauen zählt die Schreibweise (Gis ist nicht As),
+die Klaviatur kennt nur die Tonklasse.
 
 Namensraster (seit Paket F2, `acc: true` bei `input: "letters"`, geprüft mit
 `usesNames(level)`): Statt der Buchstaben C–H und einer Vorzeichen-Wahl wählt
@@ -521,14 +543,24 @@ und der Schlüssel bleibt `notenheld.v2`.
 
 Freischaltung: die erste Stufe jedes Pakets ist offen. Jede weitere öffnet
 sich, wenn die vorherige Stufe desselben Pakets `best >= 8` hat, oder wenn
-`unlockAll` gesetzt ist. Alte Daten unter `notenheld.v1` werden beim ersten
+`unlockAll` gesetzt ist. Seit Paket „Intervalle 7–12“ darf eine Stufe statt
+der vorherigen eine andere Stufe desselben Pakets nennen: `requires:
+"intervalle-1"` (Stufe 7 öffnet sich nach Stufe 1, nicht nach Stufe 6).
+`unlockedBy(pack, levelId)` liefert die freischaltende Stufe (`requires` oder
+die davor; `null` bei der ersten Stufe, bei unbekannter Stufe und bei einem
+`requires`, das es im Paket nicht gibt: die Stufe bleibt dann gesperrt, außer
+mit `unlockAll`). `unlocks(pack, levelId)` liefert umgekehrt die Stufen, die
+`levelId` freischaltet. Genutzt von `isUnlocked`, der Startseite (`lockText`
+in `home.js`: „frei nach Stufe 1“ unter gesperrten Stufen mit `requires`)
+und der Ergebniskarte (`resultInfo` in `practice.js`). Spielstände ändern
+sich dadurch nicht. Alte Daten unter `notenheld.v1` werden beim ersten
 Start übernommen (Stufe `n` wird zu `noten-n`, `current: n` zu `"noten-n"`)
 und als v2 gespeichert; der v1-Eintrag bleibt unverändert.
 
 Exporte (alle rein bis auf das Verändern des übergebenen Zustands; nur `load`
 und `save` greifen auf `localStorage` zu): `KEY_V1`, `KEY_V2`, `fresh()`,
 `load()`, `save(s)`, `migrateV1(v1)`, `today(now)`, `touchStreak(s, now)`,
-`isUnlocked(s, pack, levelId)`, `starsFor(correct)`,
+`isUnlocked(s, pack, levelId)`, `unlockedBy(pack, levelId)`, `unlocks(pack, levelId)`, `starsFor(correct)`,
 `recordRound(s, levelId, correct)` → `{ stars, gained }`,
 `recordAnswer(s, key, ok, sec, now)` (`sec` optional, zählt nur bei richtigen Antworten), `recordBlitz(s, score, bestCombo)` →
 `{ record, gained }`, `reset(s)` (behält nur `muted` und `input`),

@@ -22,8 +22,10 @@ export const RHYTHM_TAIL = 300;
 
 export const starsHtml = (k) => `<span class="stars">${"★".repeat(k)}<span class="off">${"★".repeat(3 - k)}</span></span>`;
 
-// Eingabeart: die Wahl „Klaviatur“ (state.input === "keys") ersetzt "letters"; andere Arten bleiben
-export const effectiveInput = (levelInput, pref) => ((levelInput || "letters") === "letters" && pref === "keys" ? "keys" : levelInput || "letters");
+// Eingabeart: die Wahl „Klaviatur“ (state.input === "keys") ersetzt "letters"; andere Arten bleiben.
+// namesOnly (optional, level.namesOnly, seit Paket „Intervalle 7–12“): die Schreibweise zählt
+// (gis ist nicht as), deshalb bleibt es beim Namensraster, auch wenn „Klaviatur“ gewählt ist
+export const effectiveInput = (levelInput, pref, namesOnly = false) => ((levelInput || "letters") === "letters" && pref === "keys" && !namesOnly ? "keys" : levelInput || "letters");
 
 // Zehn Aufgaben nacheinander erzeugen, jede verschieden von der vorherigen.
 // ctx (optional, z. B. { notes: state.notes }) geht als zweiter Parameter an question;
@@ -195,7 +197,7 @@ function showTyped(r, text) {
 // Eingabeart während der Runde wechseln (Buchstaben oder Klaviatur)
 export function setInput(pref) {
   if (!run) return;
-  run.input = effectiveInput(run.level.input, pref);
+  run.input = effectiveInput(run.level.input, pref, !!run.level.namesOnly);
   applyInput(run);
 }
 
@@ -216,7 +218,7 @@ export function startRound(level, ui, hooks) {
   const r = {
     level, ui, hooks, items: makeRound(level, ROUND_LENGTH, { notes: hooks.state.notes }), idx: 0, correct: 0, results: [], times: [],
     locked: false, buf: "", t0: 0, timers: new Set(),
-    input: effectiveInput(level.input, hooks.state.input),
+    input: effectiveInput(level.input, hooks.state.input, !!level.namesOnly),
   };
   run = r;
   if (ui.answers) ui.answers.classList.remove("choices", "short", "names");

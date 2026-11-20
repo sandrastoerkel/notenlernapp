@@ -267,3 +267,16 @@ export function parseNoteName(str) {
   }
   return null;
 }
+
+/* ---------- Intervalle abwärts (Paket „Intervalle 7–12“) ---------- */
+
+// Untere Note zu oberer Note, Intervallzahl und Qualität (rein, groß, klein, …): num − 1 Buchstaben
+// tiefer und so viele Halbtöne darunter, wie semitonesFor angibt; null, wenn es die Kombination nicht
+// gibt oder ein Doppelvorzeichen nötig wäre
+export function lowerNote(high, num, quality) {
+  const semi = semitonesFor(num, quality);
+  if (semi === null) return null;
+  const base = fromDia(dia(high) - (num - 1));
+  const acc = midi(high) - semi - midi(base);
+  return Math.abs(acc) > 1 ? null : N(base.letter, base.octave, acc);
+}

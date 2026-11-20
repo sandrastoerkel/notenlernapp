@@ -1,5 +1,5 @@
 // Üben: Startkarte der Stufe, Runde über engine.js, Ergebniskarte
-import { isUnlocked } from "../store.js";
+import { isUnlocked, unlockedBy, unlocks } from "../store.js";
 import * as engine from "../engine.js";
 
 const $ = (s) => document.querySelector(s);
@@ -19,6 +19,28 @@ export const keysHint = (level) => (engine.usesNames(level)
 
 // Beschriftung der Wahl Buchstaben/Klaviatur (rein, getestet): mit Namensraster „Namen“
 export const lettersLabel = (level) => (engine.usesNames(level) ? "Namen" : "Buchstaben");
+
+// Ergebniskarte (rein, getestet): nächste Stufe der Reihe nach (Knopf nur, wenn sie offen ist) und ein
+// Zusatz, der requires folgt. Unter 8 Richtigen: „Stufe 2 und 7 öffnen sich ab 8 Richtigen“ (die Stufen,
+// die diese Stufe freischaltet und die noch zu sind). Sonst: weitere offene Stufen, die diese Stufe
+// freischaltet („Stufe 7 ist offen“). Ist die nächste Stufe zu und hängt an einer anderen Stufe:
+// „Stufe 7 ist frei nach Stufe 1“.
+const andList = (nos) => (nos.length < 2 ? `${nos[0]}` : `${nos.slice(0, -1).join(", ")} und ${nos[nos.length - 1]}`);
+export function resultInfo(state, pack, level, correct) {
+  const next = engine.nextLevel(pack, level);
+  const nextOpen = !!next && isUnlocked(state, pack, next.id);
+  const mine = unlocks(pack, level.id);
+  const closed = mine.filter((l) => !isUnlocked(state, pack, l.id));
+  const notes = [];
+  if (correct < 8 && closed.length) notes.push(`Stufe ${andList(closed.map((l) => l.no))} ${closed.length > 1 ? "öffnen" : "öffnet"} sich ab 8 Richtigen`);
+  const extra = mine.filter((l) => l !== next && isUnlocked(state, pack, l.id));
+  if (extra.length) notes.push(`Stufe ${andList(extra.map((l) => l.no))} ${extra.length > 1 ? "sind" : "ist"} offen`);
+  if (next && !nextOpen && !mine.includes(next)) {
+    const by = unlockedBy(pack, next.id);
+    if (by) notes.push(`Stufe ${next.no} ist frei nach Stufe ${by.no}`);
+  }
+  return { next, nextOpen, note: notes.join(" · ") };
+}
 
 function markInput() {
   $("#inLetters").classList.toggle("on", ctx.state.input === "letters");
@@ -50,7 +72,8 @@ export function render() {
   // Die Wahl Buchstaben/Klaviatur und der Tastatur-Hinweis gelten nur für Stufen mit Buchstaben-Eingabe;
   // bei Auswahlknöpfen sind die Aufgaben keine einzelnen Noten
   const letters = (level.input || "letters") === "letters";
-  $("#view-practice .seg").hidden = !letters;
+  // namesOnly: nur das Namensraster (die Schreibweise zählt), keine Wahl der Klaviatur
+  $("#view-practice .seg").hidden = !letters || !!level.namesOnly;
   $("#pKeys").hidden = !letters;
   $("#pKeys").innerHTML = keysHint(level);
   $("#inLetters").textContent = lettersLabel(level);
@@ -71,8 +94,7 @@ function startRound() {
 function showResult(res) {
   const { pack, level } = current();
   const { correct: c, stars, gained, avg } = res;
-  const next = engine.nextLevel(pack, level);
-  const nextOpen = next && isUnlocked(ctx.state, pack, next.id);
+  const { next, nextOpen, note } = resultInfo(ctx.state, pack, level, c);
   $("#pPlay").hidden = true;
   $("#pResult").hidden = false;
   $("#pResult").innerHTML = `
@@ -80,7 +102,7 @@ function showResult(res) {
       ${engine.starsHtml(stars)}
       <p class="big num">${c} / ${res.total}</p>
       <p class="muted">${engine.resultMessage(stars)}</p>
-      <p class="small muted num">+${gained} XP · Ø ${avg.toFixed(1)} s pro Note${c < 8 && next && !nextOpen ? ` · Stufe ${next.no} öffnet sich ab 8 Richtigen` : ""}</p>
+      <p class="small muted num">+${gained} XP · Ø ${avg.toFixed(1)} s pro Note${note ? ` · ${note}` : ""}</p>
       <div class="row" style="justify-content:center">
         <button class="btn primary" id="rAgain">Nochmal</button>
         ${nextOpen ? `<button class="btn" id="rNext">Stufe ${next.no}</button>` : ""}

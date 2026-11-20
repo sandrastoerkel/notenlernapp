@@ -27,6 +27,18 @@ test("effectiveInput: Klaviatur ersetzt nur Buchstaben", () => {
   assert.equal(effectiveInput("choices", "keys"), "choices");
   assert.equal(effectiveInput("keys", "letters"), "keys");
   assert.equal(effectiveInput(undefined, "keys"), "keys");
+  // namesOnly: die Schreibweise zählt, die Klaviatur ersetzt das Namensraster nicht
+  assert.equal(effectiveInput("letters", "keys", true), "letters");
+  assert.equal(effectiveInput("letters", "letters", true), "letters");
+  assert.equal(effectiveInput("letters", "keys", false), "keys");
+  assert.equal(effectiveInput("choices", "keys", true), "choices");
+});
+
+test("effectiveInput: beide Aufrufe im Ablauf geben namesOnly der Stufe weiter", () => {
+  const src = readFileSync(new URL("../src/engine.js", import.meta.url), "utf8");
+  const calls = src.match(/effectiveInput\([^)]*\)/g).filter((c) => !c.startsWith("effectiveInput(levelInput"));
+  assert.equal(calls.length, 2, calls.join());
+  calls.forEach((c) => assert.match(c, /namesOnly/, c));
 });
 
 test("makeRound: zehn Aufgaben, nie zweimal dieselbe hintereinander", () => {
@@ -199,8 +211,8 @@ test("svgResultClass: ganze Zeile ok/bad, mit keepRow keine Klasse", () => {
   assert.equal(svgResultClass({ keepRow: true }, false), "");
 });
 
-test("keepRow: nur Tonleitern Stufe 3 bis 5, alle anderen Stufen färben die ganze Zeile", () => {
-  const keep = ["tonleitern-3", "tonleitern-4", "tonleitern-5"];
+test("keepRow: nur Tonleitern Stufe 3 bis 5 und Intervalle 10 und 11 (Bauen), alle anderen Stufen färben die ganze Zeile", () => {
+  const keep = ["tonleitern-3", "tonleitern-4", "tonleitern-5", "intervalle-10", "intervalle-11"];
   for (const pack of PACKS) for (const level of pack.levels) {
     let prev = null;
     for (let i = 0; i < 30; i++) {

@@ -2,10 +2,12 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import intervalle, {
   POOL_1, POOL_2, POOL_3, POOL_4, POOL_5, POOL_6, FIFTHS, X_LOW, X_HIGH, NOTE_VALUE, LEARN_ROWS,
+  POOL_7, POOL_8, POOL_9, POOL_10, POOL_11, POOL_12, SIZE_ORDER, SIZE_NAMES, sizeChoices, stepsText, stepNote, pickStep7,
+  STEP_WHOLE, STEP_HALF, VERDICTS, VERDICT_OK, VERDICT_NUM, VERDICT_MORE, VERDICT_LESS, buildSvg, buildRevealSvg, buildHeight, checkBuild,
   usualNote, upperNote, intervalSvg, numberChoices, minorMajorChoices, perfectChoices, keyChoices, minorChoices, sigText, sigSentence, describe,
 } from "../../src/packs/intervalle.js";
 import { PACKS } from "../../src/packs/index.js";
-import { N, dia, midi, pc, SEMI, intervalNumber, intervalName, INTERVAL_NAMES, majorName, minorName, majorKeyFromKeySig, relativeMinor, intervalLabel } from "../../src/music.js";
+import { N, dia, midi, pc, SEMI, gName, helm, intervalSemitones, intervalQuality, lowerNote, semitonesFor, intervalNumber, intervalName, INTERVAL_NAMES, majorName, minorName, majorKeyFromKeySig, relativeMinor, intervalLabel } from "../../src/music.js";
 import { feedbackText } from "../../src/engine.js";
 import { staffSvg, noteSvg } from "../../src/staff.js";
 
@@ -15,27 +17,40 @@ const many = (l, n = 300) => { const out = []; let prev = null; for (let i = 0; 
 test("Paket ist registriert", () => {
   assert.ok(PACKS.some((p) => p.id === "intervalle"));
   assert.equal(intervalle.title, "Intervalle und Tonarten");
-  assert.equal(intervalle.grade, "Klasse 7–9");
+  assert.equal(intervalle.grade, "Klasse 5–9");
 });
 
-test("sechs Stufen mit eindeutigen IDs", () => {
-  assert.deepEqual(L.map((l) => l.id), ["intervalle-1", "intervalle-2", "intervalle-3", "intervalle-4", "intervalle-5", "intervalle-6"]);
-  assert.equal(new Set(L.map((l) => l.id)).size, 6);
+const OLD = L.slice(0, 6), NEW = L.slice(6);
+const CHOICE_LEVELS = L.filter((l) => l.input === "choices");
+
+test("zwölf Stufen mit eindeutigen IDs, 1–6 Auswahlknöpfe wie bisher", () => {
+  assert.deepEqual(L.map((l) => l.id), Array.from({ length: 12 }, (_, i) => `intervalle-${i + 1}`));
+  assert.equal(new Set(L.map((l) => l.id)).size, 12);
   L.forEach((l, i) => {
     assert.equal(l.no, i + 1);
-    assert.equal(l.input, "choices");
     assert.ok(l.title && l.hint && l.subtitle);
     assert.ok(l.example.startsWith("<svg"));
   });
+  OLD.forEach((l) => { assert.equal(l.input, "choices", l.id); assert.equal(l.requires, undefined, l.id); assert.ok(!l.namesOnly, l.id); });
+  // Stufen 10 und 11 bauen (Namensraster, nur Namen), die übrigen neuen haben Auswahlknöpfe
+  assert.deepEqual(NEW.map((l) => l.input), ["choices", "choices", "choices", "letters", "letters", "choices"]);
+  assert.deepEqual(NEW.map((l) => !!l.namesOnly), [false, false, false, true, true, false]);
+  assert.deepEqual(NEW.map((l) => !!l.acc), [false, false, false, true, true, false]);
+  // Freischaltung: 7 nach 1, dann jede nach der vorigen
+  assert.deepEqual(NEW.map((l) => l.requires), ["intervalle-1", "intervalle-7", "intervalle-8", "intervalle-9", "intervalle-10", "intervalle-11"]);
 });
 
 test("Texte: keine verbotenen Wörter, Anrede du", () => {
   const texts = L.flatMap((l) => [l.title, l.subtitle, l.hint]).concat(intervalle.learn.map((c) => c.render()));
   for (const t of texts) assert.ok(!/Fehler!|falsch|mühelos|Held|Champion|\bSie\b/.test(t), t);
+  for (const l of NEW) for (const q of many(l, 200)) {
+    for (const t of [q.prompt, q.display, q.reveal, ...(q.choices || [])]) assert.ok(!/Fehler!|falsch|mühelos|Held|Champion|\bSie\b/.test(t), t);
+  }
 });
 
-test("mindestens 8 unterschiedliche Aufgaben je Stufe", () => {
+test("mindestens 8 unterschiedliche Aufgaben je Stufe, Zahlen festgehalten", () => {
   assert.deepEqual([POOL_1, POOL_2, POOL_3, POOL_4, POOL_5, POOL_6].map((p) => p.length), [76, 76, 147, 115, 30, 30]);
+  assert.deepEqual([POOL_7, POOL_8, POOL_9, POOL_10, POOL_11, POOL_12].map((p) => p.length), [51, 408, 206, 206, 206, 904]);
   L.forEach((l) => {
     assert.ok(l.items.length >= 8, l.id);
     const seen = new Set(many(l, 400).map((q) => q.svg + q.prompt));
@@ -44,16 +59,28 @@ test("mindestens 8 unterschiedliche Aufgaben je Stufe", () => {
 });
 
 test("question liefert gültige Aufgaben, check erkennt richtig und falsch", () => {
-  for (const l of L) {
+  for (const l of CHOICE_LEVELS) {
+    // Stufen 1–6 vier bis sechs Knöpfe; Stufe 7 zwei (Ganz-/Halbton), 8, 9 und 12 vier
+    const counts = { "intervalle-7": [2], "intervalle-8": [4], "intervalle-9": [4], "intervalle-12": [4] }[l.id] || [4, 5, 6];
     for (const q of many(l, 200)) {
       assert.ok(q.svg.startsWith("<svg") && q.prompt && q.display && q.statKey, l.id);
-      assert.ok(q.choices.length >= 4 && q.choices.length <= 6, l.id);
+      assert.ok(counts.includes(q.choices.length), l.id);
       assert.equal(new Set(q.choices).size, q.choices.length, l.id);
       assert.ok(q.choices.includes(q.answer), l.id);
       assert.ok(l.check(q, q.answer));
       q.choices.filter((c) => c !== q.answer).forEach((c) => assert.ok(!l.check(q, c)));
       assert.ok(!l.check(q, undefined));
     }
+  }
+  for (const l of [L[9], L[10]]) for (const q of many(l, 200)) {
+    assert.ok(q.svg.startsWith("<svg") && q.revealSvg.startsWith("<svg") && q.prompt && q.display && q.statKey, l.id);
+    assert.equal(q.choices, undefined);
+    assert.ok(l.check(q, { ...q.answer }));
+    assert.ok(!l.check(q, undefined) && !l.check(q, null));
+    assert.ok(!l.check(q, { letter: q.answer.letter, acc: q.answer.acc + 1 }));
+    assert.ok(!l.check(q, { letter: q.answer.letter === "C" ? "D" : "C", acc: q.answer.acc }));
+    // Klaviatur gibt es hier nicht (namesOnly); eine Zahl gilt nicht als Antwort
+    assert.ok(!l.check(q, midi(q.built) % 12));
   }
 });
 
@@ -232,17 +259,17 @@ test("Stufe 6: parallele Molltonart", () => {
 });
 
 test("Lerntafeln", () => {
-  assert.equal(intervalle.learn.length, 3);
-  assert.deepEqual(intervalle.learn.map((c) => c.clef), ["treble", "bass", undefined]);
+  assert.equal(intervalle.learn.length, 4);
+  assert.deepEqual(intervalle.learn.map((c) => c.clef), [undefined, "treble", "bass", undefined]);
   // Überschriften kommen aus title (learn.js), nicht aus render()
-  assert.deepEqual(intervalle.learn.map((c) => c.title), ["Intervalle über c'", "Intervalle über c", "Quintenzirkel"]);
+  assert.deepEqual(intervalle.learn.map((c) => c.title), ["So bestimmst du ein Intervall", "Intervalle über c'", "Intervalle über c", "Quintenzirkel"]);
   intervalle.learn.forEach((c) => assert.ok(!/<h[1-6]/.test(c.render()), c.title));
   assert.equal(LEARN_ROWS.length, 14);
   assert.deepEqual(LEARN_ROWS.map((r) => r.semitones), [0, 1, 2, 3, 4, 5, 6, 6, 7, 8, 9, 10, 11, 12]);
-  const t = intervalle.learn[0].render();
+  const t = intervalle.learn[1].render();
   assert.ok(t.includes("<svg") && t.includes("verminderte Quinte") && t.includes("c'–ges'") && t.includes("c'–fis'"));
-  assert.ok(intervalle.learn[1].render().includes("c–es"));
-  const q = intervalle.learn[2].render();
+  assert.ok(intervalle.learn[2].render().includes("c–es"));
+  const q = intervalle.learn[3].render();
   const row = (sig, dur, moll) => `<tr><td>${sig}</td><td><b>${dur}</b></td><td><b>${moll}</b></td></tr>`;
   for (const r of [["keine Vorzeichen", "C-Dur", "a-Moll"], ["6 ♯", "Fis-Dur", "dis-Moll"], ["3 ♭", "Es-Dur", "c-Moll"], ["7 ♭", "Ces-Dur", "as-Moll"], ["7 ♯", "Cis-Dur", "ais-Moll"]]) assert.ok(q.includes(row(...r)), r.join());
   assert.equal((q.match(/<tr><td>/g) || []).length, 15);
@@ -257,7 +284,7 @@ test("Feedback: ganze Sätze nach falscher Antwort (reveal)", () => {
   for (const l of L) for (const q of many(l, 60)) {
     assert.ok(q.reveal && q.reveal.endsWith("."), l.id);
     assert.ok(!/Das war ein/.test(feedbackText(q, false)), l.id);
-    assert.ok(q.reveal.includes(q.answer), l.id);
+    assert.ok(q.reveal.includes(typeof q.answer === "string" ? q.answer : gName(q.built)), l.id);
     assert.ok(!/Fehler!|falsch|mühelos|Held|Champion/.test(q.reveal), q.reveal);
   }
   const iv = (low, high, l) => { for (let i = 0; i < 2000; i++) { const q = l.question(null); if (q.low.letter === low.letter && q.low.octave === low.octave && q.low.acc === low.acc && q.high.letter === high.letter && q.high.octave === high.octave && q.high.acc === high.acc) return q; } return null; };
@@ -288,4 +315,210 @@ test("Tonarten-Auswahl: nie zwei gleich klingende Tonarten, immer vier verschied
   // Cis-Dur: Ces-Dur darf stehen, aber nicht zusammen mit H-Dur
   const c7 = keyChoices(7, majorName);
   assert.ok(!(c7.includes("Ces-Dur") && c7.includes("H-Dur")), c7.join());
+});
+
+/* ---------- Stufen 7 bis 12 ---------- */
+
+const inTreble = (n) => dia(n) >= dia(N("C", 4)) && dia(n) <= dia(N("A", 5));
+const inBass = (n) => dia(n) >= dia(N("E", 2)) && dia(n) <= dia(N("C", 4));
+const RARE = (n) => ["E1", "H1", "C-1", "F-1"].includes(n.letter + n.acc) || Math.abs(n.acc) > 1;
+
+test("Stufe 7: Sekunden aufwärts, nur Stammtöne und Fis, Cis, B, Es, beide Schlüssel", () => {
+  const allowed = (n) => n.acc === 0 || ["F1", "C1", "H-1", "E-1"].includes(n.letter + n.acc);
+  for (const it of POOL_7) {
+    assert.ok(allowed(it.low) && allowed(it.high) && stepNote(it.low) && stepNote(it.high));
+    assert.equal(intervalNumber(it.low, it.high), 2);
+    const semi = intervalSemitones(it.low, it.high);
+    assert.ok(semi === 1 || semi === 2);
+    assert.equal(it.half, semi === 1);
+    assert.ok(it.clef === "treble" ? inTreble(it.low) && inTreble(it.high) : inBass(it.low) && inBass(it.high));
+  }
+  assert.deepEqual(new Set(POOL_7.map((it) => it.clef)), new Set(["treble", "bass"]));
+  // keine chromatischen Halbtöne (f–fis): immer zwei verschiedene Buchstaben
+  assert.ok(POOL_7.every((it) => it.low.letter !== it.high.letter));
+  const qs = many(L[6], 2000);
+  for (const q of qs) {
+    assert.deepEqual(q.choices, [STEP_WHOLE, STEP_HALF]);
+    assert.equal(q.answer, intervalSemitones(q.low, q.high) === 1 ? STEP_HALF : STEP_WHOLE);
+    assert.deepEqual(q.play, [q.low, q.high]);
+    // eigene Schlüssel, nicht die von tonleitern-1/2 („Halbton e–f“)
+    assert.match(q.statKey, /^(Halbton|Ganzton) [a-z]+–[a-z]+ \(Sekunde\)$/);
+  }
+  const half = qs.filter((q) => q.answer === STEP_HALF).length / qs.length;
+  assert.ok(half > 0.44 && half < 0.56, String(half));
+  // pickStep7: Halbton bei rnd < 0,5
+  assert.ok(pickStep7(POOL_7, null, () => 0.1).half);
+  assert.ok(!pickStep7(POOL_7, null, () => 0.6).half);
+  const e = many(L[6], 2000).find((q) => q.low.letter === "E" && q.low.octave === 4 && q.low.acc === 0 && q.high.letter === "F" && q.high.acc === 0);
+  assert.equal(e.statKey, "Halbton e–f (Sekunde)");
+  assert.equal(e.reveal, "Richtig wäre: Halbtonschritt (e'–f': kleine Sekunde, 1 Halbton).");
+});
+
+test("Größenfolge: elf Intervalle rein, groß, klein mit Halbtönen", () => {
+  assert.deepEqual(SIZE_NAMES, ["kleine Sekunde", "große Sekunde", "kleine Terz", "große Terz", "reine Quarte", "reine Quinte", "kleine Sexte", "große Sexte", "kleine Septime", "große Septime", "reine Oktave"]);
+  assert.deepEqual(SIZE_ORDER.map((r) => r.semitones), [1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12]);
+});
+
+test("Knöpfe Stufe 8 und 9: vier aufeinanderfolgende Namen mit der Antwort, Antwort an jeder Stelle", () => {
+  for (const name of SIZE_NAMES) for (const r of [0, 0.3, 0.6, 0.99]) {
+    const c = sizeChoices(name, () => r);
+    assert.equal(c.length, 4);
+    assert.ok(c.includes(name));
+    const idx = c.map((n) => SIZE_NAMES.indexOf(n));
+    idx.forEach((v, i) => i && assert.equal(v, idx[i - 1] + 1));
+  }
+  // Ränder: kleine Sekunde nur vorne, reine Oktave nur hinten; in der Mitte alle vier Stellen
+  assert.deepEqual(sizeChoices("kleine Sekunde", () => 0.9), SIZE_NAMES.slice(0, 4));
+  assert.deepEqual(sizeChoices("reine Oktave", () => 0), SIZE_NAMES.slice(7));
+  assert.deepEqual(new Set([0, 0.3, 0.6, 0.9].map((r) => sizeChoices("reine Quinte", () => r).indexOf("reine Quinte"))), new Set([0, 1, 2, 3]));
+  for (const l of [L[7], L[8]]) {
+    const pos = new Set(many(l, 600).map((q) => q.choices.indexOf(q.answer)));
+    assert.deepEqual(pos, new Set([0, 1, 2, 3]), l.id);
+  }
+});
+
+test("Stufe 8: aufwärts, beide Schlüssel, Name aus Stufen und Halbtönen", () => {
+  for (const it of POOL_8) {
+    assert.ok(usualNote(it.low) && usualNote(it.high));
+    assert.ok(dia(it.high) > dia(it.low));
+    assert.ok(it.clef === "treble" ? inTreble(it.low) && inTreble(it.high) : inBass(it.low) && inBass(it.high));
+    const r = SIZE_ORDER.find((x) => x.name === intervalName(it.low, it.high));
+    assert.ok(r, intervalName(it.low, it.high));
+    assert.equal(intervalNumber(it.low, it.high), r.num);
+    assert.equal(intervalSemitones(it.low, it.high), r.semitones);
+  }
+  assert.deepEqual(new Set(POOL_8.map((it) => it.clef)), new Set(["treble", "bass"]));
+  const qs = many(L[7], 2200);
+  // erst das Intervall gleich wahrscheinlich: jedes der elf etwa 200-mal
+  const by = {};
+  for (const q of qs) {
+    assert.equal(q.answer, intervalName(q.low, q.high));
+    assert.deepEqual(q.play, [q.low, q.high]);
+    assert.equal(q.statKey, q.answer);
+    assert.equal(q.display, stepsText(q.low, q.high));
+    by[q.answer] = (by[q.answer] || 0) + 1;
+  }
+  assert.equal(Object.keys(by).length, 11);
+  Object.values(by).forEach((n) => assert.ok(n > 130 && n < 280, String(n)));
+  assert.equal(stepsText(N("E", 4), N("G", 4)), "e'–g': 3 Stufen → Terz · 3 Halbtöne → kleine Terz");
+  assert.equal(stepsText(N("E", 4), N("F", 4)), "e'–f': 2 Stufen → Sekunde · 1 Halbton → kleine Sekunde");
+  assert.ok(/Quarte 5.*Quinte 7.*Oktave 12/.test(L[7].hint));
+});
+
+test("Stufe 9: abwärts, obere Note links und zuerst gespielt", () => {
+  assert.ok(POOL_9.every((it) => it.clef === "treble" && inTreble(it.low) && inTreble(it.high)));
+  for (const q of many(L[8], 300)) {
+    assert.ok(dia(q.high) > dia(q.low));
+    assert.deepEqual(q.play, [q.high, q.low]);
+    assert.equal(q.svg, staffSvg("treble", noteSvg(q.high, "treble", X_LOW, "", { value: NOTE_VALUE }) + noteSvg(q.low, "treble", X_HIGH, "", { value: NOTE_VALUE })));
+    assert.equal(q.answer, intervalName(q.low, q.high));
+    assert.match(q.prompt, /abwärts/);
+    assert.equal(q.statKey, `${q.answer} abwärts`);
+    assert.ok(q.display.startsWith(`${helm(q.high)}–${helm(q.low)}: `));
+  }
+  assert.equal(stepsText(N("G", 4), N("E", 4)), "g'–e': 3 Stufen → Terz · 3 Halbtöne → kleine Terz");
+});
+
+test("lowerNote", () => {
+  assert.deepEqual(lowerNote(N("G", 4), 3, "klein"), N("E", 4));
+  assert.deepEqual(lowerNote(N("G", 4), 3, "groß"), N("E", 4, -1));
+  assert.deepEqual(lowerNote(N("C", 5), 8, "rein"), N("C", 4));
+  assert.deepEqual(lowerNote(N("F", 4), 4, "rein"), N("C", 4));
+  assert.deepEqual(lowerNote(N("C", 4), 2, "klein"), N("H", 3));
+  assert.equal(lowerNote(N("F", 4, -1), 4, "übermäßig"), null); // ceses
+  assert.equal(lowerNote(N("C", 4), 2, "rein"), null);
+  // Umkehrung von upperNote
+  for (const it of POOL_10) assert.deepEqual(lowerNote(it.built, it.num, it.quality), it.given);
+});
+
+test("Stufe 10 und 11: bauen auf- und abwärts, Buchstabe und Vorzeichen zählen", () => {
+  for (const [pool, up] of [[POOL_10, true], [POOL_11, false]]) {
+    for (const it of pool) {
+      assert.ok(usualNote(it.given) && usualNote(it.built) && inTreble(it.given) && inTreble(it.built));
+      const [low, high] = up ? [it.given, it.built] : [it.built, it.given];
+      assert.equal(intervalNumber(low, high), it.num);
+      assert.equal(intervalSemitones(low, high), semitonesFor(it.num, it.quality));
+      assert.ok(SIZE_NAMES.includes(intervalName(low, high)));
+    }
+    // alle elf Intervalle, die reine Oktave bleibt drin
+    assert.equal(new Set(pool.map((it) => intervalLabel(it.num, it.quality))).size, 11);
+  }
+  for (const [l, up] of [[L[9], true], [L[10], false]]) {
+    for (const q of many(l, 300)) {
+      assert.deepEqual(q.answer, { letter: q.built.letter, acc: q.built.acc });
+      assert.equal(q.prompt, `Baue eine ${intervalLabel(q.num, q.quality)} ${up ? "über" : "unter"} ${helm(q.given)}.`);
+      assert.ok(up ? dia(q.built) > dia(q.given) : dia(q.built) < dia(q.given));
+      assert.ok(q.keepRow);
+      assert.deepEqual(q.play, [q.given, q.built]);
+      assert.equal(q.statKey, `${intervalLabel(q.num, q.quality)}${up ? "" : " abwärts"} bauen`);
+      // Frage: nur die gegebene Note; Auflösung: beide, die gebaute grün mit Namen, gleiche Höhe
+      assert.equal((q.svg.match(/class="note /g) || []).length, 1);
+      assert.equal((q.revealSvg.match(/class="note /g) || []).length, 2);
+      assert.ok(q.revealSvg.includes('<g class="note ok">'));
+      assert.ok(q.revealSvg.includes(`text-anchor="middle">${gName(q.built)}</text>`));
+      assert.equal(q.svg.match(/viewBox="([^"]+)"/)[1], q.revealSvg.match(/viewBox="([^"]+)"/)[1]);
+    }
+  }
+  // gis ist nicht as: gleiche Taste, andere Schreibweise
+  const q = { answer: { letter: "G", acc: 1 } };
+  assert.ok(checkBuild(q, { letter: "G", acc: 1 }));
+  assert.ok(!checkBuild(q, { letter: "A", acc: -1 }));
+  assert.ok(!checkBuild(q, { letter: "G", acc: 0 }));
+});
+
+test("Stufe 10 und 11: Name unter der gebauten Note liegt unter allem anderen", () => {
+  for (const it of [...POOL_10, ...POOL_11]) {
+    const svg = buildRevealSvg(it);
+    const y = +svg.match(/<text class="note-label ok" x="[\d.]+" y="([\d.]+)"/)[1];
+    const h = +svg.match(/viewBox="0 0 \d+ ([\d.]+)"/)[1];
+    assert.equal(h, buildHeight(it));
+    // Unterkante der Schrift im SVG, Oberkante (etwa 13 Einheiten über der Grundlinie) unter Linien,
+    // Hilfslinien, Köpfen und Vorzeichen
+    assert.ok(y + 6 <= h);
+    const ys = [...svg.matchAll(/<line class="(?:ledger|staff-line)"[^>]*y1="([\d.]+)"/g)].map((m) => +m[1]);
+    assert.ok(Math.max(...ys) < y - 13, `${helm(it.given)} ${helm(it.built)}`);
+  }
+});
+
+test("Stufe 12: genau die genannte Fehlerart liegt vor", () => {
+  const kinds = new Set();
+  for (const it of POOL_12) {
+    kinds.add(it.verdict);
+    assert.ok(usualNote(it.low) && usualNote(it.shown) && !RARE(it.shown) && inTreble(it.low) && inTreble(it.shown));
+    assert.ok(dia(it.shown) > dia(it.low) && intervalSemitones(it.low, it.shown) > 0);
+    assert.ok(SIZE_NAMES.includes(intervalLabel(it.num, it.quality)));
+    assert.deepEqual(it.right, upperNote(it.low, it.num, it.quality));
+    const semi = intervalSemitones(it.low, it.shown), want = semitonesFor(it.num, it.quality);
+    const sameNum = intervalNumber(it.low, it.shown) === it.num;
+    if (it.verdict === VERDICT_OK) { assert.ok(sameNum && semi === want); assert.deepEqual(it.shown, it.right); }
+    if (it.verdict === VERDICT_NUM) { assert.ok(!sameNum); assert.equal(Math.abs(dia(it.shown) - dia(it.right)), 1); assert.ok(SIZE_NAMES.includes(intervalName(it.low, it.shown))); }
+    if (it.verdict === VERDICT_MORE) { assert.ok(sameNum && it.shown.letter === it.right.letter); assert.equal(semi, want + 1); }
+    if (it.verdict === VERDICT_LESS) { assert.ok(sameNum && it.shown.letter === it.right.letter); assert.equal(semi, want - 1); }
+  }
+  assert.deepEqual(kinds, new Set(VERDICTS));
+  const qs = many(L[11], 2000);
+  const ok = qs.filter((q) => q.answer === VERDICT_OK).length / qs.length;
+  assert.ok(ok > 0.2 && ok < 0.3, String(ok));
+  for (const q of qs) {
+    assert.deepEqual(q.choices, VERDICTS);
+    assert.equal(q.prompt, `Gebaut wurde: ${intervalLabel(q.num, q.quality)} über ${helm(q.low)} → ${helm(q.low)}–${helm(q.shown)}. Stimmt das?`);
+    assert.equal(q.svg, intervalSvg({ clef: "treble", low: q.low, high: q.shown }));
+    assert.ok(q.display.includes(stepsText(q.low, q.shown)));
+    assert.equal(q.statKey, `${intervalLabel(q.num, q.quality)} (Fehler)`);
+    // keine verminderten oder übermäßigen Namen im Feedback
+    assert.ok(!/vermindert|übermäßig/.test(q.display + q.reveal), q.display);
+  }
+  assert.deepEqual(new Set(qs.map((q) => q.answer)), new Set(VERDICTS));
+  const ex = POOL_12.find((it) => it.low.letter === "E" && it.low.octave === 4 && it.low.acc === 0 && it.num === 3 && it.quality === "groß" && it.shown.letter === "G" && it.shown.acc === 0);
+  assert.equal(ex.verdict, VERDICT_LESS);
+});
+
+test("Lerntafel „So bestimmst du ein Intervall“", () => {
+  const t = intervalle.learn[0].render();
+  assert.ok(t.includes("<svg") && t.includes('class="bracket"'));
+  assert.ok(t.includes("Stufen zählen") && t.includes("Halbtöne zählen"));
+  assert.ok(t.includes("Fis ist nicht Ges"));
+  assert.equal((t.match(/<tr><td>/g) || []).length, 11);
+  assert.ok(t.includes('<tr><td>reine Quinte</td><td class="num">7</td><td><b>c\'–g\'</b></td></tr>'));
+  assert.ok(t.includes('<tr><td>kleine Sekunde</td><td class="num">1</td><td><b>c\'–des\'</b></td></tr>'));
 });

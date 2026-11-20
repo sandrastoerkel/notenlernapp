@@ -2,9 +2,10 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   KEY_V1, KEY_V2, fresh, load, save, migrateV1, today, touchStreak, isUnlocked,
-  starsFor, recordRound, recordAnswer, recordBlitz, reset, accuracy,
+  starsFor, recordRound, recordAnswer, recordBlitz, reset, accuracy, unlockedBy, unlocks,
 } from "../src/store.js";
 import noten from "../src/packs/noten.js";
+import intervalle from "../src/packs/intervalle.js";
 import { FENSTER, ZEIT_DECKEL } from "../src/adapt.js";
 
 // Einfacher Ersatz für localStorage
@@ -24,6 +25,59 @@ test("Freischaltung", () => {
   assert.ok(!isUnlocked(s, noten, "noten-8"));
   s.unlockAll = true;
   assert.ok(isUnlocked(s, noten, "noten-8"));
+});
+
+test("Freischaltung mit requires (Intervalle 7–12)", () => {
+  const s = fresh();
+  const open = (id) => isUnlocked(s, intervalle, id);
+  assert.ok(open("intervalle-1"));
+  assert.ok(!open("intervalle-2") && !open("intervalle-7") && !open("intervalle-8"));
+  s.levels["intervalle-1"] = { stars: 2, best: 8, played: 1 };
+  assert.ok(open("intervalle-2") && open("intervalle-7"));
+  assert.ok(!open("intervalle-8"));
+  // Stufe 7 hängt nicht an Stufe 6
+  s.levels["intervalle-6"] = { stars: 3, best: 10, played: 1 };
+  s.levels["intervalle-1"].best = 7;
+  assert.ok(!open("intervalle-7") && !open("intervalle-2"));
+  s.levels["intervalle-1"].best = 8;
+  s.levels["intervalle-7"] = { stars: 2, best: 8, played: 1 };
+  assert.ok(open("intervalle-8") && !open("intervalle-9"));
+  s.unlockAll = true;
+  assert.ok(open("intervalle-12"));
+  assert.equal(unlockedBy(intervalle, "intervalle-1"), null);
+  assert.equal(unlockedBy(intervalle, "intervalle-2").id, "intervalle-1");
+  assert.equal(unlockedBy(intervalle, "intervalle-7").id, "intervalle-1");
+  assert.equal(unlockedBy(intervalle, "intervalle-12").id, "intervalle-11");
+  assert.equal(unlockedBy(intervalle, "gibt-es-nicht"), null);
+  assert.deepEqual(unlocks(intervalle, "intervalle-1").map((l) => l.id), ["intervalle-2", "intervalle-7"]);
+  assert.deepEqual(unlocks(intervalle, "intervalle-6").map((l) => l.id), []);
+  assert.deepEqual(unlocks(intervalle, "intervalle-7").map((l) => l.id), ["intervalle-8"]);
+  assert.deepEqual(unlocks(noten, "noten-1").map((l) => l.id), ["noten-2"]);
+});
+
+test("Freischaltung: unbekanntes requires bleibt gesperrt, außer mit unlockAll", () => {
+  const pack = { levels: [{ id: "x-1" }, { id: "x-2", requires: "x-9" }, { id: "x-3", requires: "x-1" }, { id: "x-4", requires: "x-4b" }] };
+  const s = fresh();
+  s.levels["x-1"] = { best: 10 }; s.levels["x-9"] = { best: 10 };
+  assert.ok(isUnlocked(s, pack, "x-1"));
+  assert.ok(!isUnlocked(s, pack, "x-2"));
+  assert.ok(isUnlocked(s, pack, "x-3"));
+  assert.ok(!isUnlocked(s, pack, "x-4"));
+  assert.equal(unlockedBy(pack, "x-2"), null);
+  // auch eine erste Stufe mit unbekanntem requires bleibt zu
+  assert.ok(!isUnlocked(s, { levels: [{ id: "y-1", requires: "y-0" }] }, "y-1"));
+  s.unlockAll = true;
+  assert.ok(isUnlocked(s, pack, "x-2") && isUnlocked(s, pack, "x-4"));
+});
+
+test("alter Spielstand von vor den Stufen 7–12 lädt unverändert und schaltet richtig frei", () => {
+  const old = { xp: 900, current: "intervalle-6", levels: { "intervalle-1": { stars: 3, best: 9, played: 2 }, "intervalle-6": { stars: 2, best: 8, played: 1 } }, notes: { "große Terz": { ok: 4, bad: 1 } } };
+  const s = load(memStorage({ [KEY_V2]: JSON.stringify(old) }));
+  assert.deepEqual(s.levels, old.levels);
+  assert.deepEqual(s.notes, old.notes);
+  assert.equal(s.current, "intervalle-6");
+  assert.ok(isUnlocked(s, intervalle, "intervalle-7"));
+  assert.ok(!isUnlocked(s, intervalle, "intervalle-8"));
 });
 
 test("starsFor", () => {
