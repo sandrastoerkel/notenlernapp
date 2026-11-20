@@ -7,6 +7,7 @@ import * as practice from "./views/practice.js";
 import * as learn from "./views/learn.js";
 import * as blitz from "./views/blitz.js";
 import * as stats from "./views/stats.js";
+import { stopDemos } from "./demo.js";
 
 const $ = (s) => document.querySelector(s);
 const VIEWS = { home, practice, learn, blitz, stats };
@@ -34,6 +35,7 @@ function show(v) {
   // Laufende Runden beenden, bevor die Ansicht wechselt
   practice.stop();
   blitz.stop();
+  stopDemos();
   view = v;
   Object.keys(VIEWS).forEach((x) => { $("#view-" + x).hidden = x !== v; });
   document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("on", t.dataset.view === v));

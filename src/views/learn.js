@@ -2,6 +2,7 @@
 import { fromDia, same, gName, helm, staffPos } from "../music.js";
 import { staffSvg, noteSvg, noteheadSvg, BOTTOM, S } from "../staff.js";
 import { play } from "../audio.js";
+import { stopDemos } from "../demo.js";
 
 const $ = (s) => document.querySelector(s);
 let ctx = null;
@@ -12,12 +13,12 @@ export function init(c) {
   $("#lTreble").addEventListener("click", () => { lClef = "treble"; lSel = null; render(); });
   $("#lBass").addEventListener("click", () => { lClef = "bass"; lSel = null; render(); });
   $("#lPlay").addEventListener("click", () => { if (lSel) play(lSel); });
-  $("#lShowAll").addEventListener("click", () => { lAll = !lAll; render(); });
+  $("#lShowAll").addEventListener("click", () => { lAll = !lAll; render(false); });
   // Klick auf eine Linie oder einen Zwischenraum (Delegation)
   $("#lStaff").addEventListener("click", (e) => {
     const r = e.target.closest(".hit[data-d]");
     if (!r) return;
-    lSel = fromDia(+r.dataset.d); play(lSel); render();
+    lSel = fromDia(+r.dataset.d); play(lSel); render(false);
   });
 }
 
@@ -30,8 +31,14 @@ export const learnCardsHtml = (packs, clef) => packs.flatMap((p) => p.learn || [
   .map((card) => (card.title ? `<h3 class="legend-title">${esc(card.title)}</h3>` : "") + card.render())
   .join("");
 const legendHtml = () => learnCardsHtml(ctx.packs, lClef);
+// Tafeln mit mount (z. B. die Vorführung bei „Intervalle“) verdrahten ihre Knöpfe nach dem Einsetzen
+export const mountCards = (packs, clef, root) => packs.flatMap((p) => p.learn || [])
+  .filter((card) => (!card.clef || card.clef === clef) && card.mount)
+  .forEach((card) => card.mount(root));
 
-export function render() {
+// legend: false beim Antippen der Notenzeile und bei „Alle Namen zeigen“ – die Lerntafeln (und eine
+// laufende Vorführung) bleiben dann stehen; beim Öffnen der Ansicht und beim Wechsel des Schlüssels neu
+export function render(legend = true) {
   $("#lTreble").classList.toggle("on", lClef === "treble"); $("#lBass").classList.toggle("on", lClef === "bass");
   const base = lClef === "treble" ? 30 : 18;
   let inner = "";
@@ -57,6 +64,10 @@ export function render() {
   $("#lName").textContent = lSel ? gName(lSel) : "–";
   $("#lHelm").textContent = lSel ? `${helm(lSel)} · ${pos % 2 === 0 ? "auf einer Linie" : "im Zwischenraum"}${Math.abs(pos - 4) > 4 ? " · Hilfslinie" : ""}` : "Tippe auf eine Linie oder einen Zwischenraum.";
   $("#lShowAll").textContent = lAll ? "Namen ausblenden" : "Alle Namen zeigen";
-  $("#lLegend").innerHTML = legendHtml();
+  if (legend) {
+    stopDemos();
+    $("#lLegend").innerHTML = legendHtml();
+    mountCards(ctx.packs, lClef, $("#lLegend"));
+  }
   ctx.renderTop();
 }

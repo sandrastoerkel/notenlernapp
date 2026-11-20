@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { learnCardsHtml } from "../../src/views/learn.js";
+import { learnCardsHtml, mountCards } from "../../src/views/learn.js";
 import { PACKS } from "../../src/packs/index.js";
 import noten from "../../src/packs/noten.js";
 
@@ -21,4 +21,13 @@ test("Lerntafeln von „Noten lesen“: Überschrift „Merkhilfen“, Inhalt un
     const card = noten.learn.find((c) => c.clef === clef);
     assert.ok(learnCardsHtml(PACKS, clef).startsWith(`<h3 class="legend-title">Merkhilfen</h3>${card.render()}`));
   }
+});
+
+test("Lerntafeln mit mount werden nach dem Einsetzen verdrahtet (nur die sichtbaren)", () => {
+  const seen = [];
+  const packs = [{ learn: [{ clef: "treble", render: () => "", mount: (r) => seen.push(["t", r]) }, { clef: "bass", render: () => "", mount: () => seen.push(["b"]) }, { render: () => "" }, { render: () => "", mount: (r) => seen.push(["all", r]) }] }];
+  mountCards(packs, "treble", "ROOT");
+  assert.deepEqual(seen, [["t", "ROOT"], ["all", "ROOT"]]);
+  // „So bestimmst du ein Intervall“ ist die einzige Tafel mit mount
+  assert.deepEqual(PACKS.flatMap((p) => p.learn || []).filter((c) => c.mount).map((c) => c.title), ["So bestimmst du ein Intervall"]);
 });

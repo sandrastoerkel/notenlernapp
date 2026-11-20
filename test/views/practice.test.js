@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { startLabel, keysHint, lettersLabel, resultInfo } from "../../src/views/practice.js";
+import { startLabel, keysHint, lettersLabel, resultInfo, answersScroll } from "../../src/views/practice.js";
 import { lockText } from "../../src/views/home.js";
 import { fresh } from "../../src/store.js";
 import intervalle from "../../src/packs/intervalle.js";
@@ -98,4 +98,17 @@ test("Hilfen: nur während der Runde, eigener Bereich unter der Notenzeile", () 
 test("namesOnly: keine Wahl Namen/Klaviatur auf der Startkarte", () => {
   const src = readFileSync(new URL("../../src/views/practice.js", import.meta.url), "utf8");
   assert.match(src, /\.seg"\)\.hidden = !letters \|\| !!level\.namesOnly/);
+});
+
+test("Hilfen aufgeklappt: so weit scrollen, dass die erste Reihe der Antwortknöpfe sichtbar ist", () => {
+  assert.equal(answersScroll(500, 560), 0);
+  assert.equal(answersScroll(560, 560), 0);
+  assert.equal(answersScroll(700.2, 560), 141);
+});
+
+test("index.html: Hilfen zwischen Notenzeile und Runde; bis 380 px rücken sie per CSS unter die Antwortknöpfe", () => {
+  const html = readFileSync(new URL("../../index.html", import.meta.url), "utf8");
+  assert.ok(html.indexOf('id="pStaff"') < html.indexOf('id="pHelps"') && html.indexOf('id="pHelps"') < html.indexOf('id="pPlay"'));
+  const css = readFileSync(new URL("../../css/style.css", import.meta.url), "utf8");
+  assert.match(css, /@media \(max-width: 380px\) \{\s*#pHelps \{ order: 1; \}/);
 });

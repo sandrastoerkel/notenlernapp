@@ -56,6 +56,15 @@
   --key-label: #3c4260;
   /* Rand der markierten schwarzen Taste in den Hilfen (hebt sie von den übrigen schwarzen ab) */
   --key-mark-edge: #ffffff;
+  /* Denkschritte (gemeinsamer Baukasten, „gehirngerecht“): Schritt 1 violett (Stufen, Rahmen), Schritt 2 grün
+     (Halbtöne, Feinbestimmung). soft = Fläche, Grundton = Rand/Linie, ink = Schrift auf soft, on = Schrift auf dem Grundton */
+  --step1: #534ab7; --step1-ink: #3c3489; --step1-soft: #eeedfe;
+  --step2: #0f6e56; --step2-ink: #085041; --step2-soft: #e1f5ee;
+  --step-on: #ffffff;
+  /* Kästchentabelle: hinterlegte Familie (Spalte „rein“) */
+  --family: #e9ecf3;
+  /* Gezählte Tasten (Schritt 2) auf der Klaviatur: hell und dunkel gleich wie die Tasten selbst */
+  --key-step2: #1d9e75; --key-step2-soft: #d3f2e6; --key-step2-ink: #085041; --key-step2-on: #ffffff;
   --display: 'Outfit', system-ui, sans-serif;
   --body: 'Nunito', system-ui, sans-serif;
   --music: 'Noto Music', 'Bravura', 'Segoe UI Symbol', serif;
@@ -65,6 +74,9 @@
     --bg: #0f1222; --surface: #191d34; --surface-2: #20253f; --fg: #eceffc; --muted: #9ba3c6; --line: #2d3352;
     --ink: #f1f3ff; --accent: #8197ff; --accent-fg: #0f1222; --accent-soft: #273066;
     --ok: #41d094; --ok-soft: #163a2d; --bad: #ff8178; --bad-soft: #47221f; --gold: #f3c452; --gold-soft: #3f3214;
+    --step1: #a49cf6; --step1-ink: #cfcaff; --step1-soft: #2d2a5e;
+    --step2: #44cf9f; --step2-ink: #a5ecd3; --step2-soft: #11392f;
+    --step-on: #0f1222; --family: #242a47;
     color-scheme: dark;
   }
 }
@@ -72,6 +84,9 @@
   --bg: #0f1222; --surface: #191d34; --surface-2: #20253f; --fg: #eceffc; --muted: #9ba3c6; --line: #2d3352;
   --ink: #f1f3ff; --accent: #8197ff; --accent-fg: #0f1222; --accent-soft: #273066;
   --ok: #41d094; --ok-soft: #163a2d; --bad: #ff8178; --bad-soft: #47221f; --gold: #f3c452; --gold-soft: #3f3214;
+  --step1: #a49cf6; --step1-ink: #cfcaff; --step1-soft: #2d2a5e;
+  --step2: #44cf9f; --step2-ink: #a5ecd3; --step2-soft: #11392f;
+  --step-on: #0f1222; --family: #242a47;
   color-scheme: dark;
 }
 
@@ -203,10 +218,93 @@ section { display: grid; gap: 14px; }
 .keys-static .wkey.mark, .keys-static .bkey.mark { fill: var(--accent); }
 .keys-static .bkey.mark { stroke: var(--key-mark-edge); stroke-width: 3; }
 .keys-static .klabel.mark { fill: var(--accent-fg); font-weight: 700; }
-.help-table { width: 100%; border-collapse: collapse; text-align: left; }
-.help-table th, .help-table td { padding: 3px 6px; border-bottom: 1px solid var(--line); }
-.help-table th.num, .help-table td.num { text-align: center; }
-.help-table-wrap { display: grid; gap: 6px; }
+.helps-body.stack { gap: 8px; }
+.help-text { font-size: .8rem; }
+.help-head { display: flex; gap: 10px; align-items: center; }
+.help-head .help-text { flex: 1; min-width: 0; }
+.help-head .btn { padding: 6px 10px; flex: none; font-size: .9rem; }
+.help-table-wrap .tt-note { font-size: .72rem; }
+/* Klaviatur und Tabelle: untereinander, ab 600 px nebeneinander (keine Scrollleiste in den Hilfen) */
+.help-grid { display: grid; gap: 8px; align-items: start; }
+.help-table-wrap { display: grid; justify-items: center; --tile: 22px; }
+.help-table-wrap .tt { font-size: .8rem; }
+.help-table-wrap .tt td { padding: 1px 3px; }
+.help-table-wrap .tt-label { padding-right: 6px; }
+@media (min-width: 600px) { .help-grid { grid-template-columns: minmax(0, 1fr) auto; align-items: center; } }
+.help-demo { display: grid; gap: 10px; }
+/* Bis 380 px Breite passen Notenzeile, offene Hilfen und Antwortknöpfe nicht übereinander auf den Bildschirm:
+   Die Hilfen stehen dann unter den Antwortknöpfen, die Tabelle wieder in einem Stück */
+@media (max-width: 380px) {
+  #pHelps { order: 1; }
+  .help-table-wrap .tt-split { flex-direction: column; gap: 0; }
+  .help-table-wrap .tt-second thead { display: none; }
+}
+
+/* Kästchentabelle (src/grid.js): eine Zeile je Eintrag, Zahlen in Kästchen, Familie hinterlegt,
+   Zeile violett (hi), Treffer grün (hit), Bezug grün umrandet (ref) */
+.tt { border-collapse: collapse; font-size: .85rem; }
+.tt th { font-size: .72rem; font-weight: 800; color: var(--muted); padding: 2px 4px; text-align: center; white-space: nowrap; }
+.tt th.tt-head { text-align: left; }
+.tt td { border-bottom: 1px solid var(--line); padding: 2px 4px; }
+.tt tbody tr:last-child td { border-bottom: 0; }
+.tt .fam { background: var(--family); }
+.tt-label { white-space: nowrap; padding-right: 10px; }
+.tt-label .num { display: inline-block; min-width: 1em; }
+.tt-cell { text-align: center; }
+.tt-box { display: inline-grid; place-items: center; width: var(--tile, 28px); height: var(--tile, 28px); border: 1px solid var(--line); border-radius: 6px; background: var(--surface); font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; }
+.tt-dot { display: inline-grid; place-items: center; width: var(--tile, 28px); height: var(--tile, 28px); color: var(--line); font-weight: 800; }
+.tt tr.hi td { background: var(--step1-soft); }
+.tt tr.hi .tt-label { color: var(--step1-ink); font-weight: 800; }
+.tt-box.hit { background: var(--step2); border-color: var(--step2); color: var(--step-on); }
+.tt-box.ref { border: 2px solid var(--step2); color: var(--step2-ink); }
+.tt-split { display: flex; gap: 10px; align-items: flex-start; }
+.tt-wrap { display: grid; gap: 4px; justify-items: start; }
+.tt-note { color: var(--muted); }
+.tt-note .on { color: var(--step2-ink); font-weight: 800; }
+
+/* Klaviatur: gezählte Tasten (Schritt 2) grün mit Zahl */
+.keys-static .wkey.count { fill: var(--key-step2-soft); stroke: var(--key-step2); stroke-width: 2; }
+.keys-static .bkey.count { fill: var(--key-step2); stroke: var(--key-mark-edge); stroke-width: 2; }
+.keys-static .klabel.count { fill: var(--key-step2-ink); }
+.kcount { font-family: var(--display); font-weight: 800; font-size: 15px; fill: var(--key-step2-ink); pointer-events: none; }
+.kcount.on-black { fill: var(--key-step2-on); font-size: 13px; }
+
+/* Vorführung (src/demo.js): Schritt-Marken, Knöpfe, Satz bzw. Ergebniskarte, Bühne */
+.demo { display: grid; gap: 10px; min-width: 0; }
+.demo-steps { display: flex; flex-wrap: wrap; gap: 6px; }
+.demo-mark { padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); font-size: .8rem; font-weight: 800; white-space: nowrap; }
+.demo-mark.s1.on { background: var(--step1-soft); border-color: var(--step1); color: var(--step1-ink); }
+.demo-mark.s2.on { background: var(--step2-soft); border-color: var(--step2); color: var(--step2-ink); }
+.demo-mark.s1.done { border-color: var(--step1); color: var(--step1-ink); }
+.demo-mark.s2.done { border-color: var(--step2); color: var(--step2-ink); }
+.demo-controls { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.demo-controls .btn { padding: 8px 12px; }
+.demo-count { margin-left: auto; }
+@media (max-width: 380px) { .demo-controls .btn { padding: 7px 9px; font-size: .88rem; } }
+.demo-say { min-height: 3em; display: grid; align-items: center; }
+.demo-text { font-weight: 800; }
+.demo-text.s1 { color: var(--step1-ink); } .demo-text.s2 { color: var(--step2-ink); }
+.demo-result { display: grid; gap: 6px; justify-items: center; text-align: center; padding: 10px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--line); }
+.demo-result-title { font-family: var(--display); font-weight: 700; font-size: 1.5rem; line-height: 1.15; }
+.demo-chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.demo-chip { padding: 3px 10px; border-radius: 999px; font-weight: 800; font-size: .85rem; border: 1px solid; }
+.demo-chip.s1 { background: var(--step1-soft); border-color: var(--step1); color: var(--step1-ink); }
+.demo-chip.s2 { background: var(--step2-soft); border-color: var(--step2); color: var(--step2-ink); }
+.demo-stage { display: grid; gap: 10px; min-width: 0; }
+.demo-staff svg, .demo-keys svg { width: 100%; height: auto; display: block; }
+.demo-keys.dim { opacity: .45; }
+.demo-pair { display: grid; gap: 10px; align-items: start; }
+.demo-table { display: grid; justify-items: center; }
+@media (min-width: 600px) { .demo-pair { grid-template-columns: minmax(0, 1fr) auto; align-items: center; } }
+.note.step1 .notehead, .note.step1 .acc { fill: var(--step1); } .note.step1 .ledger { stroke: var(--step1); }
+.dm-num circle { fill: var(--step1-soft); stroke: var(--step1); stroke-width: 1.4; }
+.dm-num text { font-family: var(--display); font-weight: 800; font-size: 11px; fill: var(--step1-ink); }
+.dm-bracket { fill: none; stroke: var(--step1); stroke-width: 1.8; }
+/* Lerntafel mit Vorführung: Beispiel-Knöpfe */
+.legend > .demo-board { display: grid; gap: 10px; grid-column: 1 / -1; border: 0; padding: 0; min-width: 0; }
+.demo-pick { gap: 6px; }
+.demo-pick .btn { padding: 6px 10px; }
+.demo-pick .btn.on { background: var(--accent); color: var(--accent-fg); border-color: transparent; }
 
 /* levels */
 .levels { display: grid; gap: 8px; }
@@ -278,7 +376,7 @@ section { display: grid; gap: 14px; }
 
 .kbd { font-family: ui-monospace, Menlo, monospace; font-size: .8rem; padding: 1px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-2); }
 .legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 6px 14px; }
-.legend div { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px dashed var(--line); padding: 3px 0; }
+.legend > div { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px dashed var(--line); padding: 3px 0; }
 .legend-title { grid-column: 1 / -1; font-size: 1.05rem; margin-top: 10px; }
 .legend-title:first-child { margin-top: 0; }
 .combo { font-family: var(--display); font-weight: 700; color: var(--gold); }

@@ -5,12 +5,15 @@
 // q.keepRow = true, bleibt die Zeile schwarz und nur das Feedback darunter wird grün bzw. rot.
 // Zweischrittige Aufgaben (q.steps, seit „Intervalle neu“): erst ein Satz Knöpfe, dann ein zweiter; gezählt
 // wird die Aufgabe einmal, richtig nur, wenn beide Schritte stimmen. Hilfen (level.helps) zeigt die Engine
-// in einem eigenen Bereich zum Aufklappen (ui.helps), mit Klaviatur und Tabelle zur Aufgabe.
+// in einem eigenen Bereich zum Aufklappen (ui.helps), mit Klaviatur und Tabelle zur Aufgabe; hat die Stufe
+// level.demo(q), führt der Knopf „Vorführen“ die aktuelle Aufgabe vor – erst nach der Antwort, die Runde
+// wartet dann, bis du „Weiter zur nächsten Aufgabe“ tippst (oder die Hilfen zuklappst).
 // Oben stehen reine Hilfsfunktionen (getestet in test/engine.test.js), unten der DOM-Teil.
 import { LETTERS, NAME_ACCS, N, gName, parseNoteName, midi } from "./music.js";
 import { pianoSvg } from "./staff.js";
 import { recordRound, recordAnswer } from "./store.js";
 import { play, playChord, isMuted } from "./audio.js";
+import { mountDemo, stopDemos } from "./demo.js";
 
 export const ROUND_LENGTH = 10;
 export const DELAY_OK = 800, DELAY_BAD = 1600;
@@ -127,14 +130,25 @@ export function digitAction(e, set) {
 export const HELP_FROM = { treble: 60, bass: 36 };
 export const HELP_OCTAVES = 2;
 export const hasHelps = (level) => !!(level && level.helps && level.helps.length);
+// Aufbau: Satz und daneben der Knopf „Vorführen“ (nur mit level.demo, zu Beginn gesperrt: er verriete die
+// Antwort; der Hinweis steht im title), dann Klaviatur und Tabelle (.help-grid: nebeneinander, wo Platz ist),
+// Platz für die Vorführung (.help-demo). Alles knapp gehalten, damit die Antwortknöpfe sichtbar bleiben.
+export const DEMO_LABEL = "Vorführen", DEMO_WAIT = "Vorführen geht erst nach deiner Antwort", DEMO_READY = "Diese Aufgabe Schritt für Schritt";
+export const DEMO_NEXT = "Weiter zur nächsten Aufgabe";
 export function helpsHtml(level, q) {
   if (!hasHelps(level)) return "";
-  let out = level.helpText ? `<p class="small">${level.helpText}</p>` : "";
+  const text = level.helpText ? `<p class="small help-text">${level.helpText}</p>` : "";
+  let out = level.demo
+    ? `<div class="help-head">${text}<button class="btn" data-demo-btn disabled title="${DEMO_WAIT}">${DEMO_LABEL}</button></div>`
+    : text;
+  let grid = "";
   if (level.helps.includes("klaviatur")) {
     const marks = (q.helpMarks || []).map(midi);
-    out += `<div class="help-keys">${pianoSvg({ from: HELP_FROM[q.clef] ?? HELP_FROM.treble, octaves: HELP_OCTAVES, marks, interactive: false })}</div>`;
+    grid += `<div class="help-keys">${pianoSvg({ from: HELP_FROM[q.clef] ?? HELP_FROM.treble, octaves: HELP_OCTAVES, marks, interactive: false })}</div>`;
   }
-  if (level.helps.includes("tabelle") && level.helpTable) out += `<div class="help-table-wrap">${level.helpTable}</div>`;
+  if (level.helps.includes("tabelle") && level.helpTable) grid += `<div class="help-table-wrap">${level.helpTable}</div>`;
+  if (grid) out += `<div class="help-grid">${grid}</div>`;
+  if (level.demo) out += `<div class="help-demo" hidden></div>`;
   return out;
 }
 
@@ -223,12 +237,14 @@ const all = (root, sel) => (root ? Array.from(root.querySelectorAll(sel)) : []);
 function later(r, fn, ms) {
   const id = setTimeout(() => { r.timers.delete(id); fn(); }, ms);
   r.timers.add(id);
+  return id;
 }
 
 // Laufende Runde abbrechen (z. B. beim Wechsel des Tabs); offene Zeitgeber werden gelöscht
 export function stop() {
   if (!run) return;
   run.timers.forEach((id) => clearTimeout(id));
+  stopDemos();
   run = null;
 }
 
@@ -289,6 +305,14 @@ export function startRound(level, ui, hooks) {
     const k = e.target.closest("rect[data-semi]");
     if (k && run === r) answer(r, +k.dataset.semi, k);
   };
+  // Vorführung in den Hilfen: „Vorführen“ (nach der Antwort) hält die Runde an, „Weiter …“ geht weiter
+  if (ui.helpsBody) ui.helpsBody.onclick = (e) => {
+    if (run !== r) return;
+    if (e.target.closest("[data-demo-btn]")) openDemo(r);
+    else if (e.target.closest("[data-demo-next]")) resume(r);
+  };
+  // Zuklappen der Hilfen während der Vorführung: weiter zur nächsten Aufgabe
+  if (ui.helps) ui.helps.ontoggle = () => { if (run === r && r.waiting && !ui.helps.open) resume(r); };
   applyInput(r); showQuestion(r);
 }
 
@@ -383,12 +407,46 @@ function finishQuestion(r, ok, text) {
     const go = () => (dur === null ? play(note) : play(note, undefined, dur / 1000));
     if (at === 0) go(); else later(r, go, at);
   });
-  later(r, () => {
+  demoReady(r);
+  r.advance = () => {
     if (run !== r) return;
+    r.advance = null; r.waiting = false; r.demo = null;
     r.locked = false; r.idx++;
     if (r.idx >= r.items.length) finish(r); else showQuestion(r);
-  }, answerDelay(q, ok, isMuted()));
+  };
+  r.advanceId = later(r, () => r.advance && r.advance(), answerDelay(q, ok, isMuted()));
 }
+
+// „Vorführen“ freigeben (nach der Antwort, nur bei Stufen mit level.demo)
+function demoReady(r) {
+  const body = r.ui.helpsBody;
+  if (!body || !r.level.demo) return;
+  const b = body.querySelector("[data-demo-btn]");
+  if (b) { b.disabled = false; b.title = DEMO_READY; }
+}
+
+// Vorführung der aktuellen Aufgabe: die Runde wartet (der Zeitgeber zur nächsten Aufgabe wird gelöscht),
+// Klaviatur und Tabelle weichen der Vorführung
+function openDemo(r) {
+  const body = r.ui.helpsBody;
+  if (!r.advance || r.waiting || !r.level.demo || !body) return;
+  clearTimeout(r.advanceId); r.timers.delete(r.advanceId);
+  r.waiting = true;
+  const box = body.querySelector(".help-demo");
+  body.querySelectorAll(".help-grid, .help-head").forEach((el) => { el.hidden = true; });
+  box.hidden = false;
+  box.innerHTML = `<div data-demo-root></div><button class="btn primary wide" data-demo-next>${DEMO_NEXT}</button>`;
+  r.demo = mountDemo(box.querySelector("[data-demo-root]"), r.level.demo(r.items[r.idx]));
+}
+
+function resume(r) {
+  if (!r.waiting || !r.advance) return;
+  if (r.demo) r.demo.stop();
+  r.advance();
+}
+
+// Für Tests und die Browserprüfung: wartet die Runde gerade auf „Weiter“?
+export const isWaiting = () => !!(run && run.waiting);
 
 function finish(r) {
   const { hooks } = r;

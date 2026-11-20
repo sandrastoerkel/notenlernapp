@@ -45,6 +45,18 @@ export function resultInfo(state, pack, level, correct) {
   return { next, nextOpen, note: notes.join(" · ") };
 }
 
+// Hilfen aufgeklappt: so weit scrollen, dass die erste Reihe der Antwortknöpfe über der Tab-Leiste steht
+// (rein, getestet). bottom: Unterkante des ersten Knopfs, limit: Oberkante der Tab-Leiste (beides im Fenster).
+export const answersScroll = (bottom, limit) => (bottom > limit ? Math.ceil(bottom - limit) : 0);
+
+function keepAnswersVisible() {
+  const first = $("#pAnswers .btn");
+  if (!first || $("#pPlay").hidden || !$("#pHelps").open) return;
+  const tabs = document.querySelector(".tabs");
+  const dy = answersScroll(first.getBoundingClientRect().bottom, window.innerHeight - (tabs ? tabs.offsetHeight : 0) - 8);
+  if (dy) window.scrollBy({ top: dy, behavior: "smooth" });
+}
+
 function markInput() {
   $("#inLetters").classList.toggle("on", ctx.state.input === "letters");
   $("#inKeys").classList.toggle("on", ctx.state.input === "keys");
@@ -61,6 +73,8 @@ export function init(c) {
   $("#inLetters").addEventListener("click", () => setInput("letters"));
   $("#inKeys").addEventListener("click", () => setInput("keys"));
   $("#pStart").addEventListener("click", startRound);
+  // Hilfen aufgeklappt: Antwortknöpfe sichtbar halten (kein Scrollen innerhalb der Hilfen)
+  $("#pHelps").addEventListener("toggle", () => { if ($("#pHelps").open) requestAnimationFrame(keepAnswersVisible); });
 }
 
 // Startkarte der aktuellen Stufe (bricht eine laufende Runde ab)

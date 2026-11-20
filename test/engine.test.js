@@ -7,7 +7,7 @@ import {
   choicesHtml, choicesClass, choiceCols, keyAction, blitzPoints, notesToPlay,
   playMode, revealedSvg, svgResultClass, playSchedule, rhythmEnd, answerDelay, PLAY_GAP, BEAT_MS, RHYTHM_TAIL, DELAY_OK, DELAY_BAD,
   choiceSet, setClass, stepsFeedback, digitAction, helpsHtml, hasHelps, HELP_FROM, DELAY_STEP_OK, DELAY_STEP_BAD,
-  startRound, stop, handleKey, ROUND_LENGTH,
+  startRound, stop, handleKey, ROUND_LENGTH, isWaiting, DEMO_LABEL, DEMO_WAIT, DEMO_READY, DEMO_NEXT,
 } from "../src/engine.js";
 import { mock } from "node:test";
 import { setMuted } from "../src/audio.js";
@@ -354,11 +354,16 @@ test("helpsHtml: nur mit level.helps, Klaviatur ab c' bzw. C", () => {
   assert.deepEqual(HELP_FROM, { treble: 60, bass: 36 });
   const level = { helps: ["klaviatur"], helpText: "T" };
   const h = helpsHtml(level, { clef: "bass", helpMarks: [N("E", 2), N("C", 3)] });
-  assert.ok(h.startsWith('<p class="small">T</p>'));
+  assert.ok(h.startsWith('<p class="small help-text">T</p><div class="help-grid"><div class="help-keys">'));
   assert.ok(h.includes('data-midi="36" data-id="w0"') && h.includes('data-midi="60" data-id="w14"'));
   assert.deepEqual([...h.matchAll(/class="[wb]key mark" data-midi="(\d+)"/g)].map((m) => +m[1]), [40, 48]);
   assert.ok(!h.includes("<table"));
   assert.ok(helpsHtml({ helps: ["tabelle"], helpTable: "<table></table>" }, {}).includes("<table></table>"));
+  // ohne level.demo kein Knopf „Vorführen“; mit demo gesperrt (verriete die Antwort)
+  assert.ok(!h.includes("data-demo"));
+  const d = helpsHtml({ ...level, demo: () => null }, { clef: "treble" });
+  assert.ok(d.startsWith(`<div class="help-head"><p class="small help-text">T</p><button class="btn" data-demo-btn disabled title="${DEMO_WAIT}">${DEMO_LABEL}</button></div>`));
+  assert.ok(d.indexOf("data-demo-btn") < d.indexOf("help-grid"), "Knopf über Klaviatur und Tabelle");
 });
 
 // Kleines Ersatz-DOM für den Ablauf: Knöpfe entstehen aus innerHTML (data-choice), Klassen werden gemerkt
@@ -476,5 +481,67 @@ test("Ablauf: Stufe ohne Hilfen versteckt den Bereich, Stufe 1 einschrittig mit 
     const idx = ["Prime", "Sekunde", "Terz", "Quarte", "Quinte", "Sexte", "Septime", "Oktave"].indexOf(q.answer);
     assert.equal(handleKey({ key: String(idx + 1), preventDefault() {} }), true);
     assert.equal(r1.state.answered, 1); assert.equal(r1.state.correct, 1);
+  } finally { stop(); mock.timers.reset(); }
+});
+
+// Ersatz-Element mit beliebigen Unterelementen (querySelector legt sie bei Bedarf an), für die Vorführung
+function anyEl() {
+  const kids = new Map();
+  return {
+    innerHTML: "", textContent: "", hidden: false, disabled: false, isConnected: true, dataset: {},
+    classList: { add() {}, remove() {}, toggle() {} },
+    querySelector(sel) { if (!kids.has(sel)) kids.set(sel, anyEl()); return kids.get(sel); },
+    querySelectorAll() { return []; }, contains() { return true; },
+  };
+}
+const target = (sel) => ({ closest: (s) => (s === sel ? {} : null) });
+
+test("Ablauf: „Vorführen“ erst nach der Antwort, die Runde wartet, „Weiter“ geht zur nächsten Aufgabe", () => {
+  setMuted(true);
+  mock.timers.enable({ apis: ["setTimeout"] });
+  try {
+    const level = intervalle.levels[2]; // intervall-3, Hilfen
+    const it = level.items.find((x) => x.num === 3 && x.quality === "klein" && x.low.letter === "E" && x.low.acc === 0);
+    const item = intervalleMod.twoStepQuestion(it, intervalleMod.TYPES_RKG);
+    const ui = { staff: fakeEl(), feedback: fakeEl(), count: fakeEl(), dots: fakeEl(), answers: fakeEl(), typed: fakeEl(), piano: fakeEl(), helps: fakeEl(), helpsBody: anyEl() };
+    const state = fresh();
+    startRound({ ...level, question: () => item }, ui, { state, save() {}, onFinish() {} });
+    assert.ok(ui.helpsBody.innerHTML.includes("data-demo-btn disabled"), "vor der Antwort gesperrt");
+    const btn = ui.helpsBody.querySelector("[data-demo-btn]"); btn.disabled = true;
+    // vor der Antwort: Klick bewirkt nichts
+    ui.helpsBody.onclick({ target: target("[data-demo-btn]") });
+    assert.equal(isWaiting(), false);
+    const click = (text) => {
+      const b = ui.answers.querySelectorAll(".btn[data-choice]").find((x) => ui.answers.innerHTML.match(new RegExp(`data-choice="${x.dataset.choice}">([^<]+)<`))[1] === text);
+      ui.answers.onclick({ target: b });
+    };
+    click("Terz");
+    assert.equal(btn.disabled, true, "nach dem ersten Schritt noch gesperrt");
+    mock.timers.tick(DELAY_STEP_OK);
+    click("kleine Terz");
+    assert.equal(btn.disabled, false, "nach der Antwort frei");
+    assert.equal(btn.title, DEMO_READY);
+    // Vorführen: die Runde wartet auch nach der üblichen Pause
+    ui.helpsBody.onclick({ target: target("[data-demo-btn]") });
+    assert.equal(isWaiting(), true);
+    const box = ui.helpsBody.querySelector(".help-demo");
+    assert.equal(box.hidden, false);
+    assert.ok(box.innerHTML.includes(DEMO_NEXT));
+    const root = box.querySelector("[data-demo-root]");
+    assert.ok(root.innerHTML.includes('<span class="small muted num demo-count">1 / 8</span>'));
+    mock.timers.tick(DELAY_OK * 5);
+    assert.equal(ui.count.textContent, "1 / 10");
+    assert.equal(state.answered, 1);
+    // Weiter: nächste Aufgabe, Knopf wieder gesperrt
+    ui.helpsBody.onclick({ target: target("[data-demo-next]") });
+    assert.equal(isWaiting(), false);
+    assert.equal(ui.count.textContent, "2 / 10");
+    assert.ok(ui.helpsBody.innerHTML.includes("data-demo-btn disabled"));
+    // Zuklappen der Hilfen während der Vorführung geht ebenfalls weiter
+    click("Terz"); mock.timers.tick(DELAY_STEP_OK); click("kleine Terz");
+    ui.helpsBody.onclick({ target: target("[data-demo-btn]") });
+    assert.equal(isWaiting(), true);
+    ui.helps.open = false; ui.helps.ontoggle();
+    assert.equal(ui.count.textContent, "3 / 10");
   } finally { stop(); mock.timers.reset(); }
 });
