@@ -38,9 +38,11 @@ export const effectiveInput = (levelInput, pref, namesOnly = false) => ((levelIn
 // Zehn Aufgaben nacheinander erzeugen, jede verschieden von der vorherigen.
 // ctx (optional, z. B. { notes: state.notes }) geht als zweiter Parameter an question;
 // Pakete ohne zweiten Parameter laufen unverändert.
+// ctx.round enthält die bisher erzeugten Aufgaben dieser Runde (z. B. „Prime höchstens einmal pro Runde“).
 export function makeRound(level, count = ROUND_LENGTH, ctx) {
   const out = [];
-  for (let i = 0; i < count; i++) out.push(level.question(i ? out[i - 1] : null, ctx));
+  const c = Object.assign({}, ctx, { round: out });
+  for (let i = 0; i < count; i++) out.push(level.question(i ? out[i - 1] : null, c));
   return out;
 }
 

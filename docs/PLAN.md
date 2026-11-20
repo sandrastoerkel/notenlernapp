@@ -706,6 +706,8 @@ Halbton?“ entfällt hier (steht in Tonleitern 1–2).
   (Sandra, 20.11.2026: Stufe 1 und 2 heißen „Intervall bestimmen“, Frage „Welches Intervall?“,
   Tabellenkopf „Stufen = Intervall“; „Rahmenintervall“ nur als Hilfsbegriff ab Stufe 3, wo Zahl und
   Feinbestimmung unterschieden werden)
+  (Sandra, 20.11.2026: Prime selten – Gewicht 1/4 und höchstens einmal pro Runde, über ctx.round aus
+  makeRound; Cache notenheld-v0.2.0-10, weil -9 lokal schon getestet wurde)
   für klein, rein, groß; Stufe 5 und 8 auch vermindert und übermäßig (v, k, r, g, ü mit Erklärung),
   aus `semitonesFor` berechnet. Satz: „Die Zahl kommt aus den Notenstufen, die Klaviatur brauchst du
   nur für die Halbtöne.“ (Stufe 1: „… Bei Stammtönen sind das auf der Klaviatur die weißen Tasten.“)

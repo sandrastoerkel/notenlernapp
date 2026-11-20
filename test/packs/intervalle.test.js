@@ -190,8 +190,8 @@ test("Stufe 1 und 2: Intervall bestimmen, Stammtöne, acht Knöpfe in zwei Reihe
       assert.equal(q.statKey, `${q.answer} (${q.clef === "treble" ? "Violin" : "Bass"})`);
       by[q.answer] = (by[q.answer] || 0) + 1;
     }
-    // jede Zahl etwa gleich oft
-    Object.values(by).forEach((n) => assert.ok(n > 120 && n < 290, String(n)));
+    // jede Zahl etwa gleich oft, nur die Prime seltener (PRIME_WEIGHT)
+    Object.entries(by).forEach(([k, n]) => assert.ok(k === "Prime" ? n < 120 : n > 120 && n < 290, `${k} ${n}`));
   }
   const q = many(L[0], 2000).find((x) => same(x.low, N("C", 4)) && same(x.high, N("E", 4)));
   assert.equal(q.reveal, "Richtig wäre: Terz (c'–e': 3 Stufen → Terz).");
@@ -232,7 +232,7 @@ test("Stufe 3 bis 7: zwei Schritte, erst die Zahl, dann die passenden Qualitäte
     // jedes Intervall gleich wahrscheinlich
     const n = Object.keys(by).length, avg = qs.length / n;
     assert.equal(n, l.no === 7 ? TYPES_NO_PRIME.length : typesOf[k].length, l.id);
-    Object.values(by).forEach((c) => assert.ok(c > avg * 0.55 && c < avg * 1.5, `${l.id} ${c}`));
+    Object.entries(by).forEach(([name, c]) => assert.ok(name.endsWith("Prime") ? c < avg * 0.55 : c > avg * 0.55 && c < avg * 1.6, `${l.id} ${name} ${c}`));
   });
   assert.equal(stepsText(N("E", 4), N("G", 4)), "e'–g': 3 Stufen → Terz · 3 Halbtöne → kleine Terz");
   assert.equal(stepsText(N("F", 4), N("H", 4)), "f'–h': 4 Stufen → Quarte · 6 Halbtöne → übermäßige Quarte");
@@ -604,5 +604,20 @@ test("Hilfen: „Vorführen“ nur in Stufen mit Hilfen, gesperrt bis zur Antwor
     if (l.no === 8) { assert.ok(same(q.low, q.given) && same(q.high, q.built)); }
     if (l.no === 1) assert.equal(d.steps.length, 1);
     else assert.ok(d.frames.some((f) => /Halbt/.test(f.text || "")));
+  }
+});
+
+test("Prime selten: höchstens einmal pro Runde, über viele Runden seltener als die anderen (Sandra, 20.11.2026)", async () => {
+  const { makeRound } = await import("../../src/engine.js");
+  const isPrime = (q) => describe(q).num === 1;
+  for (const level of intervalle.levels.filter((l) => l.items.some((it) => it.num === 1))) {
+    let primes = 0, all = 0;
+    for (let r = 0; r < 300; r++) {
+      const round = makeRound(level, 10, {});
+      const n = round.filter(isPrime).length;
+      assert.ok(n <= 1, `${level.id}: ${n} Primen in einer Runde`);
+      primes += n; all += round.length;
+    }
+    assert.ok(primes / all < 0.05, `${level.id}: Primen-Anteil ${(primes / all).toFixed(3)}`);
   }
 });

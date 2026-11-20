@@ -85,10 +85,12 @@ test("countAnswer reicht die Zeit durch; ohne Zeit (Blitz) bleibt sie leer", () 
 test("makeRound gibt ctx an question weiter; Pakete ohne zweiten Parameter laufen weiter", () => {
   const seen = [];
   let k = 0;
-  const level = { question(prev, ctx) { seen.push(ctx); return { id: k++ }; } };
+  const lens = [];
+  const level = { question(prev, ctx) { seen.push(ctx); lens.push(ctx.round.length); return { id: k++ }; } };
   const ctx = { notes: {} };
   assert.equal(makeRound(level, 3, ctx).length, 3);
-  assert.ok(seen.every((c) => c === ctx));
+  assert.ok(seen.every((c) => c.notes === ctx.notes && Array.isArray(c.round)));
+  assert.deepEqual(lens, [0, 1, 2]);
   assert.equal(makeRound({ question: () => ({}) }, 2).length, 2);
   for (const p of PACKS) for (const l of p.levels) assert.equal(makeRound(l, 3, { notes: {} }).length, 3, l.id);
 });
