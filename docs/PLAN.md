@@ -1248,8 +1248,10 @@ bisher, darunter die Notenwert-Pyramide) · So bestimmst du die Dauer (Vorführu
 **Spielstände.** Einmalige Umstellung `migrateNotenwerte` in `src/store.js` (Marker `"notenwerte-neu"`, frischer
 Stand trägt alle drei Marker), aufgerufen in `migrateAll` nach den beiden anderen: `notenwerte-1→1, 2→2, 3→5,
 4→7, 5→9, 6→10`, in einem Durchgang in ein neues Objekt (sonst verkettet 3→5 mit 5→9); `current` entsprechend.
-Keine statKeys im Paket. Die Abbildung ist geprüft: jede alte Stufe landet auf der neuen Stufe gleichen Inhalts
-ohne Hilfen. Die Reihenfolge ist hier unkritisch (die beiden anderen Umstellungen fassen `notenwerte-*` nicht
+Keine statKeys im Paket. Die Abbildung ist geprüft: jede alte Stufe landet auf der neuen Stufe gleichen Inhalts.
+Die alten Stufen 3–6 landen auf den Stufen ohne Hilfen (5, 7, 9, 10). Die alten Stufen 1 und 2 bleiben auf 1 und 2,
+also auf Stufen mit Hilfen (1 jetzt in zwei Schritten): Eine Stufe ohne Hilfen nur mit Notenwerten bzw. nur mit
+Pausen gibt es nicht mehr, die neue Stufe 3 mischt beide und ist darum kein gleicher Inhalt. Die Reihenfolge ist hier unkritisch (die beiden anderen Umstellungen fassen `notenwerte-*` nicht
 an); „als dritte“ nur der Ordnung halber. In `migrateAll` alle drei aufrufen und `a || b || c` zurückgeben
 (nicht die Aufrufe mit `||` verketten). `load` braucht keine Änderung.
 Freischaltung unverändert (`isUnlocked`: gespielt bleibt offen; 3, 4, 6, 8 öffnen sich über die Stufe davor).
@@ -1337,7 +1339,7 @@ Entscheidungen bei der Umsetzung (ohne Rückfrage):
 - Vorführung 1: Rahmen um Hals und Fähnchen auch bei der Viertelnote („kein Fähnchen“), bei der ganzen Note
   gestrichelt an der Stelle, wo der Hals stünde.
 - Spielstände: `notenwerte-1` und `-2` bleiben auf 1 und 2 (gleicher Inhalt, jetzt mit Hilfen bzw. in zwei
-  Schritten); der Satz „jede alte Stufe landet auf der neuen Stufe ohne Hilfen“ gilt damit für 3–6.
+  Schritten); nur 3–6 landen auf Stufen ohne Hilfen (Abschnitt „Spielstände“ entsprechend berichtigt).
 
 Browserprüfung (Headless Chrome im Container, Service Worker gesperrt, 420 und 320 px, hell und dunkel): jede
 Stufe eine Runde, Hilfen auf/zu, in 1/4/6/8 je eine Aufgabe ganz richtig und eine mit danebenliegendem Schritt 1

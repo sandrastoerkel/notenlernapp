@@ -81,8 +81,9 @@ export function migrateTonleitern(s) {
 }
 
 // "notenwerte-neu" (20.11.2026, Welle 9 „Notenwerte gehirngerecht“): aus 6 werden 10 Stufen, neu sind 3, 4, 6
-// und 8 (Festigung bzw. mit Hilfen). Jede alte Stufe landet auf der neuen Stufe gleichen Inhalts ohne Hilfen:
-// 1→1, 2→2, 3→5, 4→7, 5→9, 6→10; s.current entsprechend, s.notes bleibt (das Paket hat keine statKeys).
+// und 8 (Festigung bzw. mit Hilfen). Jede alte Stufe landet auf der neuen Stufe gleichen Inhalts: 1 und 2 bleiben
+// (jetzt mit Hilfen), 3–6 kommen auf die Stufen ohne Hilfen: 1→1, 2→2, 3→5, 4→7, 5→9, 6→10; s.current
+// entsprechend, s.notes bleibt (das Paket hat keine statKeys).
 // Wie migrateTonleitern in einem Durchgang in ein neues Objekt (sonst verkettet 3→5 mit 5→9).
 export const RENAMED_NOTENWERTE = Object.fromEntries([[1, 1], [2, 2], [3, 5], [4, 7], [5, 9], [6, 10]]
   .map(([a, b]) => [`notenwerte-${a}`, `notenwerte-${b}`]));
