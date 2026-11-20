@@ -27,7 +27,8 @@ src/
   packs/index.js        Registry aller Themenpakete
   packs/noten.js        Paket „Noten lesen“ (8 Stufen)
   packs/notenwerte.js   Paket „Notenwerte und Pausen“
-  packs/tonleitern.js   Paket „Tonleitern“ (Dur bis 4 Vorzeichen, seit Welle 5; Stufen 7–8 Tonarten seit Welle 7)
+  packs/tonleitern.js   Paket „Tonleitern“ (seit Welle 8: 13 Stufen, erst mit Hilfen, dann ohne; Dur bis 4 Vorzeichen,
+                        Tonart aus den Vorzeichen und parallele Molltonart bis 7; drei Vorführungen)
   packs/intervalle.js   Paket „Intervalle“ (10 Stufen, neu seit Welle 7: erst mit Hilfen, dann ohne)
   packs/akkorde.js      Paket „Dreiklänge und Quintenzirkel“
   views/home.js         Startseite: Pakete und Stufen
@@ -127,6 +128,7 @@ Höhe `H = 122`. Eine halbe Stufe sind 6 Einheiten.
 | `restSvg(value, x)` | Pause (1, 2, 4, 8, 16); ganze und halbe als `<rect class="rest">`, die übrigen als Glyphe (`<text class="rest">`) |
 | `glyphSvg(char, x, y, size)` | ein Zeichen aus der Musikschrift |
 | `keySigSvg(clef, count)` | nur die Vorzeichen (wird von `staffSvg` genutzt); Kreuze in der Reihenfolge Fis Cis Gis Dis Ais Eis His, Be in der Reihenfolge B Es As Des Ges Ces Fes |
+| `keySigPos(clef, count, step, x0)` | seit Welle 8: Lage der Vorzeichen einer Vorzeichnung `[{ x, y, line, sharp }]` (x links, y Grundlinie, line Linie bzw. Zwischenraum); `step` (Standard 12) und `x0` nur für die Vorführung „So findest du die Tonart“ (Abstand 22 zum Mitzählen); `keySigSvg` nutzt sie mit den Standardwerten, Ausgabe unverändert |
 | `pianoSvg(opts)` | ohne Parameter wie bisher: eine Oktave Klaviatur (8 weiße, 5 schwarze Tasten, 13 `rect`), anklickbar; Tasten tragen `data-semi` (Halbtonzahl ab C, das obere C wieder 0). Seit Welle 7 mit `opts = { from, octaves, marks, interactive }`: `from` MIDI-Nummer des untersten C, `octaves` Anzahl Oktaven (weiße Tasten bis zum C darüber, bei 2: 15 weiße, 10 schwarze), `marks` MIDI-Nummern markierter Tasten (Klasse `mark`), `interactive: false` nur zum Anschauen (`<svg class="keys-static">`, kein `data-semi`, kleinere Tasten, größere Schrift); mit `from` trägt jede Taste `data-midi` |
 
 Weitere Exporte: die Maße `S`, `TOP`, `BOTTOM`, `W`, `H`, `X0`, `X1`, die
@@ -194,7 +196,8 @@ Kasten `.gap-box` mit „?“ auf Höhe der Mittellinie statt der Note), `cls: {
 Note färben), `keySig`, `svgCls`, `label: { i, text }` (Name in `--ok` unter Note i, Klasse
 `note-label ok`, 18 Einheiten groß, immer unter dem tiefsten Punkt der Zeile (`lowestY`: unterste
 Linie, Köpfe, ♯ reicht 1,4 LA unter die Kopfmitte); die Höhe des SVG wächst dann über 122). Die
-Auflösungen der Stufen 3 bis 5 nutzen `cls` und `label` zusammen mit `q.keepRow`. Im Browser gemessen (getBBox): kein Vorzeichen berührt den Kopf
+Auflösungen der Stufen 4 bis 7 (seit Welle 8; vorher 3 bis 5) nutzen `cls` und `label` zusammen mit `q.keepRow`.
+`opts.extra` (seit Welle 8) hängt zusätzliches SVG an (Zahlenkreise und Klammern der Vorführung). Im Browser gemessen (getBBox): kein Vorzeichen berührt den Kopf
 davor oder den Schlüssel, in allen Tonleitern der Stufen 3 bis 6 und ihren Auflösungen.
 
 **Akkorde.** `src/packs/akkorde.js` setzt Dreiklänge mit `chordSvg(notes, clef, x, opts)`:
@@ -308,9 +311,12 @@ passen bei 420 px in eine Zeile); sind alle Texte höchstens 4 Zeichen lang
 einer Reihe, ab 7 in zwei Reihen). Buchstaben und Klaviatur bleiben bei 7
 Spalten. In der Regel 4 bis 6 Knöpfe; Ausnahmen im Paket „Dreiklänge und
 Quintenzirkel“: Stufe 1 hat laut PLAN zwei (Dur, Moll), Stufe 4 drei (die drei
-Lagen), Stufe 6 alle sieben Stufen I bis VII. Im Paket „Tonleitern“ haben Stufe 1 und 2
-(`tonleitern-1`, `tonleitern-2`) nur zwei Knöpfe („Ganztonschritt“, „Halbtonschritt“); Halbtöne
-werden dort mit Wahrscheinlichkeit 0,4 gezogen. Raten reicht in etwa 5,5 % der Runden für 8 von 10.
+Lagen), Stufe 6 alle sieben Stufen I bis VII. Im Paket „Tonleitern“ haben Stufe 1 bis 3
+(`tonleitern-1` … `-3`) nur zwei Knöpfe („Ganztonschritt“, „Halbtonschritt“); Halbtöne
+werden dort mit Wahrscheinlichkeit 0,4 gezogen. Seit Welle 8 zweischrittig: Stufe 4 (Ganz/Halb, dann
+2 oder 3 Namen), Stufe 10 (das entscheidende Vorzeichen, 1 bis 7 Knöpfe, bei C-, G- und F-Dur ein Knopf
+als Bestätigung; dann vier Dur-Tonarten in fester Reihenfolge nach dem Quintenzirkel) und Stufe 12 (drei
+aufeinanderfolgende Stammtöne, dann 2 oder 3 Molltonarten desselben Stammtons). Raten reicht in etwa 5,5 % der Runden für 8 von 10.
 Im Paket „Intervalle“ (seit Welle 7) haben das Rahmenintervall acht Knöpfe (Prime … Oktave, `cols: 4`)
 und der zweite Schritt nur die zur Zahl passenden Intervalle (1 bis 3 Knöpfe, z. B. nur „reine Oktave“).
 
@@ -332,7 +338,7 @@ angezeigte SVG. Ohne `revealSvg` bleibt `svg` stehen (`revealedSvg(q)`).
 `keepRow` (seit Feinschliff Tonleitern): Setzt eine Aufgabe `keepRow: true`,
 lässt die Engine die Klasse `ok`/`bad` am `<svg>` weg (`svgResultClass(q, ok)`
 gibt dann `""`); die Zeile bleibt schwarz, und das Paket färbt selbst einzelne
-Noten (Tonleitern, Stufe 3 bis 5). Das Feedback darunter wird wie bisher grün
+Noten (Tonleitern, Stufe 4 bis 7 seit Welle 8). Das Feedback darunter wird wie bisher grün
 bzw. rot. Ohne `keepRow` unverändert.
 
 Gleichzeitiges Abspielen (seit Paket E): Setzt eine Aufgabe `playTogether: true`
@@ -437,6 +443,21 @@ Noten lesen → Dreiklänge).
   grün umrandet (`ref`); `split` setzt zwei Hälften nebeneinander (Hilfen; bis 380 px wieder untereinander).
 - **Klaviatur**: `pianoSvg({ …, counts: [[midi, Zahl] …] })` färbt gezählte Tasten (Klasse `count`) und
   schreibt die Zahl darauf.
+- **Bis 380 px** stehen die drei Knöpfe der Vorführung und der Bildzähler in einer Zeile (seit Welle 8: kleinere
+  Abstände und Schrift, `flex-wrap: nowrap`; vorher rutschte der Zähler darunter).
+
+**Tonleitern (Welle 8).** Denkschritte: 1 = Bauplan (G G H G G G H), 2 = Klaviatur (Halbtöne → Vorzeichen); bei
+den Tonarten 1 = entscheidendes Vorzeichen (letztes ♯, vorletztes ♭), 2 = Halbton höher bzw. ablesen; bei Moll
+1 = Terz abwärts (drei Notenstufen, Dur-Grundton = 1), 2 = drei Halbtöne abwärts. Hilfen (`level.helps`, nur die
+vorhandenen Arten): Stufen 1, 2, 4, 6, 8 Klaviatur + Bauplan-Leiste (`planTable()`, Kästchentabelle 1–2 … 7–8,
+Halbton-Spalten als `family`), Stufe 10 Klaviatur ohne Markierung + Quintenzirkel-Kästchen (`circleTable`),
+Stufe 12 nur Klaviatur (Dur-Grundton in der zweigestrichenen Oktave). Vor der Antwort hebt keine Hilfe etwas
+hervor. Vorführungen als reine Funktionen im Paket: `scaleDemo(tonic, clef)` (18 Bilder: Frage, 8 Stufen,
+Bauplan-Leiste, 7 Schritte, Ergebnis; Berichtigung immer an der oberen Note, zu klein → ♯, zu groß → ♭, grün
+`note step2`), `stepDemo(notes, i, clef)` (Kurzfassung Stufe 1 und 2, 3 + Halbtöne Bilder), `keyDemo(fifths,
+clef)` (n + 3 Bilder, C- und F-Dur 3), `minorDemo(fifths)` (8 Bilder). Lerntafeln mit Vorführung tragen
+`data-tl-board="scale|key|minor"` (nicht `data-demo-board`, das sucht die Intervall-Tafel). Klassen: `.tl-keys`
+(Töne grün), `.tl-bracket`, `.tl-decisive`, `.keysig.step1`, `.tt-box.s1`, `.tt-plan`, `.tt-wide`.
 
 ## Engine (`src/engine.js`)
 
@@ -451,7 +472,7 @@ Stufen-ID.
   Hilfen, `helpsBody` sein Inhalt; `next` ist der Knopf „Nächste Aufgabe“ `#pNext` direkt unter den
   Antwortknöpfen)
 - Weiter zur nächsten Aufgabe (seit 20.11.2026, Entscheidung Sandra): Stufen ohne `helps` gehen wie bisher nach
-  `answerDelay` von selbst weiter. Stufen mit `helps` (`waitsForNext(level)`, „Intervalle“ 1, 3, 5, 8) warten
+  `answerDelay` von selbst weiter. Stufen mit `helps` (`waitsForNext(level)`, „Intervalle“ 1, 3, 5, 8, seit Welle 8 auch „Tonleitern“ 1, 2, 4, 6, 8, 10, 12) warten
   nach der letzten Antwort einer Aufgabe ohne Zeitgeber (`isWaiting()`), bis du „Nächste Aufgabe“ tippst
   (`#pNext`, ohne die Hilfen zu öffnen sichtbar, auch bei 320 × 640 ohne Scrollen) oder Enter bzw. die
   Leertaste drückst (`handleKey`; ein fokussierter Knopf der Vorführung oder `summary` behält seine Taste).
@@ -466,8 +487,11 @@ Stufen-ID.
   (falls gesetzt; das Paket „Intervalle“ lässt es weg, wenn der zweite Schritt nur einen Knopf hat),
   sonst `q.reveal`. Ziffern: `digitAction(e, set)` bei Knopfsätzen mit `digits`.
 - Hilfen (seit Welle 7, `level.helps`): `helpsHtml(level, q)` baut `helpText`, die Klaviatur
-  (`pianoSvg({ from: HELP_FROM[q.clef], octaves: 2, marks: q.helpMarks, interactive: false })`, Violinschlüssel
-  c' bis c''', Bassschlüssel C bis c'; eigener Bereich, nicht `#pPiano`) und `helpTable`. Zu Beginn der Runde
+  (`pianoSvg({ from: helpFrom(q), octaves: 2, marks: q.helpMarks, interactive: false })`, Violinschlüssel
+  c' bis c''', Bassschlüssel C bis c'; eigener Bereich, nicht `#pPiano`) und `helpTable`. Seit Welle 8 darf eine
+  Aufgabe `q.helpFrom` setzen (MIDI-Nummer des untersten C; optional, ohne das Feld wie bisher
+  `HELP_FROM[q.clef]`): „Tonleitern“ nimmt das C auf oder unter dem Grundton (B-Dur im Violinschlüssel ab c,
+  D-Dur im Bassschlüssel ab d), bei den Tonarten c'. Zu Beginn der Runde
   ist der Bereich zugeklappt; danach bleibt er so, wie du ihn gelassen hast (auf oder zu), der Inhalt wechselt
   mit jeder Aufgabe. Ob die Hilfe offen war, wird nicht gezählt. Stufen ohne `helps` zeigen keinen Bereich.
   Aufbau: Satz und Knopf „Vorführen“ (nur mit `level.demo`) in einer Zeile, dann Klaviatur und Tabelle
@@ -504,7 +528,7 @@ Stufen-ID.
   `RHYTHM_TAIL`
 - seit Welle 7, rein und getestet: `choiceSet(q, step)`, `setClass(set)`, `stepsFeedback(q, oks)`,
   `digitAction(e, set)`, `hasHelps(level)`, `helpsHtml(level, q)`; Konstanten `DELAY_STEP_OK`,
-  `DELAY_STEP_BAD`, `HELP_FROM`, `HELP_OCTAVES`
+  `DELAY_STEP_BAD`, `HELP_FROM`, `HELP_OCTAVES`; seit Welle 8 `helpFrom(q)` (`q.helpFrom` oder `HELP_FROM[q.clef]`)
 - `notesToPlay(q)` liefert nur die Noten aus `play` (ohne Pausen); damit
   bleibt `playMode` für Akkorde unverändert
 
@@ -625,7 +649,7 @@ Zustand (persistiert unter `localStorage["notenheld.v2"]`):
   notes: { "G (g', Violin)": { ok, bad, sec, timed, last, hist, hsec } },   // je Aufgabe (statKey)
   answered, correct, bestCombo, blitzRecord,
   unlockAll, muted, input, current: "noten-1",
-  migrated: ["intervalle-neu"],   // einmalige Umstellungen, die schon gelaufen sind (seit Welle 7)
+  migrated: ["intervalle-neu", "tonleitern-neu"],   // einmalige Umstellungen, die schon gelaufen sind (seit Welle 7)
 }
 ```
 
@@ -636,6 +660,14 @@ zusammen), löscht alle übrigen `intervalle-1 … -12` und setzt `current` um (
 `intervall-1`). `notes` (Statistik je Aufgabe) bleibt unverändert. Danach speichert `load` einmal.
 `isUnlocked`: eine schon gespielte Stufe (`played > 0`) bleibt offen, so sind übernommene
 `tonleitern-7`/`-8` spielbar, auch wenn `tonleitern-6` noch nicht geschafft ist.
+
+Umstellung „Tonleitern gehirngerecht“ (Welle 8, `migrateTonleitern(s)`, Marker `"tonleitern-neu"`, ein frischer
+Stand trägt beide Marker): `tonleitern-1→1, 2→2, 3→4, 4→5, 5→7, 6→9, 7→11, 8→13`, in einem Durchgang in ein
+neues `levels`-Objekt (sonst verketteten sich 3→4 und 4→5), `current` entsprechend, `notes` und statKeys
+bleiben. Reihenfolge zwingend: `load` ruft `migrateAll(s)` = erst `migrateIntervalle`, dann `migrateTonleitern`
+(beide laufen immer, nicht mit `||` verkettet; danach einmal speichern), auch im v1-Zweig. So landen alte
+`intervalle-5/-6` über `tonleitern-7/-8` auf 11 und 13. Freischaltung unverändert: Gespieltes bleibt offen; eine
+alte, offene, aber nie gespielte Stufe öffnet sich erst wieder über die neue Stufe davor.
 
 Ein Eintrag in `notes` (seit Paket G): `ok` und `bad` zählen richtige und
 falsche Antworten, `sec` ist die Summe der Antwortzeiten richtiger Antworten

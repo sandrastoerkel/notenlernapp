@@ -1005,6 +1005,67 @@ Spielstände: Reihenfolge und Aufruf in `load`, Umschreiben in einem Durchgang, 
 Freischaltung berichtigt, anzupassende Tests benannt; (7) Stufe 4: Halbtonschritt nur bei der 4. Stufe,
 deshalb gewichtet ziehen; (8) Rückmeldung der Stufen ohne Hilfen nennt beide Denkschritte.
 
+**Umgesetzt (Branch `tonleitern-neu`).** Aufgaben je Stufe: 1: 14, 2: 28, 3: 126, 4: 30, 5: 108, 6: 34, 7: 68,
+8: 9, 9: 18, 10: 15, 11: 30, 12: 15, 13: 30. Stufen mit Hilfen (1, 2, 4, 6, 8, 10, 12) warten auf „Nächste
+Aufgabe“ und haben „Vorführen“ (erst nach der Antwort). Engine: nur `q.helpFrom` (`helpFrom(q)`, optional).
+`staff.js`: `keySigPos` (Lage der Vorzeichen; `keySigSvg` unverändert). `store.js`: `migrateTonleitern`,
+`migrateAll`. Cache `notenheld-v0.2.0-11`.
+
+Entscheidungen bei der Umsetzung (ohne Rückfrage, Sandra 14:27):
+- Stufe 4: „Gewicht etwa 1/3“ als Wahrscheinlichkeit 1/3 für einen Halbtonschritt (`GAP_HALF_P`, wie `pickStep`);
+  ein Gewicht 1/3 je Aufgabe hätte die 5 Halbton-Aufgaben noch seltener gemacht (6 % statt 17 %).
+- Stufe 12, Schritt 1: drei aufeinanderfolgende Stammtöne in ihrer Reihenfolge, der Anfang zufällig (G | A | H,
+  H | C | D, A | H | C …). Mit „der richtige und seine beiden Nachbarn“ stünde die Antwort immer in der Mitte.
+  Die Frage nennt die Dur-Tonart („Parallele Molltonart zu Es-Dur. Terz abwärts vom Dur-Grundton: welcher
+  Stammton?“), die Zeile zeigt wie in Stufe 13 die Vorzeichnung. Text nach Schritt 1: „Richtig: Es (1), D (2),
+  C (3) → Stammton C.“
+- Stufe 10, Schritt 2: die vier Tonarten aus `keyChoices` (nie zwei gleich klingende) in fester Reihenfolge nach
+  dem Quintenzirkel von ♭ nach ♯ (`keyChoicesFixed`). Aufforderung: „Einen Halbton über Dis: welche
+  Dur-Tonart?“ bzw. „Das vorletzte Be ist der Grundton: welche Dur-Tonart?“ (nennt den Weg, nicht die Tonart).
+  Ein-Knopf-Fälle: C „Richtig: Hier steht kein Vorzeichen.“, G „Richtig: Fis ist das einzige Kreuz, also das
+  letzte.“, F wie im Plan.
+- Quintenzirkel-Kästchen (Hilfe Stufe 10, Lerntafel): im Kästchen nur der Grundton (C, G … Ces), Kopf „Anzahl |
+  ♯-Tonart | ♭-Tonart“, darunter „Alle hier sind Dur-Tonarten: 3 ♯ → A-Dur, 3 ♭ → Es-Dur.“ Mit „-Dur“ war die
+  Tabelle bei 420 px breiter als die Hilfen. Die Lerntafel „Quintenzirkel“ behält ihre Tabelle mit Moll.
+- Bauplan-Leiste: darunter „G = Ganztonschritt (2 Halbtöne) · H = Halbtonschritt (1 Halbton)“, weil G und H
+  sonst wie Notennamen gelesen werden könnten.
+- Titel: Stufen ohne Hilfen heißen „… ohne Hilfen“ (wie bei den Intervallen), die Untertitel nennen „mit Hilfen“
+  bzw. „zwei Schritte“. Stufe 3 heißt „Ganz- und Halbtonschritte ohne Hilfen“.
+- Rückmeldungen mit beiden Denkschritten: Stufe 5 „Fis (G-Dur) · 6.→7. Stufe: Ganztonschritt · e''–fis'':
+  2 Halbtöne → Fis“; Stufe 6 und 7 nennen den Schritt von der Note davor (er passt nie zum Bauplan, getestet):
+  „F passt nicht in G-Dur: 6.→7. Stufe: e''–f'': 1 Halbton, der Bauplan will Ganz → Fis.“; Stufe 8 und 9
+  „Fis, Cis (D-Dur): der Bauplan G G H G G G H braucht Fis und Cis“; Stufe 11 Auflösung „Drei Kreuze stehen für
+  A-Dur (letztes Kreuz Gis · einen Halbton höher → A-Dur).“; Stufe 13 „Die parallele Molltonart zu Es-Dur ist
+  c-Moll (Terz abwärts: 3 Halbtöne unter Es liegt c).“
+- Vorführung 1: Im Schritt 1 ist die jeweils neue Stufe violett. Die Klaviatur zählt bis zur berichtigten Note
+  (e''–fis'': f'' = 1, fis'' = 2), die Zeile „Halbtöne“ der Bauplan-Leiste zeigt den Abstand nach der
+  Berichtigung (also den Bauplan-Wert); der gemessene Abstand steht im Satz. Der geprüfte Schritt hat eine grüne
+  Klammer. Ohne Vorzeichen: „kein Vorzeichen nötig“ als zweite Marke. Klaviatur ab dem C auf oder unter dem
+  Grundton, eine Oktave, wenn sie reicht.
+- Vorführung 2: Vorzeichen im Abstand 22 statt 12 (Platz für die Zahlenkreise), Klaviatur eine Oktave ab c'
+  (Taste nach dem Klang; „Eis liegt auf der Taste F“, „His … C“, „Ces … H“ im Satz). Marken „1 · Entscheidendes
+  Vorzeichen“ / „2 · Klaviatur“, Kurzfassung (C, F) „Vorzeichen lesen“.
+- Vorführung 3: Noten ohne Vorzeichnung, der Dur-Grundton mit seinem Vorzeichen; die Moll-Note bekommt im
+  dritten Halbton-Bild ihr Vorzeichen in Grün; Satz endet mit „Das ist eine kleine Terz.“ Marken „1 · Terz
+  abwärts: 3 Stufen“ / „2 · 3 Halbtöne abwärts“.
+- Lerntafel-Beispiele: Tonleiter C, G, F, D, B; Tonart 3 ♯, 3 ♭, 7 ♯, 1 ♭, keine; Moll zu Es-, C-, A-, Des-,
+  Ces-Dur. Die Tafeln tragen `data-tl-board` statt `data-demo-board`: die Intervall-Tafel sucht das erste
+  `[data-demo-board]` im ganzen Lernbereich, und „Tonleitern“ steht davor.
+- Vorführung bis 380 px: Knöpfe und Bildzähler in einer Zeile (kleinere Abstände und Schrift, gilt auch für die
+  Intervall-Vorführung; nur Darstellung). Bauplan-Leiste bis 380 px mit Kästchen 21 px.
+- Offen für Sandra: Die Überschrift der Hilfen heißt fest „Hilfen: Klaviatur und Tabelle“ (`index.html`), auch in
+  Stufe 12, die nur die Klaviatur hat. Eine Änderung bräuchte ein neues Feld an der Engine (bewusst nicht gemacht).
+
+Prüfung im Browser (20.11.2026, Headless Chrome 153 über Playwright im Container, nicht am Mac; `python3 -m
+http.server 8080`, Service Worker beim Prüfen gesperrt): 420 und 320 px, hell und dunkel: alle 13 Stufen je eine
+Runde (eine Aufgabe absichtlich daneben, in den Stufen 4, 10 und 12 mit danebenliegendem Schritt 1 und „Der Ton
+stimmt …“ bzw. „Die Tonart/Molltonart stimmt …“, sonst ganz richtig), Hilfen auf/zu, in den Stufen mit Hilfen
+„Vorführen“ bis zum Ergebnis, „Nächste Aufgabe“ bis zur Ergebniskarte; alle Lerntafel-Vorführungen (15 Beispiele)
+bis zum letzten Bild, Bildzähler und Knöpfe bei 320 px in einer Zeile; kein waagrechter Überlauf, keine
+Konsolenfehler. Alter Spielstand (tonleitern-1 … -6, intervalle-3/-5/-6, ohne Marker) wird zu 1, 2, 4, 5, 7, 9,
+11, 13 umgestellt, `current` tonleitern-6 → -9, intervalle-3 entfällt. „Noten lesen“ Stufe 1 und „Intervalle“
+Stufe 1 starten und zeigen Zeile und Knöpfe wie bisher. Am iPhone/Mac noch nicht geprüft.
+
 ## Später (nicht geplant, nur notiert)
 
 - Altschlüssel für Bratsche als Stufen in „Noten lesen“.
