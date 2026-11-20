@@ -228,8 +228,10 @@ export const BLACK = [{ l: "C", i: 0 }, { l: "D", i: 1 }, { l: "F", i: 3 }, { l:
 // der Oktaven (weiße Tasten bis zum C darüber), marks = MIDI-Nummern der markierten Tasten (Klasse mark),
 // interactive = false: nur zum Anschauen (Klasse keys-static am <svg>, keine data-semi, größere Schrift
 // über CSS). Jede Taste trägt dann data-midi.
+// counts (seit der Vorführung): [[MIDI-Nummer, Beschriftung] …] – gezählte Tasten (Klasse count, Schritt 2
+// grün) mit ihrer Zahl auf der Taste (weiß: unter den schwarzen Tasten, schwarz: unten in der Taste).
 export function pianoSvg(opts = {}) {
-  const { from = null, octaves = 1, marks = [], interactive = true } = opts;
+  const { from = null, octaves = 1, marks = [], interactive = true, counts = [] } = opts;
   const kw = interactive ? 38 : 30, kh = interactive ? 110 : 96, bw = interactive ? 24 : 18;
   const whites = Array.from({ length: octaves * 7 + 1 }, (_, i) => ({ l: WHITE[i % 7], o: Math.floor(i / 7), i }));
   const blacks = Array.from({ length: octaves }, (_, o) => BLACK.map((b) => ({ ...b, o, i: b.i + 7 * o }))).flat();
@@ -240,17 +242,25 @@ export function pianoSvg(opts = {}) {
     return `${interactive ? ` data-semi="${semi}"` : ""} data-midi="${m}"`;
   };
   const isMark = (semi, o) => from !== null && mk.has(from + 12 * o + semi);
+  const cnt = new Map(from === null ? [] : counts);
+  const countOf = (semi, o) => cnt.get(from + 12 * o + semi);
+  const keyCls = (semi, o) => `${isMark(semi, o) ? " mark" : ""}${countOf(semi, o) !== undefined ? " count" : ""}`;
+  const bh = Math.round(kh * 6) / 10;
   let s = `<svg viewBox="0 0 ${kw * whites.length + 2} ${kh + 2}"${interactive ? "" : ' class="keys-static"'} role="${interactive ? "group" : "img"}" aria-label="Klaviatur">`;
   whites.forEach(({ l, o, i }) => {
     const semi = SEMI[l];
     // das obere C gehört zur nächsten Oktave (data-semi 0 wie bisher)
     const oo = i === whites.length - 1 ? octaves : o;
-    s += `<rect class="wkey${isMark(semi, oo) ? " mark" : ""}"${keyAttr(semi, oo)} data-id="w${i}" x="${1 + i * kw}" y="1" width="${kw}" height="${kh}" rx="3"/>`;
-    s += `<text class="klabel${isMark(semi, oo) ? " mark" : ""}" x="${1 + i * kw + kw / 2}" y="${kh - 8}" text-anchor="middle">${l}</text>`;
+    s += `<rect class="wkey${keyCls(semi, oo)}"${keyAttr(semi, oo)} data-id="w${i}" x="${1 + i * kw}" y="1" width="${kw}" height="${kh}" rx="3"/>`;
+    s += `<text class="klabel${keyCls(semi, oo)}" x="${1 + i * kw + kw / 2}" y="${kh - 8}" text-anchor="middle">${l}</text>`;
+    const c = countOf(semi, oo);
+    if (c !== undefined) s += `<text class="kcount" x="${1 + i * kw + kw / 2}" y="${Math.round(bh + 16)}" text-anchor="middle">${c}</text>`;
   });
   blacks.forEach((b) => {
     const semi = SEMI[b.l] + 1;
-    s += `<rect class="bkey${isMark(semi, b.o) ? " mark" : ""}"${keyAttr(semi, b.o)} data-id="b${b.i}" x="${1 + (b.i + 1) * kw - bw / 2}" y="1" width="${bw}" height="${Math.round(kh * 6) / 10}" rx="2"/>`;
+    s += `<rect class="bkey${keyCls(semi, b.o)}"${keyAttr(semi, b.o)} data-id="b${b.i}" x="${1 + (b.i + 1) * kw - bw / 2}" y="1" width="${bw}" height="${bh}" rx="2"/>`;
+    const c = countOf(semi, b.o);
+    if (c !== undefined) s += `<text class="kcount on-black" x="${1 + (b.i + 1) * kw}" y="${Math.round(bh - 6)}" text-anchor="middle">${c}</text>`;
   });
   return s + "</svg>";
 }

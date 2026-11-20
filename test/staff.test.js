@@ -300,3 +300,15 @@ test("noteheadSvg: derselbe Kopf wie in noteSvg, für jeden Notenwert", () => {
     assert.equal(head.includes("open"), value <= 2, String(value));
   }
 });
+
+test("pianoSvg: gezählte Tasten (counts) mit Zahl, auch schwarze", () => {
+  const h = pianoSvg({ from: 60, octaves: 1, marks: [64, 67], counts: [[65, 1], [66, 2], [67, 3]], interactive: false });
+  assert.ok(h.includes('class="wkey count" data-midi="65"'));
+  assert.ok(h.includes('class="bkey count" data-midi="66"'));
+  assert.ok(h.includes('class="wkey mark count" data-midi="67"'));
+  assert.ok(h.includes('class="wkey mark" data-midi="64"'));
+  assert.deepEqual([...h.matchAll(/class="kcount( on-black)?"[^>]*>(\d)</g)].map((m) => [m[2], !!m[1]]), [["1", false], ["3", false], ["2", true]]);
+  // ohne counts wie bisher
+  assert.ok(!pianoSvg({ from: 60, octaves: 1, interactive: false }).includes("count"));
+  assert.ok(!pianoSvg().includes("count"));
+});
