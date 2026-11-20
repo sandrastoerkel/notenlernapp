@@ -82,6 +82,10 @@ export function lowestY(notes, clef, keySig) {
 // die Noten stehen dann ohne eigene Vorzeichen), svgCls (Klasse am <svg>),
 // label { i, text } (Name in Grün unter Note i, Klasse "note-label ok", immer unter dem tiefsten Punkt
 // der Zeile; die Höhe des SVG wächst, falls nötig).
+const labelY = (notes, clef, keySig) => Math.round(lowestY(notes, clef, keySig) + LABEL_GAP + LABEL_ASC);
+// Höhe einer Tonleiter-Zeile mit Namen unter einer Note
+export const labelHeight = (notes, clef, keySig) => labelY(notes, clef, keySig) + LABEL_DESC;
+
 export function scaleSvg(notes, clef, opts = {}) {
   const { keySig, gap, cls = {}, label } = opts;
   const marks = opts.marks || (opts.mark ? [opts.mark] : []);
@@ -94,9 +98,11 @@ export function scaleSvg(notes, clef, opts = {}) {
     inner += noteSvg(shown, clef, x, cls[i] || (marked.has(i) ? "mark" : ""), { stemless: true });
   });
   marks.forEach(([i, j]) => { inner += bracketSvg(notes, clef, i, j, keySig); });
-  let height;
+  // opts.height: feste Höhe, z. B. für die Frage dieselbe wie für die Auflösung mit Namen
+  // (labelHeight), damit die Karte beim Aufdecken nicht springt
+  let height = opts.height;
   if (label) {
-    const y = Math.round(lowestY(notes, clef, keySig) + LABEL_GAP + LABEL_ASC);
+    const y = labelY(notes, clef, keySig);
     inner += `<text class="note-label ok" x="${scaleX(label.i, keySig)}" y="${y}" text-anchor="middle">${label.text}</text>`;
     height = y + LABEL_DESC;
   }
@@ -185,7 +191,7 @@ function gapQuestion(it) {
   const where = `${key}, ${degree(it.i)}`;
   return {
     key: it.key,
-    svg: scaleSvg(it.notes, it.clef, { gap: it.i }),
+    svg: scaleSvg(it.notes, it.clef, { gap: it.i, height: labelHeight(it.notes, it.clef) }),
     revealSvg: scaleSvg(it.notes, it.clef, { cls: { [it.i]: "ok" }, label: { i: it.i, text: gName(n) } }),
     keepRow: true,
     prompt: "Welcher Ton fehlt?",
@@ -237,7 +243,7 @@ export function oddQuestion(it) {
   const key = keyName(it.notes[0]), right = gName(it.notes[it.i]), answer = gName(it.moved);
   return {
     key: it.key,
-    svg: scaleSvg(it.shown, it.clef),
+    svg: scaleSvg(it.shown, it.clef, { height: labelHeight(it.notes, it.clef) }),
     revealSvg: scaleSvg(it.notes, it.clef, { cls: { [it.i]: "ok" }, label: { i: it.i, text: right } }),
     keepRow: true,
     prompt: `Welcher Ton passt nicht in ${key}?`,

@@ -358,3 +358,14 @@ test("Texte: keine verbotenen Wörter, Anrede du", () => {
   assert.ok(levelTexts.every((t) => !/Tetrachord/.test(t)));
   assert.ok(L[5].hint.includes("Der Grundton steht zweimal da, sein Vorzeichen zählt nur einmal."));
 });
+
+test("Stufen 3–5: Frage und Auflösung gleich hoch (Karte springt nicht)", () => {
+  const hOf = (svg) => svg.match(/viewBox="0 0 \d+ (\d+(?:\.\d+)?)"/)[1];
+  for (const id of ["tonleitern-3", "tonleitern-4", "tonleitern-5"]) {
+    const level = tonleitern.levels.find((l) => l.id === id);
+    for (let k = 0; k < 40; k++) {
+      const q = level.question();
+      assert.equal(hOf(q.svg), hOf(q.revealSvg), `${id} ${q.key}`);
+    }
+  }
+});
