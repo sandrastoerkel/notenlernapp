@@ -10,11 +10,12 @@ export const KEY_V2 = "notenheld.v2";
 // braucht keine: er trägt alle Marker schon.
 export const MIGRATION_INTERVALLE = "intervalle-neu";
 export const MIGRATION_TONLEITERN = "tonleitern-neu";
+export const MIGRATION_NOTENWERTE = "notenwerte-neu";
 
 export const fresh = () => ({
   xp: 0, dayStreak: 0, lastDay: null, levels: {}, notes: {}, answered: 0, correct: 0,
   bestCombo: 0, blitzRecord: 0, unlockAll: false, muted: false, input: "letters", current: "noten-1",
-  migrated: [MIGRATION_INTERVALLE, MIGRATION_TONLEITERN],
+  migrated: [MIGRATION_INTERVALLE, MIGRATION_TONLEITERN, MIGRATION_NOTENWERTE],
 });
 
 // Alte Daten (Stufen 1 bis 8 als Zahl) in das Format mit Stufen-IDs übernehmen
@@ -79,17 +80,39 @@ export function migrateTonleitern(s) {
   return true;
 }
 
+// "notenwerte-neu" (20.11.2026, Welle 9 „Notenwerte gehirngerecht“): aus 6 werden 10 Stufen, neu sind 3, 4, 6
+// und 8 (Festigung bzw. mit Hilfen). Jede alte Stufe landet auf der neuen Stufe gleichen Inhalts ohne Hilfen:
+// 1→1, 2→2, 3→5, 4→7, 5→9, 6→10; s.current entsprechend, s.notes bleibt (das Paket hat keine statKeys).
+// Wie migrateTonleitern in einem Durchgang in ein neues Objekt (sonst verkettet 3→5 mit 5→9).
+export const RENAMED_NOTENWERTE = Object.fromEntries([[1, 1], [2, 2], [3, 5], [4, 7], [5, 9], [6, 10]]
+  .map(([a, b]) => [`notenwerte-${a}`, `notenwerte-${b}`]));
+
+export function migrateNotenwerte(s) {
+  const done = Array.isArray(s.migrated) ? s.migrated : [];
+  if (done.includes(MIGRATION_NOTENWERTE)) return false;
+  const levels = {};
+  for (const [id, st] of Object.entries(s.levels || {})) {
+    const to = RENAMED_NOTENWERTE[id] || id;
+    levels[to] = mergeLevel(levels[to], st);
+  }
+  s.levels = levels;
+  if (RENAMED_NOTENWERTE[s.current]) s.current = RENAMED_NOTENWERTE[s.current];
+  s.migrated = [...done, MIGRATION_NOTENWERTE];
+  return true;
+}
+
 // Alle Umstellungen in der festen Reihenfolge; jede läuft (nicht mit || verketten, sonst liefe die zweite
-// beim ersten Laden nicht). true, wenn eine etwas geändert hat.
+// beim ersten Laden nicht). true, wenn eine etwas geändert hat. migrateNotenwerte fasst nur notenwerte-* an
+// und steht nur der Ordnung halber als dritte.
 export function migrateAll(s) {
-  const a = migrateIntervalle(s), b = migrateTonleitern(s);
-  return a || b;
+  const a = migrateIntervalle(s), b = migrateTonleitern(s), c = migrateNotenwerte(s);
+  return a || b || c;
 }
 
 const defaultStorage = () => { try { return globalThis.localStorage || null; } catch (e) { return null; } };
 
 // Zustand laden: zuerst v2, sonst v1 übernehmen und als v2 speichern (v1 bleibt unverändert).
-// Danach die einmaligen Umstellungen (migrateAll: erst migrateIntervalle, dann migrateTonleitern); geändert
+// Danach die einmaligen Umstellungen (migrateAll: migrateIntervalle, migrateTonleitern, migrateNotenwerte); geändert
 // wird nur einmal gespeichert.
 export function load(storage = defaultStorage()) {
   try {
