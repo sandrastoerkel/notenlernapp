@@ -1,9 +1,13 @@
-// Paket „Tonleitern“: Dur-Tonleitern bis 4 Vorzeichen (Stufen 1–6), Tonart aus den Vorzeichen und
-// parallele Molltonart (Stufen 7 und 8, bis 20.11.2026 im Paket „Intervalle“), vier Lerntafeln.
-// Grundlage: docs/PLAN.md, Abschnitt „Paket Tonleitern“; LehrplanPLUS Gymnasium Musik Kl. 5
-// (Dur-Tonleitern mit verschiedenen Grundtönen, Ganz- und Halbtonschritt).
-// Stufen 1–6: nur Dur, keine Doppelvorzeichen, keine Eis/His/Ces/Fes. Moll-Tonleitern folgen später als tonleitern-9 ff.
-import { N, midi, pc, SEMI, gName, helm, majorScale, staffPos, majorKeyFromKeySig, majorName, minorName } from "../music.js";
+// Paket „Tonleitern“ (seit Welle 8 „Tonleitern gehirngerecht“, docs/PLAN.md): 13 Stufen, erst mit Hilfen,
+// dann ohne. Dur-Tonleitern bis 4 Vorzeichen (Stufen 1–9), Tonart aus den Vorzeichen (10, 11) und parallele
+// Molltonart (12, 13), je bis 7 Vorzeichen. Grundlage: LehrplanPLUS Gymnasium Musik Kl. 5 (Dur-Tonleitern
+// mit verschiedenen Grundtönen, Ganz- und Halbtonschritt) und KONZEPT-gehirngerecht (Sandra, 20.11.2026).
+// Die zwei Denkschritte: 1 (violett) = Bauplan Ganz – Ganz – Halb – Ganz – Ganz – Ganz – Halb,
+// 2 (grün) = Klaviatur: Halbtöne zählen → Vorzeichen. Bei den Tonarten: 1 = das entscheidende Vorzeichen,
+// 2 = Halbton höher bzw. ablesen; bei Moll: 1 = Terz abwärts (Stammton), 2 = drei Halbtöne abwärts.
+// In den Tonleitern nur Dur, keine Doppelvorzeichen, keine Eis/His/Ces/Fes (in den Vorzeichnungen bis 7
+// kommen Eis, His, Ces und Fes vor). Moll-Tonleitern folgen später als tonleitern-14 ff.
+import { N, LETTERS, midi, pc, SEMI, gName, helm, majorScale, staffPos, majorKeyFromKeySig, relativeMinor, majorName, minorName } from "../music.js";
 import { staffSvg, noteSvg, TOP, S } from "../staff.js";
 
 const CLEF_SHORT = { treble: "Violin", bass: "Bass" };
@@ -127,8 +131,23 @@ export function pickItem(items, prev) {
 
 const scalePlay = (notes) => notes.map((note) => ({ note, beats: 0.5 }));
 const degree = (i) => `${i + 1}. Stufe`;
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+const halftones = (n) => plural(n, "Halbton", "Halbtöne");
+// Erster Buchstabe klein (für Nebensätze nach einem Doppelpunkt)
+const lowerFirst = (t) => t.charAt(0).toLowerCase() + t.slice(1);
 
-/* ---------- Stufe 1 und 2: Ganz- oder Halbtonschritt ---------- */
+/* ---------- Bauplan ---------- */
+
+// Halbtöne der sieben Schritte einer Dur-Tonleiter: Ganz – Ganz – Halb – Ganz – Ganz – Ganz – Halb
+export const PLAN = [2, 2, 1, 2, 2, 2, 1];
+// Kurzform in der Bauplan-Leiste: G = Ganztonschritt, H = Halbtonschritt
+export const PLAN_SHORT = PLAN.map((h) => (h === 2 ? "G" : "H"));
+export const PLAN_TEXT = PLAN_SHORT.join(" ");
+const PLAN_WORD = { 2: "Ganz", 1: "Halb" };
+// Schritt von Stufe i + 1 zu Stufe i + 2 als Text: „6.→7. Stufe“
+export const stepLabel = (i) => `${i + 1}.→${i + 2}. Stufe`;
+
+/* ---------- Stufe 1 bis 3: Ganz- oder Halbtonschritt ---------- */
 
 export const STEP_WHOLE = "Ganztonschritt", STEP_HALF = "Halbtonschritt";
 export const HALF_P = 0.4;
@@ -147,13 +166,17 @@ function stepPool(clef, keys) {
 
 export const ITEMS_1 = [...stepPool("treble", ["C"]), ...stepPool("bass", ["C"])];
 export const ITEMS_2 = stepPool("treble", ["G", "D", "F", "B"]);
+export const ITEMS_3 = [...stepPool("treble", KEYS_4), ...stepPool("bass", KEYS_4)];
 
-// Halbtöne mit Wahrscheinlichkeit 0,4 (sonst kämen sie nur 2 von 7 Mal)
-export function pickStep(items, prev, rnd = Math.random) {
-  const half = rnd() < HALF_P;
+// Halbtöne mit Wahrscheinlichkeit p (Stufe 1–3: 0,4, sonst kämen sie nur 2 von 7 Mal; Stufe 4: 1/3)
+export function pickStep(items, prev, rnd = Math.random, p = HALF_P) {
+  const half = rnd() < p;
   const cand = items.filter((it) => it.half === half && (!prev || it.key !== prev.key));
   return cand.length ? cand[Math.floor(rnd() * cand.length)] : pickItem(items, prev);
 }
+
+// Unterstes C der Hilfe-Klaviatur (q.helpFrom, engine.js): das C auf oder unter dem Grundton
+export const helpFromOf = (tonic) => 12 * Math.floor(midi(tonic) / 12);
 
 function stepQuestion(it) {
   const a = it.notes[it.i], b = it.notes[it.i + 1];
@@ -168,40 +191,86 @@ function stepQuestion(it) {
     display: `${answer} (${pair})`,
     reveal: `Richtig wäre: ${answer} (${pair}).`,
     play: [a, b],
-    clef: it.clef,
+    clef: it.clef, notes: it.notes, i: it.i,
+    helpMarks: [a, b], helpFrom: helpFromOf(it.notes[0]),
     statKey: `${it.half ? "Halbton" : "Ganzton"} ${low(a)}–${low(b)}`,
   };
 }
 
-/* ---------- Stufe 3 und 4: Welcher Ton fehlt? ---------- */
+/* ---------- Stufe 4 und 5: Welcher Ton fehlt? ---------- */
 
+// Die Lücke liegt auf der 2. bis 7. Stufe; der Schritt von der Note davor zur Lücke ist nur bei der
+// 4. Stufe ein Halbtonschritt (half)
 function gapPool(clefs, keys) {
   const out = [];
   for (const clef of clefs) for (const k of keys) {
     const notes = scaleNotes(TONICS[clef][k]);
-    for (let i = 1; i <= 6; i++) out.push({ key: `${clef}:${k}:${i}`, clef, k, notes, i });
+    for (let i = 1; i <= 6; i++) out.push({ key: `${clef}:${k}:${i}`, clef, k, notes, i, half: PLAN[i - 1] === 1 });
   }
   return out;
 }
 
-export const ITEMS_3 = gapPool(["treble"], KEYS_2);
-export const ITEMS_4 = gapPool(["treble", "bass"], KEYS_4);
+export const ITEMS_4 = gapPool(["treble"], KEYS_2);
+export const ITEMS_5 = gapPool(["treble", "bass"], KEYS_4);
+// Stufe 4: Aufgaben mit Halbtonschritt (5 von 30) mit Wahrscheinlichkeit 1/3 ziehen
+export const GAP_HALF_P = 1 / 3;
 
+// Beide Denkschritte zur Lücke: „6.→7. Stufe: Ganztonschritt · e''–fis'': 2 Halbtöne → Fis“
+export function gapWay(it) {
+  const a = it.notes[it.i - 1], b = it.notes[it.i], semi = midi(b) - midi(a);
+  const kind = semi === 1 ? STEP_HALF : STEP_WHOLE;
+  return { kind, semi, text: `${stepLabel(it.i - 1)}: ${kind} · ${helm(a)}–${helm(b)}: ${halftones(semi)} → ${gName(b)}` };
+}
+
+// Knöpfe im zweiten Schritt von Stufe 4: die üblichen Namen zum Stammton der Lücke, in der Reihenfolge
+// Stammton, ♯-Form, ♭-Form (ohne Eis, His, Ces, Fes): D | Dis | Des, E | Es, H | B …
+export const nameChoices = (n) => [0, 1, -1].map((acc) => N(n.letter, n.octave, acc)).filter(usualNote).map(gName);
+
+const gapSvgs = (it) => ({
+  svg: scaleSvg(it.notes, it.clef, { gap: it.i, height: labelHeight(it.notes, it.clef) }),
+  revealSvg: scaleSvg(it.notes, it.clef, { cls: { [it.i]: "ok" }, label: { i: it.i, text: gName(it.notes[it.i]) } }),
+  keepRow: true,
+});
+
+// Stufe 4: zwei Schritte, erst Ganz oder Halb (Bauplan), dann der Name (2 oder 3 Knöpfe)
+export function gapStepQuestion(it) {
+  const n = it.notes[it.i], key = keyName(it.notes[0]), name = gName(n), way = gapWay(it);
+  const names = nameChoices(n);
+  return {
+    key: it.key,
+    ...gapSvgs(it),
+    prompt: "Von der Note davor zur Lücke: Ganz- oder Halbtonschritt?",
+    answer: name,
+    choices: names,
+    steps: [
+      { choices: [STEP_WHOLE, STEP_HALF], answer: way.kind, ok: `Richtig: ${stepLabel(it.i - 1)} ist ein ${way.kind}.`, bad: `Nicht ganz: ${stepLabel(it.i - 1)} ist ein ${way.kind}.` },
+      { choices: names, answer: name, prompt: "Welcher Ton?" },
+    ],
+    display: way.text,
+    reveal: `Richtig wäre: ${name} (${way.text}).`,
+    partial: `Der Ton stimmt, der Schritt nicht: ${way.text}.`,
+    note: n,
+    play: scalePlay(it.notes),
+    clef: it.clef, notes: it.notes, i: it.i,
+    helpMarks: it.notes.filter((_, j) => j !== it.i), helpFrom: helpFromOf(it.notes[0]),
+    statKey: `${key}, ${degree(it.i)} (Lücke)`,
+  };
+}
+
+// Stufe 5: Namensraster wie bisher, die Rückmeldung nennt beide Denkschritte
 function gapQuestion(it) {
-  const n = it.notes[it.i], key = keyName(it.notes[0]);
+  const n = it.notes[it.i], key = keyName(it.notes[0]), way = gapWay(it);
   const where = `${key}, ${degree(it.i)}`;
   return {
     key: it.key,
-    svg: scaleSvg(it.notes, it.clef, { gap: it.i, height: labelHeight(it.notes, it.clef) }),
-    revealSvg: scaleSvg(it.notes, it.clef, { cls: { [it.i]: "ok" }, label: { i: it.i, text: gName(n) } }),
-    keepRow: true,
+    ...gapSvgs(it),
     prompt: "Welcher Ton fehlt?",
     answer: { letter: n.letter, acc: n.acc },
     note: n,
-    display: `${gName(n)} (${where})`,
-    reveal: `Richtig wäre: ${gName(n)} (${where}).`,
+    display: `${gName(n)} (${key}) · ${way.text}`,
+    reveal: `Richtig wäre: ${gName(n)} (${where}). ${way.text}.`,
     play: scalePlay(it.notes),
-    clef: it.clef,
+    clef: it.clef, notes: it.notes, i: it.i,
     statKey: `${where} (Lücke)`,
   };
 }
@@ -212,7 +281,7 @@ export function checkGap(q, value) {
   return !!value && value.letter === q.answer.letter && value.acc === q.answer.acc;
 }
 
-/* ---------- Stufe 5: Welcher Ton passt nicht? ---------- */
+/* ---------- Stufe 6 und 7: Welcher Ton passt nicht? ---------- */
 
 // Vorzeichen, die vorkommen dürfen: keine Eis, His, Ces, Fes, keine Doppelvorzeichen
 const RARE = new Set(["E1", "H1", "C-1", "F-1"]);
@@ -238,10 +307,19 @@ function oddPool(clefs, keys) {
   return out;
 }
 
-export const ITEMS_5 = oddPool(["treble", "bass"], KEYS_4);
+export const ITEMS_6 = oddPool(["treble"], KEYS_4);
+export const ITEMS_7 = oddPool(["treble", "bass"], KEYS_4);
+
+// Beide Denkschritte zur unpassenden Note: Der Schritt von der Note davor passt nicht zum Bauplan
+// (die Note davor stimmt immer, die verschobene Note ändert den Abstand um einen Halbton):
+// „6.→7. Stufe: e''–f'': 1 Halbton, der Bauplan will Ganz → Fis“
+export function oddWay(it) {
+  const a = it.shown[it.i - 1], b = it.shown[it.i], semi = midi(b) - midi(a), want = PLAN[it.i - 1];
+  return { semi, want, text: `${stepLabel(it.i - 1)}: ${helm(a)}–${helm(b)}: ${halftones(semi)}, der Bauplan will ${PLAN_WORD[want]} → ${gName(it.notes[it.i])}` };
+}
 
 export function oddQuestion(it) {
-  const key = keyName(it.notes[0]), right = gName(it.notes[it.i]), answer = gName(it.moved);
+  const key = keyName(it.notes[0]), right = gName(it.notes[it.i]), answer = gName(it.moved), way = oddWay(it);
   return {
     key: it.key,
     svg: scaleSvg(it.shown, it.clef, { height: labelHeight(it.notes, it.clef) }),
@@ -250,20 +328,24 @@ export function oddQuestion(it) {
     prompt: `Welcher Ton passt nicht in ${key}?`,
     answer,
     choices: it.shown.slice(1, 7).map(gName),
-    display: `${answer} passt nicht: In ${key} heißt die ${degree(it.i)} ${right}.`,
-    reveal: `In ${key} heißt die ${degree(it.i)} ${right}, nicht ${answer}.`,
+    display: `${answer} passt nicht in ${key}: ${way.text}.`,
+    reveal: `In ${key} heißt die ${degree(it.i)} ${right}, nicht ${answer}: ${way.text}.`,
     play: scalePlay(it.notes),
-    clef: it.clef,
+    clef: it.clef, notes: it.notes, shown: it.shown, i: it.i,
+    // Hilfe: alle Noten, wie sie dastehen (auch die unpassende)
+    helpMarks: it.shown, helpFrom: helpFromOf(it.notes[0]),
     statKey: `${key}, ${degree(it.i)} (Suchen)`,
   };
 }
 
-/* ---------- Stufe 6: Tonleiter und Vorzeichen ---------- */
+/* ---------- Stufe 8 und 9: Tonleiter und Vorzeichen ---------- */
 
-export const ITEMS_6 = ["treble", "bass"].flatMap((clef) => KEYS_4.map((k) => {
+const sigPool = (clefs) => clefs.flatMap((clef) => KEYS_4.map((k) => {
   const notes = scaleNotes(TONICS[clef][k]);
   return { key: `${clef}:${k}`, clef, k, notes, fifths: fifthsOf(notes[0]) };
 }));
+export const ITEMS_8 = sigPool(["treble"]);
+export const ITEMS_9 = sigPool(["treble", "bass"]);
 
 // Vier Knöpfe: richtig, ein Vorzeichen mehr, eins weniger, gleiche Zahl mit der anderen Sorte.
 // C-Dur: keine, Fis, B, Fis, Cis. Bei 4 Vorzeichen: eins weniger, zwei weniger, andere Sorte.
@@ -273,6 +355,11 @@ export function sigChoices(fifths) {
   const counts = n >= 4 ? [n, n - 1, n - 2] : [n, n + 1, n - 1];
   return shuffle([...counts.map((c) => sigList(s * c)), sigList(-fifths)]);
 }
+
+// Beide Denkschritte: Der Bauplan verlangt auf der Klaviatur genau diese Vorzeichen
+export const sigWay = (fifths) => (fifths === 0
+  ? `der Bauplan ${PLAN_TEXT} passt ohne Vorzeichen`
+  : `der Bauplan ${PLAN_TEXT} braucht ${sigList(fifths).replace(/, ([^,]+)$/, " und $1")}`);
 
 function sigQuestion(it) {
   const key = keyName(it.notes[0]), answer = sigList(it.fifths);
@@ -284,22 +371,26 @@ function sigQuestion(it) {
     prompt: "Welche Vorzeichen stehen vorne?",
     answer,
     choices: sigChoices(it.fifths),
-    display: `${text} (${key})`,
+    display: `${text} (${key}): ${sigWay(it.fifths)}`,
     reveal: `Richtig wäre: ${text} (${key}).`,
     play: scalePlay(it.notes),
-    clef: it.clef,
+    clef: it.clef, notes: it.notes, fifths: it.fifths,
+    helpMarks: it.notes, helpFrom: helpFromOf(it.notes[0]),
     statKey: `Vorzeichen von ${key}`,
   };
 }
 
-/* ---------- Stufe 7 und 8: Tonarten (bis 20.11.2026 Intervalle 5 und 6) ---------- */
+/* ---------- Stufe 10 bis 13: Tonarten (bis 20.11.2026 Intervalle 5 und 6, dann Tonleitern 7 und 8) ---------- */
 
-// Unverändert aus dem Paket „Intervalle“ übernommen (Sandra, 20.11.2026): Tonart aus den Vorzeichen und
-// parallele Molltonart, 15 Tonarten bis 7 Vorzeichen, Violin- und Bassschlüssel. Die Spielstände der
-// alten Stufen intervalle-5 und -6 übernimmt src/store.js (migrateIntervalle) als tonleitern-7 und -8.
+// 15 Tonarten bis 7 Vorzeichen. Die Spielstände der alten Stufen übernimmt src/store.js
+// (migrateIntervalle, dann migrateTonleitern) als tonleitern-11 und -13.
 
 export const FIFTHS = Array.from({ length: 15 }, (_, i) => i - 7);
 export const sigText = (f) => (f === 0 ? "keine Vorzeichen" : `${Math.abs(f)} ${f > 0 ? "♯" : "♭"}`);
+// Vorzeichen in der Reihenfolge der Vorzeichnung bis 7. Eis, His, Ces und Fes sind hier richtig und nötig:
+// Das Verbot gilt nur für Töne in den Tonleitern bis 4 Vorzeichen.
+export const SHARPS_7 = ["Fis", "Cis", "Gis", "Dis", "Ais", "Eis", "His"];
+export const FLATS_7 = ["B", "Es", "As", "Des", "Ges", "Ces", "Fes"];
 // Satzanfang für die Auflösung nach falscher Antwort: „Drei Kreuze stehen für“, „Ein Be steht für“,
 // „Ohne Vorzeichen ist es“ (das Be, Mehrzahl die Be)
 const COUNT_WORDS = ["", "Ein", "Zwei", "Drei", "Vier", "Fünf", "Sechs", "Sieben"];
@@ -309,26 +400,32 @@ export function sigSentence(f) {
   const sign = f > 0 ? (one ? "Kreuz" : "Kreuze") : "Be";
   return `${COUNT_WORDS[n]} ${sign} ${one ? "steht" : "stehen"} für`;
 }
-const keyPool = () => ["treble", "bass"].flatMap((clef) => FIFTHS.map((fifths) => ({ clef, fifths })));
-export const ITEMS_7 = keyPool();
-export const ITEMS_8 = keyPool();
+const keyPool = (clefs) => clefs.flatMap((clef) => FIFTHS.map((fifths) => ({ key: `${clef}:${fifths}`, clef, fifths })));
+export const ITEMS_10 = keyPool(["treble"]);
+export const ITEMS_11 = keyPool(["treble", "bass"]);
+export const ITEMS_12 = keyPool(["treble"]);
+export const ITEMS_13 = keyPool(["treble", "bass"]);
 
 const tonicPc = (f) => { const t = majorKeyFromKeySig(f); return pc(SEMI[t.letter] + t.acc); };
 
-// Vier Tonarten: die richtige, ein Vorzeichen mehr und weniger, dieselbe Zahl mit dem anderen Vorzeichen.
-// Gleich klingende Tonarten (Fis-Dur/Ges-Dur) stehen nie zusammen in der Auswahl: weder als Ablenker zur
-// richtigen Antwort noch zwei Ablenker untereinander (Cis-Dur/Des-Dur). Dur: namer = majorName, Moll: minorName.
-export function keyChoices(fifths, namer) {
+// Vier Tonarten (als Anzahl Vorzeichen): die richtige, ein Vorzeichen mehr und weniger, dieselbe Zahl mit
+// dem anderen Vorzeichen. Gleich klingende Tonarten (Fis-Dur/Ges-Dur) stehen nie zusammen in der Auswahl:
+// weder als Ablenker zur richtigen Antwort noch zwei Ablenker untereinander (Cis-Dur/Des-Dur).
+export function keyPicks(fifths) {
   const picks = [fifths];
   const ok = (f) => f >= -7 && f <= 7 && !picks.some((p) => p === f || tonicPc(p) === tonicPc(f));
   for (const f of [fifths - 1, fifths + 1, -fifths, fifths - 2, fifths + 2, fifths - 3, fifths + 3, fifths - 4, fifths + 4]) {
     if (picks.length >= 4) break;
     if (ok(f)) picks.push(f);
   }
-  return shuffle(picks.map(namer));
+  return picks;
 }
+// Gemischt (Stufe 11 und 13); Dur: namer = majorName, Moll: minorName
+export const keyChoices = (fifths, namer) => shuffle(keyPicks(fifths).map(namer));
+// In fester Reihenfolge nach dem Quintenzirkel (Stufe 10, zweiter Schritt): von den ♭- zu den ♯-Tonarten
+export const keyChoicesFixed = (fifths) => keyPicks(fifths).sort((a, b) => a - b).map(majorName);
 
-// Stufe 6 bietet zusätzlich die gleichnamige Molltonart an (Es-Dur → es-Moll statt c-Moll), wenn es sie gibt
+// Stufe 13 bietet zusätzlich die gleichnamige Molltonart an (Es-Dur → es-Moll statt c-Moll), wenn es sie gibt
 export function minorChoices(fifths) {
   const variant = majorName(fifths).replace("-Dur", "").toLowerCase() + "-Moll";
   const base = keyChoices(fifths, minorName);
@@ -345,34 +442,151 @@ const pickKey = (pool, prev) => {
   return cand[Math.floor(Math.random() * cand.length)];
 };
 
-function majorQuestion(it) {
-  const answer = majorName(it.fifths);
+// Das entscheidende Vorzeichen (Schritt 1): letztes ♯ bzw. vorletztes ♭; null bei C-Dur und F-Dur
+export function decisiveSign(fifths) {
+  if (fifths > 0) return SHARPS_7[fifths - 1];
+  if (fifths < -1) return FLATS_7[-fifths - 2];
+  return null;
+}
+
+// Beide Denkschritte zur Tonart: „Letztes Kreuz Dis · einen Halbton höher → E-Dur“,
+// „Vorletztes Be Es → Es-Dur“, „Keine Vorzeichen → C-Dur“, „Ein einzelnes Be → F-Dur“
+export function keyWay(fifths) {
+  const name = majorName(fifths), d = decisiveSign(fifths);
+  if (fifths === 0) return `Keine Vorzeichen → ${name}`;
+  if (fifths === -1) return `Ein einzelnes Be → ${name}`;
+  return fifths > 0 ? `Letztes Kreuz ${d} · einen Halbton höher → ${name}` : `Vorletztes Be ${d} → ${name}`;
+}
+
+// Stufe 10, Schritt 1: Knöpfe = die Vorzeichen der Vorzeichnung in ihrer Reihenfolge (C-Dur: ein Knopf
+// „keine Vorzeichen“, G-Dur „Fis“, F-Dur „B“ als Bestätigung; der Knopf nennt die Tonart nicht)
+export const NO_SIGNS = "keine Vorzeichen";
+export function signStep(fifths) {
+  const n = Math.abs(fifths), list = (fifths > 0 ? SHARPS_7 : FLATS_7).slice(0, n);
+  if (fifths === 0) return { choices: [NO_SIGNS], answer: NO_SIGNS, ok: "Richtig: Hier steht kein Vorzeichen.", bad: "Nicht ganz: Hier steht kein Vorzeichen." };
+  if (fifths === -1) return { choices: list, answer: "B", ok: "Ein einzelnes Be steht für F-Dur: das merkst du dir.", bad: "Nicht ganz: Hier steht nur ein Be." };
+  const d = decisiveSign(fifths);
+  const fact = fifths === 1 ? "Fis ist das einzige Kreuz, also das letzte." : fifths > 0 ? `Das letzte Kreuz ist ${d}.` : `Das vorletzte Be ist ${d}.`;
+  return { choices: list, answer: d, ok: `Richtig: ${fact}`, bad: `Nicht ganz: ${fact}` };
+}
+const majorStepPrompt = (fifths) => (fifths > 0 ? `Einen Halbton über ${decisiveSign(fifths)}: welche Dur-Tonart?`
+  : fifths < -1 ? "Das vorletzte Be ist der Grundton: welche Dur-Tonart?" : "Welche Dur-Tonart?");
+
+// Stufe 10: zwei Schritte (Vorzeichen, dann Tonart)
+export function majorStepQuestion(it) {
+  const answer = majorName(it.fifths), way = keyWay(it.fifths), first = signStep(it.fifths);
+  const second = keyChoicesFixed(it.fifths);
   return {
+    key: it.key,
+    svg: keySvg(it),
+    prompt: "Welches Vorzeichen ist entscheidend?",
+    answer,
+    choices: second,
+    steps: [first, { choices: second, answer, prompt: majorStepPrompt(it.fifths) }],
+    display: way,
+    reveal: `Richtig wäre: ${answer} (${way}).`,
+    ...(first.choices.length > 1 ? { partial: `Die Tonart stimmt, das Vorzeichen nicht: ${way}.` } : {}),
+    clef: it.clef, fifths: it.fifths,
+    helpMarks: [], helpFrom: 60,
+    statKey: `Dur zu ${keyStat(it)}`,
+  };
+}
+
+// Stufe 11: einschrittig wie bisher, die Rückmeldung nennt beide Denkschritte
+function majorQuestion(it) {
+  const answer = majorName(it.fifths), way = keyWay(it.fifths);
+  const plain = it.fifths === 0 || it.fifths === -1;
+  return {
+    key: it.key,
     svg: keySvg(it),
     prompt: "Welche Dur-Tonart?",
     answer,
-    display: `${answer} (${sigText(it.fifths)})`,
-    reveal: `${sigSentence(it.fifths)} ${answer}.`,
+    display: way,
+    reveal: plain ? `${sigSentence(it.fifths)} ${answer}.` : `${sigSentence(it.fifths)} ${answer} (${lowerFirst(way)}).`,
     choices: keyChoices(it.fifths, majorName),
     clef: it.clef, fifths: it.fifths,
     statKey: `Dur zu ${keyStat(it)}`,
   };
 }
 
-function minorQuestion(it) {
-  const answer = minorName(it.fifths);
+/* ---------- Parallele Molltonart (Stufe 12 und 13) ---------- */
+
+// Dur-Grundton in der zweigestrichenen Oktave (Klaviatur der Hilfen: drei Halbtöne darunter haben Platz)
+export const majorTonicOf = (fifths) => { const t = majorKeyFromKeySig(fifths); return N(t.letter, 5, t.acc); };
+// Grundton der parallelen Molltonart: zwei Buchstaben und drei Halbtöne unter dem Dur-Grundton
+export const minorTonicOf = (fifths) => {
+  const t = majorTonicOf(fifths), d = LETTERS.indexOf(t.letter) - 2;
+  const letter = LETTERS[(d + 7) % 7], octave = t.octave + (d < 0 ? -1 : 0);
+  const base = N(letter, octave, 0);
+  return N(letter, octave, midi(t) - 3 - midi(base));
+};
+// Varianten je Stammton: alle Molltonarten der 15 Tonarten mit diesem Stammton, in der Reihenfolge
+// Stammton, ♯, ♭: A: a-Moll | ais-Moll | as-Moll, H: h-Moll | b-Moll, C: c-Moll | cis-Moll …
+export const MINOR_VARIANTS = Object.fromEntries(LETTERS.map((l) => [l, [0, 1, -1]
+  .map((acc) => FIFTHS.find((f) => { const m = relativeMinor(f); return m.letter === l && m.acc === acc; }))
+  .filter((f) => f !== undefined).map(minorName)]));
+
+// Stufe 12, Schritt 1: drei aufeinanderfolgende Stammtöne mit dem richtigen (Anfang zufällig, damit der
+// richtige nicht immer in der Mitte steht), in der Reihenfolge der Stammtöne: G | A | H, H | C | D
+export function stemChoices(letter, rnd = Math.random) {
+  const i = LETTERS.indexOf(letter), start = i - Math.floor(rnd() * 3);
+  return [0, 1, 2].map((k) => LETTERS[(start + k + 7) % 7]);
+}
+// Hinweis bei Des-Dur: der Stammton H heißt mit ♭ B
+const hbNote = (m) => (m.letter === "H" && m.acc === -1 ? " (H mit ♭ heißt B)" : "");
+// Die drei Notenstufen abwärts, der Dur-Grundton zählt als 1: „Es, D, C“
+export const thirdDownLetters = (fifths) => {
+  const t = majorTonicOf(fifths), i = LETTERS.indexOf(t.letter);
+  return [gName(t), LETTERS[(i + 6) % 7], LETTERS[(i + 5) % 7]];
+};
+
+// Beide Denkschritte: „Es-Dur: Terz abwärts → Stammton C · 3 Halbtöne → c-Moll“
+export function minorWay(fifths) {
+  const m = minorTonicOf(fifths);
+  return `${majorName(fifths)}: Terz abwärts → Stammton ${m.letter} · 3 Halbtöne → ${minorName(fifths)}${hbNote(m)}`;
+}
+
+export function minorStepQuestion(it) {
+  const answer = minorName(it.fifths), major = majorName(it.fifths), m = minorTonicOf(it.fifths);
+  const [a, b, c] = thirdDownLetters(it.fifths), count = `${a} (1), ${b} (2), ${c} (3) → Stammton ${c}`;
+  const second = MINOR_VARIANTS[m.letter].slice(), way = minorWay(it.fifths);
   return {
+    key: it.key,
     svg: keySvg(it),
-    prompt: `Parallele Molltonart zu ${majorName(it.fifths)}?`,
+    prompt: `Parallele Molltonart zu ${major}. Terz abwärts vom Dur-Grundton: welcher Stammton?`,
     answer,
-    display: `${answer} (parallel zu ${majorName(it.fifths)}, ${sigText(it.fifths)})`,
-    reveal: `Die parallele Molltonart zu ${majorName(it.fifths)} ist ${answer}.`,
-    choices: minorChoices(it.fifths),
+    choices: second,
+    steps: [
+      { choices: stemChoices(m.letter), answer: m.letter, ok: `Richtig: ${count}.`, bad: `Nicht ganz: ${count}.` },
+      { choices: second, answer, prompt: "Drei Halbtöne abwärts: welche Molltonart?" },
+    ],
+    display: way,
+    reveal: `Richtig wäre: ${answer} (${way}).`,
+    partial: `Die Molltonart stimmt, der Stammton nicht: ${way}.`,
     clef: it.clef, fifths: it.fifths,
-    statKey: `Moll zu ${majorName(it.fifths)}`,
+    // Hilfe: nur der Dur-Grundton (steht schon in der Frage), zweigestrichene Oktave, Klaviatur ab c'
+    helpMarks: [majorTonicOf(it.fifths)], helpFrom: 60,
+    statKey: `Moll zu ${major}`,
   };
 }
 
+// Stufe 13: einschrittig wie bisher, die Rückmeldung nennt beide Denkschritte
+// („Terz abwärts: 3 Halbtöne unter Es liegt c → c-Moll“)
+function minorQuestion(it) {
+  const answer = minorName(it.fifths), major = majorName(it.fifths), t = majorKeyFromKeySig(it.fifths);
+  const m = minorTonicOf(it.fifths), below = `3 Halbtöne unter ${gName(t)} liegt ${gName(m).toLowerCase()}`;
+  return {
+    key: it.key,
+    svg: keySvg(it),
+    prompt: `Parallele Molltonart zu ${major}?`,
+    answer,
+    display: `Terz abwärts: ${below} → ${answer}`,
+    reveal: `Die parallele Molltonart zu ${major} ist ${answer} (Terz abwärts: ${below}).`,
+    choices: minorChoices(it.fifths),
+    clef: it.clef, fifths: it.fifths,
+    statKey: `Moll zu ${major}`,
+  };
+}
 
 /* ---------- Stufen ---------- */
 
@@ -382,87 +596,112 @@ const find = (items, key) => items.find((it) => it.key === key);
 const levels = [
   {
     title: "Ganz- und Halbtonschritte in C-Dur",
-    subtitle: `Violin- und Bassschlüssel · ${ITEMS_1.length} Schritte`,
+    subtitle: `Violin- und Bassschlüssel · mit Hilfen · ${ITEMS_1.length} Schritte`,
     hint: "In C-Dur liegen die Halbtonschritte zwischen e und f und zwischen h und c, also zwischen der 3. und 4. und der 7. und 8. Stufe. Auf der Klaviatur: Dort liegt keine schwarze Taste dazwischen.",
-    input: "choices",
     items: ITEMS_1,
     example: stepQuestion(find(ITEMS_1, "treble:C:2")).svg,
     question(prev) { return stepQuestion(pickStep(ITEMS_1, prev)); },
-    check,
   },
   {
     title: "Bauplan der Dur-Tonleiter",
-    subtitle: `G-, D-, F- und B-Dur · ${ITEMS_2.length} Schritte`,
+    subtitle: `G-, D-, F- und B-Dur · mit Hilfen · ${ITEMS_2.length} Schritte`,
     hint: "Jede Dur-Tonleiter hat denselben Bauplan: Ganz – Ganz – Halb – Ganz – Ganz – Ganz – Halb. Die Halbtöne liegen immer zwischen der 3. und 4. und der 7. und 8. Stufe. Achte auf die Vorzeichen: In D-Dur ist e'–fis' ein Ganzton, fis'–g' ein Halbton.",
-    input: "choices",
     items: ITEMS_2,
     example: stepQuestion(find(ITEMS_2, "treble:D:2")).svg,
     question(prev) { return stepQuestion(pickStep(ITEMS_2, prev)); },
-    check,
+  },
+  {
+    title: "Ganz- und Halbtonschritte ohne Hilfen",
+    subtitle: `Violin- und Bassschlüssel · ${KEYS_4.length} Tonarten · ${ITEMS_3.length} Schritte`,
+    hint: "Jetzt alle neun Tonarten bis 4 Vorzeichen, in beiden Schlüsseln und ohne Hilfen. Zähle die Halbtöne zwischen den beiden Noten und achte auf die Vorzeichen: In Es-Dur ist g'–as' ein Halbton.",
+    items: ITEMS_3,
+    example: stepQuestion(find(ITEMS_3, "bass:A:2")).svg,
+    question(prev) { return stepQuestion(pickStep(ITEMS_3, prev)); },
   },
   {
     title: "Welcher Ton fehlt?",
-    subtitle: `Violinschlüssel · bis 2 Vorzeichen · ${ITEMS_3.length} Aufgaben`,
-    hint: "Die Tonleiter beginnt mit dem Grundton. Geh den Bauplan Schritt für Schritt durch: Ganz – Ganz – Halb – Ganz – Ganz – Ganz – Halb. Wähle den ganzen Namen, z. B. Fis oder B, oder tippe ihn ein.",
-    input: "letters",
-    acc: true,
-    items: ITEMS_3,
-    example: gapQuestion(find(ITEMS_3, "treble:G:6")).svg,
-    question(prev) { return gapQuestion(pickItem(ITEMS_3, prev)); },
-    check: checkGap,
+    subtitle: `Violinschlüssel · bis 2 Vorzeichen · zwei Schritte · mit Hilfen · ${ITEMS_4.length} Aufgaben`,
+    hint: "Zwei Schritte: Erst der Bauplan – zähle ab dem Grundton, welcher Schritt zur Lücke führt, Ganz oder Halb. Dann die Klaviatur – welcher Ton liegt so viele Halbtöne über der Note davor?",
+    items: ITEMS_4,
+    example: gapStepQuestion(find(ITEMS_4, "treble:G:6")).svg,
+    question(prev) { return gapStepQuestion(pickStep(ITEMS_4, prev, Math.random, GAP_HALF_P)); },
   },
   {
-    title: "Welcher Ton fehlt? Bis 4 Vorzeichen",
-    subtitle: `Violin- und Bassschlüssel · ${ITEMS_4.length} Aufgaben`,
-    hint: "Jetzt auch A-, E-, Es- und As-Dur, in beiden Schlüsseln. Schau dir die Vorzeichen der anderen Noten an: In einer Tonleiter kommen nur Kreuze oder nur Be vor.",
+    title: "Welcher Ton fehlt? Ohne Hilfen",
+    subtitle: `Violin- und Bassschlüssel · bis 4 Vorzeichen · ${ITEMS_5.length} Aufgaben`,
+    hint: "Jetzt auch A-, E-, Es- und As-Dur, in beiden Schlüsseln. Geh den Bauplan bis zur Lücke durch und zähle dann die Halbtöne ab der Note davor. In einer Tonleiter kommen nur Kreuze oder nur Be vor. Wähle den ganzen Namen, z. B. Fis oder B, oder tippe ihn ein.",
     input: "letters",
     acc: true,
-    items: ITEMS_4,
-    example: gapQuestion(find(ITEMS_4, "bass:E:3")).svg,
-    question(prev) { return gapQuestion(pickItem(ITEMS_4, prev)); },
+    items: ITEMS_5,
+    example: gapQuestion(find(ITEMS_5, "bass:E:3")).svg,
+    question(prev) { return gapQuestion(pickItem(ITEMS_5, prev)); },
     check: checkGap,
   },
   {
     title: "Welcher Ton passt nicht?",
-    subtitle: `Violin- und Bassschlüssel · ${ITEMS_5.length} Aufgaben`,
+    subtitle: `Violinschlüssel · mit Hilfen · ${ITEMS_6.length} Aufgaben`,
+    hint: "Bei einer Note fehlt ein Vorzeichen oder es steht eines zu viel. Prüfe Schritt für Schritt: Was verlangt der Bauplan, und wie viele Halbtöne sind es auf der Klaviatur?",
+    items: ITEMS_6,
+    example: oddQuestion(find(ITEMS_6, "treble:G:6:-1")).svg,
+    question(prev) { return oddQuestion(pickItem(ITEMS_6, prev)); },
+  },
+  {
+    title: "Welcher Ton passt nicht? Ohne Hilfen",
+    subtitle: `Violin- und Bassschlüssel · ${ITEMS_7.length} Aufgaben`,
     hint: "Bei einer Note fehlt ein Vorzeichen oder es steht eines zu viel. Prüfe die Schritte von Note zu Note: Halbtöne gehören nur zwischen die 3. und 4. und die 7. und 8. Stufe.",
-    input: "choices",
-    items: ITEMS_5,
-    example: oddQuestion(find(ITEMS_5, "treble:G:6:-1")).svg,
-    question(prev) { return oddQuestion(pickItem(ITEMS_5, prev)); },
-    check,
+    items: ITEMS_7,
+    example: oddQuestion(find(ITEMS_7, "bass:D:2:-1")).svg,
+    question(prev) { return oddQuestion(pickItem(ITEMS_7, prev)); },
   },
   {
     title: "Tonleiter und Vorzeichen",
-    subtitle: `Violin- und Bassschlüssel · ${KEYS_4.length} Tonarten`,
+    subtitle: `Violinschlüssel · mit Hilfen · ${KEYS_4.length} Tonarten`,
     hint: "Die Vorzeichen einer Tonart stehen vorne hinter dem Schlüssel, in fester Reihenfolge: Kreuze Fis, Cis, Gis, Dis, Be B, Es, As, Des. Der Grundton steht zweimal da, sein Vorzeichen zählt nur einmal.",
-    input: "choices",
-    items: ITEMS_6,
-    example: sigQuestion(find(ITEMS_6, "treble:D")).svg,
-    question(prev) { return sigQuestion(pickItem(ITEMS_6, prev)); },
-    check,
+    items: ITEMS_8,
+    example: sigQuestion(find(ITEMS_8, "treble:D")).svg,
+    question(prev) { return sigQuestion(pickItem(ITEMS_8, prev)); },
+  },
+  {
+    title: "Tonleiter und Vorzeichen ohne Hilfen",
+    subtitle: `Violin- und Bassschlüssel · ${KEYS_4.length} Tonarten`,
+    hint: "Dasselbe in beiden Schlüsseln, ohne Hilfen. Die Reihenfolge bleibt: Kreuze Fis, Cis, Gis, Dis, Be B, Es, As, Des. Der Grundton steht zweimal da, sein Vorzeichen zählt nur einmal.",
+    items: ITEMS_9,
+    example: sigQuestion(find(ITEMS_9, "bass:Es")).svg,
+    question(prev) { return sigQuestion(pickItem(ITEMS_9, prev)); },
   },
   {
     title: "Tonart aus den Vorzeichen",
-    subtitle: "Violin- und Bassschlüssel · 15 Dur-Tonarten",
+    subtitle: `Violinschlüssel · zwei Schritte · mit Hilfen · ${FIFTHS.length} Dur-Tonarten`,
+    hint: "Zwei Schritte: Erst das entscheidende Vorzeichen – bei Kreuzen das letzte, bei Be das vorletzte. Dann die Tonart: einen Halbton über dem letzten Kreuz (Fis → G-Dur) bzw. das vorletzte Be selbst (B, Es → B-Dur). Ein einzelnes Be steht für F-Dur.",
+    items: ITEMS_10,
+    example: keySvg({ clef: "treble", fifths: 4 }),
+    question(prev) { return majorStepQuestion(pickKey(ITEMS_10, prev)); },
+  },
+  {
+    title: "Tonart aus den Vorzeichen ohne Hilfen",
+    subtitle: `Violin- und Bassschlüssel · ${FIFTHS.length} Dur-Tonarten`,
     hint: "Bei Kreuzen liegt der Grundton einen Halbton über dem letzten Kreuz (Fis → G-Dur). Bei Be-Vorzeichen ist das vorletzte Be der Grundton (B, Es → B-Dur); ein einzelnes Be steht für F-Dur.",
-    input: "choices",
-    items: ITEMS_7,
+    items: ITEMS_11,
     example: keySvg({ clef: "treble", fifths: 3 }),
-    question(prev) { return majorQuestion(pickKey(ITEMS_7, prev)); },
-    check,
+    question(prev) { return majorQuestion(pickKey(ITEMS_11, prev)); },
   },
   {
     title: "Parallele Molltonart",
-    subtitle: "Violin- und Bassschlüssel · 15 Molltonarten",
-    hint: "Die parallele Molltonart hat dieselben Vorzeichen. Ihr Grundton liegt eine kleine Terz unter dem Dur-Grundton: C-Dur → a-Moll, Es-Dur → c-Moll. Moll wird klein geschrieben.",
-    input: "choices",
-    items: ITEMS_8,
-    example: keySvg({ clef: "bass", fifths: -3 }),
-    question(prev) { return minorQuestion(pickKey(ITEMS_8, prev)); },
-    check,
+    subtitle: `Violinschlüssel · zwei Schritte · mit Hilfen · ${FIFTHS.length} Molltonarten`,
+    hint: "Zwei Schritte wie bei den Intervallen: Erst die Terz abwärts – drei Notenstufen, der Dur-Grundton zählt als 1 (Es, D, C). Dann drei Halbtöne abwärts, so bekommt der Stammton sein Vorzeichen. Moll wird klein geschrieben.",
+    items: ITEMS_12,
+    example: keySvg({ clef: "treble", fifths: -3 }),
+    question(prev) { return minorStepQuestion(pickKey(ITEMS_12, prev)); },
   },
-].map((l, i) => ({ id: "tonleitern-" + (i + 1), no: i + 1, ...l }));
+  {
+    title: "Parallele Molltonart ohne Hilfen",
+    subtitle: `Violin- und Bassschlüssel · ${FIFTHS.length} Molltonarten`,
+    hint: "Die parallele Molltonart hat dieselben Vorzeichen. Ihr Grundton liegt eine kleine Terz unter dem Dur-Grundton: C-Dur → a-Moll, Es-Dur → c-Moll. Moll wird klein geschrieben.",
+    items: ITEMS_13,
+    example: keySvg({ clef: "bass", fifths: -3 }),
+    question(prev) { return minorQuestion(pickKey(ITEMS_13, prev)); },
+  },
+].map((l, i) => ({ id: "tonleitern-" + (i + 1), no: i + 1, input: "choices", check, ...l }));
 
 /* ---------- Lerntafeln ---------- */
 

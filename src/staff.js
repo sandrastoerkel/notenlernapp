@@ -180,13 +180,19 @@ export const KEYSIG_DY = { sharp: 6, flat: 5.5 };
 // Vorzeichen vor einzelnen Noten haben dieselbe Schriftgröße und damit denselben Versatz.
 export const ACC_DY = KEYSIG_DY;
 
-export function keySigSvg(clef, count) {
-  if (!count) return "";
+// Lage der Vorzeichen einer Vorzeichnung: [{ x, y, line, sharp }] mit x links, y Grundlinie der Glyphe,
+// line Höhe der Linie bzw. des Zwischenraums. step (optional, Standard KEYSIG_STEP) und x0 (optional)
+// ändern nur den Abstand bzw. Anfang, z. B. für die Vorführung „So findest du die Tonart“ (Paket „Tonleitern“).
+export function keySigPos(clef, count, step = KEYSIG_STEP, x0 = KEYSIG_X[clef] ?? KEYSIG_X.treble) {
+  if (!count) return [];
   const sharp = count > 0;
   const list = (sharp ? SHARPS_TREBLE : FLATS_TREBLE).slice(0, Math.min(7, Math.abs(count)));
-  const shift = clef === "bass" ? BASS_SHIFT : 0;
-  const x0 = KEYSIG_X[clef] ?? KEYSIG_X.treble, dy = sharp ? KEYSIG_DY.sharp : KEYSIG_DY.flat;
-  return list.map((p, i) => `<text class="keysig" x="${x0 + i * KEYSIG_STEP}" y="${yOf(p + shift) + dy}">${sharp ? "♯" : "♭"}</text>`).join("");
+  const shift = clef === "bass" ? BASS_SHIFT : 0, dy = sharp ? KEYSIG_DY.sharp : KEYSIG_DY.flat;
+  return list.map((p, i) => ({ x: x0 + i * step, y: yOf(p + shift) + dy, line: yOf(p + shift), sharp }));
+}
+
+export function keySigSvg(clef, count) {
+  return keySigPos(clef, count).map((k) => `<text class="keysig" x="${k.x}" y="${k.y}">${k.sharp ? "♯" : "♭"}</text>`).join("");
 }
 
 // Bassschlüssel: Umriss der Glyphe fClef (U+E062) aus der SMuFL-Schrift Bravura 1.482

@@ -9,11 +9,12 @@ export const KEY_V2 = "notenheld.v2";
 // Einmalige Umstellungen alter Spielstände (migrated, siehe migrateIntervalle). Ein frischer Stand
 // braucht keine: er trägt alle Marker schon.
 export const MIGRATION_INTERVALLE = "intervalle-neu";
+export const MIGRATION_TONLEITERN = "tonleitern-neu";
 
 export const fresh = () => ({
   xp: 0, dayStreak: 0, lastDay: null, levels: {}, notes: {}, answered: 0, correct: 0,
   bestCombo: 0, blitzRecord: 0, unlockAll: false, muted: false, input: "letters", current: "noten-1",
-  migrated: [MIGRATION_INTERVALLE],
+  migrated: [MIGRATION_INTERVALLE, MIGRATION_TONLEITERN],
 });
 
 // Alte Daten (Stufen 1 bis 8 als Zahl) in das Format mit Stufen-IDs übernehmen
@@ -55,10 +56,41 @@ export function migrateIntervalle(s) {
   return true;
 }
 
+// "tonleitern-neu" (20.11.2026, Welle 8 „Tonleitern gehirngerecht“): aus 8 werden 13 Stufen, neu sind 3, 6, 8,
+// 10 und 12 (mit Hilfen bzw. „Ganz- und Halbtonschritte ohne Hilfen“). Die alten Stufen rücken nach:
+// 1→1, 2→2, 3→4, 4→5, 5→7, 6→9, 7→11, 8→13; s.current entsprechend, s.notes und die statKeys bleiben.
+// Läuft nach migrateIntervalle (die macht aus intervalle-5/-6 erst tonleitern-7/-8, die hier zu 11/13 werden).
+export const RENAMED_TONLEITERN = Object.fromEntries([[1, 1], [2, 2], [3, 4], [4, 5], [5, 7], [6, 9], [7, 11], [8, 13]]
+  .map(([a, b]) => [`tonleitern-${a}`, `tonleitern-${b}`]));
+
+// In einem Durchgang in ein neues levels-Objekt (nacheinander im selben Objekt würde 3→4 und danach 4→5
+// verketten). Gibt true zurück, wenn etwas geändert wurde.
+export function migrateTonleitern(s) {
+  const done = Array.isArray(s.migrated) ? s.migrated : [];
+  if (done.includes(MIGRATION_TONLEITERN)) return false;
+  const levels = {};
+  for (const [id, st] of Object.entries(s.levels || {})) {
+    const to = RENAMED_TONLEITERN[id] || id;
+    levels[to] = mergeLevel(levels[to], st);
+  }
+  s.levels = levels;
+  if (RENAMED_TONLEITERN[s.current]) s.current = RENAMED_TONLEITERN[s.current];
+  s.migrated = [...done, MIGRATION_TONLEITERN];
+  return true;
+}
+
+// Alle Umstellungen in der festen Reihenfolge; jede läuft (nicht mit || verketten, sonst liefe die zweite
+// beim ersten Laden nicht). true, wenn eine etwas geändert hat.
+export function migrateAll(s) {
+  const a = migrateIntervalle(s), b = migrateTonleitern(s);
+  return a || b;
+}
+
 const defaultStorage = () => { try { return globalThis.localStorage || null; } catch (e) { return null; } };
 
 // Zustand laden: zuerst v2, sonst v1 übernehmen und als v2 speichern (v1 bleibt unverändert).
-// Danach die einmaligen Umstellungen (migrateIntervalle); geändert wird nur einmal gespeichert.
+// Danach die einmaligen Umstellungen (migrateAll: erst migrateIntervalle, dann migrateTonleitern); geändert
+// wird nur einmal gespeichert.
 export function load(storage = defaultStorage()) {
   try {
     if (!storage) return fresh();
@@ -67,13 +99,13 @@ export function load(storage = defaultStorage()) {
       // Marker nur aus dem gespeicherten Stand, nicht aus fresh(): ältere Stände haben keine
       const parsed = JSON.parse(raw);
       const s = Object.assign(fresh(), parsed, { migrated: Array.isArray(parsed.migrated) ? parsed.migrated : [] });
-      if (migrateIntervalle(s)) save(s, storage);
+      if (migrateAll(s)) save(s, storage);
       return s;
     }
     const old = storage.getItem(KEY_V1);
     if (old) {
       const s = migrateV1(JSON.parse(old));
-      migrateIntervalle(s);
+      migrateAll(s);
       save(s, storage);
       return s;
     }

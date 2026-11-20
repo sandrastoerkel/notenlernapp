@@ -131,6 +131,9 @@ export function digitAction(e, set) {
 // level.helpText und die Tabelle level.helpTable (HTML aus dem Paket). Leer ohne helps.
 export const HELP_FROM = { treble: 60, bass: 36 };
 export const HELP_OCTAVES = 2;
+// Unterstes C der Hilfe-Klaviatur (MIDI): q.helpFrom (optional, seit Welle 8 „Tonleitern“: B-Dur im
+// Violinschlüssel beginnt auf b, D-Dur im Bassschlüssel reicht bis d'), sonst HELP_FROM[q.clef]
+export const helpFrom = (q) => (typeof q.helpFrom === "number" ? q.helpFrom : HELP_FROM[q.clef] ?? HELP_FROM.treble);
 export const hasHelps = (level) => !!(level && level.helps && level.helps.length);
 // Aufbau: Satz und daneben der Knopf „Vorführen“ (nur mit level.demo, zu Beginn gesperrt: er verriete die
 // Antwort; der Hinweis steht im title), dann Klaviatur und Tabelle (.help-grid: nebeneinander, wo Platz ist),
@@ -150,7 +153,7 @@ export function helpsHtml(level, q) {
   let grid = "";
   if (level.helps.includes("klaviatur")) {
     const marks = (q.helpMarks || []).map(midi);
-    grid += `<div class="help-keys">${pianoSvg({ from: HELP_FROM[q.clef] ?? HELP_FROM.treble, octaves: HELP_OCTAVES, marks, interactive: false })}</div>`;
+    grid += `<div class="help-keys">${pianoSvg({ from: helpFrom(q), octaves: HELP_OCTAVES, marks, interactive: false })}</div>`;
   }
   if (level.helps.includes("tabelle") && level.helpTable) grid += `<div class="help-table-wrap">${level.helpTable}</div>`;
   if (grid) out += `<div class="help-grid">${grid}</div>`;

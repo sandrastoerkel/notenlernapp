@@ -6,7 +6,7 @@ import {
   resultMessage, dotsHtml, lettersHtml, namesHtml, usesNames, nameKey, typedText, NAME_MAX,
   choicesHtml, choicesClass, choiceCols, keyAction, blitzPoints, notesToPlay,
   playMode, revealedSvg, svgResultClass, playSchedule, rhythmEnd, answerDelay, PLAY_GAP, BEAT_MS, RHYTHM_TAIL, DELAY_OK, DELAY_BAD,
-  choiceSet, setClass, stepsFeedback, digitAction, helpsHtml, hasHelps, HELP_FROM, DELAY_STEP_OK, DELAY_STEP_BAD,
+  choiceSet, setClass, stepsFeedback, digitAction, helpsHtml, hasHelps, HELP_FROM, helpFrom, DELAY_STEP_OK, DELAY_STEP_BAD,
   startRound, stop, handleKey, ROUND_LENGTH, isWaiting, DEMO_LABEL, DEMO_WAIT, DEMO_READY, DEMO_NEXT, waitsForNext,
 } from "../src/engine.js";
 import { mock } from "node:test";
@@ -218,8 +218,8 @@ test("svgResultClass: ganze Zeile ok/bad, mit keepRow keine Klasse", () => {
   assert.equal(svgResultClass({ keepRow: true }, false), "");
 });
 
-test("keepRow: nur Tonleitern Stufe 3 bis 5 und Intervalle 8 und 9 (Bauen), alle anderen Stufen färben die ganze Zeile", () => {
-  const keep = ["tonleitern-3", "tonleitern-4", "tonleitern-5", "intervall-8", "intervall-9"];
+test("keepRow: nur Tonleitern Stufe 4 bis 7 und Intervalle 8 und 9 (Bauen), alle anderen Stufen färben die ganze Zeile", () => {
+  const keep = ["tonleitern-4", "tonleitern-5", "tonleitern-6", "tonleitern-7", "intervall-8", "intervall-9"];
   for (const pack of PACKS) for (const level of pack.levels) {
     let prev = null;
     for (let i = 0; i < 30; i++) {
@@ -366,6 +366,18 @@ test("helpsHtml: nur mit level.helps, Klaviatur ab c' bzw. C", () => {
   const d = helpsHtml({ ...level, demo: () => null }, { clef: "treble" });
   assert.ok(d.startsWith(`<div class="help-head"><p class="small help-text">T</p><button class="btn" data-demo-btn disabled title="${DEMO_WAIT}">${DEMO_LABEL}</button></div>`));
   assert.ok(d.indexOf("data-demo-btn") < d.indexOf("help-grid"), "Knopf über Klaviatur und Tabelle");
+});
+
+test("helpsHtml: q.helpFrom (optional) verschiebt die Klaviatur, ohne das Feld wie bisher", () => {
+  const level = { helps: ["klaviatur"] };
+  assert.equal(helpFrom({ clef: "bass" }), 36);
+  assert.equal(helpFrom({ clef: "treble" }), 60);
+  assert.equal(helpFrom({}), 60);
+  assert.equal(helpFrom({ clef: "treble", helpFrom: 48 }), 48);
+  const h = helpsHtml(level, { clef: "treble", helpFrom: 48, helpMarks: [N("H", 3, -1)] });
+  assert.ok(h.includes('data-midi="48" data-id="w0"') && h.includes('data-midi="72" data-id="w14"'));
+  assert.deepEqual([...h.matchAll(/class="[wb]key mark" data-midi="(\d+)"/g)].map((m) => +m[1]), [58]);
+  assert.equal(helpsHtml(level, { clef: "treble", helpMarks: [] }), helpsHtml(level, { clef: "treble", helpFrom: 60, helpMarks: [] }));
 });
 
 // Kleines Ersatz-DOM für den Ablauf: Knöpfe entstehen aus innerHTML (data-choice), Klassen werden gemerkt
