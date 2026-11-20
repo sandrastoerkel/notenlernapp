@@ -296,6 +296,12 @@ section { display: grid; gap: 14px; }
 .demo-pair { display: grid; gap: 10px; align-items: start; }
 .demo-table { display: grid; justify-items: center; }
 @media (min-width: 600px) { .demo-pair { grid-template-columns: minmax(0, 1fr) auto; align-items: center; } }
+/* Unter 600 px steht der Satz bzw. die Ergebniskarte direkt unter Notenzeile und Klaviatur (bei dem, was
+   er beschreibt), die Tabelle darunter. Nur die Reihenfolge im Bild ändert sich, nicht das HTML. */
+@media (max-width: 599px) {
+  .demo-stage, .demo-pair { display: contents; }
+  .demo-staff { order: 1; } .demo-keys { order: 2; } .demo-say { order: 3; } .demo-table { order: 4; }
+}
 .note.step1 .notehead, .note.step1 .acc { fill: var(--step1); } .note.step1 .ledger { stroke: var(--step1); }
 .dm-num circle { fill: var(--step1-soft); stroke: var(--step1); stroke-width: 1.4; }
 .dm-num text { font-family: var(--display); font-weight: 800; font-size: 11px; fill: var(--step1-ink); }

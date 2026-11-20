@@ -18,15 +18,15 @@ test("Schritt-Marken: an, erledigt, noch nicht", () => {
   assert.equal(marksHtml(demo, 1), '<span class="demo-mark s1 on">1 · Erst</span><span class="demo-mark s2">2 · Dann</span>');
 });
 
-test("demoHtml: Knöpfe Zurück/Abspielen/Weiter, Zähler, Satz in der Farbe des Schritts, Bühne", () => {
+test("demoHtml: Knöpfe Zurück/Abspielen/Nächster Schritt, Zähler, Satz in der Farbe des Schritts, Bühne", () => {
   const first = demoHtml(demo, 0);
   assert.ok(first.includes('<button class="btn" data-act="prev" disabled>Zurück</button>'));
   assert.ok(first.includes('<button class="btn primary" data-act="play">Abspielen</button>'));
-  assert.ok(first.includes('<button class="btn" data-act="next">Weiter</button>'));
+  assert.ok(first.includes('<button class="btn" data-act="next">Nächster Schritt</button>'));
   assert.ok(first.includes('<span class="small muted num demo-count">1 / 4</span>'));
   assert.ok(first.includes('<p class="demo-text s0">Frage</p>') && first.includes('<div class="demo-stage"><i>0</i></div>'));
   const mid = demoHtml(demo, 2, true);
-  assert.ok(mid.includes('data-act="prev">Zurück') && mid.includes('data-act="next">Weiter') && mid.includes(">Pause<"));
+  assert.ok(mid.includes('data-act="prev">Zurück') && mid.includes('data-act="next">Nächster Schritt') && mid.includes(">Pause<"));
   assert.ok(mid.includes('<p class="demo-text s2">Schritt zwei</p>'));
   const last = demoHtml(demo, 3);
   assert.ok(last.includes('data-act="next" disabled') && last.includes("4 / 4"));

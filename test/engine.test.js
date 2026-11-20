@@ -496,7 +496,7 @@ function anyEl() {
 }
 const target = (sel) => ({ closest: (s) => (s === sel ? {} : null) });
 
-test("Ablauf: „Vorführen“ erst nach der Antwort, die Runde wartet, „Weiter“ geht zur nächsten Aufgabe", () => {
+test("Ablauf: „Vorführen“ erst nach der Antwort, die Runde wartet, „Nächste Aufgabe“ geht weiter", () => {
   setMuted(true);
   mock.timers.enable({ apis: ["setTimeout"] });
   try {
@@ -532,7 +532,7 @@ test("Ablauf: „Vorführen“ erst nach der Antwort, die Runde wartet, „Weite
     mock.timers.tick(DELAY_OK * 5);
     assert.equal(ui.count.textContent, "1 / 10");
     assert.equal(state.answered, 1);
-    // Weiter: nächste Aufgabe, Knopf wieder gesperrt
+    // Nächste Aufgabe, Knopf wieder gesperrt
     ui.helpsBody.onclick({ target: target("[data-demo-next]") });
     assert.equal(isWaiting(), false);
     assert.equal(ui.count.textContent, "2 / 10");

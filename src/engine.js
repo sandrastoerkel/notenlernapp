@@ -7,7 +7,7 @@
 // wird die Aufgabe einmal, richtig nur, wenn beide Schritte stimmen. Hilfen (level.helps) zeigt die Engine
 // in einem eigenen Bereich zum Aufklappen (ui.helps), mit Klaviatur und Tabelle zur Aufgabe; hat die Stufe
 // level.demo(q), führt der Knopf „Vorführen“ die aktuelle Aufgabe vor – erst nach der Antwort, die Runde
-// wartet dann, bis du „Weiter zur nächsten Aufgabe“ tippst (oder die Hilfen zuklappst).
+// wartet dann, bis du „Nächste Aufgabe“ tippst (oder die Hilfen zuklappst).
 // Oben stehen reine Hilfsfunktionen (getestet in test/engine.test.js), unten der DOM-Teil.
 import { LETTERS, NAME_ACCS, N, gName, parseNoteName, midi } from "./music.js";
 import { pianoSvg } from "./staff.js";
@@ -134,7 +134,7 @@ export const hasHelps = (level) => !!(level && level.helps && level.helps.length
 // Antwort; der Hinweis steht im title), dann Klaviatur und Tabelle (.help-grid: nebeneinander, wo Platz ist),
 // Platz für die Vorführung (.help-demo). Alles knapp gehalten, damit die Antwortknöpfe sichtbar bleiben.
 export const DEMO_LABEL = "Vorführen", DEMO_WAIT = "Vorführen geht erst nach deiner Antwort", DEMO_READY = "Diese Aufgabe Schritt für Schritt";
-export const DEMO_NEXT = "Weiter zur nächsten Aufgabe";
+export const DEMO_NEXT = "Nächste Aufgabe";
 export function helpsHtml(level, q) {
   if (!hasHelps(level)) return "";
   const text = level.helpText ? `<p class="small help-text">${level.helpText}</p>` : "";
@@ -305,7 +305,7 @@ export function startRound(level, ui, hooks) {
     const k = e.target.closest("rect[data-semi]");
     if (k && run === r) answer(r, +k.dataset.semi, k);
   };
-  // Vorführung in den Hilfen: „Vorführen“ (nach der Antwort) hält die Runde an, „Weiter …“ geht weiter
+  // Vorführung in den Hilfen: „Vorführen“ (nach der Antwort) hält die Runde an, „Nächste Aufgabe“ geht weiter
   if (ui.helpsBody) ui.helpsBody.onclick = (e) => {
     if (run !== r) return;
     if (e.target.closest("[data-demo-btn]")) openDemo(r);
@@ -445,7 +445,7 @@ function resume(r) {
   r.advance();
 }
 
-// Für Tests und die Browserprüfung: wartet die Runde gerade auf „Weiter“?
+// Für Tests und die Browserprüfung: wartet die Runde gerade auf „Nächste Aufgabe“?
 export const isWaiting = () => !!(run && run.waiting);
 
 function finish(r) {

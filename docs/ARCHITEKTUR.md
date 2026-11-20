@@ -22,7 +22,7 @@ src/
   store.js              Fortschritt: Zustand, Freischaltung, Serie, Persistenz
   adapt.js              adaptive Auswahl: Zustand je Note (neu, unsicher, langsam, sicher), Gewichte (seit Paket G)
   engine.js             generischer Rundenablauf (10 Aufgaben, Feedback, Sterne, XP)
-  demo.js               Baukasten: Vorführung (Bilder mit Zurück/Abspielen/Weiter, Schritt-Marken, Ergebniskarte)
+  demo.js               Baukasten: Vorführung (Bilder mit Zurück/Abspielen/Nächster Schritt, Schritt-Marken, Ergebniskarte)
   grid.js               Baukasten: Kästchentabelle („gehirngerechte“ Übersicht, eine Zeile je Eintrag)
   packs/index.js        Registry aller Themenpakete
   packs/noten.js        Paket „Noten lesen“ (8 Stufen)
@@ -425,7 +425,7 @@ Noten lesen → Dreiklänge).
   tones? }] }`; `step` 0 = Frage, 1/2 = Denkschritt, `steps.length + 1` = Ergebnis (`result = { title, chips:
   [{ step, text }] }`). Reine Teile: `demoHtml(demo, i, playing)`, `marksHtml`, `markState`, `sayHtml`,
   `resultHtml`, `countText`, `playLabel`. DOM: `mountDemo(root, demo)` → `{ stop, show(i), index() }`;
-  Knöpfe Zurück / Abspielen (Pause, `FRAME_MS` = 1000 ms je Bild, hält am Ende an) / Weiter, Bildzähler;
+  Knöpfe Zurück / Abspielen (Pause, `FRAME_MS` = 1000 ms je Bild, hält am Ende an) / Nächster Schritt, Bildzähler;
   beim Zeigen eines Bilds klingen `tones` (`audio.js`, „Ton aus“ gilt). `stopDemos()` hält alle an
   (`app.js` beim Wechsel der Ansicht, `learn.js` vor dem Neuaufbau, `engine.stop()`). Die Bilder baut das
   Paket als reine Funktion (testbar in node).
@@ -466,8 +466,8 @@ Stufen-ID.
   innerhalb der Hilfen. Bis 380 px Breite stehen die Hilfen per CSS (`order`) unter den Antwortknöpfen.
 - „Vorführen“ (seit 20.11.2026): zu Beginn jeder Aufgabe gesperrt (`disabled`, verriete die Antwort), frei nach
   der Antwort (nach dem letzten Schritt). Ein Klick löscht den Zeitgeber zur nächsten Aufgabe, die Runde wartet
-  (`isWaiting()`), Klaviatur und Tabelle weichen der Vorführung (`level.demo(q)` in `.help-demo`); „Weiter zur
-  nächsten Aufgabe“ oder Zuklappen der Hilfen geht weiter. Die Antwortzeit ist da schon gezählt.
+  (`isWaiting()`), Klaviatur und Tabelle weichen der Vorführung (`level.demo(q)` in `.help-demo`); „Nächste
+  Aufgabe“ oder Zuklappen der Hilfen geht weiter. Die Antwortzeit ist da schon gezählt.
 - `hooks`: `{ state, save, onFinish(result) }`; `result` ist
   `{ correct, total, stars, gained, avg, results }`
 - weitere Funktionen für die Ansichten: `stop()` (laufende Runde abbrechen,
