@@ -3,9 +3,11 @@ import assert from "node:assert/strict";
 import {
   KEY_V1, KEY_V2, fresh, load, save, migrateV1, today, touchStreak, isUnlocked,
   starsFor, recordRound, recordAnswer, recordBlitz, reset, accuracy, unlockedBy, unlocks,
+  migrateIntervalle, MIGRATION_INTERVALLE,
 } from "../src/store.js";
 import noten from "../src/packs/noten.js";
 import intervalle from "../src/packs/intervalle.js";
+import tonleitern from "../src/packs/tonleitern.js";
 import { FENSTER, ZEIT_DECKEL } from "../src/adapt.js";
 
 // Einfacher Ersatz für localStorage
@@ -27,32 +29,54 @@ test("Freischaltung", () => {
   assert.ok(isUnlocked(s, noten, "noten-8"));
 });
 
-test("Freischaltung mit requires (Intervalle 7–12)", () => {
+// Paket mit requires wie im früheren Paket „Intervalle 7–12“ (Stufe 7 nach 1, dann jede nach der vorigen);
+// seit „Intervalle neu“ nutzt kein Paket requires mehr, die Logik bleibt erhalten und getestet
+const REQ = { levels: Array.from({ length: 12 }, (_, i) => ({ id: `r-${i + 1}`, no: i + 1, ...(i >= 6 ? { requires: `r-${i === 6 ? 1 : i}` } : {}) })) };
+
+test("Freischaltung mit requires", () => {
   const s = fresh();
-  const open = (id) => isUnlocked(s, intervalle, id);
-  assert.ok(open("intervalle-1"));
-  assert.ok(!open("intervalle-2") && !open("intervalle-7") && !open("intervalle-8"));
-  s.levels["intervalle-1"] = { stars: 2, best: 8, played: 1 };
-  assert.ok(open("intervalle-2") && open("intervalle-7"));
-  assert.ok(!open("intervalle-8"));
+  const open = (id) => isUnlocked(s, REQ, id);
+  assert.ok(open("r-1"));
+  assert.ok(!open("r-2") && !open("r-7") && !open("r-8"));
+  s.levels["r-1"] = { stars: 2, best: 8, played: 1 };
+  assert.ok(open("r-2") && open("r-7"));
+  assert.ok(!open("r-8"));
   // Stufe 7 hängt nicht an Stufe 6
-  s.levels["intervalle-6"] = { stars: 3, best: 10, played: 1 };
-  s.levels["intervalle-1"].best = 7;
-  assert.ok(!open("intervalle-7") && !open("intervalle-2"));
-  s.levels["intervalle-1"].best = 8;
-  s.levels["intervalle-7"] = { stars: 2, best: 8, played: 1 };
-  assert.ok(open("intervalle-8") && !open("intervalle-9"));
+  s.levels["r-6"] = { stars: 3, best: 10, played: 1 };
+  s.levels["r-1"].best = 7;
+  assert.ok(!open("r-7") && !open("r-2"));
+  s.levels["r-1"].best = 8;
+  s.levels["r-7"] = { stars: 2, best: 8, played: 1 };
+  assert.ok(open("r-8") && !open("r-9"));
   s.unlockAll = true;
-  assert.ok(open("intervalle-12"));
-  assert.equal(unlockedBy(intervalle, "intervalle-1"), null);
-  assert.equal(unlockedBy(intervalle, "intervalle-2").id, "intervalle-1");
-  assert.equal(unlockedBy(intervalle, "intervalle-7").id, "intervalle-1");
-  assert.equal(unlockedBy(intervalle, "intervalle-12").id, "intervalle-11");
-  assert.equal(unlockedBy(intervalle, "gibt-es-nicht"), null);
-  assert.deepEqual(unlocks(intervalle, "intervalle-1").map((l) => l.id), ["intervalle-2", "intervalle-7"]);
-  assert.deepEqual(unlocks(intervalle, "intervalle-6").map((l) => l.id), []);
-  assert.deepEqual(unlocks(intervalle, "intervalle-7").map((l) => l.id), ["intervalle-8"]);
+  assert.ok(open("r-12"));
+  assert.equal(unlockedBy(REQ, "r-1"), null);
+  assert.equal(unlockedBy(REQ, "r-2").id, "r-1");
+  assert.equal(unlockedBy(REQ, "r-7").id, "r-1");
+  assert.equal(unlockedBy(REQ, "r-12").id, "r-11");
+  assert.equal(unlockedBy(REQ, "gibt-es-nicht"), null);
+  assert.deepEqual(unlocks(REQ, "r-1").map((l) => l.id), ["r-2", "r-7"]);
+  assert.deepEqual(unlocks(REQ, "r-6").map((l) => l.id), []);
+  assert.deepEqual(unlocks(REQ, "r-7").map((l) => l.id), ["r-8"]);
   assert.deepEqual(unlocks(noten, "noten-1").map((l) => l.id), ["noten-2"]);
+});
+
+test("Freischaltung: Intervalle und Tonleitern der Reihe nach", () => {
+  const s = fresh();
+  assert.ok(isUnlocked(s, intervalle, "intervall-1") && !isUnlocked(s, intervalle, "intervall-2"));
+  s.levels["intervall-1"] = { stars: 2, best: 8, played: 1 };
+  assert.ok(isUnlocked(s, intervalle, "intervall-2") && !isUnlocked(s, intervalle, "intervall-3"));
+  assert.ok(!isUnlocked(s, tonleitern, "tonleitern-7"));
+  s.levels["tonleitern-6"] = { stars: 2, best: 8, played: 1 };
+  assert.ok(isUnlocked(s, tonleitern, "tonleitern-7") && !isUnlocked(s, tonleitern, "tonleitern-8"));
+});
+
+test("Freischaltung: eine schon gespielte Stufe bleibt offen", () => {
+  const s = fresh();
+  s.levels["noten-5"] = { stars: 0, best: 3, played: 1 };
+  assert.ok(isUnlocked(s, noten, "noten-5") && !isUnlocked(s, noten, "noten-6"));
+  s.levels["noten-6"] = { stars: 0, best: 0, played: 0 };
+  assert.ok(!isUnlocked(s, noten, "noten-6"));
 });
 
 test("Freischaltung: unbekanntes requires bleibt gesperrt, außer mit unlockAll", () => {
@@ -70,14 +94,86 @@ test("Freischaltung: unbekanntes requires bleibt gesperrt, außer mit unlockAll"
   assert.ok(isUnlocked(s, pack, "x-2") && isUnlocked(s, pack, "x-4"));
 });
 
-test("alter Spielstand von vor den Stufen 7–12 lädt unverändert und schaltet richtig frei", () => {
-  const old = { xp: 900, current: "intervalle-6", levels: { "intervalle-1": { stars: 3, best: 9, played: 2 }, "intervalle-6": { stars: 2, best: 8, played: 1 } }, notes: { "große Terz": { ok: 4, bad: 1 } } };
-  const s = load(memStorage({ [KEY_V2]: JSON.stringify(old) }));
-  assert.deepEqual(s.levels, old.levels);
-  assert.deepEqual(s.notes, old.notes);
-  assert.equal(s.current, "intervalle-6");
-  assert.ok(isUnlocked(s, intervalle, "intervalle-7"));
-  assert.ok(!isUnlocked(s, intervalle, "intervalle-8"));
+/* ---------- Umstellung „Intervalle neu“ (20.11.2026) ---------- */
+
+const OLD_V2 = () => ({
+  xp: 1200, dayStreak: 3, lastDay: "2026-11-19", current: "intervalle-5",
+  levels: Object.fromEntries([
+    ...Array.from({ length: 12 }, (_, i) => [`intervalle-${i + 1}`, { stars: 1, best: 6, played: 1 }]),
+    ["noten-1", { stars: 3, best: 10, played: 4 }], ["tonleitern-6", { stars: 1, best: 6, played: 2 }],
+  ].map(([k, v]) => [k, k === "intervalle-5" ? { stars: 3, best: 9, played: 2 } : v])),
+  notes: { "große Terz": { ok: 4, bad: 1 }, "Ganzton e–f (Sekunde)": { ok: 1, bad: 0 }, "Dur zu 3 ♯ (Violin)": { ok: 2, bad: 1 } },
+});
+
+test("Umstellung: alter Spielstand mit intervalle-1 … -12", () => {
+  const storage = memStorage({ [KEY_V2]: JSON.stringify(OLD_V2()) });
+  const s = load(storage);
+  // Tonarten-Stufen umbenannt, Fortschritt bleibt
+  assert.deepEqual(s.levels["tonleitern-7"], { stars: 3, best: 9, played: 2 });
+  assert.deepEqual(s.levels["tonleitern-8"], { stars: 1, best: 6, played: 1 });
+  // alle anderen alten Intervall-Stufen entfallen, andere Pakete bleiben
+  assert.deepEqual(Object.keys(s.levels).sort(), ["noten-1", "tonleitern-6", "tonleitern-7", "tonleitern-8"]);
+  assert.deepEqual(s.levels["noten-1"], { stars: 3, best: 10, played: 4 });
+  assert.equal(s.current, "tonleitern-7");
+  assert.deepEqual(s.notes, OLD_V2().notes);
+  assert.equal(s.xp, 1200);
+  assert.deepEqual(s.migrated, [MIGRATION_INTERVALLE]);
+  // gespeichert, und tonleitern-7/8 sind offen, obwohl tonleitern-6 nicht geschafft ist
+  assert.deepEqual(JSON.parse(storage.data[KEY_V2]), s);
+  assert.ok(isUnlocked(s, tonleitern, "tonleitern-7") && isUnlocked(s, tonleitern, "tonleitern-8"));
+  assert.ok(isUnlocked(s, intervalle, "intervall-1") && !isUnlocked(s, intervalle, "intervall-2"));
+});
+
+test("Umstellung: s.current auf einer entfallenen Stufe → intervall-1, auf intervalle-6 → tonleitern-8", () => {
+  for (const [cur, want] of [["intervalle-1", "intervall-1"], ["intervalle-12", "intervall-1"], ["intervalle-6", "tonleitern-8"], ["noten-3", "noten-3"]]) {
+    const s = { ...OLD_V2(), current: cur };
+    assert.equal(migrateIntervalle(s), true);
+    assert.equal(s.current, want, cur);
+  }
+});
+
+test("Umstellung: läuft nur einmal (Marker), bereits umgestellte Stände bleiben unverändert", () => {
+  const storage = memStorage({ [KEY_V2]: JSON.stringify(OLD_V2()) });
+  const first = load(storage);
+  const saved = storage.data[KEY_V2];
+  // später gespielt: neue Intervall-Stufen und tonleitern-7
+  first.levels["intervall-1"] = { stars: 2, best: 8, played: 1 };
+  first.levels["tonleitern-7"].played = 5;
+  save(first, storage);
+  const again = load(storage);
+  assert.deepEqual(again, first);
+  assert.equal(migrateIntervalle(again), false);
+  assert.deepEqual(again.migrated, [MIGRATION_INTERVALLE]);
+  assert.notEqual(storage.data[KEY_V2], saved);
+  // auch ein Eintrag mit altem Namen bleibt nach der Umstellung, wie er ist
+  const t = Object.assign(fresh(), { levels: { "intervalle-3": { stars: 1, best: 5, played: 1 } } });
+  assert.equal(migrateIntervalle(t), false);
+  assert.deepEqual(t.levels, { "intervalle-3": { stars: 1, best: 5, played: 1 } });
+});
+
+test("Umstellung: frischer Stand, v1-Stand und schon vorhandenes tonleitern-7", () => {
+  const empty = memStorage();
+  const s = load(empty);
+  assert.deepEqual(s, fresh());
+  assert.equal(empty.data[KEY_V2], undefined);
+  // ein frischer Stand trägt den Marker schon; ein Stand ohne Marker und ohne Intervalle bekommt ihn
+  assert.deepEqual(fresh().migrated, [MIGRATION_INTERVALLE]);
+  assert.equal(migrateIntervalle(fresh()), false);
+  const s2 = { ...fresh(), migrated: undefined };
+  assert.equal(migrateIntervalle(s2), true);
+  assert.deepEqual(s2.levels, {});
+  assert.equal(s2.current, "noten-1");
+  assert.deepEqual(s2.migrated, [MIGRATION_INTERVALLE]);
+  // v1 wird übernommen und gleich als umgestellt markiert
+  const v1 = memStorage({ [KEY_V1]: JSON.stringify({ xp: 50, levels: { 1: { stars: 2, best: 8, played: 1 } }, current: 2 }) });
+  const s3 = load(v1);
+  assert.deepEqual(s3.levels, { "noten-1": { stars: 2, best: 8, played: 1 } });
+  assert.equal(s3.current, "noten-2");
+  assert.deepEqual(s3.migrated, [MIGRATION_INTERVALLE]);
+  // gab es tonleitern-7 schon (z. B. mit Demo-Freischaltung gespielt), werden beide zusammengeführt
+  const s4 = Object.assign(fresh(), { migrated: [], levels: { "tonleitern-7": { stars: 1, best: 6, played: 1 }, "intervalle-5": { stars: 2, best: 8, played: 3 } } });
+  migrateIntervalle(s4);
+  assert.deepEqual(s4.levels, { "tonleitern-7": { stars: 2, best: 8, played: 4 } });
 });
 
 test("starsFor", () => {

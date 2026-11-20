@@ -222,10 +222,35 @@ export function staffSvg(clef, inner, opts) {
 export const WHITE = ["C", "D", "E", "F", "G", "A", "H", "C"];
 export const BLACK = [{ l: "C", i: 0 }, { l: "D", i: 1 }, { l: "F", i: 3 }, { l: "G", i: 4 }, { l: "A", i: 5 }];
 
-export function pianoSvg() {
-  const kw = 38, kh = 110;
-  let s = `<svg viewBox="0 0 ${kw * 8 + 2} ${kh + 2}" role="group" aria-label="Klaviatur">`;
-  WHITE.forEach((l, i) => { s += `<rect class="wkey" data-semi="${SEMI[l]}" data-id="w${i}" x="${1 + i * kw}" y="1" width="${kw}" height="${kh}" rx="3"/>`; s += `<text class="klabel" x="${1 + i * kw + kw / 2}" y="${kh - 8}" text-anchor="middle">${l}</text>`; });
-  BLACK.forEach((b) => { s += `<rect class="bkey" data-semi="${SEMI[b.l] + 1}" data-id="b${b.i}" x="${1 + (b.i + 1) * kw - 12}" y="1" width="24" height="${kh * 0.6}" rx="2"/>`; });
+// Klaviatur. Ohne Parameter wie bisher: eine Oktave C bis C (8 weiße, 5 schwarze Tasten), anklickbar,
+// data-semi = Halbtöne über C (0 bis 11, das obere C wieder 0).
+// Mit Parametern (Hilfen, seit „Intervalle neu“): from = MIDI-Nummer des untersten C, octaves = Anzahl
+// der Oktaven (weiße Tasten bis zum C darüber), marks = MIDI-Nummern der markierten Tasten (Klasse mark),
+// interactive = false: nur zum Anschauen (Klasse keys-static am <svg>, keine data-semi, größere Schrift
+// über CSS). Jede Taste trägt dann data-midi.
+export function pianoSvg(opts = {}) {
+  const { from = null, octaves = 1, marks = [], interactive = true } = opts;
+  const kw = interactive ? 38 : 30, kh = interactive ? 110 : 96, bw = interactive ? 24 : 18;
+  const whites = Array.from({ length: octaves * 7 + 1 }, (_, i) => ({ l: WHITE[i % 7], o: Math.floor(i / 7), i }));
+  const blacks = Array.from({ length: octaves }, (_, o) => BLACK.map((b) => ({ ...b, o, i: b.i + 7 * o }))).flat();
+  const mk = new Set(marks);
+  const keyAttr = (semi, o) => {
+    if (from === null) return interactive ? ` data-semi="${semi}"` : "";
+    const m = from + 12 * o + semi;
+    return `${interactive ? ` data-semi="${semi}"` : ""} data-midi="${m}"`;
+  };
+  const isMark = (semi, o) => from !== null && mk.has(from + 12 * o + semi);
+  let s = `<svg viewBox="0 0 ${kw * whites.length + 2} ${kh + 2}"${interactive ? "" : ' class="keys-static"'} role="${interactive ? "group" : "img"}" aria-label="Klaviatur">`;
+  whites.forEach(({ l, o, i }) => {
+    const semi = SEMI[l];
+    // das obere C gehört zur nächsten Oktave (data-semi 0 wie bisher)
+    const oo = i === whites.length - 1 ? octaves : o;
+    s += `<rect class="wkey${isMark(semi, oo) ? " mark" : ""}"${keyAttr(semi, oo)} data-id="w${i}" x="${1 + i * kw}" y="1" width="${kw}" height="${kh}" rx="3"/>`;
+    s += `<text class="klabel${isMark(semi, oo) ? " mark" : ""}" x="${1 + i * kw + kw / 2}" y="${kh - 8}" text-anchor="middle">${l}</text>`;
+  });
+  blacks.forEach((b) => {
+    const semi = SEMI[b.l] + 1;
+    s += `<rect class="bkey${isMark(semi, b.o) ? " mark" : ""}"${keyAttr(semi, b.o)} data-id="b${b.i}" x="${1 + (b.i + 1) * kw - bw / 2}" y="1" width="${bw}" height="${Math.round(kh * 6) / 10}" rx="2"/>`;
+  });
   return s + "</svg>";
 }

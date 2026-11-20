@@ -274,6 +274,23 @@ test("pianoSvg: 13 Tasten, Fis = 6 genau einmal", () => {
   assert.equal(count(p, /data-semi="0"/g), 2);
 });
 
+test("pianoSvg mit Parametern: zwei Oktaven, nicht anklickbar, markierte Tasten (Hilfen)", () => {
+  // ohne Parameter wie bisher (anklickbar, data-semi, keine data-midi)
+  assert.ok(!pianoSvg().includes("data-midi") && !pianoSvg().includes("keys-static"));
+  assert.equal(pianoSvg({}), pianoSvg());
+  const p = pianoSvg({ from: 60, octaves: 2, marks: [64, 70], interactive: false });
+  assert.equal(count(p, /class="wkey/g), 15);
+  assert.equal(count(p, /class="bkey/g), 10);
+  assert.ok(p.includes('class="keys-static"') && !p.includes("data-semi"));
+  assert.ok(p.includes('data-midi="60" data-id="w0"') && p.includes('data-midi="84" data-id="w14"'));
+  assert.deepEqual([...p.matchAll(/class="[wb]key mark" data-midi="(\d+)"/g)].map((m) => +m[1]), [64, 70]);
+  assert.equal(count(p, /class="klabel mark"/g), 1);
+  // weiße Tasten mit Buchstaben C … H, C … H, C
+  assert.deepEqual([...p.matchAll(/class="klabel[^"]*"[^>]*>([A-H])</g)].map((m) => m[1]).join(""), "CDEFGAHCDEFGAHC");
+  // alle 25 Töne c' … c''' genau einmal
+  assert.deepEqual([...p.matchAll(/data-midi="(\d+)"/g)].map((m) => +m[1]).sort((a, b) => a - b), Array.from({ length: 25 }, (_, i) => 60 + i));
+});
+
 test("noteheadSvg: derselbe Kopf wie in noteSvg, für jeden Notenwert", () => {
   const cy = BOTTOM - staffPos(N("G", 4), "treble") * (S / 2);
   assert.equal(noteheadSvg(170, cy), `<ellipse class="notehead" cx="170" cy="${cy}" rx="${HEAD.rx}" ry="${HEAD.ry}" transform="rotate(${HEAD.rot} 170 ${cy})"/>`);

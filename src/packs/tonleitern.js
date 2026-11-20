@@ -1,8 +1,9 @@
-// Paket „Tonleitern“: Dur-Tonleitern bis 4 Vorzeichen, sechs Stufen (Klasse 5–6) und zwei Lerntafeln.
+// Paket „Tonleitern“: Dur-Tonleitern bis 4 Vorzeichen (Stufen 1–6), Tonart aus den Vorzeichen und
+// parallele Molltonart (Stufen 7 und 8, bis 20.11.2026 im Paket „Intervalle“), vier Lerntafeln.
 // Grundlage: docs/PLAN.md, Abschnitt „Paket Tonleitern“; LehrplanPLUS Gymnasium Musik Kl. 5
 // (Dur-Tonleitern mit verschiedenen Grundtönen, Ganz- und Halbtonschritt).
-// Nur Dur, keine Doppelvorzeichen, keine Eis/His/Ces/Fes. Moll folgt später als tonleitern-7 ff.
-import { N, midi, pc, gName, helm, majorScale, staffPos } from "../music.js";
+// Stufen 1–6: nur Dur, keine Doppelvorzeichen, keine Eis/His/Ces/Fes. Moll-Tonleitern folgen später als tonleitern-9 ff.
+import { N, midi, pc, SEMI, gName, helm, majorScale, staffPos, majorKeyFromKeySig, majorName, minorName } from "../music.js";
 import { staffSvg, noteSvg, TOP, S } from "../staff.js";
 
 const CLEF_SHORT = { treble: "Violin", bass: "Bass" };
@@ -291,6 +292,88 @@ function sigQuestion(it) {
   };
 }
 
+/* ---------- Stufe 7 und 8: Tonarten (bis 20.11.2026 Intervalle 5 und 6) ---------- */
+
+// Unverändert aus dem Paket „Intervalle“ übernommen (Sandra, 20.11.2026): Tonart aus den Vorzeichen und
+// parallele Molltonart, 15 Tonarten bis 7 Vorzeichen, Violin- und Bassschlüssel. Die Spielstände der
+// alten Stufen intervalle-5 und -6 übernimmt src/store.js (migrateIntervalle) als tonleitern-7 und -8.
+
+export const FIFTHS = Array.from({ length: 15 }, (_, i) => i - 7);
+export const sigText = (f) => (f === 0 ? "keine Vorzeichen" : `${Math.abs(f)} ${f > 0 ? "♯" : "♭"}`);
+// Satzanfang für die Auflösung nach falscher Antwort: „Drei Kreuze stehen für“, „Ein Be steht für“,
+// „Ohne Vorzeichen ist es“ (das Be, Mehrzahl die Be)
+const COUNT_WORDS = ["", "Ein", "Zwei", "Drei", "Vier", "Fünf", "Sechs", "Sieben"];
+export function sigSentence(f) {
+  if (f === 0) return "Ohne Vorzeichen ist es";
+  const n = Math.abs(f), one = n === 1;
+  const sign = f > 0 ? (one ? "Kreuz" : "Kreuze") : "Be";
+  return `${COUNT_WORDS[n]} ${sign} ${one ? "steht" : "stehen"} für`;
+}
+const keyPool = () => ["treble", "bass"].flatMap((clef) => FIFTHS.map((fifths) => ({ clef, fifths })));
+export const ITEMS_7 = keyPool();
+export const ITEMS_8 = keyPool();
+
+const tonicPc = (f) => { const t = majorKeyFromKeySig(f); return pc(SEMI[t.letter] + t.acc); };
+
+// Vier Tonarten: die richtige, ein Vorzeichen mehr und weniger, dieselbe Zahl mit dem anderen Vorzeichen.
+// Gleich klingende Tonarten (Fis-Dur/Ges-Dur) stehen nie zusammen in der Auswahl: weder als Ablenker zur
+// richtigen Antwort noch zwei Ablenker untereinander (Cis-Dur/Des-Dur). Dur: namer = majorName, Moll: minorName.
+export function keyChoices(fifths, namer) {
+  const picks = [fifths];
+  const ok = (f) => f >= -7 && f <= 7 && !picks.some((p) => p === f || tonicPc(p) === tonicPc(f));
+  for (const f of [fifths - 1, fifths + 1, -fifths, fifths - 2, fifths + 2, fifths - 3, fifths + 3, fifths - 4, fifths + 4]) {
+    if (picks.length >= 4) break;
+    if (ok(f)) picks.push(f);
+  }
+  return shuffle(picks.map(namer));
+}
+
+// Stufe 6 bietet zusätzlich die gleichnamige Molltonart an (Es-Dur → es-Moll statt c-Moll), wenn es sie gibt
+export function minorChoices(fifths) {
+  const variant = majorName(fifths).replace("-Dur", "").toLowerCase() + "-Moll";
+  const base = keyChoices(fifths, minorName);
+  if (!FIFTHS.some((f) => minorName(f) === variant) || base.includes(variant)) return base;
+  const answer = minorName(fifths);
+  const drop = base.find((c) => c !== answer);
+  return shuffle(base.map((c) => (c === drop ? variant : c)));
+}
+
+const keySvg = (it) => staffSvg(it.clef, "", { keySig: it.fifths });
+const keyStat = (it) => `${sigText(it.fifths)} (${CLEF_SHORT[it.clef]})`;
+const pickKey = (pool, prev) => {
+  const cand = prev ? pool.filter((it) => !(it.fifths === prev.fifths && it.clef === prev.clef)) : pool;
+  return cand[Math.floor(Math.random() * cand.length)];
+};
+
+function majorQuestion(it) {
+  const answer = majorName(it.fifths);
+  return {
+    svg: keySvg(it),
+    prompt: "Welche Dur-Tonart?",
+    answer,
+    display: `${answer} (${sigText(it.fifths)})`,
+    reveal: `${sigSentence(it.fifths)} ${answer}.`,
+    choices: keyChoices(it.fifths, majorName),
+    clef: it.clef, fifths: it.fifths,
+    statKey: `Dur zu ${keyStat(it)}`,
+  };
+}
+
+function minorQuestion(it) {
+  const answer = minorName(it.fifths);
+  return {
+    svg: keySvg(it),
+    prompt: `Parallele Molltonart zu ${majorName(it.fifths)}?`,
+    answer,
+    display: `${answer} (parallel zu ${majorName(it.fifths)}, ${sigText(it.fifths)})`,
+    reveal: `Die parallele Molltonart zu ${majorName(it.fifths)} ist ${answer}.`,
+    choices: minorChoices(it.fifths),
+    clef: it.clef, fifths: it.fifths,
+    statKey: `Moll zu ${majorName(it.fifths)}`,
+  };
+}
+
+
 /* ---------- Stufen ---------- */
 
 const check = (q, value) => value === q.answer;
@@ -359,6 +442,26 @@ const levels = [
     question(prev) { return sigQuestion(pickItem(ITEMS_6, prev)); },
     check,
   },
+  {
+    title: "Tonart aus den Vorzeichen",
+    subtitle: "Violin- und Bassschlüssel · 15 Dur-Tonarten",
+    hint: "Bei Kreuzen liegt der Grundton einen Halbton über dem letzten Kreuz (Fis → G-Dur). Bei Be-Vorzeichen ist das vorletzte Be der Grundton (B, Es → B-Dur); ein einzelnes Be steht für F-Dur.",
+    input: "choices",
+    items: ITEMS_7,
+    example: keySvg({ clef: "treble", fifths: 3 }),
+    question(prev) { return majorQuestion(pickKey(ITEMS_7, prev)); },
+    check,
+  },
+  {
+    title: "Parallele Molltonart",
+    subtitle: "Violin- und Bassschlüssel · 15 Molltonarten",
+    hint: "Die parallele Molltonart hat dieselben Vorzeichen. Ihr Grundton liegt eine kleine Terz unter dem Dur-Grundton: C-Dur → a-Moll, Es-Dur → c-Moll. Moll wird klein geschrieben.",
+    input: "choices",
+    items: ITEMS_8,
+    example: keySvg({ clef: "bass", fifths: -3 }),
+    question(prev) { return minorQuestion(pickKey(ITEMS_8, prev)); },
+    check,
+  },
 ].map((l, i) => ({ id: "tonleitern-" + (i + 1), no: i + 1, ...l }));
 
 /* ---------- Lerntafeln ---------- */
@@ -373,6 +476,14 @@ function planBoard(clef) {
     <p class="small muted" style="grid-column: 1 / -1">Die Klammern zeigen die Halbtonschritte: ${names[2]}–${names[3]} und ${names[6]}–${names[7]}, also zwischen der 3. und 4. und der 7. und 8. Stufe. Die Tonleiter teilt sich in zwei gleich gebaute Vierergruppen (Tetrachorde), je Ganz – Ganz – Halb: ${names.slice(0, 4).join(" ")} und ${names.slice(4).join(" ")}. Dazwischen liegt ein Ganztonschritt. Ein Tetrachord sind vier stufenweise aufeinanderfolgende Töne im Umfang einer Quarte – trotz des Namens kein Akkord.</p>`;
 }
 
+function circleBoard() {
+  const order = [0, 1, 2, 3, 4, 5, 6, 7, -1, -2, -3, -4, -5, -6, -7];
+  const rows = order.map((f) => `<tr><td>${sigText(f)}</td><td><b>${majorName(f)}</b></td><td><b>${minorName(f)}</b></td></tr>`).join("");
+  return `<p class="small muted" style="grid-column: 1 / -1">Vorzeichen, Dur-Tonart und parallele Molltonart. Jedes weitere ♯ führt eine Quinte höher, jedes weitere ♭ eine Quinte tiefer.</p>
+    ${TABLE_OPEN}<thead><tr><th>Vorzeichen</th><th>Dur</th><th>parallele Molltonart</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+
 function keysBoard() {
   const rows = KEYS_4.map((k) => {
     const notes = scaleNotes(TONICS.treble[k]), f = fifthsOf(notes[0]);
@@ -386,12 +497,13 @@ export default {
   id: "tonleitern",
   title: "Tonleitern",
   subtitle: "Dur-Tonleitern bauen und lesen",
-  grade: "Klasse 5–6",
+  grade: "Klasse 5–9",
   levels,
   learn: [
     { title: "Bauplan Dur", clef: "treble", render() { return planBoard("treble"); } },
     { title: "Bauplan Dur", clef: "bass", render() { return planBoard("bass"); } },
     { title: "Dur-Tonleitern bis 4 Vorzeichen", render() { return keysBoard(); } },
+    { title: "Quintenzirkel", render() { return circleBoard(); } },
   ],
   blitz: null,
 };

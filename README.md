@@ -34,7 +34,7 @@ Auf den Startbildschirm legen:
 
 Für Entwicklerinnen und Entwickler:
 
-- Die Cache-Version steht oben in `sw.js` (`const CACHE = "notenheld-v0.2.0-8"`). Bei jedem Release erhöhen, sonst behalten installierte Geräte die alten Dateien.
+- Die Cache-Version steht oben in `sw.js` (`const CACHE = "notenheld-v0.2.0-9"`). Bei jedem Release erhöhen, sonst behalten installierte Geräte die alten Dateien.
 - Neue Dateien unter `src/`, `css/`, `fonts/` oder `icons/` in die Liste `PRECACHE` in `sw.js` eintragen; `test/sw.test.js` schlägt sonst fehl.
 - Beim Entwickeln hilft in Chrome DevTools unter Application → Service Workers „Update on reload“, damit Änderungen sofort sichtbar sind.
 - Die Icons in `icons/` sind aus einem Bild im Aquarell-Stil erzeugt, das Sandra Störkel mit Apple Image Playground erstellt hat (KI-generiert) (Violinschlüssel auf Blau, Grün und Gelb). Beim maskierbaren Icon liegt der Schlüssel ganz im sicheren Kreis, der Rand ist mit den verwischten Farben des Bildes aufgefüllt. Nachweise: [THIRD_PARTY.md](THIRD_PARTY.md).
@@ -72,11 +72,13 @@ Smartphone-Breite (420 px), helles Farbschema. Die dunklen Fassungen liegen dane
 7. Vorzeichen ♯ und ♭
 8. Alles gemischt
 
+Das sind die Stufen von „Noten lesen“. Weitere Pakete: Notenwerte und Pausen, Tonleitern (Dur-Tonleitern, Tonart aus den Vorzeichen, parallele Molltonart), Intervalle (zehn Stufen: Rahmenintervall, dann rein/klein/groß und vermindert/übermäßig in zwei Schritten, abwärts, bauen, Fehler finden; Stufe 1, 3, 5 und 8 mit aufklappbaren Hilfen: Klaviatur und Tabelle), Dreiklänge und Quintenzirkel.
+
 Eine Stufe öffnet sich, sobald in der vorherigen 8 von 10 Noten richtig waren. Zum Ausprobieren gibt es auf der Startseite „Alle Stufen öffnen (Demo)“.
 
 ## Tastatur
 
-`C` `D` `E` `F` `G` `A` `H` antworten sofort. In Stufen mit Vorzeichen tippst du den ganzen Namen (`fis`, `es`, `b` …) und bestätigst mit `Enter`; `Backspace` löscht ein Zeichen, `Esc` leert die Eingabe. Auf dem Bildschirm stehen dort alle 21 Namen von C bis B in drei Reihen.
+`C` `D` `E` `F` `G` `A` `H` antworten sofort. Beim Rahmenintervall (Paket „Intervalle“) wählen `1` bis `8` Prime bis Oktave. In Stufen mit Vorzeichen tippst du den ganzen Namen (`fis`, `es`, `b` …) und bestätigst mit `Enter`; `Backspace` löscht ein Zeichen, `Esc` leert die Eingabe. Auf dem Bildschirm stehen dort alle 21 Namen von C bis B in drei Reihen.
 
 ## Technik
 

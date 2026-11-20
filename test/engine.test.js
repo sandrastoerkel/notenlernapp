@@ -6,7 +6,12 @@ import {
   resultMessage, dotsHtml, lettersHtml, namesHtml, usesNames, nameKey, typedText, NAME_MAX,
   choicesHtml, choicesClass, choiceCols, keyAction, blitzPoints, notesToPlay,
   playMode, revealedSvg, svgResultClass, playSchedule, rhythmEnd, answerDelay, PLAY_GAP, BEAT_MS, RHYTHM_TAIL, DELAY_OK, DELAY_BAD,
+  choiceSet, setClass, stepsFeedback, digitAction, helpsHtml, hasHelps, HELP_FROM, DELAY_STEP_OK, DELAY_STEP_BAD,
+  startRound, stop, handleKey, ROUND_LENGTH,
 } from "../src/engine.js";
+import { mock } from "node:test";
+import { setMuted } from "../src/audio.js";
+import intervalle, * as intervalleMod from "../src/packs/intervalle.js";
 import { toneEnd } from "../src/audio.js";
 import { PACKS } from "../src/packs/index.js";
 import noten from "../src/packs/noten.js";
@@ -211,8 +216,8 @@ test("svgResultClass: ganze Zeile ok/bad, mit keepRow keine Klasse", () => {
   assert.equal(svgResultClass({ keepRow: true }, false), "");
 });
 
-test("keepRow: nur Tonleitern Stufe 3 bis 5 und Intervalle 10 und 11 (Bauen), alle anderen Stufen färben die ganze Zeile", () => {
-  const keep = ["tonleitern-3", "tonleitern-4", "tonleitern-5", "intervalle-10", "intervalle-11"];
+test("keepRow: nur Tonleitern Stufe 3 bis 5 und Intervalle 8 und 9 (Bauen), alle anderen Stufen färben die ganze Zeile", () => {
+  const keep = ["tonleitern-3", "tonleitern-4", "tonleitern-5", "intervall-8", "intervall-9"];
   for (const pack of PACKS) for (const level of pack.levels) {
     let prev = null;
     for (let i = 0; i < 30; i++) {
@@ -306,4 +311,170 @@ test("typedText: Anzeige und neutraler Hinweis", () => {
   const t = typedText("hes", true);
   assert.equal(t, "„hes“ ist kein Notenname. Beispiele: fis, es, b");
   assert.ok(!/falsch|fehler/i.test(t));
+});
+
+/* ---------- Zweischrittige Aufgaben und Hilfen (seit „Intervalle neu“) ---------- */
+
+test("choiceSet, setClass: Knopfsatz je Schritt, feste Spalten mit cols", () => {
+  const q = { choices: ["a", "b"], answer: "a" };
+  assert.equal(choiceSet(q), q);
+  const st = { steps: [{ choices: ["x"], cols: 4, answer: "x" }, { choices: ["y", "z"], cols: 2, answer: "y" }] };
+  assert.equal(choiceSet(st, 0), st.steps[0]);
+  assert.equal(choiceSet(st, 1), st.steps[1]);
+  assert.equal(setClass({ choices: ["Prime", "Sekunde"], cols: 4 }), "choices cols");
+  assert.equal(setClass({ choices: ["Prime", "Sekunde"] }), "choices");
+  assert.equal(setClass({ choices: ["½", "¼"] }), "choices short");
+});
+
+test("stepsFeedback: richtig, nur Zahl daneben (partial), sonst reveal", () => {
+  const q = { display: "D", reveal: "R.", partial: "P." };
+  assert.equal(stepsFeedback(q, [true, true]), "Richtig! D");
+  assert.equal(stepsFeedback(q, [false, true]), "P.");
+  assert.equal(stepsFeedback(q, [true, false]), "R.");
+  assert.equal(stepsFeedback(q, [false, false]), "R.");
+  assert.equal(stepsFeedback({ display: "D", reveal: "R." }, [false, true]), "R.");
+});
+
+test("digitAction: Ziffern nur bei digits, innerhalb der Knöpfe, ohne Strg/Alt/Cmd", () => {
+  const set = { choices: ["Prime", "Sekunde", "Terz", "Quarte", "Quinte", "Sexte", "Septime", "Oktave"], digits: true };
+  const k = (key, extra = {}) => ({ key, ...extra });
+  assert.equal(digitAction(k("1"), set), 0);
+  assert.equal(digitAction(k("8"), set), 7);
+  assert.equal(digitAction(k("9"), set), null);
+  assert.equal(digitAction(k("0"), set), null);
+  assert.equal(digitAction(k("a"), set), null);
+  assert.equal(digitAction(k("3", { ctrlKey: true }), set), null);
+  assert.equal(digitAction(k("3"), { choices: set.choices }), null);
+  assert.equal(digitAction(k("3"), null), null);
+});
+
+test("helpsHtml: nur mit level.helps, Klaviatur ab c' bzw. C", () => {
+  assert.equal(hasHelps({}), false);
+  assert.equal(helpsHtml({}, { clef: "treble" }), "");
+  assert.deepEqual(HELP_FROM, { treble: 60, bass: 36 });
+  const level = { helps: ["klaviatur"], helpText: "T" };
+  const h = helpsHtml(level, { clef: "bass", helpMarks: [N("E", 2), N("C", 3)] });
+  assert.ok(h.startsWith('<p class="small">T</p>'));
+  assert.ok(h.includes('data-midi="36" data-id="w0"') && h.includes('data-midi="60" data-id="w14"'));
+  assert.deepEqual([...h.matchAll(/class="[wb]key mark" data-midi="(\d+)"/g)].map((m) => +m[1]), [40, 48]);
+  assert.ok(!h.includes("<table"));
+  assert.ok(helpsHtml({ helps: ["tabelle"], helpTable: "<table></table>" }, {}).includes("<table></table>"));
+});
+
+// Kleines Ersatz-DOM für den Ablauf: Knöpfe entstehen aus innerHTML (data-choice), Klassen werden gemerkt
+function fakeEl() {
+  const el = {
+    innerHTML: "", textContent: "", className: "", hidden: false, open: true, style: { setProperty() {}, removeProperty() {} },
+    classList: { set: new Set(), add(...c) { c.forEach((x) => this.set.add(x)); }, remove(...c) { c.forEach((x) => this.set.delete(x)); }, toggle(c, on) { if (on) this.set.add(c); else this.set.delete(c); }, contains(c) { return this.set.has(c); } },
+    _btns: null, _html: null,
+    querySelector() { return null; },
+    querySelectorAll(sel) {
+      if (!/data-choice|\.btn|rect/.test(sel)) return [];
+      if (el._html !== el.innerHTML) {
+        el._html = el.innerHTML;
+        el._btns = [...el.innerHTML.matchAll(/data-choice="(\d+)"/g)].map((m) => {
+          const cls = new Set();
+          return { dataset: { choice: m[1] }, classList: { add: (c) => cls.add(c), remove: (c) => cls.delete(c), has: (c) => cls.has(c) }, closest() { return this; } };
+        });
+      }
+      return sel.includes("rect") ? [] : el._btns;
+    },
+  };
+  return el;
+}
+
+function runLevel(level, items) {
+  const ui = { staff: fakeEl(), feedback: fakeEl(), count: fakeEl(), dots: fakeEl(), answers: fakeEl(), typed: fakeEl(), piano: fakeEl(), helps: fakeEl(), helpsBody: fakeEl() };
+  const state = fresh(); let finished = null;
+  const lv = { ...level, question: (() => { let i = 0; return () => items[i++ % items.length]; })() };
+  startRound(lv, ui, { state, save() {}, onFinish(res) { finished = res; } });
+  const click = (text) => {
+    const btn = ui.answers.querySelectorAll(".btn[data-choice]").find((b) => choiceSetFor(ui, b) === text);
+    assert.ok(btn, `Knopf ${text}`);
+    ui.answers.onclick({ target: btn });
+    return btn;
+  };
+  const choiceSetFor = (u, b) => u.answers.innerHTML.match(new RegExp(`data-choice="${b.dataset.choice}">([^<]+)<`))[1];
+  return { ui, state, click, done: () => finished, buttons: () => ui.answers.querySelectorAll(".btn[data-choice]").map((b) => choiceSetFor(ui, b)) };
+}
+
+test("Ablauf zweischrittig: richtig/richtig, Zahl daneben/dann Qualität, einmal gezählt", () => {
+  setMuted(true);
+  mock.timers.enable({ apis: ["setTimeout"] });
+  try {
+    const level = intervalle.levels[4]; // intervall-5, Hilfen
+    const q = level.items.find((it) => it.num === 3 && it.quality === "klein" && it.low.letter === "E" && it.low.acc === 0 && it.low.octave === 4);
+    const { twoStepQuestion } = intervalleMod;
+    const item = twoStepQuestion(q, intervalleMod.TYPES_ALL);
+    const r = runLevel(level, [item]);
+    // Hilfen: sichtbar, zugeklappt, Inhalt mit Klaviatur
+    assert.equal(r.ui.helps.hidden, false); assert.equal(r.ui.helps.open, false);
+    assert.ok(r.ui.helpsBody.innerHTML.includes("keys-static"));
+    assert.equal(r.ui.feedback.textContent, "Welches Rahmenintervall?");
+    assert.deepEqual(r.buttons(), ["Prime", "Sekunde", "Terz", "Quarte", "Quinte", "Sexte", "Septime", "Oktave"]);
+    assert.ok(r.ui.answers.classList.contains("cols"));
+    // 1. Aufgabe: richtig, richtig
+    r.click("Terz");
+    assert.equal(r.ui.feedback.textContent, "Richtig: e'–g': 3 Stufen → Terz.");
+    assert.equal(r.state.answered, 0, "nach Schritt 1 noch nicht gezählt");
+    r.click("Quarte"); // gesperrt während der Pause: zählt nicht
+    mock.timers.tick(DELAY_STEP_OK);
+    assert.deepEqual(r.buttons(), ["kleine Terz", "große Terz"]);
+    assert.equal(r.ui.feedback.textContent, "e'–g': 3 Stufen → Terz. Welche Terz? Zähle die Halbtöne.");
+    r.click("kleine Terz");
+    assert.equal(r.state.answered, 1); assert.equal(r.state.correct, 1);
+    assert.equal(r.ui.feedback.textContent, "Richtig! e'–g': 3 Stufen → Terz · 3 Halbtöne → kleine Terz");
+    mock.timers.tick(DELAY_OK);
+    // Hilfen bleiben, wie sie waren (hier: zu), Inhalt neu
+    assert.equal(r.ui.helps.open, false);
+    // 2. Aufgabe: Zahl daneben, dann trotzdem die Qualitäten der richtigen Zahl; zählt als daneben
+    r.ui.helps.open = true;
+    r.click("Quarte");
+    assert.equal(r.ui.feedback.textContent, "Nicht ganz: e'–g': 3 Stufen → Terz.");
+    mock.timers.tick(DELAY_STEP_BAD);
+    assert.deepEqual(r.buttons(), ["kleine Terz", "große Terz"]);
+    r.click("kleine Terz");
+    assert.equal(r.state.answered, 2); assert.equal(r.state.correct, 1);
+    assert.equal(r.ui.feedback.textContent, item.partial);
+    assert.deepEqual(r.state.notes["kleine Terz"].hist, "10");
+    mock.timers.tick(DELAY_BAD);
+    assert.equal(r.ui.helps.open, true, "Hilfen bleiben offen, wenn du sie geöffnet hast");
+    // 3. Aufgabe: Zahl richtig per Ziffer, Qualität daneben
+    const e = { key: "3", preventDefault() {} };
+    assert.equal(handleKey(e), true);
+    mock.timers.tick(DELAY_STEP_OK);
+    assert.equal(handleKey({ key: "1", preventDefault() {} }), false, "Ziffern nur im ersten Schritt");
+    r.click("große Terz");
+    assert.equal(r.state.answered, 3); assert.equal(r.state.correct, 1);
+    assert.equal(r.ui.feedback.textContent, item.reveal);
+    mock.timers.tick(DELAY_BAD);
+    // Rest der Runde richtig
+    for (let i = 3; i < ROUND_LENGTH; i++) {
+      r.click("Terz"); mock.timers.tick(DELAY_STEP_OK); r.click("kleine Terz"); mock.timers.tick(DELAY_OK);
+    }
+    const res = r.done();
+    assert.ok(res);
+    assert.equal(res.correct, 8); assert.equal(res.total, 10);
+    assert.deepEqual(res.results.slice(0, 3), [true, false, false]);
+    assert.equal(r.state.answered, 10);
+    assert.deepEqual(r.state.levels["intervall-5"], { stars: 2, best: 8, played: 1 });
+  } finally { stop(); mock.timers.reset(); }
+});
+
+test("Ablauf: Stufe ohne Hilfen versteckt den Bereich, Stufe 1 einschrittig mit Ziffern", () => {
+  setMuted(true);
+  mock.timers.enable({ apis: ["setTimeout"] });
+  try {
+    const l2 = intervalle.levels[1];
+    const r = runLevel(l2, [l2.question(null)]);
+    assert.equal(r.ui.helps.hidden, true);
+    stop();
+    const l1 = intervalle.levels[0];
+    const q = l1.question(null);
+    const r1 = runLevel(l1, [q]);
+    assert.equal(r1.ui.helps.hidden, false);
+    const idx = ["Prime", "Sekunde", "Terz", "Quarte", "Quinte", "Sexte", "Septime", "Oktave"].indexOf(q.answer);
+    assert.equal(handleKey({ key: String(idx + 1), preventDefault() {} }), true);
+    assert.equal(r1.state.answered, 1); assert.equal(r1.state.correct, 1);
+  } finally { stop(); mock.timers.reset(); }
 });

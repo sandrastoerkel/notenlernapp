@@ -6,9 +6,14 @@ import { FENSTER, ZEIT_DECKEL } from "./adapt.js";
 export const KEY_V1 = "notenheld.v1";
 export const KEY_V2 = "notenheld.v2";
 
+// Einmalige Umstellungen alter Spielstände (migrated, siehe migrateIntervalle). Ein frischer Stand
+// braucht keine: er trägt alle Marker schon.
+export const MIGRATION_INTERVALLE = "intervalle-neu";
+
 export const fresh = () => ({
   xp: 0, dayStreak: 0, lastDay: null, levels: {}, notes: {}, answered: 0, correct: 0,
   bestCombo: 0, blitzRecord: 0, unlockAll: false, muted: false, input: "letters", current: "noten-1",
+  migrated: [MIGRATION_INTERVALLE],
 });
 
 // Alte Daten (Stufen 1 bis 8 als Zahl) in das Format mit Stufen-IDs übernehmen
@@ -21,17 +26,54 @@ export function migrateV1(v1) {
   return s;
 }
 
+// Einmalige Umstellungen alter Spielstände. Jede trägt sich in s.migrated ein und läuft danach nie wieder.
+// "intervalle-neu" (20.11.2026, Paket „Intervalle“ neu): die Tonarten-Stufen intervalle-5 und -6 heißen jetzt
+// tonleitern-7 und -8 (Fortschritt bleibt), die übrigen alten Intervall-Stufen intervalle-1 … -12 entfallen
+// (die neuen heißen intervall-1 … -10). Zeigte s.current auf eine entfallene Stufe, geht es mit
+// intervall-1 weiter. Die Statistik je Aufgabe (s.notes) bleibt unverändert.
+export const RENAMED_INTERVALLE = { "intervalle-5": "tonleitern-7", "intervalle-6": "tonleitern-8" };
+const OLD_INTERVALLE = /^intervalle-\d+$/;
+
+// Zwei Einträge einer Stufe zusammenführen (falls es die neue ID schon gibt): bester Wert, Runden zusammen
+const mergeLevel = (a, b) => (!a ? b : !b ? a : {
+  stars: Math.max(a.stars || 0, b.stars || 0), best: Math.max(a.best || 0, b.best || 0), played: (a.played || 0) + (b.played || 0),
+});
+
+// Gibt true zurück, wenn etwas geändert wurde (dann speichert load den Zustand)
+export function migrateIntervalle(s) {
+  const done = Array.isArray(s.migrated) ? s.migrated : [];
+  if (done.includes(MIGRATION_INTERVALLE)) return false;
+  const levels = {};
+  for (const [id, st] of Object.entries(s.levels || {})) {
+    if (RENAMED_INTERVALLE[id]) levels[RENAMED_INTERVALLE[id]] = mergeLevel(levels[RENAMED_INTERVALLE[id]], st);
+    else if (!OLD_INTERVALLE.test(id)) levels[id] = mergeLevel(levels[id], st);
+  }
+  s.levels = levels;
+  if (RENAMED_INTERVALLE[s.current]) s.current = RENAMED_INTERVALLE[s.current];
+  else if (OLD_INTERVALLE.test(s.current || "")) s.current = "intervall-1";
+  s.migrated = [...done, MIGRATION_INTERVALLE];
+  return true;
+}
+
 const defaultStorage = () => { try { return globalThis.localStorage || null; } catch (e) { return null; } };
 
-// Zustand laden: zuerst v2, sonst v1 übernehmen und als v2 speichern (v1 bleibt unverändert)
+// Zustand laden: zuerst v2, sonst v1 übernehmen und als v2 speichern (v1 bleibt unverändert).
+// Danach die einmaligen Umstellungen (migrateIntervalle); geändert wird nur einmal gespeichert.
 export function load(storage = defaultStorage()) {
   try {
     if (!storage) return fresh();
     const raw = storage.getItem(KEY_V2);
-    if (raw) return Object.assign(fresh(), JSON.parse(raw));
+    if (raw) {
+      // Marker nur aus dem gespeicherten Stand, nicht aus fresh(): ältere Stände haben keine
+      const parsed = JSON.parse(raw);
+      const s = Object.assign(fresh(), parsed, { migrated: Array.isArray(parsed.migrated) ? parsed.migrated : [] });
+      if (migrateIntervalle(s)) save(s, storage);
+      return s;
+    }
     const old = storage.getItem(KEY_V1);
     if (old) {
       const s = migrateV1(JSON.parse(old));
+      migrateIntervalle(s);
       save(s, storage);
       return s;
     }
@@ -75,10 +117,13 @@ export const unlocks = (pack, levelId) => pack.levels.filter((l) => {
 
 // Erste Stufe eines Pakets ist offen; jede weitere ab best >= 8 in der Stufe, die sie freischaltet
 // (unlockedBy), oder mit unlockAll. Eine Stufe mit unbekanntem requires bleibt gesperrt.
+// Eine schon gespielte Stufe bleibt offen (seit „Intervalle neu“: übernommener Fortschritt in
+// tonleitern-7 und -8, auch wenn tonleitern-6 noch nicht geschafft ist).
 export function isUnlocked(s, pack, levelId) {
   const i = pack.levels.findIndex((l) => l.id === levelId);
   if (i < 0) return false;
   if (s.unlockAll) return true;
+  if (((s.levels[levelId] || {}).played || 0) > 0) return true;
   const by = unlockedBy(pack, levelId);
   if (!by) return i === 0 && pack.levels[i].requires === undefined;
   return ((s.levels[by.id] || {}).best || 0) >= 8;

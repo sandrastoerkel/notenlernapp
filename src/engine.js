@@ -3,14 +3,19 @@
 // zeigt q.svg (nach der Antwort q.revealSvg, falls gesetzt) und baut die Antwort-Elemente nach der Eingabeart.
 // Nach der Antwort färbt sie die ganze Zeile grün bzw. rot (Klasse ok/bad am <svg>); setzt die Aufgabe
 // q.keepRow = true, bleibt die Zeile schwarz und nur das Feedback darunter wird grün bzw. rot.
+// Zweischrittige Aufgaben (q.steps, seit „Intervalle neu“): erst ein Satz Knöpfe, dann ein zweiter; gezählt
+// wird die Aufgabe einmal, richtig nur, wenn beide Schritte stimmen. Hilfen (level.helps) zeigt die Engine
+// in einem eigenen Bereich zum Aufklappen (ui.helps), mit Klaviatur und Tabelle zur Aufgabe.
 // Oben stehen reine Hilfsfunktionen (getestet in test/engine.test.js), unten der DOM-Teil.
-import { LETTERS, NAME_ACCS, N, gName, parseNoteName } from "./music.js";
+import { LETTERS, NAME_ACCS, N, gName, parseNoteName, midi } from "./music.js";
 import { pianoSvg } from "./staff.js";
 import { recordRound, recordAnswer } from "./store.js";
 import { play, playChord, isMuted } from "./audio.js";
 
 export const ROUND_LENGTH = 10;
 export const DELAY_OK = 800, DELAY_BAD = 1600;
+// Pause zwischen erstem und zweitem Schritt (q.steps): richtig kurz, daneben länger zum Lesen
+export const DELAY_STEP_OK = 700, DELAY_STEP_BAD = 1600;
 // Abstand zwischen mehreren Tönen aus q.play
 export const PLAY_GAP = 500;
 // Rhythmus aus q.play: ein Schlag (Viertel) dauert 600 ms, also Tempo 100 Viertel pro Minute
@@ -92,6 +97,46 @@ export const CHOICE_SHORT = 4;
 export const choicesClass = (choices) => ((choices || []).length && choices.every((c) => String(c).length <= CHOICE_SHORT) ? "choices short" : "choices");
 // Spalten für kurze Texte: alle in einer Reihe, ab sieben Knöpfen zwei Reihen (I–VII: 4 + 3)
 export const choiceCols = (choices) => { const n = (choices || []).length; return n <= 6 ? n : Math.ceil(n / 2); };
+
+// Knöpfe einer Aufgabe im Schritt step: { choices, cols?, digits?, answer, prompt?, ok?, bad? }.
+// Ohne q.steps ist es die Aufgabe selbst (choices, cols, digits, answer).
+export const choiceSet = (q, step = 0) => (q.steps ? q.steps[step] : q);
+// Klassen für das Raster der Auswahlknöpfe: mit cols (z. B. 4 bei Prime … Oktave) so viele Spalten,
+// ohne cols wie bisher (choicesClass)
+export const setClass = (set) => (set.cols ? "choices cols" : choicesClass(set.choices));
+
+// Zweischrittig: Rückmeldung nach dem letzten Schritt. oks = Ergebnis je Schritt. Alles richtig wie
+// bisher; nur der erste Schritt daneben und der letzte richtig: q.partial (falls gesetzt); sonst q.reveal.
+export function stepsFeedback(q, oks) {
+  if (oks.every(Boolean)) return feedbackText(q, true);
+  if (q.partial && !oks[0] && oks[oks.length - 1]) return q.partial;
+  return feedbackText(q, false);
+}
+
+// Ziffer 1 bis 9 als Auswahl in einem Knopfsatz mit digits (Prime … Oktave: 1 bis 8), sonst null
+export function digitAction(e, set) {
+  if (e.metaKey || e.ctrlKey || e.altKey || !set || !set.digits) return null;
+  if (!/^[1-9]$/.test(e.key)) return null;
+  const i = +e.key - 1;
+  return i < (set.choices || []).length ? i : null;
+}
+
+// Hilfen (level.helps, z. B. ["klaviatur", "tabelle"]): Klaviatur über zwei Oktaven ab C (Violinschlüssel
+// c' bis c''', Bassschlüssel C bis c'), nicht anklickbar, markiert die Töne aus q.helpMarks; dazu
+// level.helpText und die Tabelle level.helpTable (HTML aus dem Paket). Leer ohne helps.
+export const HELP_FROM = { treble: 60, bass: 36 };
+export const HELP_OCTAVES = 2;
+export const hasHelps = (level) => !!(level && level.helps && level.helps.length);
+export function helpsHtml(level, q) {
+  if (!hasHelps(level)) return "";
+  let out = level.helpText ? `<p class="small">${level.helpText}</p>` : "";
+  if (level.helps.includes("klaviatur")) {
+    const marks = (q.helpMarks || []).map(midi);
+    out += `<div class="help-keys">${pianoSvg({ from: HELP_FROM[q.clef] ?? HELP_FROM.treble, octaves: HELP_OCTAVES, marks, interactive: false })}</div>`;
+  }
+  if (level.helps.includes("tabelle") && level.helpTable) out += `<div class="help-table-wrap">${level.helpTable}</div>`;
+  return out;
+}
 
 // Tastendruck deuten (Stufen ohne Vorzeichen und Blitz): { letter } für C D E F G A H, sonst null.
 // Mit Strg, Alt oder Cmd wird nichts ausgewertet.
@@ -211,7 +256,8 @@ function applyInput(r) {
 }
 
 // Runde starten.
-// ui: { staff, feedback, count, dots, answers, typed, piano } (DOM-Elemente; typed zeigt den getippten Namen)
+// ui: { staff, feedback, count, dots, answers, typed, piano, helps, helpsBody } (DOM-Elemente; typed zeigt den
+// getippten Namen, helps ist der aufklappbare Bereich <details>, helpsBody sein Inhalt)
 // hooks: { state, save, onFinish({ correct, total, stars, gained, avg, results }) }
 export function startRound(level, ui, hooks) {
   stop();
@@ -221,7 +267,10 @@ export function startRound(level, ui, hooks) {
     input: effectiveInput(level.input, hooks.state.input, !!level.namesOnly),
   };
   run = r;
-  if (ui.answers) ui.answers.classList.remove("choices", "short", "names");
+  if (ui.answers) ui.answers.classList.remove("choices", "short", "names", "cols");
+  // Hilfen: nur bei Stufen mit helps; zu Beginn der Runde zugeklappt, danach bleibt der Bereich, wie du
+  // ihn gelassen hast (auf oder zu), der Inhalt wechselt mit jeder Aufgabe
+  if (ui.helps) { ui.helps.hidden = !hasHelps(level); ui.helps.open = false; }
   if (r.level.input === "choices") {
     if (ui.answers) ui.answers.innerHTML = "";
   } else {
@@ -234,7 +283,7 @@ export function startRound(level, ui, hooks) {
     const b = e.target.closest(".btn");
     if (!b || run !== r) return;
     if (b.dataset.letter) answer(r, { letter: b.dataset.letter, acc: b.dataset.acc !== undefined ? +b.dataset.acc : 0 }, b);
-    else if (b.dataset.choice !== undefined) answer(r, r.items[r.idx].choices[+b.dataset.choice], b);
+    else if (b.dataset.choice !== undefined) answer(r, choiceSet(r.items[r.idx], r.step).choices[+b.dataset.choice], b);
   };
   if (ui.piano) ui.piano.onclick = (e) => {
     const k = e.target.closest("rect[data-semi]");
@@ -243,43 +292,81 @@ export function startRound(level, ui, hooks) {
   applyInput(r); showQuestion(r);
 }
 
+function showChoices(r) {
+  const { ui } = r, set = choiceSet(r.items[r.idx], r.step);
+  if (r.level.input !== "choices" || !ui.answers) return;
+  ui.answers.innerHTML = choicesHtml(set.choices);
+  const cls = setClass(set);
+  ui.answers.classList.add("choices");
+  ui.answers.classList.toggle("cols", cls.includes("cols"));
+  const short = cls.includes("short");
+  ui.answers.classList.toggle("short", short);
+  if (set.cols) ui.answers.style.setProperty("--cols", set.cols);
+  else if (short) ui.answers.style.setProperty("--cols", choiceCols(set.choices));
+  else ui.answers.style.removeProperty("--cols");
+}
+
 function showQuestion(r) {
   const q = r.items[r.idx], { ui } = r;
+  r.step = 0; r.oks = [];
   ui.staff.innerHTML = q.svg;
   ui.feedback.textContent = q.prompt || ""; ui.feedback.className = "feedback";
   if (ui.count) ui.count.textContent = `${r.idx + 1} / ${r.items.length}`;
   if (ui.dots) ui.dots.innerHTML = dotsHtml(r.results, r.idx, r.items.length);
-  if (r.level.input === "choices" && ui.answers) {
-    ui.answers.innerHTML = choicesHtml(q.choices);
-    ui.answers.classList.add("choices");
-    const short = choicesClass(q.choices).includes("short");
-    ui.answers.classList.toggle("short", short);
-    if (short) ui.answers.style.setProperty("--cols", choiceCols(q.choices)); else ui.answers.style.removeProperty("--cols");
-  }
+  if (ui.helpsBody && hasHelps(r.level)) ui.helpsBody.innerHTML = helpsHtml(r.level, q);
+  showChoices(r);
   all(ui.answers, ".btn").concat(all(ui.piano, "rect")).forEach((b) => b.classList.remove("ok", "bad"));
   r.buf = ""; showTyped(r, "");
   r.t0 = performance.now();
 }
 
+// Auswahlknopf zur richtigen Antwort des aktuellen Schritts markieren
+function markRight(r, q) {
+  const set = choiceSet(q, r.step), a = set.answer;
+  const right = a && typeof a === "object" && a.letter
+    ? letterButton(r.ui.answers, a)
+    : all(r.ui.answers, ".btn[data-choice]").find((b) => set.choices && set.choices[+b.dataset.choice] === a);
+  if (right) right.classList.add("ok");
+}
+
+// Zweischrittige Aufgabe: Schritt auswerten; nach dem letzten Schritt wie eine einfache Antwort weiter
+function answerStep(r, value, el) {
+  const q = r.items[r.idx], { ui } = r, set = q.steps[r.step];
+  const ok = value === set.answer;
+  r.oks.push(ok);
+  if (el) el.classList.add(ok ? "ok" : "bad");
+  if (!ok) markRight(r, q);
+  if (r.step === q.steps.length - 1) return finishQuestion(r, r.oks.every(Boolean), stepsFeedback(q, r.oks));
+  r.locked = true;
+  ui.feedback.textContent = (ok ? set.ok : set.bad) || "";
+  ui.feedback.className = "feedback " + (ok ? "ok" : "bad");
+  later(r, () => {
+    if (run !== r) return;
+    r.locked = false; r.step++;
+    showChoices(r);
+    ui.feedback.textContent = q.steps[r.step].prompt || ""; ui.feedback.className = "feedback";
+  }, ok ? DELAY_STEP_OK : DELAY_STEP_BAD);
+}
+
 function answer(r, value, el) {
   if (run !== r || r.locked) return;
-  const q = r.items[r.idx], { ui, hooks } = r;
+  const q = r.items[r.idx];
+  if (q.steps) return answerStep(r, value, el);
   const ok = !!r.level.check(q, value);
+  if (el) el.classList.add(ok ? "ok" : "bad");
+  if (!ok) markRight(r, q);
+  finishQuestion(r, ok, feedbackText(q, ok));
+}
+
+// Ergebnis der Aufgabe zählen (einmal je Aufgabe), Auflösung zeigen, Töne spielen, weiter
+function finishQuestion(r, ok, text) {
+  const q = r.items[r.idx], { ui, hooks } = r;
   r.locked = true;
   const sec = (performance.now() - r.t0) / 1000;
   r.results.push(ok); r.times.push(sec);
   if (ok) r.correct++;
   countAnswer(hooks.state, q, ok, sec);
   hooks.save();
-  if (el) el.classList.add(ok ? "ok" : "bad");
-  if (!ok) {
-    // Richtige Antwort markieren: Buchstabe bzw. Auswahlknopf
-    const a = q.answer;
-    const right = a && typeof a === "object" && a.letter
-      ? letterButton(ui.answers, a)
-      : all(ui.answers, ".btn[data-choice]").find((b) => q.choices && q.choices[+b.dataset.choice] === a);
-    if (right) right.classList.add("ok");
-  }
   // q.revealSvg (optional): SVG, das nach der Antwort statt q.svg erscheint, bei richtiger und falscher
   // Antwort, z. B. der vollständige Takt mit dem fehlenden Wert in der Lücke. Ohne revealSvg bleibt q.svg
   // stehen. Die Färbung (Klasse ok/bad am <svg>) gilt in beiden Fällen für das angezeigte SVG,
@@ -288,7 +375,7 @@ function answer(r, value, el) {
   if (shown !== q.svg) ui.staff.innerHTML = shown;
   const svg = ui.staff.querySelector("svg"), rc = svgResultClass(q, ok);
   if (svg && rc) svg.classList.add(rc);
-  ui.feedback.textContent = feedbackText(q, ok);
+  ui.feedback.textContent = text;
   ui.feedback.className = "feedback " + (ok ? "ok" : "bad");
   if (playMode(q) === "together") playChord(notesToPlay(q));
   else playSchedule(q).forEach(({ note, at, dur }) => {
@@ -324,8 +411,16 @@ function letterButton(root, a) {
 // Ohne Vorzeichen antwortet ein Buchstabe sofort. Mit Namensraster wird der Name getippt (fis, es, b)
 // und mit Enter bestätigt; ein ungültiger Name zeigt einen Hinweis und zählt nicht.
 export function handleKey(e) {
-  if (!run || run.locked || run.level.input === "choices") return false;
+  if (!run || run.locked) return false;
   const r = run;
+  if (r.level.input === "choices") {
+    // Ziffern bei Knopfsätzen mit digits (Prime … Oktave)
+    const set = choiceSet(r.items[r.idx], r.step), i = digitAction(e, set);
+    if (i === null) return false;
+    e.preventDefault();
+    answer(r, set.choices[i], all(r.ui.answers, ".btn[data-choice]")[i]);
+    return true;
+  }
   if (usesNames(r.level)) {
     const k = nameKey(r.buf, e);
     if (!k) return false;

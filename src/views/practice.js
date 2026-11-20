@@ -13,7 +13,10 @@ export const startLabel = () => `Runde starten · ${engine.ROUND_LENGTH} Aufgabe
 // Tastatur-Hinweis auf der Startkarte (rein, getestet): ohne Vorzeichen Buchstaben, mit Namensraster
 // der ganze Name und Enter
 const kbd = (t) => `<span class="kbd">${t}</span>`;
-export const keysHint = (level) => (engine.usesNames(level)
+// Stufen mit level.digits (Rahmenintervall Prime … Oktave): Ziffern 1 bis 8
+export const keysHint = (level) => (level && level.digits
+  ? `Tastatur: ${kbd("1")} Prime, ${kbd("2")} Sekunde … ${kbd("8")} Oktave (Rahmenintervall)`
+  : engine.usesNames(level)
   ? `Tastatur: Namen tippen, z. B. ${kbd("fis")} ${kbd("es")} ${kbd("b")}, dann ${kbd("Enter")}. ${kbd("⌫")} löscht, ${kbd("Esc")} leert.`
   : `Tastatur: ${kbd("C")} ${kbd("D")} ${kbd("E")} … ${kbd("H")}`);
 
@@ -74,7 +77,9 @@ export function render() {
   const letters = (level.input || "letters") === "letters";
   // namesOnly: nur das Namensraster (die Schreibweise zählt), keine Wahl der Klaviatur
   $("#view-practice .seg").hidden = !letters || !!level.namesOnly;
-  $("#pKeys").hidden = !letters;
+  $("#pKeys").hidden = !letters && !level.digits;
+  // Hilfen nur während der Runde (engine.startRound)
+  $("#pHelps").hidden = true;
   $("#pKeys").innerHTML = keysHint(level);
   $("#inLetters").textContent = lettersLabel(level);
   $("#pStart").textContent = startLabel(level);
@@ -88,6 +93,7 @@ function startRound() {
   engine.startRound(level, {
     staff: $("#pStaff"), feedback: $("#pFeedback"), count: $("#pCount"), dots: $("#pDots"),
     answers: $("#pAnswers"), typed: $("#pTyped"), piano: $("#pPiano"),
+    helps: $("#pHelps"), helpsBody: $("#pHelpsBody"),
   }, { state: ctx.state, save: ctx.save, onFinish: showResult });
 }
 
@@ -96,6 +102,7 @@ function showResult(res) {
   const { correct: c, stars, gained, avg } = res;
   const { next, nextOpen, note } = resultInfo(ctx.state, pack, level, c);
   $("#pPlay").hidden = true;
+  $("#pHelps").hidden = true;
   $("#pResult").hidden = false;
   $("#pResult").innerHTML = `
       <p class="eyebrow">Runde beendet</p>

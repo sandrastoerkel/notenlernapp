@@ -25,8 +25,8 @@ src/
   packs/index.js        Registry aller Themenpakete
   packs/noten.js        Paket „Noten lesen“ (8 Stufen)
   packs/notenwerte.js   Paket „Notenwerte und Pausen“
-  packs/tonleitern.js   Paket „Tonleitern“ (Dur bis 4 Vorzeichen, seit Welle 5)
-  packs/intervalle.js   Paket „Intervalle und Tonarten“ (12 Stufen; 7–12 seit Welle 6)
+  packs/tonleitern.js   Paket „Tonleitern“ (Dur bis 4 Vorzeichen, seit Welle 5; Stufen 7–8 Tonarten seit Welle 7)
+  packs/intervalle.js   Paket „Intervalle“ (10 Stufen, neu seit Welle 7: erst mit Hilfen, dann ohne)
   packs/akkorde.js      Paket „Dreiklänge und Quintenzirkel“
   views/home.js         Startseite: Pakete und Stufen
   views/practice.js     Üben (nutzt engine.js)
@@ -125,7 +125,7 @@ Höhe `H = 122`. Eine halbe Stufe sind 6 Einheiten.
 | `restSvg(value, x)` | Pause (1, 2, 4, 8, 16); ganze und halbe als `<rect class="rest">`, die übrigen als Glyphe (`<text class="rest">`) |
 | `glyphSvg(char, x, y, size)` | ein Zeichen aus der Musikschrift |
 | `keySigSvg(clef, count)` | nur die Vorzeichen (wird von `staffSvg` genutzt); Kreuze in der Reihenfolge Fis Cis Gis Dis Ais Eis His, Be in der Reihenfolge B Es As Des Ges Ces Fes |
-| `pianoSvg()` | eine Oktave Klaviatur (8 weiße, 5 schwarze Tasten, 13 `rect`); Tasten tragen `data-semi` (Halbtonzahl ab C, das obere C wieder 0) |
+| `pianoSvg(opts)` | ohne Parameter wie bisher: eine Oktave Klaviatur (8 weiße, 5 schwarze Tasten, 13 `rect`), anklickbar; Tasten tragen `data-semi` (Halbtonzahl ab C, das obere C wieder 0). Seit Welle 7 mit `opts = { from, octaves, marks, interactive }`: `from` MIDI-Nummer des untersten C, `octaves` Anzahl Oktaven (weiße Tasten bis zum C darüber, bei 2: 15 weiße, 10 schwarze), `marks` MIDI-Nummern markierter Tasten (Klasse `mark`), `interactive: false` nur zum Anschauen (`<svg class="keys-static">`, kein `data-semi`, kleinere Tasten, größere Schrift); mit `from` trägt jede Taste `data-midi` |
 
 Weitere Exporte: die Maße `S`, `TOP`, `BOTTOM`, `W`, `H`, `X0`, `X1`, die
 Glyphen-Tabelle `GLYPHS` (`treble`, `bass`, `notes[1…16]`, `rests[1…16]`,
@@ -207,15 +207,19 @@ Stufen darüber), rückt es wie in `staff.js` 1,9 (0,16 LA) weiter nach links
 (`accTouchesLedger`). `opts.keySig` lässt Vorzeichen weg, die die Vorzeichnung
 schon enthält.
 
-**Intervalle 7–12.** `src/packs/intervalle.js` (seit Welle 6): zwei ganze Noten bei `X_LOW`/`X_HIGH`
-wie in Stufe 1–4 (`intervalSvg`; Stufe 9 abwärts mit der oberen Note links). Bauaufgaben (Stufe 10, 11):
+**Intervalle.** `src/packs/intervalle.js` (neu seit Welle 7, davor Welle 6): zwei ganze Noten bei `X_LOW`/`X_HIGH`
+(`intervalSvg`; Stufe 7 abwärts mit der oberen Note links). Bauaufgaben (Stufe 8, 9):
 `buildSvg(it)` zeigt nur die gegebene Note (links), `buildRevealSvg(it)` beide, die gebaute rechts grün
 (`noteSvg(…, "ok")`) mit ihrem Namen darunter (`note-label ok`, 18 Einheiten, unter dem tiefsten Punkt
 beider Noten, `lowestY` wie in „Tonleitern“); Frage und Auflösung haben dieselbe Höhe (`buildHeight`,
-mindestens 122), die Karte springt nicht. Dazu `q.keepRow`. Hilfen: `SIZE_ORDER`/`SIZE_NAMES` (die elf
-Intervalle rein/groß/klein der Größe nach), `sizeChoices(name, rnd)` (vier aufeinanderfolgende Namen,
-Fensteranfang gleich verteilt), `stepsText(a, b)` (die zwei Denkschritte als Text), `checkBuild`
-(Buchstabe und Vorzeichen), `VERDICTS` (Stufe 12). `lowerNote(high, num, quality)` in `music.js`.
+mindestens 122), die Karte springt nicht. Dazu `q.keepRow`. Erlaubte Intervalle: `TYPES_RKG` (rein, klein,
+groß von Prime bis Oktave, 12), `TYPES_ALL` (dazu übermäßige Prime und Sekunde, verminderte/übermäßige
+Quarte und Quinte, verminderte Septime, 19), `TYPES_NO_PRIME` (abwärts und Bauen, 17), `ALLOWED_NAMES`;
+`qualityChoices(num, types)` (Knöpfe im zweiten Schritt), `frameText(a, b)` („e'–g': 3 Stufen → Terz“),
+`stepsText(a, b)` (beide Denkschritte; nur erlaubte Intervalle werden benannt), `twoStepQuestion(it, types, down)`,
+`frameTable()` und `semitoneTable(types)` (Tabellen der Hilfen, aus `semitonesFor` berechnet),
+`SIZE_ORDER`/`SIZE_NAMES` (die elf Intervalle rein/groß/klein ohne Prime, Stufe 10), `checkBuild`
+(Buchstabe und Vorzeichen), `VERDICTS` (Stufe 10). `lowerNote(high, num, quality)` in `music.js`.
 
 ## Themenpakete (`src/packs/*.js`)
 
@@ -246,7 +250,11 @@ Eine Stufe:
   input: "letters",            // "letters" | "choices" | "keys"
   acc: false,                  // optional, true zeigt bei "letters" das Namensraster (21 Namen) statt C–H
   namesOnly: false,            // optional, true: nur Namensraster, keine Klaviatur (die Schreibweise zählt, gis ≠ as)
-  requires: "intervalle-1",    // optional, Stufen-ID im selben Paket, deren best >= 8 diese Stufe öffnet (sonst die Stufe davor)
+  requires: "x-1",             // optional, Stufen-ID im selben Paket, deren best >= 8 diese Stufe öffnet (sonst die Stufe davor; seit Welle 7 von keinem Paket genutzt)
+  digits: false,               // optional, true: Hinweis „Tastatur: 1 Prime … 8 Oktave“ auf der Startkarte (Knopfsätze mit digits)
+  helps: ["klaviatur", "tabelle"], // optional (seit Welle 7): aufklappbarer Bereich „Hilfen“ unter der Notenzeile, nur während der Runde
+  helpText: "…",               // optional, Satz oben in den Hilfen
+  helpTable: "<table …>",      // optional, HTML der Tabelle in den Hilfen
   items: [ /* … */ ],          // optional, Vorrat der Aufgaben (nur für Tests und Blitz)
   question(prev, ctx) {        // liefert eine neue Aufgabe, nie dieselbe wie prev; ctx siehe unten
     return {
@@ -260,6 +268,11 @@ Eine Stufe:
       play: [ /* Noten oder { note, beats } / { rest: true, beats } */ ], // optional, nach der Antwort abgespielt
       playTogether: false,     // optional, true spielt alle Töne aus play gleichzeitig (Akkord)
       choices: ["…"],          // nur bei input "choices": 4 bis 6 Auswahlknöpfe, enthält answer
+      cols: 4,                 // optional, feste Spaltenzahl der Knöpfe (Klasse cols, --cols), z. B. Prime … Oktave in 2 × 4
+      digits: true,            // optional, Ziffer k auf der Tastatur wählt den k-ten Knopf
+      steps: [ /* optional, zweischrittig: { choices, cols?, digits?, answer, prompt?, ok?, bad? } je Schritt */ ],
+      partial: "…",            // optional, Rückmeldung, wenn nur der erste Schritt daneben lag (Satz mit Punkt)
+      helpMarks: [N("E", 4)],  // optional, Töne, die die Klaviatur der Hilfen markiert
       note: N("G", 4),         // optional, die gefragte Note (Ton im Blitz, Feedback ohne Oktave)
       clef: "treble",          // optional, Schlüssel der Aufgabe (damit prev nicht wiederholt wird)
       statKey: "G (g', Violin)", // optional, Eintrag in state.notes („Schwache Stellen“, Notenkarte)
@@ -279,7 +292,8 @@ Quintenzirkel“: Stufe 1 hat laut PLAN zwei (Dur, Moll), Stufe 4 drei (die drei
 Lagen), Stufe 6 alle sieben Stufen I bis VII. Im Paket „Tonleitern“ haben Stufe 1 und 2
 (`tonleitern-1`, `tonleitern-2`) nur zwei Knöpfe („Ganztonschritt“, „Halbtonschritt“); Halbtöne
 werden dort mit Wahrscheinlichkeit 0,4 gezogen. Raten reicht in etwa 5,5 % der Runden für 8 von 10.
-Ebenso `intervalle-7` („Ganzton oder Halbton?“, zwei Knöpfe, Halbtöne mit Wahrscheinlichkeit 0,5).
+Im Paket „Intervalle“ (seit Welle 7) haben das Rahmenintervall acht Knöpfe (Prime … Oktave, `cols: 4`)
+und der zweite Schritt nur die zur Zahl passenden Intervalle (1 bis 3 Knöpfe, z. B. nur „reine Oktave“).
 
 Rhythmen (seit Paket F): Ein Eintrag in `play` ist entweder eine Note (wie
 bisher; mehrere Noten nacheinander im Abstand `PLAY_GAP` = 500 ms) oder ein Wert
@@ -383,8 +397,21 @@ Antwort-Elemente nach `input` und vergibt Sterne (5/7/9 richtige = 1/2/3) und
 XP (10 je richtige Antwort, 20 je Stern). Ergebnisse landen im Store unter der
 Stufen-ID.
 
-- `ui`: `{ staff, feedback, count, dots, answers, typed, piano }` (DOM-Elemente;
-  `typed` zeigt den getippten Namen, nur bei Stufen mit Namensraster)
+- `ui`: `{ staff, feedback, count, dots, answers, typed, piano, helps, helpsBody }` (DOM-Elemente;
+  `typed` zeigt den getippten Namen, nur bei Stufen mit Namensraster; `helps` ist das `<details>` der
+  Hilfen, `helpsBody` sein Inhalt)
+- Zweischrittige Aufgaben (seit Welle 7, `q.steps`): Die Engine zeigt die Knöpfe von `steps[0]`
+  (Frage `q.prompt`), wertet die Wahl aus (`ok`/`bad`-Text farbig, richtige Wahl markiert), wartet
+  `DELAY_STEP_OK` = 700 bzw. `DELAY_STEP_BAD` = 1600 ms und zeigt dann `steps[1]` mit dessen `prompt`, auch
+  wenn der erste Schritt daneben lag. Erst nach dem letzten Schritt zählt die Aufgabe, einmal, und nur
+  richtig, wenn alle Schritte stimmen (Statistik, Sterne, XP, `statKey` wie bisher). Rückmeldung
+  `stepsFeedback(q, oks)`: alles richtig `Richtig! ${display}`, nur der erste Schritt daneben `q.partial`,
+  sonst `q.reveal`. Ziffern: `digitAction(e, set)` bei Knopfsätzen mit `digits`.
+- Hilfen (seit Welle 7, `level.helps`): `helpsHtml(level, q)` baut `helpText`, die Klaviatur
+  (`pianoSvg({ from: HELP_FROM[q.clef], octaves: 2, marks: q.helpMarks, interactive: false })`, Violinschlüssel
+  c' bis c''', Bassschlüssel C bis c'; eigener Bereich, nicht `#pPiano`) und `helpTable`. Zu Beginn der Runde
+  ist der Bereich zugeklappt; danach bleibt er so, wie du ihn gelassen hast (auf oder zu), der Inhalt wechselt
+  mit jeder Aufgabe. Ob die Hilfe offen war, wird nicht gezählt. Stufen ohne `helps` zeigen keinen Bereich.
 - `hooks`: `{ state, save, onFinish(result) }`; `result` ist
   `{ correct, total, stars, gained, avg, results }`
 - weitere Funktionen für die Ansichten: `stop()` (laufende Runde abbrechen,
@@ -408,6 +435,9 @@ Stufen-ID.
   `answerDelay(q, ok, muted)` (Wartezeit bis zur nächsten Aufgabe);
   Konstanten `ROUND_LENGTH`, `DELAY_OK`, `DELAY_BAD`, `PLAY_GAP`, `BEAT_MS`,
   `RHYTHM_TAIL`
+- seit Welle 7, rein und getestet: `choiceSet(q, step)`, `setClass(set)`, `stepsFeedback(q, oks)`,
+  `digitAction(e, set)`, `hasHelps(level)`, `helpsHtml(level, q)`; Konstanten `DELAY_STEP_OK`,
+  `DELAY_STEP_BAD`, `HELP_FROM`, `HELP_OCTAVES`
 - `notesToPlay(q)` liefert nur die Noten aus `play` (ohne Pausen); damit
   bleibt `playMode` für Akkorde unverändert
 
@@ -528,8 +558,17 @@ Zustand (persistiert unter `localStorage["notenheld.v2"]`):
   notes: { "G (g', Violin)": { ok, bad, sec, timed, last, hist, hsec } },   // je Aufgabe (statKey)
   answered, correct, bestCombo, blitzRecord,
   unlockAll, muted, input, current: "noten-1",
+  migrated: ["intervalle-neu"],   // einmalige Umstellungen, die schon gelaufen sind (seit Welle 7)
 }
 ```
+
+Umstellung „Intervalle neu“ (Welle 7, `migrateIntervalle(s)`): läuft beim Laden genau einmal (Marker
+`"intervalle-neu"` in `migrated`; ein frischer Stand trägt ihn schon). Sie benennt `intervalle-5` →
+`tonleitern-7` und `intervalle-6` → `tonleitern-8` um (gab es die neue ID schon: bester Wert, Runden
+zusammen), löscht alle übrigen `intervalle-1 … -12` und setzt `current` um (auf eine entfallene Stufe →
+`intervall-1`). `notes` (Statistik je Aufgabe) bleibt unverändert. Danach speichert `load` einmal.
+`isUnlocked`: eine schon gespielte Stufe (`played > 0`) bleibt offen, so sind übernommene
+`tonleitern-7`/`-8` spielbar, auch wenn `tonleitern-6` noch nicht geschafft ist.
 
 Ein Eintrag in `notes` (seit Paket G): `ok` und `bad` zählen richtige und
 falsche Antworten, `sec` ist die Summe der Antwortzeiten richtiger Antworten
@@ -559,7 +598,8 @@ und als v2 gespeichert; der v1-Eintrag bleibt unverändert.
 
 Exporte (alle rein bis auf das Verändern des übergebenen Zustands; nur `load`
 und `save` greifen auf `localStorage` zu): `KEY_V1`, `KEY_V2`, `fresh()`,
-`load()`, `save(s)`, `migrateV1(v1)`, `today(now)`, `touchStreak(s, now)`,
+`load()`, `save(s)`, `migrateV1(v1)`, `migrateIntervalle(s)` (→ `true`, wenn geändert), `MIGRATION_INTERVALLE`,
+`RENAMED_INTERVALLE`, `today(now)`, `touchStreak(s, now)`,
 `isUnlocked(s, pack, levelId)`, `unlockedBy(pack, levelId)`, `unlocks(pack, levelId)`, `starsFor(correct)`,
 `recordRound(s, levelId, correct)` → `{ stars, gained }`,
 `recordAnswer(s, key, ok, sec, now)` (`sec` optional, zählt nur bei richtigen Antworten), `recordBlitz(s, score, bestCombo)` →

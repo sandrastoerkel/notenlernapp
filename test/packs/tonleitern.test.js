@@ -4,13 +4,16 @@ import tonleitern, { oddQuestion, fitsKey, lowestY, LABEL_DESC,
   TONICS, KEYS_2, KEYS_4, ITEMS_1, ITEMS_2, ITEMS_3, ITEMS_4, ITEMS_5, ITEMS_6,
   scaleNotes, scaleSvg, scaleX, sigList, sigChoices, fifthsOf, pickStep, usualNote, keyName,
   STEP_WHOLE, STEP_HALF, HALF_P, SCALE_W, SHARP_ORDER, FLAT_ORDER,
+  ITEMS_7, ITEMS_8, FIFTHS, keyChoices, minorChoices, sigText, sigSentence,
 } from "../../src/packs/tonleitern.js";
 import { PACKS } from "../../src/packs/index.js";
-import { N, dia, midi, pc, gName, majorScale } from "../../src/music.js";
+import { N, dia, midi, pc, SEMI, gName, majorScale, majorName, minorName, majorKeyFromKeySig, relativeMinor } from "../../src/music.js";
 import { feedbackText, makeRound, choicesClass, svgResultClass } from "../../src/engine.js";
 import { staffSvg } from "../../src/staff.js";
 
 const L = tonleitern.levels;
+// Stufen 1–6: Dur-Tonleitern; 7 und 8: Tonarten (bis 20.11.2026 im Paket „Intervalle“ als Stufe 5 und 6)
+const DUR = L.slice(0, 6), KEYS = L.slice(6);
 const ITEMS = [ITEMS_1, ITEMS_2, ITEMS_3, ITEMS_4, ITEMS_5, ITEMS_6];
 const many = (l, n = 300) => { const out = []; let prev = null; for (let i = 0; i < n; i++) { prev = l.question(prev); out.push(prev); } return out; };
 const steps = (notes) => notes.slice(1).map((n, i) => midi(n) - midi(notes[i]));
@@ -20,26 +23,32 @@ test("Paket ist registriert und steht zwischen Notenwerten und Intervallen", () 
   assert.deepEqual(PACKS.map((p) => p.id), ["noten", "notenwerte", "tonleitern", "intervalle", "akkorde"]);
   assert.equal(tonleitern.title, "Tonleitern");
   assert.equal(tonleitern.subtitle, "Dur-Tonleitern bauen und lesen");
-  assert.equal(tonleitern.grade, "Klasse 5–6");
+  // seit die Tonarten-Stufen (bis 7 Vorzeichen) hier stehen: Klasse 5–9 (wird nirgends angezeigt)
+  assert.equal(tonleitern.grade, "Klasse 5–9");
   assert.equal(tonleitern.blitz, null);
 });
 
-test("sechs Stufen mit eindeutigen IDs", () => {
-  assert.deepEqual(L.map((l) => l.id), ["tonleitern-1", "tonleitern-2", "tonleitern-3", "tonleitern-4", "tonleitern-5", "tonleitern-6"]);
+test("acht Stufen mit eindeutigen IDs, Tonarten als 7 und 8 angehängt", () => {
+  assert.deepEqual(L.map((l) => l.id), ["tonleitern-1", "tonleitern-2", "tonleitern-3", "tonleitern-4", "tonleitern-5", "tonleitern-6", "tonleitern-7", "tonleitern-8"]);
+  assert.deepEqual(KEYS.map((l) => l.title), ["Tonart aus den Vorzeichen", "Parallele Molltonart"]);
+  // der Reihe nach freigeschaltet, ohne requires
+  assert.ok(L.every((l) => l.requires === undefined));
   L.forEach((l, i) => {
     assert.equal(l.no, i + 1);
     assert.ok(l.title && l.hint && l.subtitle, l.id);
     assert.ok(l.example.startsWith("<svg"), l.id);
   });
-  assert.deepEqual(L.map((l) => l.input), ["choices", "choices", "letters", "letters", "choices", "choices"]);
+  assert.deepEqual(L.map((l) => l.input), ["choices", "choices", "letters", "letters", "choices", "choices", "choices", "choices"]);
   assert.ok(L[2].acc && L[3].acc);
 });
 
 test("Anzahl der Aufgaben je Stufe (festgehalten)", () => {
   assert.deepEqual(ITEMS.map((p) => p.length), [14, 28, 30, 108, 68, 18]);
+  assert.deepEqual([ITEMS_7, ITEMS_8].map((p) => p.length), [30, 30]);
+  assert.equal(L[6].items, ITEMS_7); assert.equal(L[7].items, ITEMS_8);
   assert.deepEqual(ITEMS_5.filter((it) => it.clef === "treble").length, 34);
   assert.ok(L[4].subtitle.includes("68 Aufgaben"));
-  L.forEach((l, i) => {
+  DUR.forEach((l, i) => {
     assert.equal(l.items, ITEMS[i]);
     assert.equal(new Set(l.items.map((it) => it.key)).size, l.items.length, l.id);
     assert.ok(l.items.length >= 8, l.id);
@@ -89,7 +98,7 @@ test("Lage: Violin c' bis a' (B-Dur b), Bass C und D klein, sonst groß; höchst
 });
 
 test("question liefert gültige Aufgaben mit display, reveal, statKey und play", () => {
-  for (const l of L) {
+  for (const l of DUR) {
     for (const q of many(l, 200)) {
       assert.ok(q.svg.startsWith("<svg") && q.prompt && q.display && q.reveal && q.statKey && q.key, l.id);
       assert.ok(q.reveal.endsWith("."), l.id);
@@ -294,7 +303,7 @@ test("Stufe 6: Vorzeichen in der Reihenfolge der Vorzeichnung, vier Knöpfe", ()
 });
 
 test("nie dieselbe Aufgabe zweimal hintereinander", () => {
-  for (const l of L) {
+  for (const l of DUR) {
     const qs = many(l, 400);
     qs.slice(1).forEach((q, i) => assert.notEqual(q.key, qs[i].key, l.id));
     // eine Runde aus der Engine
@@ -334,7 +343,7 @@ test("staffSvg: Breite optional, ohne Angabe unverändert", () => {
 });
 
 test("Lerntafeln: Bauplan je Schlüssel, Tabelle der Dur-Tonleitern", () => {
-  assert.deepEqual(tonleitern.learn.map((b) => [b.title, b.clef]), [["Bauplan Dur", "treble"], ["Bauplan Dur", "bass"], ["Dur-Tonleitern bis 4 Vorzeichen", undefined]]);
+  assert.deepEqual(tonleitern.learn.map((b) => [b.title, b.clef]), [["Bauplan Dur", "treble"], ["Bauplan Dur", "bass"], ["Dur-Tonleitern bis 4 Vorzeichen", undefined], ["Quintenzirkel", undefined]]);
   const t = tonleitern.learn[0].render();
   assert.ok(t.includes("Ganz\u00a0Ganz\u00a0Halb · Ganz · Ganz\u00a0Ganz\u00a0Halb"));
   assert.equal((t.match(/class="bracket"/g) || []).length, 2);
@@ -368,4 +377,92 @@ test("Stufen 3–5: Frage und Auflösung gleich hoch (Karte springt nicht)", () 
       assert.equal(hOf(q.svg), hOf(q.revealSvg), `${id} ${q.key}`);
     }
   }
+});
+
+/* ---------- Stufe 7 und 8: Tonarten (aus dem Paket „Intervalle“ übernommen, Inhalt unverändert) ---------- */
+
+const keyOf = (q) => `${q.clef}:${q.fifths}`;
+
+test("Stufe 7 und 8: gültige Aufgaben, nie dieselbe zweimal hintereinander, statKeys wie bisher", () => {
+  for (const l of KEYS) {
+    const qs = many(l, 300);
+    qs.slice(1).forEach((q, i) => assert.notEqual(keyOf(q), keyOf(qs[i]), l.id));
+    for (const q of qs) {
+      assert.ok(q.svg.startsWith("<svg") && q.prompt && q.display && q.reveal.endsWith(".") && q.statKey, l.id);
+      assert.equal(q.choices.length, 4);
+      assert.ok(q.choices.includes(q.answer) && l.check(q, q.answer));
+      q.choices.filter((c) => c !== q.answer).forEach((c) => assert.ok(!l.check(q, c)));
+      assert.ok(!q.keepRow);
+    }
+  }
+  const q7 = many(L[6], 200).find((q) => q.fifths === 2 && q.clef === "treble");
+  assert.equal(q7.statKey, "Dur zu 2 ♯ (Violin)");
+  const q8 = many(L[7], 200).find((q) => q.fifths === -3);
+  assert.equal(q8.statKey, "Moll zu Es-Dur");
+});
+
+test("Stufe 7: 15 Dur-Tonarten in beiden Schlüsseln", () => {
+  assert.equal(FIFTHS.length, 15);
+  assert.deepEqual(new Set(ITEMS_7.map((it) => it.clef)), new Set(["treble", "bass"]));
+  const answers = {};
+  for (const q of many(L[6], 600)) {
+    assert.equal(q.svg, staffSvg(q.clef, "", { keySig: q.fifths }));
+    assert.equal(q.answer, majorName(q.fifths));
+    assert.equal(q.choices.length, 4);
+    answers[q.fifths] = q.answer;
+  }
+  assert.deepEqual(answers, {
+    0: "C-Dur", 1: "G-Dur", 2: "D-Dur", 3: "A-Dur", 4: "E-Dur", 5: "H-Dur", 6: "Fis-Dur", 7: "Cis-Dur",
+    [-1]: "F-Dur", [-2]: "B-Dur", [-3]: "Es-Dur", [-4]: "As-Dur", [-5]: "Des-Dur", [-6]: "Ges-Dur", [-7]: "Ces-Dur",
+  });
+  assert.ok(!keyChoices(6, majorName).includes("Ges-Dur"));
+  assert.ok(!keyChoices(-7, majorName).includes("H-Dur"));
+  assert.ok(!keyChoices(7, majorName).includes("Des-Dur"));
+  assert.equal(sigText(0), "keine Vorzeichen");
+  assert.equal(sigText(3), "3 ♯");
+  assert.equal(sigText(-4), "4 ♭");
+  for (const q of many(L[6], 200)) if (q.fifths === 3) assert.equal(q.reveal, "Drei Kreuze stehen für A-Dur.");
+  assert.equal(sigSentence(0) + " C-Dur.", "Ohne Vorzeichen ist es C-Dur.");
+  assert.equal(sigSentence(1), "Ein Kreuz steht für");
+  assert.equal(sigSentence(-1), "Ein Be steht für");
+  assert.equal(sigSentence(-4), "Vier Be stehen für");
+});
+
+test("Stufe 8: parallele Molltonart", () => {
+  const answers = {};
+  for (const q of many(L[7], 600)) {
+    assert.equal(q.answer, minorName(q.fifths));
+    assert.ok(q.prompt.includes(majorName(q.fifths)));
+    assert.equal(q.choices.length, 4);
+    assert.ok(q.choices.every((c) => /^[a-h](is|es|s)?-Moll$/.test(c)), q.choices.join());
+    answers[q.fifths] = q.answer;
+    if (q.fifths === -3) assert.equal(q.reveal, "Die parallele Molltonart zu Es-Dur ist c-Moll.");
+  }
+  assert.equal(Object.keys(answers).length, 15);
+  assert.equal(answers[3], "fis-Moll");
+  assert.equal(answers[-6], "es-Moll");
+  assert.ok(minorChoices(-3).includes("es-Moll") && minorChoices(-3).includes("c-Moll"));
+});
+
+test("Tonarten-Auswahl: nie zwei gleich klingende Tonarten, immer vier verschiedene", () => {
+  const majorPc = (f) => { const t = majorKeyFromKeySig(f); return pc(SEMI[t.letter] + t.acc); };
+  const minorPc = (f) => { const t = relativeMinor(f); return pc(SEMI[t.letter] + t.acc); };
+  const byMajor = new Map(FIFTHS.map((f) => [majorName(f), majorPc(f)]));
+  const byMinor = new Map(FIFTHS.map((f) => [minorName(f), minorPc(f)]));
+  for (const f of FIFTHS) for (let i = 0; i < 30; i++) {
+    for (const [c, m] of [[keyChoices(f, majorName), byMajor], [minorChoices(f), byMinor]]) {
+      assert.equal(c.length, 4, c.join());
+      assert.equal(new Set(c.map((n) => m.get(n))).size, 4, `${f}: ${c.join()}`);
+    }
+  }
+  const c7 = keyChoices(7, majorName);
+  assert.ok(!(c7.includes("Ces-Dur") && c7.includes("H-Dur")), c7.join());
+});
+
+test("Lerntafel Quintenzirkel (aus dem Paket „Intervalle“)", () => {
+  const q = tonleitern.learn[3].render();
+  const row = (sig, dur, moll) => `<tr><td>${sig}</td><td><b>${dur}</b></td><td><b>${moll}</b></td></tr>`;
+  for (const r of [["keine Vorzeichen", "C-Dur", "a-Moll"], ["6 ♯", "Fis-Dur", "dis-Moll"], ["3 ♭", "Es-Dur", "c-Moll"], ["7 ♭", "Ces-Dur", "as-Moll"], ["7 ♯", "Cis-Dur", "ais-Moll"]]) assert.ok(q.includes(row(...r)), r.join());
+  assert.equal((q.match(/<tr><td>/g) || []).length, 15);
+  assert.ok(!/<h[1-6]/.test(q));
 });

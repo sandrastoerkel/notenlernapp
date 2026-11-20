@@ -19,6 +19,7 @@ anzufassen.
 | 4     | G (Noten-Heatmap, adaptive Auswahl)      | nach v0.2.0; nutzt die vorhandenen `statKey`s            |
 | 5     | Tonleitern (Stufen 1–6, Dur)             | Kl. 5–6, vor den Intervall-Stufen 7 ff. und den Hörstufen |
 | 6     | Intervalle 7–12 (Kl. 5–6)                | nach den Tonleitern (Ganz-/Halbton); vor Dreiklängen Schritt für Schritt und den Hörstufen |
+| 7     | Intervalle neu (erst mit Hilfen, dann ohne) | ersetzt Welle 6 und die alten Intervall-Stufen 1–4; Tonarten wandern zu „Tonleitern“ |
 
 Vor Welle 2 muss Welle 1 gemergt und `npm test` grün sein. Welle 2 kann mit
 vier Agenten gleichzeitig laufen (am besten je ein Git-Worktree oder je ein
@@ -582,6 +583,10 @@ in der kleinen Oktave (c–c', d–d'), E F G A B Es As in der großen Oktave
 
 ## Paket „Intervalle 7–12“ (Klasse 5–6), Welle 6
 
+**Abgelöst durch Welle 7** (unten, Sandra 20.11.2026): Die Stufen `intervalle-1` … `-12` gibt es nicht
+mehr; Bauen, Fehler finden, zwei Denkschritte, `namesOnly` und die Lerntafel leben dort weiter. Der
+Abschnitt bleibt als Protokoll stehen.
+
 Ausgangsstand: Branch `paket-intervalle`, abgezweigt erst nach dem Commit von
 `tonleitern-feinschliff` (Cache `notenheld-v0.2.0-7`, Engine-Option `keepRow`,
 `label` in `scaleSvg`). Grundlage: `claude/DIDAKTIK-intervalle-tonleitern.md`,
@@ -676,6 +681,78 @@ nach Stufe 6 „Stufe 7 ist frei nach Stufe 1“. Cache `notenheld-v0.2.0-8`.
 **Akzeptanz.** `npm test` grün; Browser 420 und 320 px, hell und dunkel:
 jede neue Stufe eine Runde mit richtiger und falscher Antwort, nichts
 überlappt, keine Konsolenfehler, Freischaltung richtig, alter Spielstand lädt.
+
+## Welle 7: Intervalle neu (erst mit Hilfen, dann ohne)
+
+Ausgangsstand: `main` 74af595, Branch `intervalle-neu`. Plan „Paket Intervalle neu“ vom 20.11.2026 mit
+den Entscheidungen von Sandra. Anlass: ihr Unterrichtsweg. Die Schülerinnen und Schüler rechnen zuerst
+mit Klaviatur und Tabelle (Rahmenintervalle, Halbtonzahlen), danach ohne. Immer zuerst das
+Rahmenintervall (die Zahl aus den Notenstufen), dann die Feinbestimmung (die Qualität aus den
+Halbtönen). Vermindert und übermäßig gehören standardmäßig dazu (musisches Gymnasium). An den Stufen
+stehen keine Jahrgangsstufen; die Lehrkraft entscheidet.
+
+**Entscheidungen Sandra (20.11.2026).** Die Klaviatur der Hilfen markiert die beiden Töne der Aufgabe
+(beim Bauen nur die gegebene Note). Liegt die Zahl daneben, zeigt die App die richtige Zahl und fragt
+die Qualität trotzdem; die Aufgabe zählt als daneben. „Tonart aus den Vorzeichen“ und „Parallele
+Molltonart“ wandern ins Paket „Tonleitern“ (Stufen 7 und 8, Fortschritt umbenannt). „Ganzton oder
+Halbton?“ entfällt hier (steht in Tonleitern 1–2).
+
+**Bausteine.**
+- Hilfen (`level.helps: ["klaviatur", "tabelle"]`): aufklappbarer Bereich „Hilfen: Klaviatur und
+  Tabelle“ (`<details>`) unter der Notenzeile, nur während der Runde und nur in Stufen mit Hilfen.
+  Klaviatur über zwei Oktaven (Violinschlüssel c'–c''', Bassschlüssel C–c'), weiße Tasten mit
+  Buchstaben, nicht anklickbar, eigener Bereich (nicht `#pPiano`), `pianoSvg` mit Parametern. Tabelle:
+  Stufe 1 nur Rahmenintervalle (Prime 1 … Oktave 8 Notenstufen); Stufe 3 Rahmenintervall → Halbtöne
+  für klein, rein, groß; Stufe 5 und 8 auch vermindert und übermäßig (v, k, r, g, ü mit Erklärung),
+  aus `semitonesFor` berechnet. Satz: „Die Zahl kommt aus den Notenstufen, die Klaviatur brauchst du
+  nur für die Halbtöne.“ (Stufe 1: „… Bei Stammtönen sind das auf der Klaviatur die weißen Tasten.“)
+  Zu Beginn der Runde zugeklappt, danach bleibt der Bereich, wie du ihn gelassen hast.
+- Zweischrittige Antwort (`q.steps`): erst acht Knöpfe Prime … Oktave (2 × 4, Ziffern 1–8), dann die
+  zur richtigen Zahl passenden Intervalle aus der erlaubten Menge (1 bis 3 Knöpfe). Ein Ergebnis je
+  Aufgabe. Rückmeldung wie bisher: „e'–g': 3 Stufen → Terz · 3 Halbtöne → kleine Terz“; nur die Zahl
+  daneben: „Die Halbtöne stimmen, die Zahl nicht: …“.
+- Erlaubt: rein, klein, groß (Prime bis Oktave) und ab Stufe 5 übermäßige Prime, übermäßige Sekunde,
+  verminderte und übermäßige Quarte und Quinte, verminderte Septime. Oktave nur rein. Nicht dabei:
+  verminderte Sekunde, verminderte/übermäßige Terz und Sexte, übermäßige Septime, verminderte Prime
+  und Oktave. Keine Doppelvorzeichen, kein Eis/His/Ces/Fes. ♯ und ♭ dürfen gemischt vorkommen
+  (es'–fis'); die Regel „kein ♯/♭-Gemisch“ gilt nur in „Fehler finden“.
+
+**Stufen** (IDs `intervall-1` … `-10`, Paket-ID bleibt `intervalle`, Titel „Intervalle“, der Reihe nach frei):
+
+| Stufe | Inhalt | Schlüssel | Hilfen | Aufgaben |
+|---|---|---|---|---|
+| 1 | Rahmenintervall, Stammtöne | Violin | ja | 76 |
+| 2 | Rahmenintervall, Stammtöne | Violin, Bass | – | 152 |
+| 3 | zweischrittig: rein, klein, groß | Violin | ja | 238 |
+| 4 | dasselbe | Violin, Bass | – | 471 |
+| 5 | zweischrittig mit vermindert/übermäßig | Violin | ja | 335 |
+| 6 | dasselbe | Violin, Bass | – | 660 |
+| 7 | abwärts, zweischrittig, alle erlaubten ohne Prime | Violin | – | 284 |
+| 8 | Intervall bauen aufwärts (Namensraster), alle erlaubten ohne Prime | Violin | ja (gegebene Note markiert) | 284 |
+| 9 | bauen auf- und abwärts gemischt | Violin | – | 568 |
+| 10 | Fehler finden (wie bisher Stufe 12, nur rein/klein/groß verlangt) | Violin | – | 873 |
+
+Auswahl: Stufe 1 und 2 erst die Zahl gleich wahrscheinlich, ab Stufe 3 erst das Intervall, Stufe 9 erst
+die Richtung (je 0,5), Stufe 10 erst das Urteil (je ein Viertel).
+
+**Spielstände.** Einmalige Umstellung in `src/store.js` (`migrateIntervalle`, Marker `"intervalle-neu"`
+in `s.migrated`): `intervalle-5` → `tonleitern-7`, `intervalle-6` → `tonleitern-8`, die übrigen
+`intervalle-*` entfallen, `current` wird angepasst; `notes` bleibt. Gespielte Stufen bleiben offen.
+Cache `notenheld-v0.2.0-9`.
+
+**Umgesetzt (Branch `intervalle-neu`).** Entscheidungen bei der Umsetzung: Stufe 2 nur Stammtöne (wie
+Stufe 1, jetzt beide Schlüssel); in Stufe 3 und 4 gehört die reine Prime dazu (dann ein Knopf „reine
+Prime“ im zweiten Schritt, ebenso „reine Quarte/Quinte/Oktave“); abwärts und beim Bauen keine Prime;
+„Fehler finden“ verlangt weiter nur rein, klein, groß (eindeutige Urteile), die Rückmeldung benennt das
+gezeigte Intervall jetzt auch, wenn es vermindert oder übermäßig ist; Lerntafel „Intervalle über c'/c“
+mit 17 Intervallen (verminderte Quarte und Septime bräuchten über c Fes bzw. ein Doppel-Be, Beispiele
+cis'–f' und cis'–b' im Text); Quintenzirkel-Tafel mit nach „Tonleitern“; Paketangabe `grade` bleibt
+„Klasse 5–9“ (wird nirgends angezeigt), „Tonleitern“ jetzt „Klasse 5–9“.
+
+**Akzeptanz.** `npm test` grün; Browser 420 und 320 px, hell und dunkel: jede Stufe Hilfen auf und zu,
+eine Aufgabe ganz richtig, eine mit danebenliegender Zahl und dann Qualität; Klaviatur markiert richtig,
+nichts abgeschnitten oder überlappend, kein waagrechter Überlauf, keine Konsolenfehler; Tonleitern 7/8;
+alter Spielstand mit `intervalle-1` … `-12` wird richtig umgestellt; Lerntafeln.
 
 ## Später (nicht geplant, nur notiert)
 
