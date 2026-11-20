@@ -7,7 +7,7 @@ import {
   choicesHtml, choicesClass, choiceCols, keyAction, blitzPoints, notesToPlay,
   playMode, revealedSvg, svgResultClass, playSchedule, rhythmEnd, answerDelay, PLAY_GAP, BEAT_MS, RHYTHM_TAIL, DELAY_OK, DELAY_BAD,
   choiceSet, setClass, stepsFeedback, digitAction, helpsHtml, hasHelps, HELP_FROM, DELAY_STEP_OK, DELAY_STEP_BAD,
-  startRound, stop, handleKey, ROUND_LENGTH, isWaiting, DEMO_LABEL, DEMO_WAIT, DEMO_READY, DEMO_NEXT,
+  startRound, stop, handleKey, ROUND_LENGTH, isWaiting, DEMO_LABEL, DEMO_WAIT, DEMO_READY, DEMO_NEXT, waitsForNext,
 } from "../src/engine.js";
 import { mock } from "node:test";
 import { setMuted } from "../src/audio.js";
@@ -389,7 +389,7 @@ function fakeEl() {
 }
 
 function runLevel(level, items) {
-  const ui = { staff: fakeEl(), feedback: fakeEl(), count: fakeEl(), dots: fakeEl(), answers: fakeEl(), typed: fakeEl(), piano: fakeEl(), helps: fakeEl(), helpsBody: fakeEl() };
+  const ui = { staff: fakeEl(), feedback: fakeEl(), count: fakeEl(), dots: fakeEl(), answers: fakeEl(), typed: fakeEl(), piano: fakeEl(), helps: fakeEl(), helpsBody: fakeEl(), next: fakeEl() };
   const state = fresh(); let finished = null;
   const lv = { ...level, question: (() => { let i = 0; return () => items[i++ % items.length]; })() };
   startRound(lv, ui, { state, save() {}, onFinish(res) { finished = res; } });
@@ -400,7 +400,9 @@ function runLevel(level, items) {
     return btn;
   };
   const choiceSetFor = (u, b) => u.answers.innerHTML.match(new RegExp(`data-choice="${b.dataset.choice}">([^<]+)<`))[1];
-  return { ui, state, click, done: () => finished, buttons: () => ui.answers.querySelectorAll(".btn[data-choice]").map((b) => choiceSetFor(ui, b)) };
+  // „Nächste Aufgabe“ tippen (Stufen mit Hilfen warten darauf)
+  const next = () => ui.next.onclick();
+  return { ui, state, click, next, done: () => finished, buttons: () => ui.answers.querySelectorAll(".btn[data-choice]").map((b) => choiceSetFor(ui, b)) };
 }
 
 test("Ablauf zweischrittig: richtig/richtig, Zahl daneben/dann Qualität, einmal gezählt", () => {
@@ -430,6 +432,10 @@ test("Ablauf zweischrittig: richtig/richtig, Zahl daneben/dann Qualität, einmal
     assert.equal(r.state.answered, 1); assert.equal(r.state.correct, 1);
     assert.equal(r.ui.feedback.textContent, "Richtig! e'–g': 3 Stufen → Terz · 3 Halbtöne → kleine Terz");
     mock.timers.tick(DELAY_OK);
+    // Stufe mit Hilfen: kein Weitergehen nach der Pause, die Runde wartet auf „Nächste Aufgabe“
+    assert.equal(r.ui.count.textContent, "1 / 10"); assert.equal(isWaiting(), true); assert.equal(r.ui.next.hidden, false);
+    r.next();
+    assert.equal(r.ui.next.hidden, true);
     // Hilfen bleiben, wie sie waren (hier: zu), Inhalt neu
     assert.equal(r.ui.helps.open, false);
     // 2. Aufgabe: Zahl daneben, dann trotzdem die Qualitäten der richtigen Zahl; zählt als daneben
@@ -442,7 +448,7 @@ test("Ablauf zweischrittig: richtig/richtig, Zahl daneben/dann Qualität, einmal
     assert.equal(r.state.answered, 2); assert.equal(r.state.correct, 1);
     assert.equal(r.ui.feedback.textContent, item.partial);
     assert.deepEqual(r.state.notes["kleine Terz"].hist, "10");
-    mock.timers.tick(DELAY_BAD);
+    mock.timers.tick(DELAY_BAD); r.next();
     assert.equal(r.ui.helps.open, true, "Hilfen bleiben offen, wenn du sie geöffnet hast");
     // 3. Aufgabe: Zahl richtig per Ziffer, Qualität daneben
     const e = { key: "3", preventDefault() {} };
@@ -452,10 +458,10 @@ test("Ablauf zweischrittig: richtig/richtig, Zahl daneben/dann Qualität, einmal
     r.click("große Terz");
     assert.equal(r.state.answered, 3); assert.equal(r.state.correct, 1);
     assert.equal(r.ui.feedback.textContent, item.reveal);
-    mock.timers.tick(DELAY_BAD);
+    mock.timers.tick(DELAY_BAD); r.next();
     // Rest der Runde richtig
     for (let i = 3; i < ROUND_LENGTH; i++) {
-      r.click("Terz"); mock.timers.tick(DELAY_STEP_OK); r.click("kleine Terz"); mock.timers.tick(DELAY_OK);
+      r.click("Terz"); mock.timers.tick(DELAY_STEP_OK); r.click("kleine Terz"); mock.timers.tick(DELAY_OK); r.next();
     }
     const res = r.done();
     assert.ok(res);
@@ -503,7 +509,7 @@ test("Ablauf: „Vorführen“ erst nach der Antwort, die Runde wartet, „Näch
     const level = intervalle.levels[2]; // intervall-3, Hilfen
     const it = level.items.find((x) => x.num === 3 && x.quality === "klein" && x.low.letter === "E" && x.low.acc === 0);
     const item = intervalleMod.twoStepQuestion(it, intervalleMod.TYPES_RKG);
-    const ui = { staff: fakeEl(), feedback: fakeEl(), count: fakeEl(), dots: fakeEl(), answers: fakeEl(), typed: fakeEl(), piano: fakeEl(), helps: fakeEl(), helpsBody: anyEl() };
+    const ui = { staff: fakeEl(), feedback: fakeEl(), count: fakeEl(), dots: fakeEl(), answers: fakeEl(), typed: fakeEl(), piano: fakeEl(), helps: fakeEl(), helpsBody: anyEl(), next: fakeEl() };
     const state = fresh();
     startRound({ ...level, question: () => item }, ui, { state, save() {}, onFinish() {} });
     assert.ok(ui.helpsBody.innerHTML.includes("data-demo-btn disabled"), "vor der Antwort gesperrt");
@@ -521,7 +527,11 @@ test("Ablauf: „Vorführen“ erst nach der Antwort, die Runde wartet, „Näch
     click("kleine Terz");
     assert.equal(btn.disabled, false, "nach der Antwort frei");
     assert.equal(btn.title, DEMO_READY);
-    // Vorführen: die Runde wartet auch nach der üblichen Pause
+    assert.equal(isWaiting(), true, "Stufe mit Hilfen wartet schon ohne Vorführen");
+    // Zuklappen der Hilfen ohne Vorführung geht nicht weiter
+    ui.helps.open = false; ui.helps.ontoggle();
+    assert.equal(ui.count.textContent, "1 / 10");
+    // Vorführen: die Runde wartet weiter
     ui.helpsBody.onclick({ target: target("[data-demo-btn]") });
     assert.equal(isWaiting(), true);
     const box = ui.helpsBody.querySelector(".help-demo");
@@ -536,6 +546,7 @@ test("Ablauf: „Vorführen“ erst nach der Antwort, die Runde wartet, „Näch
     ui.helpsBody.onclick({ target: target("[data-demo-next]") });
     assert.equal(isWaiting(), false);
     assert.equal(ui.count.textContent, "2 / 10");
+    assert.equal(ui.next.hidden, true);
     assert.ok(ui.helpsBody.innerHTML.includes("data-demo-btn disabled"));
     // Zuklappen der Hilfen während der Vorführung geht ebenfalls weiter
     click("Terz"); mock.timers.tick(DELAY_STEP_OK); click("kleine Terz");
@@ -543,5 +554,60 @@ test("Ablauf: „Vorführen“ erst nach der Antwort, die Runde wartet, „Näch
     assert.equal(isWaiting(), true);
     ui.helps.open = false; ui.helps.ontoggle();
     assert.equal(ui.count.textContent, "3 / 10");
+  } finally { stop(); mock.timers.reset(); }
+});
+
+test("Ablauf: Stufe mit Hilfen wartet beliebig lange auf „Nächste Aufgabe“ (Knopf, Enter, Leertaste), die letzte Aufgabe beendet danach die Runde", () => {
+  setMuted(true);
+  mock.timers.enable({ apis: ["setTimeout"] });
+  try {
+    const l1 = intervalle.levels[0]; // intervall-1, Hilfen, einschrittig mit Ziffern
+    assert.equal(waitsForNext(l1), true);
+    const q = l1.question(null);
+    const r = runLevel(l1, [q]);
+    const key = (k, target) => handleKey({ key: k, target, preventDefault() {} });
+    const digit = String(["Prime", "Sekunde", "Terz", "Quarte", "Quinte", "Sexte", "Septime", "Oktave"].indexOf(q.answer) + 1);
+    assert.equal(r.ui.next.hidden, true, "vor der Antwort kein Knopf");
+    assert.equal(key("Enter"), false, "Enter vor der Antwort bewirkt nichts");
+    assert.equal(key(digit), true);
+    mock.timers.tick(DELAY_BAD * 100);
+    assert.equal(r.ui.count.textContent, "1 / 10"); assert.equal(isWaiting(), true); assert.equal(r.ui.next.hidden, false);
+    assert.equal(key(digit), false, "während des Wartens keine Antwort");
+    assert.equal(key("x"), false);
+    // Enter auf einem Knopf der Vorführung bleibt bei diesem Knopf
+    assert.equal(key("Enter", { closest: (s) => (s.includes("[data-act]") ? {} : null) }), false);
+    assert.equal(key("Enter"), true);
+    assert.equal(r.ui.count.textContent, "2 / 10"); assert.equal(isWaiting(), false); assert.equal(r.ui.next.hidden, true);
+    key(digit); mock.timers.tick(DELAY_BAD * 100);
+    assert.equal(key(" "), true, "Leertaste geht ebenfalls weiter");
+    for (let i = 2; i < ROUND_LENGTH - 1; i++) { key(digit); r.next(); }
+    assert.equal(r.done(), null, "nach der letzten Antwort noch nicht beendet");
+    assert.equal(r.ui.next.hidden, true);
+    key(digit); mock.timers.tick(DELAY_BAD * 100);
+    assert.equal(r.done(), null); assert.equal(isWaiting(), true);
+    r.next();
+    assert.ok(r.done()); assert.equal(r.done().correct, ROUND_LENGTH);
+  } finally { stop(); mock.timers.reset(); }
+});
+
+test("Ablauf: Stufe ohne Hilfen geht wie bisher nach der Pause von selbst weiter, ohne Knopf „Nächste Aufgabe“", () => {
+  setMuted(true);
+  mock.timers.enable({ apis: ["setTimeout"] });
+  try {
+    const l2 = intervalle.levels[1]; // intervall-2, ohne Hilfen
+    assert.equal(waitsForNext(l2), false);
+    const q = l2.question(null);
+    const r = runLevel(l2, [q]);
+    const digit = String(["Prime", "Sekunde", "Terz", "Quarte", "Quinte", "Sexte", "Septime", "Oktave"].indexOf(q.answer) + 1);
+    for (let i = 0; i < ROUND_LENGTH; i++) {
+      assert.equal(r.ui.count.textContent, `${i + 1} / 10`);
+      assert.equal(handleKey({ key: digit, preventDefault() {} }), true);
+      assert.equal(isWaiting(), false); assert.equal(r.ui.next.hidden, true);
+      assert.equal(handleKey({ key: "Enter", preventDefault() {} }), false, "Enter springt nicht vor");
+      mock.timers.tick(answerDelay(q, true, true) - 1);
+      assert.equal(r.ui.count.textContent, `${i + 1} / 10`, "vor Ablauf der Pause noch dieselbe Aufgabe");
+      mock.timers.tick(1);
+    }
+    assert.ok(r.done()); assert.equal(r.done().correct, ROUND_LENGTH);
   } finally { stop(); mock.timers.reset(); }
 });

@@ -667,7 +667,7 @@ function intervalBoard(clef) {
 export function demoBoard() {
   const picks = DEMO_EXAMPLES.map(([a, b], i) => `<button class="btn${i ? "" : " on"}" data-ex="${i}" aria-pressed="${!i}">${pairText(a, b)}</button>`).join("");
   return `<div class="demo-board" data-demo-board>
-    <p class="small">Erst das Rahmenintervall (die Zahl aus den Notenstufen), dann die Feinbestimmung (die Halbtöne). Wähle ein Beispiel, dann „Nächster Schritt“ oder „Abspielen“.</p>
+    <p class="small">Erst das Rahmenintervall (die Zahl aus den Notenstufen), dann die Feinbestimmung (die Halbtöne). Wähle ein Beispiel, dann „Weiter ›“ oder „Abspielen“.</p>
     <div class="row demo-pick" role="group" aria-label="Beispiel">${picks}</div>
     <div class="demo" data-demo-root>${demoHtml(intervalDemo(...DEMO_EXAMPLES[0]), 0)}</div>
     <p class="small">${HELP_TEXT} Übermäßige Quarte (f'–h') und verminderte Quinte (h'–f'') haben beide 6 Halbtöne.</p>

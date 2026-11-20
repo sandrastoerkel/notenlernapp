@@ -22,7 +22,7 @@ src/
   store.js              Fortschritt: Zustand, Freischaltung, Serie, Persistenz
   adapt.js              adaptive Auswahl: Zustand je Note (neu, unsicher, langsam, sicher), Gewichte (seit Paket G)
   engine.js             generischer Rundenablauf (10 Aufgaben, Feedback, Sterne, XP)
-  demo.js               Baukasten: Vorführung (Bilder mit Zurück/Abspielen/Nächster Schritt, Schritt-Marken, Ergebniskarte)
+  demo.js               Baukasten: Vorführung (Bilder mit Zurück/Abspielen/Weiter ›, Schritt-Marken, Ergebniskarte)
   grid.js               Baukasten: Kästchentabelle („gehirngerechte“ Übersicht, eine Zeile je Eintrag)
   packs/index.js        Registry aller Themenpakete
   packs/noten.js        Paket „Noten lesen“ (8 Stufen)
@@ -425,7 +425,9 @@ Noten lesen → Dreiklänge).
   tones? }] }`; `step` 0 = Frage, 1/2 = Denkschritt, `steps.length + 1` = Ergebnis (`result = { title, chips:
   [{ step, text }] }`). Reine Teile: `demoHtml(demo, i, playing)`, `marksHtml`, `markState`, `sayHtml`,
   `resultHtml`, `countText`, `playLabel`. DOM: `mountDemo(root, demo)` → `{ stop, show(i), index() }`;
-  Knöpfe Zurück / Abspielen (Pause, `FRAME_MS` = 1000 ms je Bild, hält am Ende an) / Nächster Schritt, Bildzähler;
+  Knöpfe Zurück / Abspielen (Pause, `FRAME_MS` = 1000 ms je Bild, hält am Ende an) / „Weiter ›“ (`NEXT_LABEL`,
+  für Screenreader `aria-label` „Nächster Schritt“ = `NEXT_ARIA`; bei 320 px stehen die drei Knöpfe in einer
+  Zeile, der Bildzähler darunter), Bildzähler;
   beim Zeigen eines Bilds klingen `tones` (`audio.js`, „Ton aus“ gilt). `stopDemos()` hält alle an
   (`app.js` beim Wechsel der Ansicht, `learn.js` vor dem Neuaufbau, `engine.stop()`). Die Bilder baut das
   Paket als reine Funktion (testbar in node).
@@ -444,9 +446,17 @@ Antwort-Elemente nach `input` und vergibt Sterne (5/7/9 richtige = 1/2/3) und
 XP (10 je richtige Antwort, 20 je Stern). Ergebnisse landen im Store unter der
 Stufen-ID.
 
-- `ui`: `{ staff, feedback, count, dots, answers, typed, piano, helps, helpsBody }` (DOM-Elemente;
+- `ui`: `{ staff, feedback, count, dots, answers, typed, piano, helps, helpsBody, next }` (DOM-Elemente;
   `typed` zeigt den getippten Namen, nur bei Stufen mit Namensraster; `helps` ist das `<details>` der
-  Hilfen, `helpsBody` sein Inhalt)
+  Hilfen, `helpsBody` sein Inhalt; `next` ist der Knopf „Nächste Aufgabe“ `#pNext` direkt unter den
+  Antwortknöpfen)
+- Weiter zur nächsten Aufgabe (seit 20.11.2026, Entscheidung Sandra): Stufen ohne `helps` gehen wie bisher nach
+  `answerDelay` von selbst weiter. Stufen mit `helps` (`waitsForNext(level)`, „Intervalle“ 1, 3, 5, 8) warten
+  nach der letzten Antwort einer Aufgabe ohne Zeitgeber (`isWaiting()`), bis du „Nächste Aufgabe“ tippst
+  (`#pNext`, ohne die Hilfen zu öffnen sichtbar, auch bei 320 × 640 ohne Scrollen) oder Enter bzw. die
+  Leertaste drückst (`handleKey`; ein fokussierter Knopf der Vorführung oder `summary` behält seine Taste).
+  Während des Wartens zählen keine Antworten. Auch die zehnte Aufgabe wartet; erst das Tippen zeigt die
+  Ergebniskarte.
 - Zweischrittige Aufgaben (seit Welle 7, `q.steps`): Die Engine zeigt die Knöpfe von `steps[0]`
   (Frage `q.prompt`), wertet die Wahl aus (`ok`/`bad`-Text farbig, richtige Wahl markiert), wartet
   `DELAY_STEP_OK` = 700 bzw. `DELAY_STEP_BAD` = 1600 ms und zeigt dann `steps[1]` mit dessen `prompt`, auch
@@ -465,9 +475,10 @@ Stufen-ID.
   so weit, dass die erste Reihe der Antwortknöpfe über der Tab-Leiste steht (`answersScroll`); kein Scrollen
   innerhalb der Hilfen. Bis 380 px Breite stehen die Hilfen per CSS (`order`) unter den Antwortknöpfen.
 - „Vorführen“ (seit 20.11.2026): zu Beginn jeder Aufgabe gesperrt (`disabled`, verriete die Antwort), frei nach
-  der Antwort (nach dem letzten Schritt). Ein Klick löscht den Zeitgeber zur nächsten Aufgabe, die Runde wartet
-  (`isWaiting()`), Klaviatur und Tabelle weichen der Vorführung (`level.demo(q)` in `.help-demo`); „Nächste
-  Aufgabe“ oder Zuklappen der Hilfen geht weiter. Die Antwortzeit ist da schon gezählt.
+  der Antwort (nach dem letzten Schritt), auch während die Runde auf „Nächste Aufgabe“ wartet. Klaviatur und
+  Tabelle weichen der Vorführung (`level.demo(q)` in `.help-demo`, darunter ein zweiter Knopf „Nächste
+  Aufgabe“); „Nächste Aufgabe“ (dort oder `#pNext`), Enter/Leertaste oder Zuklappen der Hilfen während der
+  Vorführung geht weiter (Zuklappen ohne Vorführung nicht). Die Antwortzeit ist da schon gezählt.
 - `hooks`: `{ state, save, onFinish(result) }`; `result` ist
   `{ correct, total, stars, gained, avg, results }`
 - weitere Funktionen für die Ansichten: `stop()` (laufende Runde abbrechen,

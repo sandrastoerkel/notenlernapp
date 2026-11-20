@@ -18,18 +18,18 @@ test("Schritt-Marken: an, erledigt, noch nicht", () => {
   assert.equal(marksHtml(demo, 1), '<span class="demo-mark s1 on">1 · Erst</span><span class="demo-mark s2">2 · Dann</span>');
 });
 
-test("demoHtml: Knöpfe Zurück/Abspielen/Nächster Schritt, Zähler, Satz in der Farbe des Schritts, Bühne", () => {
+test("demoHtml: Knöpfe Zurück/Abspielen/Weiter › (aria-label „Nächster Schritt“), Zähler, Satz in der Farbe des Schritts, Bühne", () => {
   const first = demoHtml(demo, 0);
   assert.ok(first.includes('<button class="btn" data-act="prev" disabled>Zurück</button>'));
   assert.ok(first.includes('<button class="btn primary" data-act="play">Abspielen</button>'));
-  assert.ok(first.includes('<button class="btn" data-act="next">Nächster Schritt</button>'));
+  assert.ok(first.includes('<button class="btn" data-act="next" aria-label="Nächster Schritt">Weiter ›</button>'));
   assert.ok(first.includes('<span class="small muted num demo-count">1 / 4</span>'));
   assert.ok(first.includes('<p class="demo-text s0">Frage</p>') && first.includes('<div class="demo-stage"><i>0</i></div>'));
   const mid = demoHtml(demo, 2, true);
-  assert.ok(mid.includes('data-act="prev">Zurück') && mid.includes('data-act="next">Nächster Schritt') && mid.includes(">Pause<"));
+  assert.ok(mid.includes('data-act="prev">Zurück') && mid.includes('data-act="next" aria-label="Nächster Schritt">Weiter ›') && mid.includes(">Pause<"));
   assert.ok(mid.includes('<p class="demo-text s2">Schritt zwei</p>'));
   const last = demoHtml(demo, 3);
-  assert.ok(last.includes('data-act="next" disabled') && last.includes("4 / 4"));
+  assert.ok(last.includes('data-act="next" aria-label="Nächster Schritt" disabled') && last.includes("4 / 4"));
   assert.ok(last.includes(resultHtml(demo.frames[3].result)));
   assert.equal(resultHtml(demo.frames[3].result), '<div class="demo-result"><p class="demo-result-title">Ergebnis</p><p class="demo-chips"><span class="demo-chip s1">3 Stufen</span><span class="demo-chip s2">3 Halbtöne</span></p></div>');
   assert.equal(sayHtml({ step: 1 }), '<p class="demo-text s1"></p>');

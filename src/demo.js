@@ -1,5 +1,5 @@
 // Vorführung (gemeinsamer Baukasten, docs/ARCHITEKTUR.md): eine Folge von Bildern mit den Knöpfen
-// Zurück / Abspielen (Pause) / Nächster Schritt, Schritt-Marken („1 · …“ violett, „2 · …“ grün), Bildzähler und
+// Zurück / Abspielen (Pause) / Weiter ›, Schritt-Marken („1 · …“ violett, „2 · …“ grün), Bildzähler und
 // großer Ergebniskarte. Die Bilder baut das Paket (rein, in node testbar), dieses Modul zeigt sie nur.
 //
 // demo = { steps: ["1 · Rahmen: Stufen zählen", "2 · Fein: Halbtöne zählen"], frames: [Bild …] }
@@ -32,9 +32,9 @@ export const resultHtml = (r) => `<div class="demo-result"><p class="demo-result
 export const sayHtml = (frame) => (frame.result ? resultHtml(frame.result) : `<p class="demo-text s${frame.step}">${frame.text || ""}</p>`);
 
 export const countText = (demo, i) => `${i + 1} / ${demo.frames.length}`;
-// „Nächster Schritt“ statt „Weiter“: In den Hilfen steht darunter „Nächste Aufgabe“ (engine.js), die beiden
-// Knöpfe dürfen nicht gleich heißen
-export const PREV_LABEL = "Zurück", NEXT_LABEL = "Nächster Schritt";
+// „Weiter ›“ (kurz, passt bei 320 px in eine Zeile); für Screenreader heißt der Knopf „Nächster Schritt“
+// (NEXT_ARIA), damit er nicht mit „Nächste Aufgabe“ (engine.js) darunter verwechselt wird
+export const PREV_LABEL = "Zurück", NEXT_LABEL = "Weiter ›", NEXT_ARIA = "Nächster Schritt";
 export const playLabel = (playing) => (playing ? "Pause" : "Abspielen");
 
 // Ganze Vorführung im Bild i (playing: Abspielen läuft)
@@ -44,7 +44,7 @@ export function demoHtml(demo, i = 0, playing = false) {
     + `<div class="demo-controls">`
     + `<button class="btn" data-act="prev"${i <= 0 ? " disabled" : ""}>${PREV_LABEL}</button>`
     + `<button class="btn primary" data-act="play">${playLabel(playing)}</button>`
-    + `<button class="btn" data-act="next"${i >= last ? " disabled" : ""}>${NEXT_LABEL}</button>`
+    + `<button class="btn" data-act="next" aria-label="${NEXT_ARIA}"${i >= last ? " disabled" : ""}>${NEXT_LABEL}</button>`
     + `<span class="small muted num demo-count">${countText(demo, i)}</span></div>`
     + `<div class="demo-say" aria-live="polite">${sayHtml(demo.frames[i])}</div>`
     + `<div class="demo-stage">${demo.frames[i].body}</div>`;

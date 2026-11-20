@@ -757,7 +757,7 @@ cis'–f' und cis'–b' im Text; steht ein ♯ vor der oberen Note von Prime ode
 **Vorführung und gemeinsamer Baukasten (20.11.2026, nach Sandras Nachtrag 11:34–11:42).**
 - Baukasten für alle Pakete (`docs/ARCHITEKTUR.md`, Abschnitt „Gemeinsamer Baukasten“): Tokens
   `--step1…` (violett, Schritt 1) und `--step2…` (grün, Schritt 2), hell und dunkel; `src/demo.js`
-  (Vorführung: Zurück / Abspielen mit Pause, 1 s je Bild, hält am Ende / Nächster Schritt, Schritt-Marken, Zähler,
+  (Vorführung: Zurück / Abspielen mit Pause, 1 s je Bild, hält am Ende / Weiter ›, Schritt-Marken, Zähler,
   Ergebniskarte, Ton je Bild); `src/grid.js` (Kästchentabelle); `pianoSvg` mit `counts`.
 - Vorführung „So bestimmst du ein Intervall“: Frage → je Notenstufe ein Bild (Kreise 1, 2, 3 …, hohle violette
   Zwischenstufen, Klammer, Tabellenzeile violett) → je Halbton ein Bild (Taste grün mit Zahl, auch schwarze;
@@ -781,6 +781,14 @@ grün (die Tabelle hat keine eigene v/ü-Spalte). „Vorführen“ ist vor der A
 `title`. Bei „Zahl stimmt nicht“ ist das gezeigte Intervall weiter selbst rein, klein oder groß; übermäßige
 Ziele haben nie „ein Halbton zu viel“, verminderte nie „zu wenig“ (bräuchten Doppelvorzeichen, Eis, His, Ces
 oder Fes). Cache bleibt `notenheld-v0.2.0-9` (nie live), `src/demo.js` und `src/grid.js` stehen in `PRECACHE`.
+
+**Nachtrag 20.11.2026 (Entscheidungen Sandra): Warten auf „Nächste Aufgabe“, „Weiter ›“.**
+- Stufen mit Hilfen (Intervalle 1, 3, 5, 8) gehen nach der Antwort nicht mehr von selbst weiter: Unter den
+  Antwortknöpfen erscheint „Nächste Aufgabe“ (`#pNext`, sichtbar ohne die Hilfen zu öffnen, bei 320 × 640 ohne
+  Scrollen); Tippen, Enter oder Leertaste geht weiter, auch nach der zehnten Aufgabe (dann Ergebniskarte).
+  „Vorführen“ bleibt während des Wartens frei. Stufen ohne Hilfen gehen wie bisher nach der Pause weiter.
+- Vorführung: der Knopf „Nächster Schritt“ heißt jetzt „Weiter ›“ (kürzer, die drei Knöpfe stehen bei 320 px in
+  einer Zeile); `aria-label` bleibt „Nächster Schritt“.
 
 **Akzeptanz.** `npm test` grün; Browser 420 und 320 px, hell und dunkel: jede Stufe Hilfen auf und zu,
 eine Aufgabe ganz richtig, eine mit danebenliegender Zahl und dann Qualität; Klaviatur markiert richtig,

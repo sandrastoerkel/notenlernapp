@@ -94,6 +94,7 @@ export function render() {
   $("#pKeys").hidden = !letters && !level.digits;
   // Hilfen nur während der Runde (engine.startRound)
   $("#pHelps").hidden = true;
+  $("#pNext").hidden = true;
   $("#pKeys").innerHTML = keysHint(level);
   $("#inLetters").textContent = lettersLabel(level);
   $("#pStart").textContent = startLabel(level);
@@ -107,7 +108,7 @@ function startRound() {
   engine.startRound(level, {
     staff: $("#pStaff"), feedback: $("#pFeedback"), count: $("#pCount"), dots: $("#pDots"),
     answers: $("#pAnswers"), typed: $("#pTyped"), piano: $("#pPiano"),
-    helps: $("#pHelps"), helpsBody: $("#pHelpsBody"),
+    helps: $("#pHelps"), helpsBody: $("#pHelpsBody"), next: $("#pNext"),
   }, { state: ctx.state, save: ctx.save, onFinish: showResult });
 }
 

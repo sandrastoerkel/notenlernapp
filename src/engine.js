@@ -135,6 +135,10 @@ export const hasHelps = (level) => !!(level && level.helps && level.helps.length
 // Platz für die Vorführung (.help-demo). Alles knapp gehalten, damit die Antwortknöpfe sichtbar bleiben.
 export const DEMO_LABEL = "Vorführen", DEMO_WAIT = "Vorführen geht erst nach deiner Antwort", DEMO_READY = "Diese Aufgabe Schritt für Schritt";
 export const DEMO_NEXT = "Nächste Aufgabe";
+// Stufen mit Hilfen warten nach der letzten Antwort einer Aufgabe auf „Nächste Aufgabe“ (ui.next, Enter oder
+// Leertaste), damit du Auflösung, Hilfen und „Vorführen“ in Ruhe ansehen kannst. Ohne Hilfen geht es wie
+// bisher nach answerDelay von selbst weiter.
+export const waitsForNext = (level) => hasHelps(level);
 export function helpsHtml(level, q) {
   if (!hasHelps(level)) return "";
   const text = level.helpText ? `<p class="small help-text">${level.helpText}</p>` : "";
@@ -272,8 +276,9 @@ function applyInput(r) {
 }
 
 // Runde starten.
-// ui: { staff, feedback, count, dots, answers, typed, piano, helps, helpsBody } (DOM-Elemente; typed zeigt den
-// getippten Namen, helps ist der aufklappbare Bereich <details>, helpsBody sein Inhalt)
+// ui: { staff, feedback, count, dots, answers, typed, piano, helps, helpsBody, next } (DOM-Elemente; typed zeigt den
+// getippten Namen, helps ist der aufklappbare Bereich <details>, helpsBody sein Inhalt, next der Knopf
+// „Nächste Aufgabe“ unter den Antworten, sichtbar nur, solange eine Stufe mit Hilfen wartet)
 // hooks: { state, save, onFinish({ correct, total, stars, gained, avg, results }) }
 export function startRound(level, ui, hooks) {
   stop();
@@ -312,7 +317,8 @@ export function startRound(level, ui, hooks) {
     else if (e.target.closest("[data-demo-next]")) resume(r);
   };
   // Zuklappen der Hilfen während der Vorführung: weiter zur nächsten Aufgabe
-  if (ui.helps) ui.helps.ontoggle = () => { if (run === r && r.waiting && !ui.helps.open) resume(r); };
+  if (ui.helps) ui.helps.ontoggle = () => { if (run === r && r.waiting && r.demo && !ui.helps.open) resume(r); };
+  if (ui.next) { ui.next.hidden = true; ui.next.onclick = () => { if (run === r) resume(r); }; }
   applyInput(r); showQuestion(r);
 }
 
@@ -411,9 +417,16 @@ function finishQuestion(r, ok, text) {
   r.advance = () => {
     if (run !== r) return;
     r.advance = null; r.waiting = false; r.demo = null;
+    if (ui.next) ui.next.hidden = true;
     r.locked = false; r.idx++;
     if (r.idx >= r.items.length) finish(r); else showQuestion(r);
   };
+  // Stufen mit Hilfen: kein Zeitgeber, die Runde wartet auf „Nächste Aufgabe“ (auch nach der letzten Aufgabe)
+  if (waitsForNext(r.level)) {
+    r.waiting = true;
+    if (ui.next) ui.next.hidden = false;
+    return;
+  }
   r.advanceId = later(r, () => r.advance && r.advance(), answerDelay(q, ok, isMuted()));
 }
 
@@ -425,12 +438,12 @@ function demoReady(r) {
   if (b) { b.disabled = false; b.title = DEMO_READY; }
 }
 
-// Vorführung der aktuellen Aufgabe: die Runde wartet (der Zeitgeber zur nächsten Aufgabe wird gelöscht),
+// Vorführung der aktuellen Aufgabe: die Runde wartet (ein Zeitgeber zur nächsten Aufgabe wird gelöscht),
 // Klaviatur und Tabelle weichen der Vorführung
 function openDemo(r) {
   const body = r.ui.helpsBody;
-  if (!r.advance || r.waiting || !r.level.demo || !body) return;
-  clearTimeout(r.advanceId); r.timers.delete(r.advanceId);
+  if (!r.advance || r.demo || !r.level.demo || !body) return;
+  if (r.advanceId) { clearTimeout(r.advanceId); r.timers.delete(r.advanceId); }
   r.waiting = true;
   const box = body.querySelector(".help-demo");
   body.querySelectorAll(".help-grid, .help-head").forEach((el) => { el.hidden = true; });
@@ -469,8 +482,19 @@ function letterButton(root, a) {
 // Ohne Vorzeichen antwortet ein Buchstabe sofort. Mit Namensraster wird der Name getippt (fis, es, b)
 // und mit Enter bestätigt; ein ungültiger Name zeigt einen Hinweis und zählt nicht.
 export function handleKey(e) {
-  if (!run || run.locked) return false;
+  if (!run) return false;
   const r = run;
+  // Wartet die Runde auf „Nächste Aufgabe“: Enter oder Leertaste gehen weiter (ein fokussierter Knopf der
+  // Vorführung bleibt bei seiner eigenen Taste)
+  if (r.waiting) {
+    if (e.metaKey || e.ctrlKey || e.altKey || (e.key !== "Enter" && e.key !== " ")) return false;
+    const t = e.target;
+    if (t && t.closest && t.closest("[data-act], [data-demo-btn], summary")) return false;
+    e.preventDefault();
+    resume(r);
+    return true;
+  }
+  if (run.locked) return false;
   if (r.level.input === "choices") {
     // Ziffern bei Knopfsätzen mit digits (Prime … Oktave)
     const set = choiceSet(r.items[r.idx], r.step), i = digitAction(e, set);
