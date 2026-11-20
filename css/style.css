@@ -261,7 +261,10 @@ section { display: grid; gap: 14px; }
    (Quintenzirkel) */
 .tt-box.s1 { background: var(--step1-soft); border-color: var(--step1); color: var(--step1-ink); }
 .tt-wide .tt-box { width: auto; min-width: var(--tile, 28px); padding: 0 6px; white-space: nowrap; }
-.tt-plan .tt-col { min-width: var(--tile, 28px); }
+.tt-plan { --tile: 24px; }
+.tt-plan td, .tt-plan th { padding: 2px; }
+.tt-plan .tt-label { padding-right: 6px; }
+@media (max-width: 380px) { .tt-plan { --tile: 21px; } .tt-plan .tt-label { padding-right: 3px; } }
 .tt-split { display: flex; gap: 10px; align-items: flex-start; }
 .tt-wrap { display: grid; gap: 4px; justify-items: start; }
 .tt-note { color: var(--muted); }
@@ -285,7 +288,12 @@ section { display: grid; gap: 14px; }
 .demo-controls { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .demo-controls .btn { padding: 8px 12px; }
 .demo-count { margin-left: auto; }
-@media (max-width: 380px) { .demo-controls .btn { padding: 7px 9px; font-size: .88rem; } }
+/* Bis 380 px: drei Knöpfe und Bildzähler in einer Zeile (Welle 8, Akzeptanz bei 320 px) */
+@media (max-width: 380px) {
+  .demo-controls { flex-wrap: nowrap; gap: 4px; }
+  .demo-controls .btn { padding: 7px 6px; font-size: .82rem; white-space: nowrap; }
+  .demo-count { font-size: .78rem; white-space: nowrap; }
+}
 .demo-say { min-height: 3em; display: grid; align-items: center; }
 .demo-text { font-weight: 800; }
 .demo-text.s1 { color: var(--step1-ink); } .demo-text.s2 { color: var(--step2-ink); }
@@ -311,6 +319,15 @@ section { display: grid; gap: 14px; }
 .dm-num circle { fill: var(--step1-soft); stroke: var(--step1); stroke-width: 1.4; }
 .dm-num text { font-family: var(--display); font-weight: 800; font-size: 11px; fill: var(--step1-ink); }
 .dm-bracket { fill: none; stroke: var(--step1); stroke-width: 1.8; }
+/* Paket „Tonleitern“, Vorführungen: Töne auf der Klaviatur grün (Schritt 2, beide Tasten des Schritts),
+   berichtigte Noten grün, Klammer des geprüften Schritts grün, entscheidendes Vorzeichen violett umrandet */
+.tl-keys .keys-static .wkey.mark { fill: var(--key-step2-soft); stroke: var(--key-step2); stroke-width: 2; }
+.tl-keys .keys-static .bkey.mark { fill: var(--key-step2); stroke: var(--key-mark-edge); stroke-width: 3; }
+.tl-keys .keys-static .klabel.mark { fill: var(--key-step2-ink); font-weight: 700; }
+.note.step2 .notehead, .note.step2 .acc { fill: var(--step2); } .note.step2 .ledger { stroke: var(--step2); }
+.tl-bracket { fill: none; stroke: var(--step2); stroke-width: 1.8; }
+.tl-decisive { fill: var(--step1-soft); stroke: var(--step1); stroke-width: 1.6; }
+.keysig.step1 { fill: var(--step1-ink); }
 /* Lerntafel mit Vorführung: Beispiel-Knöpfe */
 .legend > .demo-board { display: grid; gap: 10px; grid-column: 1 / -1; border: 0; padding: 0; min-width: 0; }
 .demo-pick { gap: 6px; }

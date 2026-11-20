@@ -6,12 +6,14 @@ import tonleitern, { oddQuestion, fitsKey, lowestY, LABEL_DESC,
   scaleNotes, scaleSvg, scaleX, sigList, sigChoices, fifthsOf, pickStep, usualNote, keyName,
   STEP_WHOLE, STEP_HALF, HALF_P, GAP_HALF_P, SCALE_W, SHARP_ORDER, FLAT_ORDER, SHARPS_7, FLATS_7,
   FIFTHS, keyChoices, keyChoicesFixed, minorChoices, sigText, sigSentence, nameChoices, gapStepQuestion,
-  signStep, decisiveSign, keyWay, planTable, circleTable, HELP_TEXT_PLAN, PLAN_COLS, MINOR_VARIANTS, stemChoices, minorTonicOf, majorTonicOf, minorWay, PLAN, NO_SIGNS,
+  signStep, decisiveSign, keyWay, planTable, scaleDemo, stepDemo, keyDemo, minorDemo, buildSteps, stemNotes, sigDemoSvg,
+  DEMO_STEPS_SCALE, DEMO_STEPS_KEY, DEMO_STEP_KEY_ONLY, DEMO_STEPS_MINOR, BOARDS, circleTable, HELP_TEXT_PLAN, PLAN_COLS, MINOR_VARIANTS, stemChoices, minorTonicOf, majorTonicOf, minorWay, PLAN, NO_SIGNS,
 } from "../../src/packs/tonleitern.js";
 import { PACKS } from "../../src/packs/index.js";
-import { N, dia, midi, pc, SEMI, LETTERS, gName, majorScale, majorName, minorName, majorKeyFromKeySig, relativeMinor } from "../../src/music.js";
+import { N, dia, midi, pc, SEMI, LETTERS, gName, helm, majorScale, majorName, minorName, majorKeyFromKeySig, relativeMinor } from "../../src/music.js";
 import { feedbackText, makeRound, choicesClass, svgResultClass, choiceSet, stepsFeedback, helpsHtml, hasHelps, waitsForNext, helpFrom, HELP_OCTAVES } from "../../src/engine.js";
 import { staffSvg } from "../../src/staff.js";
+import { demoHtml } from "../../src/demo.js";
 
 const L = tonleitern.levels;
 // Stufen 1–9: Dur-Tonleitern; 10–13: Tonarten (Welle 8, 20.11.2026)
@@ -602,27 +604,41 @@ test("Tonarten-Auswahl: nie zwei gleich klingende Tonarten, immer vier verschied
   assert.ok(!(c7.includes("Ces-Dur") && c7.includes("H-Dur")), c7.join());
 });
 
-test("Lerntafeln: Bauplan je Schlüssel, Tabelle der Dur-Tonleitern", () => {
-  assert.deepEqual(tonleitern.learn.map((b) => [b.title, b.clef]), [["Bauplan Dur", "treble"], ["Bauplan Dur", "bass"], ["Dur-Tonleitern bis 4 Vorzeichen", undefined], ["Quintenzirkel", undefined]]);
-  const t = tonleitern.learn[0].render();
+const board = (title, clef) => tonleitern.learn.find((b) => b.title === title && (!clef || b.clef === clef));
+
+test("Lerntafeln: Reihenfolge, Bauplan je Schlüssel mit Bauplan-Leiste, Tabelle der Dur-Tonleitern", () => {
+  assert.deepEqual(tonleitern.learn.map((b) => [b.title, b.clef]), [
+    ["So baust du eine Dur-Tonleiter", undefined], ["Bauplan Dur", "treble"], ["Bauplan Dur", "bass"], ["Dur-Tonleitern bis 4 Vorzeichen", undefined],
+    ["So findest du die Tonart", undefined], ["Quintenzirkel", undefined], ["So findest du die parallele Molltonart", undefined],
+  ]);
+  const t = board("Bauplan Dur", "treble").render();
   assert.ok(t.includes("Ganz\u00a0Ganz\u00a0Halb · Ganz · Ganz\u00a0Ganz\u00a0Halb"));
   assert.equal((t.match(/class="bracket"/g) || []).length, 2);
   assert.ok(t.includes("e'–f'") && t.includes("h'–c''") && t.includes("Vierergruppen (Tetrachorde)"));
   assert.ok(t.includes("Ein Tetrachord sind vier stufenweise aufeinanderfolgende Töne im Umfang einer Quarte – trotz des Namens kein Akkord."));
-  assert.ok(!/zwei gleich gebauten Vierergruppen/.test(t));
-  assert.ok(tonleitern.learn[1].render().includes("e–f"));
-  const tab = tonleitern.learn[2].render();
+  assert.ok(t.includes(planTable()));
+  assert.ok(board("Bauplan Dur", "bass").render().includes("e–f"));
+  const tab = board("Dur-Tonleitern bis 4 Vorzeichen").render();
   const rows = [...tab.matchAll(/<tr><td><b>([^<]+)<\/b><\/td><td>([^<]+)<\/td><td>([^<]+)<\/td><\/tr>/g)].map((m) => m.slice(1));
   assert.deepEqual(rows.map((r) => r[0]), ["C-Dur", "G-Dur", "D-Dur", "A-Dur", "E-Dur", "F-Dur", "B-Dur", "Es-Dur", "As-Dur"]);
   assert.deepEqual(rows[2], ["D-Dur", "D E Fis G A H Cis D", "Fis, Cis"]);
   assert.deepEqual(rows[8], ["As-Dur", "As B C Des Es F G As", "B, Es, As, Des"]);
+  // Vorführungs-Tafeln: Beispiel-Knöpfe und die erste Vorführung
+  for (const [title, id, n] of [["So baust du eine Dur-Tonleiter", "scale", 5], ["So findest du die Tonart", "key", 5], ["So findest du die parallele Molltonart", "minor", 5]]) {
+    const h = board(title).render();
+    assert.ok(h.includes(`data-tl-board="${id}"`) && h.includes("data-demo-root") && !h.includes("data-demo-board"));
+    assert.equal((h.match(/data-ex="/g) || []).length, n);
+    assert.ok(typeof board(title).mount === "function");
+  }
+  assert.ok(board("So baust du eine Dur-Tonleiter").render().includes("As-Dur sind as'–h' 3 Halbtöne, der Bauplan will Ganz → h' wird zu b'"));
 });
 
-test("Lerntafel Quintenzirkel (aus dem Paket „Intervalle“)", () => {
-  const q = tonleitern.learn[3].render();
+test("Lerntafel Quintenzirkel mit Kästchentabelle", () => {
+  const q = board("Quintenzirkel").render();
   const row = (sig, dur, moll) => `<tr><td>${sig}</td><td><b>${dur}</b></td><td><b>${moll}</b></td></tr>`;
   for (const r of [["keine Vorzeichen", "C-Dur", "a-Moll"], ["6 ♯", "Fis-Dur", "dis-Moll"], ["3 ♭", "Es-Dur", "c-Moll"], ["7 ♭", "Ces-Dur", "as-Moll"], ["7 ♯", "Cis-Dur", "ais-Moll"]]) assert.ok(q.includes(row(...r)), r.join());
   assert.equal((q.match(/<tr><td>/g) || []).length, 15);
+  assert.ok(q.includes(circleTable()));
   assert.ok(!/<h[1-6]/.test(q));
 });
 
@@ -705,4 +721,176 @@ test("Hilfen: jede markierte Note liegt auf der gezeigten Klaviatur, Markierunge
   assert.equal(helpFrom(bq), 48);
   const cq = questionsOf(byId(1)).find((q) => q.clef === "bass");
   assert.equal(helpFrom(cq), 48);
+});
+
+/* ---------- Vorführungen (Schritt 2 der Welle 8) ---------- */
+
+const NAME = (n) => gName(n).toLowerCase();
+const stepsOf = (d) => d.frames.map((f) => f.step);
+
+test("Vorführung „So baust du eine Dur-Tonleiter“: 18 Bilder, jede Berichtigung richtig (9 Tonarten × 2 Schlüssel)", () => {
+  for (const clef of ["treble", "bass"]) for (const k of KEYS_4) {
+    const tonic = TONICS[clef][k], final = scaleNotes(tonic), d = scaleDemo(tonic, clef), id = `${clef} ${k}`;
+    assert.deepEqual(d.steps, DEMO_STEPS_SCALE);
+    assert.equal(d.frames.length, 18, id);
+    assert.deepEqual(stepsOf(d), [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 3], id);
+    // Schritt 1: Stammtöne, nur der Grundton (1 und 8) mit seinem Vorzeichen
+    const stems = stemNotes(tonic);
+    stems.forEach((n, i) => {
+      assert.equal(n.letter, final[i].letter);
+      assert.equal(n.acc, i === 0 || i === 7 ? tonic.acc : 0, id);
+      assert.deepEqual(d.frames[i + 1].tones, [n]);
+      assert.equal((d.frames[i + 1].body.match(/class="dm-num"/g) || []).length, i + 1, id);
+    });
+    assert.ok(!d.frames[8].body.includes("tt-plan") && d.frames[9].body.includes("tt-plan"), "Bauplan-Leiste erscheint im 10. Bild");
+    // Schritt 2: je Bild ein Schritt, Berichtigung nur bei Abweichung, immer die obere Note
+    const st = buildSteps(tonic);
+    assert.equal(st.length, 7);
+    st.forEach((x, i) => {
+      assert.deepEqual(x.fixed, final[i + 1], `${id} ${i}`);
+      assert.equal(midi(x.fixed) - midi(x.a), PLAN[i], `${id} ${i}`);
+      // der folgende Schritt rechnet mit der berichtigten Note
+      if (i > 0) assert.deepEqual(x.a, st[i - 1].fixed);
+      const delta = x.fixed.acc - x.b.acc;
+      assert.equal(delta, x.want - x.semi);
+      assert.ok(Math.abs(delta) <= 1, id);
+      if (x.semi < x.want) assert.equal(delta, 1, "zu klein → ♯");
+      if (x.semi > x.want) assert.equal(delta, -1, "zu groß → ♭");
+      const f = d.frames[10 + i];
+      assert.deepEqual(f.tones, [x.a, x.fixed]);
+      if (delta) {
+        const half = x.semi === 1 ? "1 Halbton" : `${x.semi} Halbtöne`;
+        assert.equal(f.text, `${helm(x.a)}–${helm(x.b)}: ${half}, der Bauplan will ${x.want === 2 ? "Ganz" : "Halb"} → ${helm(x.b)} wird zu ${helm(x.fixed)}`);
+        assert.deepEqual(f.fix, { from: x.b, to: x.fixed });
+        assert.ok(f.body.includes('class="note step2'), id);
+      } else {
+        assert.ok(f.text.endsWith("✓") && !f.fix, f.text);
+      }
+      // gezählte Halbtöne auf der Klaviatur = Bauplan, beide Tasten grün
+      assert.equal((f.body.match(/<text class="kcount/g) || []).length, x.want, id);
+      assert.ok(f.body.includes("tl-keys") && f.body.includes('class="tl-bracket"'));
+      // Bauplan-Kästchen des Schritts grün, darunter die Halbtöne bis hierher
+      assert.equal((f.body.match(/tt-box hit/g) || []).length, 1 + (i + 1), id);
+    });
+    // nur übliche Namen, keine Doppelvorzeichen
+    assert.ok(st.every((x) => usualNote(x.fixed)), id);
+    const changed = st.filter((x) => x.fixed.acc !== x.b.acc).length;
+    assert.equal(changed, Math.abs(fifthsOf(tonic)) - (tonic.acc ? 1 : 0), id);
+    const r = d.frames[17].result;
+    assert.equal(r.title, `${keyName(tonic)}: ${final.map(NAME).join(" ")}`);
+    assert.deepEqual(r.chips[0], { step: 1, text: "Bauplan G G H G G G H" });
+    const f = fifthsOf(tonic);
+    assert.deepEqual(r.chips[1], { step: 2, text: f ? `${Math.abs(f)} Vorzeichen: ${sigList(f)}` : "kein Vorzeichen nötig" });
+    assert.deepEqual(d.frames[17].tones, final);
+    d.frames.forEach((fr, i) => assert.ok(demoHtml(d, i).includes("demo-stage"), id));
+  }
+  // die Beispiele aus dem Plan
+  const g = scaleDemo(TONICS.treble.G);
+  assert.equal(g.frames[15].text, "e''–f'': 1 Halbton, der Bauplan will Ganz → f'' wird zu fis''");
+  assert.equal(g.frames[16].text, "fis''–g'': 1 Halbton = Halb ✓");
+  assert.equal(g.frames[17].result.title, "G-Dur: g a h c d e fis g");
+  assert.deepEqual(g.frames[17].result.chips.map((c) => c.text), ["Bauplan G G H G G G H", "1 Vorzeichen: Fis"]);
+  assert.equal(scaleDemo(TONICS.treble.F).frames[12].text, "a'–h': 2 Halbtöne, der Bauplan will Halb → h' wird zu b'");
+  assert.equal(scaleDemo(TONICS.treble.As).frames[10].text, "as'–h': 3 Halbtöne, der Bauplan will Ganz → h' wird zu b'");
+  assert.ok(scaleDemo(TONICS.treble.Es).frames.some((f) => /3 Halbtöne, der Bauplan will Ganz/.test(f.text || "")));
+  assert.ok(scaleDemo(TONICS.treble.C).frames.slice(10, 17).every((f) => f.text.endsWith("✓")));
+});
+
+test("Vorführung Kurzfassung (Stufe 1 und 2): Frage, Stufen, Halbtöne, Ergebnis", () => {
+  for (const it of [...ITEMS_1, ...ITEMS_2]) {
+    const d = stepDemo(it.notes, it.i, it.clef), semi = midi(it.notes[it.i + 1]) - midi(it.notes[it.i]);
+    assert.equal(d.frames.length, 3 + semi, it.key);
+    assert.deepEqual(stepsOf(d), [0, 1, ...Array(semi).fill(2), 3]);
+    assert.ok(d.frames[1].body.includes("tt-box s1"), "Bauplan-Spalte violett");
+    assert.equal(d.frames[d.frames.length - 1].result.title, `${it.notes[it.i] && d.frames[0].text.split(":")[0]} = ${semi === 1 ? STEP_HALF : STEP_WHOLE}`);
+    assert.equal(semi === 1, it.half);
+  }
+  const ef = stepDemo(scaleNotes(TONICS.treble.C), 2);
+  assert.equal(ef.frames[3].result.title, "e'–f' = Halbtonschritt");
+  assert.equal(ef.frames[1].text, "e' ist Stufe 3, f' Stufe 4: Der Bauplan will Halb.");
+});
+
+test("Vorführung „So findest du die Tonart“: alle 15 Tonarten, Kurzfassung für C- und F-Dur", () => {
+  const majorPc = (f) => { const t = majorKeyFromKeySig(f); return pc(SEMI[t.letter] + t.acc); };
+  for (const clef of ["treble", "bass"]) for (const f of FIFTHS) {
+    const d = keyDemo(f, clef), n = Math.abs(f), last = d.frames[d.frames.length - 1];
+    if (f === 0 || f === -1) {
+      assert.deepEqual(d.steps, [DEMO_STEP_KEY_ONLY]);
+      assert.equal(d.frames.length, 3);
+      assert.deepEqual(stepsOf(d), [0, 1, 2]);
+      assert.equal(last.result.title, `${f ? "1 ♭" : "keine Vorzeichen"} → ${majorName(f)}`);
+      continue;
+    }
+    assert.deepEqual(d.steps, DEMO_STEPS_KEY);
+    assert.equal(d.frames.length, n + 3, String(f));
+    assert.deepEqual(stepsOf(d), [0, ...Array(n).fill(1), 2, 3]);
+    // je Bild ein Vorzeichen mehr, nummeriert; das entscheidende erst im letzten Bild von Schritt 1 umrandet
+    for (let k = 1; k <= n; k++) {
+      const b = d.frames[k].body;
+      assert.equal((b.match(/class="keysig/g) || []).length, k);
+      assert.equal((b.match(/class="dm-num"/g) || []).length, k);
+      assert.equal(b.includes("tl-decisive"), k === n, `${f} ${k}`);
+    }
+    const dec = decisiveSign(f), sig = d.frames[n].body;
+    const marked = [...sig.matchAll(/<text class="keysig( step1)?"/g)].map((m) => !!m[1]);
+    assert.equal(marked.indexOf(true), f > 0 ? n - 1 : n - 2);
+    // Schritt 2: vom letzten Kreuz einen Halbton höher bzw. das vorletzte Be ist der Grundton
+    const p = { Fis: 6, Cis: 1, Gis: 8, Dis: 3, Ais: 10, Eis: 5, His: 0, B: 10, Es: 3, As: 8, Des: 1, Ges: 6, Ces: 11, Fes: 4 }[dec];
+    assert.equal(pc(p + (f > 0 ? 1 : 0)), majorPc(f), String(f));
+    assert.equal(last.result.title, `${sigText(f)} → ${majorName(f)}`);
+    assert.equal(last.result.chips[0].text, `${f > 0 ? "letztes Kreuz" : "vorletztes Be"} ${dec}`);
+  }
+  const a = keyDemo(3);
+  assert.equal(a.frames[a.frames.length - 1].result.title, "3 ♯ → A-Dur");
+  assert.deepEqual(a.frames[a.frames.length - 1].result.chips.map((c) => c.text), ["letztes Kreuz Gis", "+1 Halbton → A"]);
+  assert.ok(keyDemo(7).frames[8].text.includes("His liegt auf der Taste C"));
+  assert.ok(keyDemo(-7).frames[8].text.includes("Ces liegt auf der Taste H"));
+  assert.equal(sigDemoSvg("treble", 3, 2).match(/class="keysig"/g).length, 2);
+});
+
+test("Vorführung „So findest du die parallele Molltonart“: alle 15 Tonarten, 8 Bilder", () => {
+  for (const f of FIFTHS) {
+    const d = minorDemo(f), m = minorTonicOf(f), t = majorTonicOf(f), id = String(f);
+    assert.deepEqual(d.steps, DEMO_STEPS_MINOR);
+    assert.equal(d.frames.length, 8, id);
+    assert.deepEqual(stepsOf(d), [0, 1, 1, 1, 2, 2, 2, 3]);
+    // Schritt 1: drei Notenstufen abwärts, der Dur-Grundton ist 1
+    assert.deepEqual(d.frames[1].tones, [t]);
+    assert.equal(dia(d.frames[3].tones[0]), dia(t) - 2);
+    assert.equal(d.frames[3].tones[0].acc, 0);
+    assert.ok(d.frames[3].text.endsWith(`Stammton ${m.letter}.`), d.frames[3].text);
+    // Schritt 2: drei Halbtöne abwärts, je eine Taste mehr gezählt
+    for (let j = 1; j <= 3; j++) {
+      assert.equal((d.frames[3 + j].body.match(/<text class="kcount/g) || []).length, j);
+      assert.equal(midi(d.frames[3 + j].tones[0]), midi(t) - j);
+    }
+    assert.ok(d.frames[6].text.includes(`→ ${minorName(f)}`) && d.frames[6].text.includes("kleine Terz"), d.frames[6].text);
+    if (m.acc) assert.ok(d.frames[6].text.includes(`${m.letter} wird zu ${gName(m)}`), d.frames[6].text);
+    assert.ok(d.frames[6].body.includes('class="note step2'));
+    assert.equal(midi(t) - midi(d.frames[7].tones[1]), 3);
+    assert.equal(d.frames[7].result.title, `${majorName(f)} → ${minorName(f)}`);
+    assert.deepEqual(d.frames[7].result.chips.map((c) => c.text), ["3 Stufen", "3 Halbtöne"]);
+  }
+  assert.ok(minorDemo(-5).frames[6].text.includes("H wird zu B → b-Moll (H mit ♭ heißt B)"));
+  assert.ok(minorDemo(3).frames[6].text.includes("F wird zu Fis → fis-Moll"));
+  assert.ok(minorDemo(-7).frames[4].text.includes("Ces liegt auf der Taste H"));
+  assert.equal(minorDemo(-3).frames[7].result.title, "Es-Dur → c-Moll");
+});
+
+test("„Vorführen“ in den Hilfen: jede Aufgabe der Stufen mit Hilfen lässt sich vorführen", () => {
+  for (const no of HELPED) {
+    const l = byId(no);
+    assert.equal(typeof l.demo, "function", l.id);
+    for (const q of many(l, 60)) {
+      const d = l.demo(q);
+      assert.ok(d.frames.length >= 3 && d.steps.length >= 1, l.id);
+      assert.ok(d.frames[d.frames.length - 1].result, l.id);
+      assert.ok(demoHtml(d, d.frames.length - 1).includes("demo-result"));
+    }
+  }
+  for (const no of [3, 5, 7, 9, 11, 13]) assert.equal(byId(no).demo, undefined);
+  // Lerntafel-Beispiele
+  assert.deepEqual(BOARDS.scale.examples.map((e) => e.label), ["C-Dur", "G-Dur", "F-Dur", "D-Dur", "B-Dur"]);
+  assert.deepEqual(BOARDS.minor.examples.map((e) => e.label), ["Es-Dur", "C-Dur", "A-Dur", "Des-Dur", "Ces-Dur"]);
+  for (const b of Object.values(BOARDS)) for (const ex of b.examples) assert.ok(ex.make().frames.length >= 3);
 });

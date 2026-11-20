@@ -28,6 +28,11 @@ test("Lerntafeln mit mount werden nach dem Einsetzen verdrahtet (nur die sichtba
   const packs = [{ learn: [{ clef: "treble", render: () => "", mount: (r) => seen.push(["t", r]) }, { clef: "bass", render: () => "", mount: () => seen.push(["b"]) }, { render: () => "" }, { render: () => "", mount: (r) => seen.push(["all", r]) }] }];
   mountCards(packs, "treble", "ROOT");
   assert.deepEqual(seen, [["t", "ROOT"], ["all", "ROOT"]]);
-  // „So bestimmst du ein Intervall“ ist die einzige Tafel mit mount
-  assert.deepEqual(PACKS.flatMap((p) => p.learn || []).filter((c) => c.mount).map((c) => c.title), ["So bestimmst du ein Intervall"]);
+  // Tafeln mit mount: die drei Vorführungen bei „Tonleitern“ (Welle 8) und „So bestimmst du ein Intervall“
+  assert.deepEqual(PACKS.flatMap((p) => p.learn || []).filter((c) => c.mount).map((c) => c.title),
+    ["So baust du eine Dur-Tonleiter", "So findest du die Tonart", "So findest du die parallele Molltonart", "So bestimmst du ein Intervall"]);
+  // die Tonleiter-Tafeln tragen ein eigenes Attribut: die Intervall-Tafel (data-demo-board) findet nur sich selbst
+  const html = PACKS.flatMap((p) => p.learn || []).map((c) => c.render()).join("");
+  assert.equal((html.match(/data-demo-board/g) || []).length, 1);
+  assert.equal((html.match(/data-tl-board="/g) || []).length, 3);
 });

@@ -7,9 +7,10 @@
 // 2 = Halbton höher bzw. ablesen; bei Moll: 1 = Terz abwärts (Stammton), 2 = drei Halbtöne abwärts.
 // In den Tonleitern nur Dur, keine Doppelvorzeichen, keine Eis/His/Ces/Fes (in den Vorzeichnungen bis 7
 // kommen Eis, His, Ces und Fes vor). Moll-Tonleitern folgen später als tonleitern-14 ff.
-import { N, LETTERS, midi, pc, SEMI, gName, helm, majorScale, staffPos, majorKeyFromKeySig, relativeMinor, majorName, minorName } from "../music.js";
-import { staffSvg, noteSvg, TOP, S } from "../staff.js";
+import { N, LETTERS, dia, midi, pc, SEMI, gName, helm, majorScale, staffPos, majorKeyFromKeySig, relativeMinor, majorName, minorName, parseNoteName } from "../music.js";
+import { staffSvg, noteSvg, pianoSvg, keySigPos, TOP, S } from "../staff.js";
 import { tileTable } from "../grid.js";
+import { demoHtml, mountDemo } from "../demo.js";
 
 const CLEF_SHORT = { treble: "Violin", bass: "Bass" };
 
@@ -104,6 +105,8 @@ export function scaleSvg(notes, clef, opts = {}) {
     inner += noteSvg(shown, clef, x, cls[i] || (marked.has(i) ? "mark" : ""), { stemless: true });
   });
   marks.forEach(([i, j]) => { inner += bracketSvg(notes, clef, i, j, keySig); });
+  // opts.extra: zusätzliches SVG (Zahlenkreise und Klammern der Vorführung)
+  if (opts.extra) inner += opts.extra;
   // opts.height: feste Höhe, z. B. für die Frage dieselbe wie für die Auflösung mit Namen
   // (labelHeight), damit die Karte beim Aufdecken nicht springt
   let height = opts.height;
@@ -626,10 +629,288 @@ export function circleTable({ split = false } = {}) {
 }
 
 const HELPS_BOTH = ["klaviatur", "tabelle"];
-const planHelps = () => ({ helps: HELPS_BOTH, helpText: HELP_TEXT_PLAN, helpTable: planTable() });
-const keyHelps = () => ({ helps: HELPS_BOTH, helpText: HELP_TEXT_KEY, helpTable: circleTable({ split: true }) });
+// „Vorführen“ (erst nach der Antwort): Stufe 1 und 2 das gefragte Notenpaar, Stufe 4, 6, 8 die Tonleiter der Aufgabe
+const STEP_DEMO = (q) => stepDemo(q.notes, q.i, q.clef);
+const SCALE_DEMO = (q) => scaleDemo(q.notes[0], q.clef);
+const planHelps = (demo) => ({ helps: HELPS_BOTH, helpText: HELP_TEXT_PLAN, helpTable: planTable(), demo });
+const keyHelps = () => ({ helps: HELPS_BOTH, helpText: HELP_TEXT_KEY, helpTable: circleTable({ split: true }), demo: (q) => keyDemo(q.fifths, q.clef) });
 // Stufe 12: nur Klaviatur und Satz. Eine Spalte „parallel Moll“ gäbe beide Schritte durch bloßes Ablesen vor.
-const minorHelps = () => ({ helps: ["klaviatur"], helpText: HELP_TEXT_MINOR });
+const minorHelps = () => ({ helps: ["klaviatur"], helpText: HELP_TEXT_MINOR, demo: (q) => minorDemo(q.fifths) });
+
+/* ---------- Vorführungen (src/demo.js; die Bilder baut das Paket, rein und in node testbar) ---------- */
+
+export const DEMO_STEPS_SCALE = ["1 · Bauplan", "2 · Klaviatur"];
+export const DEMO_STEPS_KEY = ["1 · Entscheidendes Vorzeichen", "2 · Klaviatur"];
+export const DEMO_STEP_KEY_ONLY = "Vorzeichen lesen";
+export const DEMO_STEPS_MINOR = ["1 · Terz abwärts: 3 Stufen", "2 · 3 Halbtöne abwärts"];
+
+const DM_R = 8, DM_GAP = 6;
+// Zahlenkreis (violett, Schritt 1) wie bei den Intervallen
+const numSvg = (x, y, k) => `<g class="dm-num"><circle cx="${x}" cy="${y}" r="${DM_R}"/><text x="${x}" y="${y + 4}" text-anchor="middle">${k}</text></g>`;
+// Klammer unter zwei Noten in Grün (Schritt 2: der gerade geprüfte Schritt)
+const stepBracket = (xa, xb, y) => `<path class="tl-bracket" d="M${xa - 10} ${y}V${y + 6}H${xb + 10}V${y}"/>`;
+// Ton zu einer MIDI-Nummer (nur für den Klang, die Schreibweise spielt keine Rolle)
+const pitchNote = (m) => N("C", Math.floor(m / 12) - 1, m % 12);
+// Klaviatur der Vorführung: Töne grün (marks), gezählte Halbtöne grün mit Zahl; active false: blass
+function keysSvg(from, octaves, marks, counts, active) {
+  return `<div class="demo-keys tl-keys${active ? "" : " dim"}">${pianoSvg({ from, octaves, marks, counts, interactive: false })}</div>`;
+}
+const stageHtml = (staff, keys, table) => `<div class="demo-staff">${staff}</div>`
+  + `<div class="demo-pair">${keys}${table ? `<div class="demo-table">${table}</div>` : ""}</div>`;
+
+/* --- 1. „So baust du eine Dur-Tonleiter“ --- */
+
+// Stammtöne der acht Stufen (nur der Grundton auf der 1 und der 8 trägt sein Vorzeichen schon: b, es, as)
+export function stemNotes(tonic) {
+  const out = [tonic];
+  for (let k = 1; k < 7; k++) { const d = dia(tonic) + k; out.push(N(LETTERS[d % 7], Math.floor(d / 7), 0)); }
+  out.push(N(tonic.letter, tonic.octave + 1, tonic.acc));
+  return out;
+}
+
+// Die Klaviatur prüft jeden Schritt: Passt der Abstand nicht zum Bauplan, ändert sich immer die obere Note,
+// Abstand zu klein → ♯, zu groß → ♭. Der folgende Schritt rechnet mit der berichtigten Note.
+// Ergebnis: [{ i, a, b (Stammton bzw. Grundton), semi (gemessen), want, fixed (berichtigte obere Note) }]
+export function buildSteps(tonic) {
+  const cur = stemNotes(tonic), out = [];
+  for (let i = 0; i < 7; i++) {
+    const a = cur[i], b = cur[i + 1], semi = midi(b) - midi(a), want = PLAN[i];
+    const fixed = N(b.letter, b.octave, b.acc + (want - semi));
+    cur[i + 1] = fixed;
+    out.push({ i, a, b, semi, want, fixed });
+  }
+  return out;
+}
+
+const scaleHeight = (notes, clef) => Math.round(lowestY(notes, clef) + DM_GAP + 2 * DM_R + 4 + 6 + 4);
+
+// Notenzeile der Vorführung: shown (bis zu acht Noten), cls je Note, Kreise 1 … circles, Klammer pair [i, i + 1]
+function scaleDemoSvg(shown, clef, { cls = {}, circles = 0, pair = null, height, ref }) {
+  const y = Math.round(lowestY(ref, clef) + DM_GAP + DM_R);
+  let extra = "";
+  for (let k = 0; k < circles; k++) extra += numSvg(scaleX(k), y, k + 1);
+  if (pair) extra += stepBracket(scaleX(pair[0]), scaleX(pair[1]), y + DM_R + 4);
+  return scaleSvg(shown, clef, { cls, height, extra });
+}
+
+const keyRange = (lowM, highM) => { const from = 12 * Math.floor(lowM / 12); return { from, octaves: highM <= from + 12 ? 1 : 2 }; };
+
+export function scaleDemo(tonic, clef = "treble") {
+  const final = scaleNotes(tonic), stems = stemNotes(tonic), steps = buildSteps(tonic), key = keyName(tonic);
+  const fifths = fifthsOf(tonic), ref = [...final, ...stems], height = scaleHeight(ref, clef);
+  const { from, octaves } = keyRange(midi(final[0]), midi(final[7]));
+  const dimKeys = keysSvg(from, octaves, [], [], false);
+  const frames = [{
+    step: 0, tones: [tonic],
+    text: `${key} bauen: Grundton ${helm(tonic)}. Erst der Bauplan, dann die Klaviatur.`,
+    body: stageHtml(scaleDemoSvg([tonic], clef, { height, ref }), dimKeys),
+  }];
+  // Schritt 1: je Bild eine Notenstufe (Stammton), die neue violett
+  for (let k = 1; k <= 8; k++) {
+    const n = stems[k - 1];
+    const text = k === 1 ? `${helm(n)} ist Stufe 1, der Grundton.` : k === 8 ? `${helm(n)} ist Stufe 8, wieder der Grundton.` : `${helm(n)} ist Stufe ${k}.`;
+    frames.push({ step: 1, tones: [n], text, body: stageHtml(scaleDemoSvg(stems.slice(0, k), clef, { cls: { [k - 1]: "step1" }, circles: k, height, ref }), dimKeys) });
+  }
+  frames.push({
+    step: 1, tones: [],
+    text: `Der Bauplan: Ganz – Ganz – Halb – Ganz – Ganz – Ganz – Halb. Jetzt prüft die Klaviatur jeden Schritt.`,
+    body: stageHtml(scaleDemoSvg(stems, clef, { circles: 8, height, ref }), dimKeys, planTable()),
+  });
+  // Schritt 2: je Bild ein Schritt; berichtigte Noten grün mit ihrem Vorzeichen
+  const cur = stems.slice(), cls = {};
+  for (const st of steps) {
+    cur[st.i + 1] = st.fixed;
+    const changed = st.fixed.acc !== st.b.acc;
+    if (changed) cls[st.i + 1] = "step2";
+    const pair = `${helm(st.a)}–${helm(st.b)}`;
+    const text = changed
+      ? `${pair}: ${halftones(st.semi)}, der Bauplan will ${PLAN_WORD[st.want]} → ${helm(st.b)} wird zu ${helm(st.fixed)}`
+      : `${pair}: ${halftones(st.semi)} = ${PLAN_WORD[st.want]} ✓`;
+    const counts = Array.from({ length: st.want }, (_, t) => [midi(st.a) + t + 1, t + 1]);
+    frames.push({
+      step: 2, tones: [st.a, st.fixed], text, fix: changed ? { from: st.b, to: st.fixed } : null,
+      body: stageHtml(scaleDemoSvg(cur.slice(), clef, { cls: { ...cls }, circles: 8, pair: [st.i, st.i + 1], height, ref }),
+        keysSvg(from, octaves, [midi(st.a), midi(st.fixed)], counts, true), planTable({ done: st.i + 1, hit: st.i })),
+    });
+  }
+  const n = Math.abs(fifths);
+  frames.push({
+    step: 3, tones: final,
+    result: {
+      title: `${key}: ${final.map((x) => gName(x).toLowerCase()).join(" ")}`,
+      chips: [{ step: 1, text: `Bauplan ${PLAN_TEXT}` }, { step: 2, text: n ? `${n} Vorzeichen: ${sigList(fifths)}` : "kein Vorzeichen nötig" }],
+    },
+    body: stageHtml(scaleDemoSvg(final, clef, { cls, circles: 8, height, ref }), keysSvg(from, octaves, final.map(midi), [], true), planTable({ done: 7 })),
+  });
+  return { steps: DEMO_STEPS_SCALE.slice(), frames };
+}
+
+// Kurzfassung für Stufe 1 und 2: das gefragte Notenpaar. Frage → Schritt 1 (welche Stufen, Spalte des
+// Bauplans violett) → Schritt 2 (Halbtöne zählen) → Ergebnis „e'–f' = Halbtonschritt“
+export function stepDemo(notes, i, clef = "treble") {
+  const a = notes[i], b = notes[i + 1], semi = midi(b) - midi(a), pair = `${helm(a)}–${helm(b)}`;
+  const kind = semi === 1 ? STEP_HALF : STEP_WHOLE, height = scaleHeight(notes, clef);
+  const { from, octaves } = keyRange(midi(notes[0]), midi(notes[7]));
+  const staff = (circles, pairOn) => {
+    const y = Math.round(lowestY(notes, clef) + DM_GAP + DM_R);
+    let extra = circles ? numSvg(scaleX(i), y, i + 1) + numSvg(scaleX(i + 1), y, i + 2) : "";
+    if (pairOn) extra += stepBracket(scaleX(i), scaleX(i + 1), y + DM_R + 4);
+    return scaleSvg(notes, clef, { cls: { [i]: "mark", [i + 1]: "mark" }, height, extra });
+  };
+  const frames = [{
+    step: 0, tones: [a, b], text: `${pair}: Ganz oder Halb? Erst die Stufen im Bauplan, dann die Halbtöne.`,
+    body: stageHtml(staff(false, false), keysSvg(from, octaves, [], [], false), planTable()),
+  }, {
+    step: 1, tones: [a, b], text: `${helm(a)} ist Stufe ${i + 1}, ${helm(b)} Stufe ${i + 2}: Der Bauplan will ${PLAN_WORD[PLAN[i]]}.`,
+    body: stageHtml(staff(true, false), keysSvg(from, octaves, [], [], false), planTable({ col: i })),
+  }];
+  for (let j = 1; j <= semi; j++) {
+    const last = j === semi;
+    const text = last ? `${halftones(semi)} = ${kind}` : `Ab ${helm(a)} jede Taste zählen, auch die schwarzen: 1 Halbton.`;
+    frames.push({
+      step: 2, tones: [pitchNote(midi(a) + j)], text,
+      body: stageHtml(staff(true, true), keysSvg(from, octaves, [midi(a), midi(b)], Array.from({ length: j }, (_, t) => [midi(a) + t + 1, t + 1]), true),
+        planTable({ col: last ? null : i, hit: last ? i : null })),
+    });
+  }
+  frames.push({
+    step: 3, tones: [a, b],
+    result: { title: `${pair} = ${kind}`, chips: [{ step: 1, text: `${stepLabel(i)}: ${PLAN_WORD[PLAN[i]]}` }, { step: 2, text: halftones(semi) }] },
+    body: stageHtml(staff(true, true), keysSvg(from, octaves, [midi(a), midi(b)], Array.from({ length: semi }, (_, t) => [midi(a) + t + 1, t + 1]), true), planTable({ hit: i })),
+  });
+  return { steps: DEMO_STEPS_SCALE.slice(), frames };
+}
+
+/* --- 2. „So findest du die Tonart“ --- */
+
+// Vorzeichnung zum Mitzählen: weiter auseinander als in der Notenzeile (Abstand 22 statt 12), Kreise darunter,
+// das entscheidende Vorzeichen violett umrandet
+const SIG_DEMO_X0 = 70, SIG_DEMO_DX = 22;
+const SIG_NUM_Y = BOTTOM + 22;
+const nameNote = (name) => { const p = parseNoteName(name); return N(p.letter, 4, p.acc); };
+const signList = (fifths) => (fifths > 0 ? SHARPS_7 : FLATS_7).slice(0, Math.abs(fifths));
+
+export function sigDemoSvg(clef, fifths, k, decisive = null) {
+  const pos = keySigPos(clef, fifths, SIG_DEMO_DX, SIG_DEMO_X0).slice(0, k);
+  let inner = "";
+  pos.forEach((p, i) => {
+    const on = i === decisive;
+    if (on) {
+      const top = p.sharp ? p.line - 19 : p.line - 27, bottom = p.sharp ? p.line + 19 : p.line + 9;
+      inner += `<rect class="tl-decisive" x="${p.x - 5}" y="${top}" width="22" height="${bottom - top}" rx="5"/>`;
+    }
+    inner += `<text class="keysig${on ? " step1" : ""}" x="${p.x}" y="${p.y}">${p.sharp ? "♯" : "♭"}</text>`;
+    inner += numSvg(p.x + 6, SIG_NUM_Y, i + 1);
+  });
+  return staffSvg(clef, inner, { height: SIG_NUM_Y + DM_R + 4 });
+}
+
+// Taste, auf der ein Name liegt (eine Oktave ab c'): Eis auf F, His auf C, Ces auf H
+const keyMidi = (name) => { const p = parseNoteName(name); return 60 + pc(SEMI[p.letter] + p.acc); };
+const KEY_OF = { Eis: "F", His: "C", Ces: "H", Fes: "E" };
+const onKey = (name) => (KEY_OF[name] ? ` (${name} liegt auf der Taste ${KEY_OF[name]})` : "");
+
+export function keyDemo(fifths, clef = "treble") {
+  const major = majorName(fifths), n = Math.abs(fifths), list = signList(fifths), d = decisiveSign(fifths);
+  const sign = fifths > 0 ? "Kreuz" : "Be", tonic = majorKeyFromKeySig(fifths), tonicNote = N(tonic.letter, 4, tonic.acc);
+  const dIndex = fifths > 0 ? n - 1 : n - 2;
+  const dim = keysSvg(60, 1, [], [], false);
+  const frames = [{
+    step: 0, tones: [],
+    text: n ? `Welche Dur-Tonart hat ${sigText(fifths)}? Erst das entscheidende Vorzeichen.` : "Welche Dur-Tonart hat keine Vorzeichen?",
+    body: stageHtml(staffSvg(clef, "", { keySig: fifths, height: SIG_NUM_Y + DM_R + 4 }), dim),
+  }];
+  // Kurzfassung ohne zweiten Schritt: C-Dur und F-Dur
+  if (fifths === 0 || fifths === -1) {
+    frames.push({
+      step: 1, tones: fifths ? [nameNote("B"), tonicNote] : [tonicNote],
+      text: fifths ? "Ein einzelnes Be → F-Dur. Das merkst du dir." : "Keine Vorzeichen → C-Dur.",
+      body: stageHtml(sigDemoSvg(clef, fifths, n), dim),
+    });
+    frames.push({
+      step: 2, tones: [tonicNote],
+      result: { title: `${fifths ? "1 ♭" : "keine Vorzeichen"} → ${major}`, chips: [{ step: 1, text: fifths ? "ein einzelnes Be → F-Dur" : "keine Vorzeichen → C-Dur" }] },
+      body: stageHtml(sigDemoSvg(clef, fifths, n), keysSvg(60, 1, [midi(tonicNote)], [], true)),
+    });
+    return { steps: [DEMO_STEP_KEY_ONLY], frames };
+  }
+  for (let k = 1; k <= n; k++) {
+    const last = k === n, name = list[k - 1];
+    let text = `${k}. ${sign}: ${name}`;
+    if (last) text += fifths > 0 ? ` – das letzte Kreuz ist entscheidend.` : ` – entscheidend ist das vorletzte Be: ${d}.`;
+    frames.push({ step: 1, tones: [nameNote(name)], text, body: stageHtml(sigDemoSvg(clef, fifths, k, last ? dIndex : null), dim) });
+  }
+  const dm = keyMidi(d);
+  const keys = fifths > 0 ? keysSvg(60, 1, [dm], [[dm + 1, 1]], true) : keysSvg(60, 1, [dm], [], true);
+  const tonicName = gName(tonic);
+  frames.push({
+    step: 2, tones: fifths > 0 ? [pitchNote(dm), pitchNote(dm + 1)] : [pitchNote(dm)],
+    text: fifths > 0 ? `${d} + 1 Halbton → ${tonicName}${onKey(d)}: ${major}` : `Das vorletzte Be ${d} ist der Grundton${onKey(d)}: ${major}`,
+    body: stageHtml(sigDemoSvg(clef, fifths, n, dIndex), keys),
+  });
+  frames.push({
+    step: 3, tones: [tonicNote],
+    result: {
+      title: `${sigText(fifths)} → ${major}`,
+      chips: fifths > 0 ? [{ step: 1, text: `letztes Kreuz ${d}` }, { step: 2, text: `+1 Halbton → ${tonicName}` }]
+        : [{ step: 1, text: `vorletztes Be ${d}` }, { step: 2, text: `${d} ist der Grundton` }],
+    },
+    body: stageHtml(sigDemoSvg(clef, fifths, n, dIndex), keys),
+  });
+  return { steps: DEMO_STEPS_KEY.slice(), frames };
+}
+
+/* --- 3. „So findest du die parallele Molltonart“ --- */
+
+const MINOR_X = [120, 180, 240];
+function minorDemoSvg(notes, k, cls = {}) {
+  const y = Math.round(lowestY(notes, "treble") + DM_GAP + DM_R);
+  let inner = "";
+  notes.slice(0, Math.max(1, k)).forEach((n, i) => { inner += noteSvg(n, "treble", MINOR_X[i], cls[i] || "", { stemless: true }); });
+  for (let i = 0; i < k; i++) inner += numSvg(MINOR_X[i], y, i + 1);
+  return staffSvg("treble", inner, { height: y + DM_R + 4 });
+}
+
+export function minorDemo(fifths) {
+  const t = majorTonicOf(fifths), m = minorTonicOf(fifths), major = majorName(fifths), minor = minorName(fifths);
+  const i = LETTERS.indexOf(t.letter), d = dia(t);
+  const stems = [t, N(LETTERS[(i + 6) % 7], Math.floor((d - 1) / 7), 0), N(LETTERS[(i + 5) % 7], Math.floor((d - 2) / 7), 0)];
+  const ref = [t, stems[1], stems[2], m];
+  const from = 60, octaves = 2, dim = keysSvg(from, octaves, [], [], false);
+  const svg = (notes, k, cls) => minorDemoSvg(notes, k, cls);
+  const frames = [{
+    step: 0, tones: [t],
+    text: `Parallele Molltonart zu ${major}? Erst drei Notenstufen abwärts, der Grundton ${helm(t)} zählt als 1.`,
+    body: stageHtml(svg(ref.slice(0, 1), 0), dim),
+  }];
+  for (let k = 1; k <= 3; k++) {
+    const n = stems[k - 1];
+    const text = k === 3 ? `${helm(n)} ist 3 → Stammton ${n.letter}.` : `${helm(n)} ist ${k}.`;
+    frames.push({ step: 1, tones: [n], text, body: stageHtml(svg(stems, k, { [k - 1]: k > 1 ? "step1" : "" }), dim) });
+  }
+  const tm = midi(t);
+  const ces = t.letter === "C" && t.acc === -1 ? " Ces liegt auf der Taste H." : "";
+  for (let j = 1; j <= 3; j++) {
+    const last = j === 3;
+    const counts = Array.from({ length: j }, (_, s) => [tm - s - 1, s + 1]);
+    let text = j === 1 ? `Von ${helm(t)} abwärts jede Taste zählen, auch die schwarzen: 1 Halbton.${ces}` : `${j} Halbtöne.`;
+    if (last) {
+      text = m.acc === 0 ? `3 Halbtöne: ${helm(m)} → ${minor}. Das ist eine kleine Terz.`
+        : `3 Halbtöne: ${m.letter} wird zu ${gName(m)} → ${minor}${hbNote(m)}. Das ist eine kleine Terz.`;
+    }
+    const notes = last ? [t, stems[1], m] : stems;
+    frames.push({
+      step: 2, tones: [pitchNote(tm - j)], text,
+      body: stageHtml(svg(notes, 3, last ? { 2: "step2" } : {}), keysSvg(from, octaves, [tm], counts, true)),
+    });
+  }
+  frames.push({
+    step: 3, tones: [t, m],
+    result: { title: `${major} → ${minor}`, chips: [{ step: 1, text: "3 Stufen" }, { step: 2, text: "3 Halbtöne" }] },
+    body: stageHtml(svg([t, stems[1], m], 3, { 2: "step2" }), keysSvg(from, octaves, [tm, midi(m)], Array.from({ length: 3 }, (_, s) => [tm - s - 1, s + 1]), true)),
+  });
+  return { steps: DEMO_STEPS_MINOR.slice(), frames };
+}
 
 /* ---------- Stufen ---------- */
 
@@ -644,7 +925,7 @@ const levels = [
     items: ITEMS_1,
     example: stepQuestion(find(ITEMS_1, "treble:C:2")).svg,
     question(prev) { return stepQuestion(pickStep(ITEMS_1, prev)); },
-    ...planHelps(),
+    ...planHelps(STEP_DEMO),
   },
   {
     title: "Bauplan der Dur-Tonleiter",
@@ -653,7 +934,7 @@ const levels = [
     items: ITEMS_2,
     example: stepQuestion(find(ITEMS_2, "treble:D:2")).svg,
     question(prev) { return stepQuestion(pickStep(ITEMS_2, prev)); },
-    ...planHelps(),
+    ...planHelps(STEP_DEMO),
   },
   {
     title: "Ganz- und Halbtonschritte ohne Hilfen",
@@ -670,7 +951,7 @@ const levels = [
     items: ITEMS_4,
     example: gapStepQuestion(find(ITEMS_4, "treble:G:6")).svg,
     question(prev) { return gapStepQuestion(pickStep(ITEMS_4, prev, Math.random, GAP_HALF_P)); },
-    ...planHelps(),
+    ...planHelps(SCALE_DEMO),
   },
   {
     title: "Welcher Ton fehlt? Ohne Hilfen",
@@ -690,7 +971,7 @@ const levels = [
     items: ITEMS_6,
     example: oddQuestion(find(ITEMS_6, "treble:G:6:-1")).svg,
     question(prev) { return oddQuestion(pickItem(ITEMS_6, prev)); },
-    ...planHelps(),
+    ...planHelps(SCALE_DEMO),
   },
   {
     title: "Welcher Ton passt nicht? Ohne Hilfen",
@@ -707,7 +988,7 @@ const levels = [
     items: ITEMS_8,
     example: sigQuestion(find(ITEMS_8, "treble:D")).svg,
     question(prev) { return sigQuestion(pickItem(ITEMS_8, prev)); },
-    ...planHelps(),
+    ...planHelps(SCALE_DEMO),
   },
   {
     title: "Tonleiter und Vorzeichen ohne Hilfen",
@@ -756,12 +1037,15 @@ const levels = [
 /* ---------- Lerntafeln ---------- */
 
 const TABLE_OPEN = `<table class="small" style="grid-column: 1 / -1; width: 100%; border-collapse: collapse; text-align: left">`;
+const FIG = (html) => `<figure style="grid-column: 1 / -1; margin: 0">${html}</figure>`;
 
-// Bauplan: C-Dur mit Klammern an den beiden Halbtonschritten. Die Überschrift setzt learn.js.
+// Bauplan: C-Dur mit Klammern an den beiden Halbtonschritten, darunter die Bauplan-Leiste.
+// Die Überschrift setzt learn.js.
 function planBoard(clef) {
   const notes = scaleNotes(TONICS[clef].C), names = notes.map(helm);
-  return `<figure style="grid-column: 1 / -1; margin: 0">${scaleSvg(notes, clef, { marks: [[2, 3], [6, 7]] })}</figure>
+  return `${FIG(scaleSvg(notes, clef, { marks: [[2, 3], [6, 7]] }))}
     <p style="grid-column: 1 / -1; margin: 0; text-align: center"><b>Ganz Ganz Halb · Ganz · Ganz Ganz Halb</b></p>
+    ${FIG(planTable())}
     <p class="small muted" style="grid-column: 1 / -1">Die Klammern zeigen die Halbtonschritte: ${names[2]}–${names[3]} und ${names[6]}–${names[7]}, also zwischen der 3. und 4. und der 7. und 8. Stufe. Die Tonleiter teilt sich in zwei gleich gebaute Vierergruppen (Tetrachorde), je Ganz – Ganz – Halb: ${names.slice(0, 4).join(" ")} und ${names.slice(4).join(" ")}. Dazwischen liegt ein Ganztonschritt. Ein Tetrachord sind vier stufenweise aufeinanderfolgende Töne im Umfang einer Quarte – trotz des Namens kein Akkord.</p>`;
 }
 
@@ -769,9 +1053,9 @@ function circleBoard() {
   const order = [0, 1, 2, 3, 4, 5, 6, 7, -1, -2, -3, -4, -5, -6, -7];
   const rows = order.map((f) => `<tr><td>${sigText(f)}</td><td><b>${majorName(f)}</b></td><td><b>${minorName(f)}</b></td></tr>`).join("");
   return `<p class="small muted" style="grid-column: 1 / -1">Vorzeichen, Dur-Tonart und parallele Molltonart. Jedes weitere ♯ führt eine Quinte höher, jedes weitere ♭ eine Quinte tiefer.</p>
-    ${TABLE_OPEN}<thead><tr><th>Vorzeichen</th><th>Dur</th><th>parallele Molltonart</th></tr></thead><tbody>${rows}</tbody></table>`;
+    ${TABLE_OPEN}<thead><tr><th>Vorzeichen</th><th>Dur</th><th>parallele Molltonart</th></tr></thead><tbody>${rows}</tbody></table>
+    ${FIG(circleTable())}`;
 }
-
 
 function keysBoard() {
   const rows = KEYS_4.map((k) => {
@@ -782,6 +1066,51 @@ function keysBoard() {
     ${TABLE_OPEN}<thead><tr><th>Tonart</th><th>Töne</th><th>Vorzeichen</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
+// Lerntafeln mit Vorführung: Beispiel-Knöpfe, darunter die Vorführung (mountBoard verdrahtet die Knöpfe;
+// eigenes Attribut data-tl-board, damit sich die Tafeln nicht mit der Intervall-Tafel in die Quere kommen)
+export const BOARDS = {
+  scale: {
+    examples: ["C", "G", "F", "D", "B"].map((k) => ({ label: keyName(TONICS.treble[k]), make: () => scaleDemo(TONICS.treble[k], "treble") })),
+    intro: "Erst der Bauplan: die Stufen 1 bis 8 und Ganz – Ganz – Halb – Ganz – Ganz – Ganz – Halb. Dann die Klaviatur: Halbtöne zählen, so ergeben sich die Vorzeichen. Wähle eine Tonart, dann „Weiter ›“ oder „Abspielen“.",
+    after: "Passt ein Abstand nicht zum Bauplan, ändert sich immer die obere Note: Abstand zu klein → ♯, zu groß → ♭. In As-Dur sind as'–h' 3 Halbtöne, der Bauplan will Ganz → h' wird zu b'.",
+  },
+  key: {
+    examples: [3, -3, 7, -1, 0].map((f) => ({ label: f ? sigText(f) : "keine", make: () => keyDemo(f, "treble") })),
+    intro: "Erst das entscheidende Vorzeichen: bei Kreuzen das letzte, bei Be das vorletzte. Dann die Klaviatur: Einen Halbton über dem letzten Kreuz liegt der Grundton, das vorletzte Be ist selbst der Grundton.",
+    after: "Ein einzelnes Be steht für F-Dur, ohne Vorzeichen ist es C-Dur.",
+  },
+  minor: {
+    examples: [-3, 0, 3, -5, -7].map((f) => ({ label: majorName(f), make: () => minorDemo(f) })),
+    intro: "Die parallele Molltonart hat dieselben Vorzeichen. Erst drei Notenstufen abwärts, der Dur-Grundton zählt als 1. Dann drei Halbtöne abwärts. Das ist derselbe Weg wie bei den Intervallen: eine kleine Terz abwärts.",
+    after: "Achtung H und B: In Des-Dur ist der Stammton H, mit ♭ heißt er B → b-Moll. Ces-Dur beginnt auf der Taste H, drei Halbtöne darunter liegt as → as-Moll.",
+  },
+};
+
+export function boardHtml(id) {
+  const b = BOARDS[id];
+  const picks = b.examples.map((ex, i) => `<button class="btn${i ? "" : " on"}" data-ex="${i}" aria-pressed="${!i}">${ex.label}</button>`).join("");
+  return `<div class="demo-board" data-tl-board="${id}">
+    <p class="small">${b.intro}</p>
+    <div class="row demo-pick" role="group" aria-label="Beispiel">${picks}</div>
+    <div class="demo" data-demo-root>${demoHtml(b.examples[0].make(), 0)}</div>
+    <p class="small muted">${b.after}</p>
+  </div>`;
+}
+
+export const mountBoard = (id) => (container) => {
+  const board = container.querySelector(`[data-tl-board="${id}"]`);
+  if (!board) return;
+  const root = board.querySelector("[data-demo-root]"), ex = BOARDS[id].examples;
+  let h = mountDemo(root, ex[0].make());
+  board.querySelector(".demo-pick").onclick = (e) => {
+    const btn = e.target.closest("[data-ex]");
+    if (!btn) return;
+    h.stop();
+    board.querySelectorAll("[data-ex]").forEach((x) => { x.classList.toggle("on", x === btn); x.setAttribute("aria-pressed", String(x === btn)); });
+    h = mountDemo(root, ex[+btn.dataset.ex].make());
+  };
+};
+
 export default {
   id: "tonleitern",
   title: "Tonleitern",
@@ -789,10 +1118,13 @@ export default {
   grade: "Klasse 5–9",
   levels,
   learn: [
+    { title: "So baust du eine Dur-Tonleiter", render() { return boardHtml("scale"); }, mount: mountBoard("scale") },
     { title: "Bauplan Dur", clef: "treble", render() { return planBoard("treble"); } },
     { title: "Bauplan Dur", clef: "bass", render() { return planBoard("bass"); } },
     { title: "Dur-Tonleitern bis 4 Vorzeichen", render() { return keysBoard(); } },
+    { title: "So findest du die Tonart", render() { return boardHtml("key"); }, mount: mountBoard("key") },
     { title: "Quintenzirkel", render() { return circleBoard(); } },
+    { title: "So findest du die parallele Molltonart", render() { return boardHtml("minor"); }, mount: mountBoard("minor") },
   ],
   blitz: null,
 };
