@@ -50,7 +50,7 @@ test("Texte: keine verbotenen Wörter, Anrede du", () => {
 
 test("mindestens 8 unterschiedliche Aufgaben je Stufe, Zahlen festgehalten", () => {
   assert.deepEqual([POOL_1, POOL_2, POOL_3, POOL_4, POOL_5, POOL_6].map((p) => p.length), [76, 76, 147, 115, 30, 30]);
-  assert.deepEqual([POOL_7, POOL_8, POOL_9, POOL_10, POOL_11, POOL_12].map((p) => p.length), [51, 408, 206, 206, 206, 904]);
+  assert.deepEqual([POOL_7, POOL_8, POOL_9, POOL_10, POOL_11, POOL_12].map((p) => p.length), [51, 408, 206, 206, 206, 873]);
   L.forEach((l) => {
     assert.ok(l.items.length >= 8, l.id);
     const seen = new Set(many(l, 400).map((q) => q.svg + q.prompt));
@@ -521,4 +521,8 @@ test("Lerntafel „So bestimmst du ein Intervall“", () => {
   assert.equal((t.match(/<tr><td>/g) || []).length, 11);
   assert.ok(t.includes('<tr><td>reine Quinte</td><td class="num">7</td><td><b>c\'–g\'</b></td></tr>'));
   assert.ok(t.includes('<tr><td>kleine Sekunde</td><td class="num">1</td><td><b>c\'–des\'</b></td></tr>'));
+});
+
+test("Stufe 12: kein Intervall mischt ♯ und ♭ (Sandra, 20.11.2026)", () => {
+  for (const it of POOL_12) assert.ok(it.low.acc * it.shown.acc >= 0, `${it.low.letter}${it.low.acc}–${it.shown.letter}${it.shown.acc}`);
 });

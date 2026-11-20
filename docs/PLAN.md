@@ -653,8 +653,11 @@ möglich; `requires` inkl. alter Spielstände; Stufen 1–6 unverändert (76, 76
 147, 115, 30, 30); bisherige Sammeltests auf die neuen Formen angepasst.
 
 **Umgesetzt (Branch `paket-intervalle`).** Aufgaben je Stufe: 7: 51 (Violin
-und Bass), 8: 408, 9: 206, 10: 206, 11: 206, 12: 904 (206 „stimmt“, 452
-„Zahl stimmt nicht“, 128 „ein Halbton zu viel“, 118 „ein Halbton zu wenig“);
+und Bass), 8: 408, 9: 206, 10: 206, 11: 206, 12: 873 (206 „stimmt“, 452
+„Zahl stimmt nicht“, 110 „ein Halbton zu viel“, 105 „ein Halbton zu wenig“;
+ohne Intervalle, die ♯ und ♭ mischen, z. B. cis'–es' – Sandra, 20.11.2026;
+Aufgaben, bei denen Zahl und Halbtöne zugleich abweichen, bleiben: zuerst
+zählt die Zahl);
 Stufen 1–6 unverändert (76, 76, 147, 115, 30, 30). Entscheidungen bei der
 Umsetzung: Der Knopf heißt „Zahl stimmt nicht (Stufen)“ statt „falsche Zahl
 (Stufen)“, weil die Wortliste (`test/texte.test.js`) „falsch“ im Code

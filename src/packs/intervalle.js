@@ -353,7 +353,9 @@ function checkPool() {
       if (Math.abs(shown.acc) <= 1 && inRange(shown) && intervalSemitones(low, shown) > 0) out.push({ ...base, shown, verdict });
     }
   }
-  return out;
+  // Keine Mischung aus ♯ und ♭ in einem Intervall (cis'–es', ges'–fis''): so schreibt in Kl. 5–6 niemand
+  // (Sandra, 20.11.2026)
+  return out.filter((it) => it.low.acc * it.shown.acc >= 0);
 }
 export const POOL_12 = checkPool();
 const checkKey = (it) => `${dia(it.low)}/${it.low.acc}:${it.num}${it.quality}:${dia(it.shown)}/${it.shown.acc}`;
