@@ -105,3 +105,9 @@ test("Manifest-Farben entsprechen den Tokens --accent und --bg (hell)", () => {
   assert.equal(m.theme_color.toLowerCase(), tok("accent"));
   assert.equal(m.background_color.toLowerCase(), tok("bg"));
 });
+
+test("Cache-Version seit Welle 9 (Notenwerte gehirngerecht) mindestens -12", () => {
+  // neue Lerntafeln und Hilfen im Paket „Notenwerte“: installierte Geräte müssen die neuen Dateien laden
+  const n = +sw.match(/^const CACHE = "notenheld-v[\d.]+-(\d+)";$/m)[1];
+  assert.ok(n >= 12, String(n));
+});

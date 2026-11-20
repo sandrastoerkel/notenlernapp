@@ -34,8 +34,8 @@ Auf den Startbildschirm legen:
 
 Für Entwicklerinnen und Entwickler:
 
-- Die Cache-Version steht oben in `sw.js` (`const CACHE = "notenheld-v0.2.0-11"`). Bei jedem Release erhöhen, sonst behalten installierte Geräte die alten Dateien.
-- Stand 20.11.2026: Live ist `main` bd29c40 (Paket „Intervalle“ neu mit Hilfen, Vorführung und Kästchentabelle, Cache `notenheld-v0.2.0-10`). Der Branch `tonleitern-neu` (Welle 8: Paket „Tonleitern“ mit 13 Stufen, erst mit Hilfen, dann ohne, drei Vorführungen, Cache `notenheld-v0.2.0-11`) ist noch nicht veröffentlicht.
+- Die Cache-Version steht oben in `sw.js` (`const CACHE = "notenheld-v0.2.0-12"`). Bei jedem Release erhöhen, sonst behalten installierte Geräte die alten Dateien.
+- Stand 20.11.2026: Live ist `main` 0cbe835 (Paket „Tonleitern“ mit 13 Stufen, erst mit Hilfen, dann ohne, drei Vorführungen, Cache `notenheld-v0.2.0-11`). Der Branch `notenwerte-neu` (Welle 9: Paket „Notenwerte und Pausen“ mit 10 Stufen, erst mit Hilfen, dann ohne, drei Vorführungen, Cache `notenheld-v0.2.0-12`) ist noch nicht veröffentlicht.
 - Neue Dateien unter `src/`, `css/`, `fonts/` oder `icons/` in die Liste `PRECACHE` in `sw.js` eintragen; `test/sw.test.js` schlägt sonst fehl.
 - Beim Entwickeln hilft in Chrome DevTools unter Application → Service Workers „Update on reload“, damit Änderungen sofort sichtbar sind.
 - Die Icons in `icons/` sind aus einem Bild im Aquarell-Stil erzeugt, das Sandra Störkel mit Apple Image Playground erstellt hat (KI-generiert) (Violinschlüssel auf Blau, Grün und Gelb). Beim maskierbaren Icon liegt der Schlüssel ganz im sicheren Kreis, der Rand ist mit den verwischten Farben des Bildes aufgefüllt. Nachweise: [THIRD_PARTY.md](THIRD_PARTY.md).
@@ -73,7 +73,7 @@ Smartphone-Breite (420 px), helles Farbschema. Die dunklen Fassungen liegen dane
 7. Vorzeichen ♯ und ♭
 8. Alles gemischt
 
-Das sind die Stufen von „Noten lesen“. Weitere Pakete: Notenwerte und Pausen, Tonleitern (13 Stufen: Ganz- und Halbtonschritte, welcher Ton fehlt, welcher Ton passt nicht, Vorzeichen, Tonart aus den Vorzeichen, parallele Molltonart; immer erst mit Hilfen – Klaviatur, Bauplan-Leiste bzw. Quintenzirkel – dann ohne; drei Vorführungen als Lerntafeln), Intervalle (zehn Stufen: Rahmenintervall, dann rein/klein/groß und vermindert/übermäßig in zwei Schritten, abwärts, bauen, Fehler finden; Stufe 1, 3, 5 und 8 mit aufklappbaren Hilfen: Klaviatur und Tabelle), Dreiklänge und Quintenzirkel.
+Das sind die Stufen von „Noten lesen“. Weitere Pakete: Notenwerte und Pausen (zehn Stufen: Notenwerte, Pausen, Schläge, Punktierungen, Takt füllen; immer erst mit Hilfen – Merkmale, Notenwert-Pyramide, Zählleiste – dann ohne; drei Vorführungen als Lerntafeln), Tonleitern (13 Stufen: Ganz- und Halbtonschritte, welcher Ton fehlt, welcher Ton passt nicht, Vorzeichen, Tonart aus den Vorzeichen, parallele Molltonart; immer erst mit Hilfen – Klaviatur, Bauplan-Leiste bzw. Quintenzirkel – dann ohne; drei Vorführungen als Lerntafeln), Intervalle (zehn Stufen: Rahmenintervall, dann rein/klein/groß und vermindert/übermäßig in zwei Schritten, abwärts, bauen, Fehler finden; Stufe 1, 3, 5 und 8 mit aufklappbaren Hilfen: Klaviatur und Tabelle), Dreiklänge und Quintenzirkel.
 
 Eine Stufe öffnet sich, sobald in der vorherigen 8 von 10 Noten richtig waren. Zum Ausprobieren gibt es auf der Startseite „Alle Stufen öffnen (Demo)“.
 

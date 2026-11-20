@@ -328,7 +328,11 @@ Pause. `beats` zählt Schläge (Viertel = 1, punktierte Viertel 1,5); ein Schlag
 dauert `BEAT_MS` = 600 ms (Tempo 100). Der Ton klingt dann `beats · 0,6 s`
 lang (`play(n, vol, dur)` in `audio.js`). Die nächste Aufgabe erscheint erst,
 wenn der Rhythmus vorbei ist, plus `RHYTHM_TAIL` = 300 ms (bei
-ausgeschaltetem Ton wie bisher nach 800 bzw. 1600 ms). Genutzt von „Takt
+ausgeschaltetem Ton wie bisher nach 800 bzw. 1600 ms). Wartet die Stufe auf
+„Nächste Aufgabe“ (Hilfen), kann man vorher weitergehen: Die Zeitgeber der Töne
+stehen in `r.tones`, `silenceTones(r)` löscht sie beim Weitergehen (`r.advance`)
+und beim Öffnen der Vorführung (seit Welle 9; ein schon klingender Ton endet nach
+seiner Dauer). Genutzt von „Takt
 füllen“: Nach der Antwort zeigt `revealSvg` den Takt mit dem fehlenden Wert in
 der Lücke (`<g class="filled">`), und der ganze Takt erklingt auf h'.
 
@@ -398,7 +402,9 @@ Regeln für Pakete:
   belassen, im Test vermerkt). Stufen 1 und 2 von „Notenwerte und Pausen“
   (`notenwerte-1`, `notenwerte-2`) haben nur 5 Aufgaben: die fünf Notenwerte
   bzw. Pausenwerte von der ganzen bis zur Sechzehntel, alle auf derselben Höhe,
-  damit nur der Wert zählt (im Test `test/packs/notenwerte.test.js` vermerkt).
+  damit nur der Wert zählt; Stufe 6 (`notenwerte-6`, Punktierungen mit Hilfen) hat
+  6 Aufgaben (halbe, Viertel, Achtel mit und ohne Punkt; Vorrat 9, punktierte
+  doppelt). Im Test `test/packs/notenwerte.test.js` vermerkt.
 - Texte auf Deutsch, Anrede „du“, Fachbegriffe wie im Musikunterricht am Gymnasium.
 - Jedes Paket hat eine Testdatei `test/packs/<id>.test.js`, die prüft: Stufen-IDs eindeutig, `question()` liefert gültige Aufgaben, `check()` erkennt die richtige Antwort und lehnt eine falsche ab, bei `choices` ist `answer` enthalten.
 
@@ -459,6 +465,21 @@ Bauplan-Leiste, 7 Schritte, Ergebnis; Berichtigung immer an der oberen Note, zu 
 clef)` (n + 3 Bilder, C- und F-Dur 3), `minorDemo(fifths)` (8 Bilder). Lerntafeln mit Vorführung tragen
 `data-tl-board="scale|key|minor"` (nicht `data-demo-board`, das sucht die Intervall-Tafel). Klassen: `.tl-keys`
 (Töne grün), `.tl-bracket`, `.tl-decisive`, `.keysig.step1`, `.tt-box.s1`, `.tt-plan`, `.tt-wide`.
+
+**Notenwerte (Welle 9).** Zehn Stufen, zweischrittig (`q.steps`) 1, 4, 6, 8, Hilfen 1, 2, 4, 6, 8 (nur
+`helps: ["tabelle"]` mit `helpTable` und eigener Überschrift `helpsTitle`). Denkschritte: Notenwert 1 = Kopf
+(hohl/schwarz), 2 = Hals und Fähnchen; Dauer 1 = Notenwert (beim Punkt ohne den Punkt), 2 = Schläge aus der
+Pyramide (beim Punkt die Hälfte dazu); Takt füllen 1 = Zählen (was fehlt bis 4), 2 = Wert wählen. Zweischrittige
+Aufgaben: `display` = beide Schritte („Kopf schwarz · 1 Fähnchen → Achtelnote (½ Schlag)“), `reveal` =
+„Richtig wäre: …“, `partial` je Stufe; `ok`/`bad` von Schritt 1 nennen die Antwort von Schritt 2 nie. Reine
+Funktionen im Paket: `featureTable()` (Kopf | Hals | Fähnchen je Notenwert, ohne Notenbilder), `restTable()`
+(woran du die Pausen erkennst, ohne Zeichen), `pyramidSvg({ hit, add, small })` (1/2/4/8/16 Kästchen, rechts die
+Schläge, ohne Namen), `countTable()` (Zählleiste `COUNT_SYLLABLES` „1 + 2 + 3 + 4 +“, Schlag-Felder als
+`family`), `valueDemo(e)` (4 Bilder), `beatsDemo(e)` (4, mit Punkt 5), `barDemo(els, gap)` (n + 4 Bilder,
+Summenleiste `sumBarSvg`, im Ergebnis `countLabels(els)` mit Pausen-Zählzeiten in Klammern, abschaltbar über
+`REST_COUNTS_IN_PARENS`). `barSvg(els, gap, filled, { mark })` färbt ein Zeichen violett. Lerntafeln mit
+Vorführung tragen `data-nw-board="value|beats|bar"`. Klassen: `.nw-ring` (Rahmen über der Note), `.nw-s1`/`.nw-s2`
+(Zeichen in der Farbe des Schritts), `.nw-pyr*`, `.nw-sum*`, `.nw-seg`, `.nw-rests`.
 
 ## Engine (`src/engine.js`)
 
@@ -669,6 +690,12 @@ bleiben. Reihenfolge zwingend: `load` ruft `migrateAll(s)` = erst `migrateInterv
 (beide laufen immer, nicht mit `||` verkettet; danach einmal speichern), auch im v1-Zweig. So landen alte
 `intervalle-5/-6` über `tonleitern-7/-8` auf 11 und 13. Freischaltung unverändert: Gespieltes bleibt offen; eine
 alte, offene, aber nie gespielte Stufe öffnet sich erst wieder über die neue Stufe davor.
+
+Umstellung „Notenwerte gehirngerecht“ (Welle 9, `migrateNotenwerte(s)`, Marker `"notenwerte-neu"`, ein frischer
+Stand trägt alle drei Marker): `notenwerte-1→1, 2→2, 3→5, 4→7, 5→9, 6→10`, in einem Durchgang in ein neues
+`levels`-Objekt (sonst verkettet 3→5 mit 5→9), `current` entsprechend, `notes` bleibt (keine statKeys im Paket).
+`migrateAll` ruft alle drei auf (`a || b || c`); die Reihenfolge ist für die Notenwerte unkritisch. Folge der
+Freischaltung bei einem alten Stand, der alles geschafft hatte: 4 bleibt zu, bis 3 geschafft ist (im Test).
 
 Ein Eintrag in `notes` (seit Paket G): `ok` und `bad` zählen richtige und
 falsche Antworten, `sec` ist die Summe der Antwortzeiten richtiger Antworten

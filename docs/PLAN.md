@@ -1309,6 +1309,43 @@ und anzupassende Tests benannt; (8) Stufe 10: 123 Aufgaben, vier statt fünf gle
 Sechzehntel-Silben als [OFFEN Sandra], weil nicht belegt. Wortliste: keine verbotenen Wörter in den geplanten
 Texten („Nicht ganz“, „Richtig wäre“), Anrede „du“.
 
+**Umgesetzt (Branch `notenwerte-neu`).** Aufgaben je Stufe: 1: 5, 2: 5, 3: 10, 4: 10, 5: 10, 6: 6 (Vorrat 9),
+7: 12 (Vorrat 18), 8: 91, 9: 91, 10: 123. Zwei Schritte in 1, 4, 6, 8; Hilfen in 1, 2, 4, 6, 8 (warten auf
+„Nächste Aufgabe“, „Vorführen“ in 1, 4, 6, 8 erst nach der Antwort). Fehlende Dauern in Stufe 8 nachgerechnet:
+1 (42), ½ (22), 2 (17), ¼ (4), 1½ (4), 3 (2). Engine: nur `r.tones`/`silenceTones` (Rhythmus verstummt beim
+Weitergehen und beim Öffnen der Vorführung). `store.js`: `migrateNotenwerte`, `migrateAll` mit drei Aufrufen.
+Cache `notenheld-v0.2.0-12`.
+
+Entscheidungen bei der Umsetzung (ohne Rückfrage):
+- Hilfen Stufe 1 gedreht (eine Zeile je Notenwert, Spalten Kopf | Hals | Fähnchen), ohne Hinterlegung: Mit einer
+  Spalte je Notenwert wäre die Tabelle bei 320 px etwa 370 px breit (der Plan sieht das Drehen als Ausweg vor).
+- Satz der Hilfen Stufe 2 (im Plan nicht festgelegt): „Achte auf die Form und bei den Balken auf die Lage.“;
+  Stufe 6: „Der Punkt verlängert eine Note um die Hälfte ihres Wertes.“ (bisheriger Hinweis); Stufe 8: „Zähle die
+  Werte im Takt zusammen und überspringe die Lücke. Was fehlt bis 4?“; unter der Zählleiste „+ heißt „und“: eins
+  und zwei und drei und vier und“.
+- Einheitliche Rückmeldung der zweischrittigen Stufen: `reveal` = „Richtig wäre: <beide Schritte>.“ (z. B.
+  „Richtig wäre: Viertelnote = 1 Schlag · Punkt: + ½ → 1½ Schläge.“), `display` dieselben Schritte groß
+  geschrieben. Bei 3 fehlenden Schlägen „Im Takt steht 1 Schlag, es fehlen 3 Schläge“ (Einzahl).
+- Pyramide: Zeichen auf g' (Hals nach oben, passt ins Kästchen), Sechzehntel-Zeile nur Kästchen; in der
+  Lerntafel „Notenwerte und Pausen“ unter den Tabellen mit dem Satz „Jede Zeile dauert gleich lang, zusammen ein
+  4/4-Takt: 1 ganze = 2 halbe = 4 Viertel = 8 Achtel = 16 Sechzehntel.“
+- Vorführung 2: Frage, Notenwert, Schläge, (Punkt), Ergebnis = 4 bzw. 5 Bilder; bei Pausen „Achtelpause = ½
+  Schlag, so lang wie die Achtelnote“. Ton h' im Ergebnis nur bei Noten.
+- Vorführung 3: Lerntafel mit „vier Viertel“ (4 4 4 4, Lücke am Ende), „mit Pause“ (4 r4 2, Lücke 2) und „mit
+  Punkt“ (4. 8 4 4, Lücke in der Mitte); Ergebnis-Titel „Viertelnote (1 Schlag)“, Marken „3 Schläge da · 1 fehlt“
+  / „Viertelnote“. Klammern: ein Feld, an dessen Anfang eine Pause klingt, steht in Klammern („(+)“).
+- Vorführung 1: Rahmen um Hals und Fähnchen auch bei der Viertelnote („kein Fähnchen“), bei der ganzen Note
+  gestrichelt an der Stelle, wo der Hals stünde.
+- Spielstände: `notenwerte-1` und `-2` bleiben auf 1 und 2 (gleicher Inhalt, jetzt mit Hilfen bzw. in zwei
+  Schritten); der Satz „jede alte Stufe landet auf der neuen Stufe ohne Hilfen“ gilt damit für 3–6.
+
+Browserprüfung (Headless Chrome im Container, Service Worker gesperrt, 420 und 320 px, hell und dunkel): jede
+Stufe eine Runde, Hilfen auf/zu, in 1/4/6/8 je eine Aufgabe ganz richtig und eine mit danebenliegendem Schritt 1
+(Text nach Schritt 1 ohne Antwort von Schritt 2, danach `q.partial`), „Vorführen“ bis zum Ergebnis, alle
+Lerntafel-Vorführungen bis zum letzten Bild, Knöpfe und Bildzähler bei 320 px in einer Zeile, sechs Knöpfe der
+Stufe 8 in einer Reihe, kein waagrechter Überlauf, keine Konsolenfehler; alter Spielstand umgestellt; „Noten
+lesen“, „Intervalle“ und „Tonleitern“ Stufe 1 unverändert.
+
 ## Später (nicht geplant, nur notiert)
 
 - Altschlüssel für Bratsche als Stufen in „Noten lesen“.
