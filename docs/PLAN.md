@@ -1093,6 +1093,131 @@ Dateien für PRECACHE.
   die Antwort von Schritt 2 schon da). Offen für Sandra: Das Quintenzirkel-Kästchen
   in den Hilfen der Stufe 10 erlaubt, Schritt 2 nachzuschlagen (als Nachschlagehilfe gewollt).
 
+## Welle 9: Notenwerte gehirngerecht (erst mit Hilfen, dann ohne)
+
+Ausgangsstand: `main` 0cbe835 (Tonleitern gehirngerecht, gepusht 20.11.2026, 15:43, Cache `notenheld-v0.2.0-11`),
+Branch `notenwerte-neu`. Grundlage: KONZEPT-gehirngerecht (Sandra, 20.11.2026; Cowork-Ordner) und der gemeinsame
+Baukasten aus Welle 7/8 (`--step1…`/`--step2…`, `src/demo.js`, `src/grid.js`, `level.helps`, `level.helpTable`,
+`level.helpsTitle`, `q.steps`, Warten auf „Nächste Aufgabe“). Musikalischer Inhalt bleibt wie in Paket C: fünf
+Notenwerte und Pausen (ganze bis Sechzehntel), Punktierung nur bei halber, Viertel und Achtel (Noten, keine
+punktierten Pausen), 4/4-Takt, die 25 festen Takte `BARS`. Alle Noten auf h' im Violinschlüssel. Keine
+Jahrgangsstufen an den Stufen.
+
+**Die zwei Denkschritte** (Farbe nach Reihenfolge: Schritt 1 violett, Schritt 2 grün).
+- Notenwert: Schritt 1 = **Kopf** (hohl oder schwarz); Schritt 2 = **Hals und Fähnchen** (hohl: ohne Hals → ganze,
+  mit Hals → halbe; schwarz: kein Fähnchen → Viertel, eins → Achtel, zwei → Sechzehntel).
+- Dauer: Schritt 1 = **Notenwert erkennen** (bei punktierten Noten: der Wert vor dem Punkt); Schritt 2 =
+  **Schläge**: aus der Notenwert-Pyramide ablesen, beim Punkt die Hälfte dazu (1 + ½ = 1½).
+- Takt füllen: Schritt 1 = **Zählen**: Werte im Takt der Reihe nach in die Zählleiste eintragen, was bis 4 fehlt;
+  Schritt 2 = **Wert wählen**: welche Note bzw. Pause dauert genau so lang. Hier steht das Zählen vorn, weil man
+  vom Takt zur Lücke geht (KONZEPT: „Takt mit mitlaufenden Zählzeiten füllen“).
+
+**Stufen** (H = Hilfen, 2S = Antwort in zwei Schritten):
+
+| Neu | Inhalt | H | 2S | Herkunft |
+|---|---|---|---|---|
+| 1 | Notenwerte erkennen (5) | ja | ja | alt 1 |
+| 2 | Pausen erkennen (5) | ja | – | alt 2 |
+| 3 | Noten und Pausen erkennen ohne Hilfen (10) | – | – | neu (alt 1 + 2) |
+| 4 | Wie viele Schläge? Noten und Pausen (10) | ja | ja | neu (Inhalt alt 3) |
+| 5 | Wie viele Schläge? ohne Hilfen (10) | – | – | alt 3 |
+| 6 | Punktierungen (6, punktierte doppelt gewichtet) | ja | ja | neu (Inhalt alt 4) |
+| 7 | Punktierungen ohne Hilfen (12) | – | – | alt 4 |
+| 8 | Takt füllen (91) | ja | ja | neu (Inhalt alt 5) |
+| 9 | Takt füllen ohne Hilfen (91) | – | – | alt 5 |
+| 10 | Alles gemischt (Stufen 3, 5, 7, 9) | – | – | alt 6 |
+
+**Zweischrittige Antworten (`q.steps`, nur Knöpfe in fester Reihenfolge).** Schritt 1 daneben: richtigen Knopf
+zeigen, Schritt 2 trotzdem fragen, Aufgabe zählt als daneben; `q.partial` wenn nur Schritt 1 daneben.
+- Stufe 1: Schritt 1 „Wie sieht der Notenkopf aus?“ hohl | schwarz. Schritt 2 „Welcher Notenwert?“ nur die
+  Werte dieser Kopfform: hohl → ganze Note | halbe Note; schwarz → Viertelnote | Achtelnote | Sechzehntelnote
+  (nach Schritt 1 ist die Kopfform bekannt, die anderen Werte wären keine echte Wahl). Rückmeldung:
+  „Kopf hohl · mit Hals → halbe Note (2 Schläge)“, „Kopf schwarz · 1 Fähnchen → Achtelnote (½ Schlag)“.
+- Stufe 4: Schritt 1 „Welcher Notenwert?“ bzw. „Welche Pause?“ (die fünf Namen der Sorte). Schritt 2 „Wie viele
+  Schläge im 4/4-Takt?“ 4 | 2 | 1 | ½ | ¼. Rückmeldung „Achtelpause → ½ Schlag“.
+- Stufe 6: Schritt 1 „Welcher Notenwert steht vor dem Punkt?“ (bei Noten ohne Punkt: „Welcher Notenwert?“)
+  halbe Note | Viertelnote | Achtelnote. Schritt 2 „Wie viele Schläge dauert die Note?“ 3 | 2 | 1½ | 1 | ¾ | ½
+  (wie `BEAT_CHOICES_4`). Rückmeldung „Viertelnote = 1 Schlag · Punkt: + ½ → 1½ Schläge“ bzw. ohne Punkt
+  „Viertelnote = 1 Schlag · kein Punkt → 1 Schlag“.
+- Stufe 8: Schritt 1 „Wie viele Schläge fehlen bis 4?“ ¼ | ½ | 1 | 1½ | 2 | 3 | 4 (feste Leiste; sieben Knöpfe,
+  bei 320 px prüfen). Schritt 2 „Welche Note fehlt?“ bzw. „Welche Pause fehlt?“ mit `fillChoices` wie bisher
+  (vier Werte, alle mit verschiedener Dauer, nach Länge sortiert). Rückmeldung „Im Takt stehen 3 Schläge, es
+  fehlt 1 Schlag → Viertelnote“. Vorher für alle 91 Aufgaben nachrechnen: die fehlende Dauer ist immer eine der
+  sieben Zahlen, die Antwort in Schritt 2 eindeutig.
+- Stufen ohne Hilfen (3, 5, 7, 9, 10) bleiben einschrittig wie bisher; ihre Auflösung nennt schon beide
+  Denkschritte (`revealBeats`: „Richtig wäre: 1½ Schläge, denn das ist eine punktierte Viertelnote.“,
+  `revealFill`: „… denn es fehlt noch 1 Schlag.“). Stufe 3 fragt „Welcher Notenwert ist das?“ bzw. „Welche Pause
+  ist das?“ mit den fünf Namen der Sorte (wie alt 1 und 2).
+
+**Hilfen (`level.helps = ["tabelle"]`, keine Klaviatur, keine neuen Hilfe-Arten, keine Änderung an der Engine).**
+Vor der Antwort wird nichts hervorgehoben; Hervorhebung nur in der Vorführung. Überschrift über
+`level.helpsTitle`.
+- Stufe 1 „Hilfen: Merkmale“: Kästchentabelle (`tileTable`) Kopf „Notenwert | Kopf | Hals | Fähnchen“, eine Zeile
+  je Wert (hohl/schwarz, ja/nein, 0/1/2), Familien: hohle Köpfe grau hinterlegt. Satz: „Erst den Kopf ansehen,
+  dann Hals und Fähnchen.“
+- Stufe 2 „Hilfen: Pausen“: kleine Tabelle Zeichen | Name | woran du sie erkennst (ganze: hängt an der vierten
+  Linie von unten; halbe: sitzt auf der Mittellinie; Viertel: Zickzack; Achtel: ein Haken; Sechzehntel: zwei
+  Haken) – Wortlaut aus dem bisherigen Hinweis der Stufe 2.
+- Stufen 4 und 6 „Hilfen: Notenwert-Pyramide“: SVG im Paket, fünf Zeilen (1 ganze, 2 halbe, 4 Viertel,
+  8 Achtel, 16 Sechzehntel, jede Zeile gleich breit, Kästchen mit kleinem Zeichen), rechts „4 · 2 · 1 · ½ · ¼
+  Schläge“. Stufe 6 zusätzlich die Zeile „Punkt: + die Hälfte“. Bei 320 px lesbar prüfen (Sechzehntel-Zeile
+  darf ohne Zeichen nur Kästchen zeigen).
+- Stufe 8 „Hilfen: Zählleiste und Pyramide“: Zählleiste als Kästchentabelle mit acht Achtel-Feldern
+  „1 + 2 + 3 + 4 +“, die Schlag-Felder grau hinterlegt; darunter die Pyramide klein.
+
+**Vorführungen (`src/demo.js`, Bilder rein im Paket, testbar).**
+1. **„So erkennst du einen Notenwert“** (Lerntafel mit allen fünf Werten; Hilfen Stufe 1): Frage (Note allein)
+   → Schritt 1 violett „1 · Kopf“: Kopf violett umrandet, „Kopf hohl“ bzw. „Kopf schwarz“ → Schritt 2 grün
+   „2 · Hals und Fähnchen“: Hals bzw. Fähnchen grün markiert („mit Hals → halbe Note“, „2 Fähnchen →
+   Sechzehntelnote“) → Ergebnis „Achtelnote · ½ Schlag“ mit Marken „Kopf schwarz“ / „1 Fähnchen“. Markierung
+   als Rahmen über der Note, die Note selbst bleibt unverändert. 4 Bilder. Ton: das h' im letzten Bild.
+2. **„So bestimmst du die Dauer“** (Lerntafel: Viertel, Achtelpause, punktierte halbe, punktierte Viertel,
+   punktierte Achtel; Hilfen Stufen 4 und 6): Frage → Schritt 1 „1 · Notenwert“ (Name violett, bei Punkt
+   „vor dem Punkt: Viertelnote“) → Schritt 2 „2 · Schläge“: Pyramiden-Zeile grün „Viertelnote = 1 Schlag“;
+   mit Punkt ein weiteres Bild „Punkt: die Hälfte dazu → 1 + ½“ → Ergebnis „punktierte Viertelnote = 1½ Schläge“.
+   3 bzw. 4 Bilder (+ Frage, Ergebnis).
+3. **„So zählst du einen Takt“** (Lerntafel mit drei Takten aus `BARS`, darunter einer mit Pause und einer mit
+   Punkt; Hilfen Stufe 8): Frage (Takt mit Lücke) → Schritt 1 violett „1 · Zählen“: je Bild ein Wert von links,
+   der Wert violett, seine Felder in der Zählleiste unter dem Takt füllen sich violett, Satz mit laufender Summe
+   („Achtelnote: ½ Schlag · bisher 2 Schläge“); bei der Lücke „Lücke: überspringen“; danach ein Bild „4 − 3 = es
+   fehlt 1 Schlag“ (die leeren Felder violett umrandet) → Schritt 2 grün „2 · Wert wählen“: leere Felder grün,
+   die Lücke grün mit dem richtigen Wert gefüllt („1 Schlag → Viertelnote“) → Ergebnis: ganzer Takt mit Zählleiste,
+   Marken „3 Schläge da · 1 fehlt“ / „Viertelnote“. Sechzehntel füllen ein halbes Feld. Pausen füllen ihre Felder
+   wie Noten (sie dauern ja auch), ihre Zählzeit in Klammern. Ton: je Bild in Schritt 1 ein Klick bei Noten
+   (h'), keiner bei Pausen; den Rhythmus spielt wie bisher die Aufgabe nach der Antwort.
+
+**Lerntafeln (Reihenfolge).** So erkennst du einen Notenwert (Vorführung) · Notenwerte und Pausen (Tabelle wie
+bisher, darunter die Notenwert-Pyramide) · So bestimmst du die Dauer (Vorführung) · So zählst du einen Takt
+(Vorführung). Tafeln mit eigenem Attribut (`data-nw-board`), siehe Welle 8 (`data-tl-board`).
+
+**Spielstände.** Einmalige Umstellung `migrateNotenwerte` in `src/store.js` (Marker `"notenwerte-neu"`, frischer
+Stand trägt alle drei Marker), aufgerufen in `migrateAll` nach den beiden anderen: `notenwerte-1→1, 2→2, 3→5,
+4→7, 5→9, 6→10`, in einem Durchgang in ein neues Objekt; `current` entsprechend. Keine statKeys im Paket.
+Freischaltung unverändert (`isUnlocked`: gespielt bleibt offen; 3, 4, 6, 8 öffnen sich über die Stufe davor);
+Folgen wie in Welle 8 bewusst hingenommen und als Test festgehalten.
+
+**Schritte (je eigener Opus-Agent, danach Prüfung Fable).**
+0. Stufen umbauen, `q.steps` 1/4/6/8, Spielstand-Umstellung, Tests (Anzahl je Stufe, Eindeutigkeit aller
+   Zwei-Schritt-Antworten, Takt-Summen = 4 für alle 91 Aufgaben, Umstellung alt → neu auch nach den beiden
+   anderen Umstellungen).
+1. Hilfen (Merkmale, Pausen, Pyramide, Zählleiste) und `helpsTitle`.
+2. Vorführungen 1–3 und Lerntafeln; Tests der Bilderfolgen (Anzahl, Summen der Zählleiste, jede Lücke).
+3. Doku: ARCHITEKTUR, PLAN „Umgesetzt“, README, CLAUDE.md (Stand), Cache `notenheld-v0.2.0-12`.
+
+**Akzeptanz.** `npm test` grün (am Mac „ℹ pass …“); Browser 420 und 320 px, hell und dunkel: jede Stufe eine
+Runde, Hilfen auf/zu, in 1/4/6/8 je eine Aufgabe ganz richtig und eine mit danebenliegendem Schritt 1, alle
+Vorführungen bis zum Ergebnis, Knöpfe in einer Zeile bzw. sauber umgebrochen (7 Knöpfe in Stufe 8), kein
+waagrechter Überlauf, keine Konsolenfehler; alter Spielstand richtig umgestellt; andere Pakete unverändert;
+Wortliste (`test/texte.test.js`).
+
+**Entscheidungen (ohne Rückfrage, Auftrag Sandra 20.11.2026).**
+- 10 Stufen; Stufe 3 neu als Festigung von 1 und 2 zusammen.
+- Hilfen nur als Tabelle/SVG, keine Klaviatur (Tonhöhe spielt hier keine Rolle).
+- Takt füllen: Zählen vor Wert wählen (Reihenfolge der Denkschritte, Farben nach Reihenfolge).
+- Zählleiste in Achteln „1 + 2 + 3 + 4 +“; Pausen-Zählzeiten in Klammern.
+- [OFFEN Sandra] Silben für Sechzehntel (z. B. „1 e + e“) – zunächst keine Silben, die Sechzehntel füllt ein
+  halbes Feld ohne eigene Zählzeit.
+
 ## Später (nicht geplant, nur notiert)
 
 - Altschlüssel für Bratsche als Stufen in „Noten lesen“.
