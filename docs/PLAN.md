@@ -812,12 +812,15 @@ keine Doppelvorzeichen, kein Eis/His/Ces/Fes in Tonleitern). Keine Jahrgangsstuf
 
 **Die zwei Denkschritte.**
 - Tonleiter: Schritt 1 (violett) = **Bauplan**: Notenstufen 1–8 und Ganz – Ganz – Halb – Ganz – Ganz – Ganz – Halb;
-  Schritt 2 (grün) = **Klaviatur**: Halbtöne zählen → Vorzeichen (passt der Abstand der Stammtöne nicht zum Bauplan,
-  bekommt die obere Note ♯ bzw. ♭).
+  Schritt 2 (grün) = **Klaviatur**: Halbtöne zählen → Vorzeichen. Passt der Abstand nicht zum Bauplan, ändert
+  sich immer die obere Note: Abstand zu klein → ♯, Abstand zu groß → ♭ (z. B. As-Dur: as–h sind 3 Halbtöne, der
+  Bauplan will Ganz → b). Der Grundton (1. und 8. Stufe) steht von Anfang an mit seinem Vorzeichen da (B, Es, As).
 - Tonart aus den Vorzeichen: Schritt 1 = das entscheidende Vorzeichen (letztes ♯ bzw. vorletztes ♭);
   Schritt 2 = Halbton höher (♯) bzw. ablesen (♭) → Tonart.
-- Parallele Molltonart: Schritt 1 = drei Notenstufen abwärts (Terz) → Buchstabe; Schritt 2 = drei Halbtöne
-  (kleine Terz) → Vorzeichen → Molltonart. Das ist derselbe Weg wie bei den Intervallen (Zahl → Qualität).
+- Parallele Molltonart: Schritt 1 = eine Terz abwärts, also drei Notenstufen, der Dur-Grundton zählt als 1
+  (wie die Zahlenkreise bei den Intervallen) → Stammton; Schritt 2 = drei Halbtöne abwärts (kleine Terz; gezählt
+  werden die Tastenschritte) → Vorzeichen → Molltonart. Das ist derselbe Weg wie bei den Intervallen
+  (Zahl → Qualität). Achtung H/B: Des-Dur → Stammton H → mit ♭ heißt er B → b-Moll.
 
 **Stufen** (der Reihe nach frei; H = Hilfen, 2S = Antwort in zwei Schritten):
 
@@ -828,68 +831,103 @@ keine Doppelvorzeichen, kein Eis/His/Ces/Fes in Tonleitern). Keine Jahrgangsstuf
 | 3 | Ganz- oder Halbtonschritt, alle 9 Tonarten | Violin, Bass | – | – | neu |
 | 4 | Welcher Ton fehlt? bis 2 Vorzeichen | Violin | ja | ja | alt 3 |
 | 5 | Welcher Ton fehlt? bis 4 Vorzeichen (Namensraster wie bisher) | Violin, Bass | – | – | alt 4 |
-| 6 | Welcher Ton passt nicht? | Violin | ja | – | neu (Teilmenge von alt 5) |
+| 6 | Welcher Ton passt nicht? (alle Violin-Aufgaben von alt 5) | Violin | ja | – | neu |
 | 7 | Welcher Ton passt nicht? | Violin, Bass | – | – | alt 5 |
-| 8 | Tonleiter und Vorzeichen | Violin | ja | – | neu (Teilmenge von alt 6) |
+| 8 | Tonleiter und Vorzeichen (alle 9 Tonarten) | Violin | ja | – | neu |
 | 9 | Tonleiter und Vorzeichen | Violin, Bass | – | – | alt 6 |
-| 10 | Tonart aus den Vorzeichen | Violin | ja | ja | neu |
+| 10 | Tonart aus den Vorzeichen (15 Tonarten) | Violin | ja | ja | neu |
 | 11 | Tonart aus den Vorzeichen | Violin, Bass | – | – | alt 7 |
-| 12 | Parallele Molltonart | Violin | ja | ja | neu |
+| 12 | Parallele Molltonart (15 Tonarten) | Violin | ja | ja | neu |
 | 13 | Parallele Molltonart | Violin, Bass | – | – | alt 8 |
 
 Moll-Tonleitern (natürlich, harmonisch, melodisch; nur a e h d g c f) folgen später als `tonleitern-14` ff.,
 ebenfalls paarweise mit/ohne Hilfen.
 
-**Zweischrittige Antworten (`q.steps`, nur Knöpfe, keine Änderung an der Engine nötig).**
+**Zweischrittige Antworten (`q.steps`, nur Knöpfe; die Stufe hat dann `input: "choices"`).** Die Knöpfe
+stehen in fester Reihenfolge (nicht gemischt). Texte nach Schritt 1 über `steps[0].ok` / `.bad`, dazu
+`q.partial` („Der Ton stimmt, der Schritt nicht: …“). Schritt 1 daneben: richtigen Knopf zeigen, Schritt 2
+trotzdem fragen, Aufgabe zählt als daneben (macht die Engine schon so, wie bei den Intervallen).
 - Stufe 4 (Ton fehlt): Schritt 1 „Von der Note davor zur Lücke: Ganz- oder Halbtonschritt?“ (2 Knöpfe; die
-  Bauplan-Leiste zeigt, welcher Schritt es ist). Schritt 2 „Welcher Ton?“: die Namen zum Buchstaben der Lücke,
-  die erlaubt sind (Stammton, ♯-, ♭-Form ohne Eis/His/Ces/Fes; 2–3 Knöpfe, z. B. F | Fis). Bei der 2. Stufe
-  (Lücke direkt nach dem Grundton) bezieht sich Schritt 1 auf den Grundton. Rückmeldung:
-  „6.→7. Stufe: Ganztonschritt · e''–fis'': 2 Halbtöne → Fis“. Falscher Schritt 1: richtigen zeigen, Schritt 2
-  trotzdem fragen, Aufgabe zählt als daneben (wie Intervalle).
+  Stelle musst du selbst abzählen, die Bauplan-Leiste hebt sie vor der Antwort nicht hervor). Die Lücke liegt
+  auf der 2. bis 7. Stufe, ein Halbtonschritt kommt also nur bei der 4. Stufe vor (5 von 30 Aufgaben): Aufgaben
+  mit Halbtonschritt mit Gewicht etwa 1/3 ziehen (wie `pickStep`). Schritt 2 „Welcher Ton?“: die erlaubten
+  Namen zum Stammton der Lücke in der Reihenfolge Stammton, ♯-Form, ♭-Form (`usualNote`, ohne
+  Eis/His/Ces/Fes): D | Dis | Des, G | Gis | Ges, A | Ais | As, C | Cis, E | Es, F | Fis, H | B. Nachgerechnet
+  für alle 30 Aufgaben: immer 2 oder 3 Knöpfe, die richtige Antwort ist dabei, keine zwei klingen gleich.
+  Rückmeldung: „6.→7. Stufe: Ganztonschritt · e''–fis'': 2 Halbtöne → Fis“. statKey wie bisher („… (Lücke)“).
 - Stufe 10 (Tonart): Schritt 1 „Welches Vorzeichen ist entscheidend?“: Knöpfe = die Vorzeichen der Vorzeichnung
-  in ihrer Reihenfolge (bis 7, `cols` 4). Antwort: letztes ♯ bzw. vorletztes ♭. Sonderfälle als
-  Bestätigungsschritt mit einem Knopf: C-Dur „keine Vorzeichen“, F-Dur „ein Be → F-Dur“. Schritt 2
-  „Welche Dur-Tonart?“ mit `keyChoices` wie bisher. Rückmeldung: „Letztes Kreuz Dis · einen Halbton höher → E-Dur“
-  bzw. „Vorletztes Be Es → Es-Dur“.
-- Stufe 12 (Moll): Schritt 1 „Drei Stufen abwärts vom Dur-Grundton: welcher Buchstabe?“ (3 Knöpfe: richtiger
-  Buchstabe, Nachbarn darüber/darunter). Schritt 2 „Drei Halbtöne: welche Molltonart?“ (Varianten des Buchstabens
-  mit/ohne Vorzeichen, die es in `FIFTHS` gibt, z. B. a-Moll | as-Moll | ais-Moll nur wenn vorhanden; sonst
-  `minorChoices`). Rückmeldung: „Es → 3 Stufen abwärts → c · 3 Halbtöne → c-Moll“.
+  in ihrer Reihenfolge, bis 7: Fis Cis Gis Dis Ais Eis His bzw. B Es As Des Ges Ces Fes (eigene Listen mit 7
+  Einträgen; `SHARP_ORDER`/`FLAT_ORDER` mit 4 bleiben). Eis, His, Ces und Fes sind hier richtig und nötig: das
+  Verbot gilt nur für Töne in den Tonleitern bis 4 Vorzeichen. Ohne `cols` (kurze Texte: eine Reihe, bei 7
+  Knöpfen 4 + 3; bei 320 px prüfen). Antwort: letztes ♯ bzw. vorletztes ♭. Bestätigungsschritt mit einem
+  Knopf: C-Dur „keine Vorzeichen“, G-Dur „Fis“ (nur ein Kreuz), F-Dur „B“ mit `ok`-Text „Ein einzelnes Be
+  steht für F-Dur: das merkst du dir.“ – der Knopf selbst nennt die Tonart nicht (sonst stünde die Antwort
+  von Schritt 2 schon da). Schritt 2 „Welche Dur-Tonart?“ mit `keyChoices` wie bisher (nie zwei gleich
+  klingende Tonarten). Rückmeldung: „Letztes Kreuz Dis · einen Halbton höher → E-Dur“ bzw. „Vorletztes Be Es →
+  Es-Dur“. Nachgerechnet für alle 15 Tonarten (Eis → Fis-Dur, His → Cis-Dur, Ces → Ces-Dur).
+- Stufe 12 (Moll): Schritt 1 „Terz abwärts vom Dur-Grundton: welcher Stammton?“ (3 Knöpfe in der Reihenfolge
+  der Stammtöne: der richtige und seine beiden Nachbarn, z. B. G | A | H; der Dur-Grundton zählt als 1).
+  Schritt 2 „Drei Halbtöne abwärts: welche Molltonart?“: alle Molltonarten der 15 Tonarten auf diesem Stammton:
+  A: a-Moll | ais-Moll | as-Moll, H: h-Moll | b-Moll, C: c-Moll | cis-Moll, D: d-Moll | dis-Moll,
+  E: e-Moll | es-Moll, F: f-Moll | fis-Moll, G: g-Moll | gis-Moll. Nachgerechnet: jeder Stammton hat 2 oder 3
+  Varianten, die richtige ist immer dabei, Varianten desselben Stammtons klingen nie gleich; `minorChoices`
+  wird hier nicht gebraucht. Rückmeldung: „Es-Dur: Terz abwärts → Stammton C · 3 Halbtöne → c-Moll“,
+  bei Des-Dur „… → Stammton H · 3 Halbtöne → b-Moll (H mit ♭ heißt B)“.
+- Stufen ohne Hilfen (5, 7, 9, 11, 13) bleiben einschrittig wie bisher; ihre Rückmeldung nennt trotzdem beide
+  Denkschritte (11: „Letztes Kreuz Gis · einen Halbton höher → A-Dur“, 13: „Terz abwärts: 3 Halbtöne unter Es
+  liegt c → c-Moll“), so bleibt der Weg sichtbar (KONZEPT: „Rückmeldung zeigt beide Schritte“).
 
-**Hilfen (`level.helps`, aufklappbar, nur Stufen mit H).**
-- `"klaviatur"`: eine Oktave + Quinte ab dem C unter dem tiefsten gezeigten Ton (wie Intervall-Vorführung),
-  Buchstaben auf den weißen Tasten, die Töne der Aufgabe markiert (Stufe 1–3: die beiden Nachbarnoten;
-  4–9: alle gezeigten Noten der Tonleiter, die Lücke nicht; 10–13: keine Markierung, nur zum Abzählen).
-- `"bauplan"` (neu, Kästchentabelle `tileTable`): Kopf „1–2 … 7–8“, Zeile „Schritt“ mit G G H G G G H in
-  Kästchen, die Halbton-Spalten (3–4, 7–8) grau hinterlegt (`family`). In der Aufgabe ist die betroffene
-  Spalte violett umrandet (Stufe 1–3: der gefragte Schritt; Stufe 4: der Schritt zur Lücke; 6: keine).
-  Satz: „Der Bauplan gibt die Schritte vor, die Klaviatur zeigt, ob die Noten ihn erfüllen.“
-- `"quintenzirkel"` (neu, Stufe 10/12): Kästchentabelle eine Zeile je Anzahl Vorzeichen 0 … 7, Spalten
-  „♯-Tonart | ♭-Tonart“ (Stufe 12 zusätzlich „parallel Moll“ je Seite), Familie ♯/♭ hinterlegt. In der
-  Aufgabe keine Hervorhebung vor der Antwort (sie verriete sie); nach der Antwort Zeile violett, Treffer grün.
-- „Vorführen“ wie bei den Intervallen: erst nach der Antwort, die Runde wartet dann auf „Nächste Aufgabe“.
+**Hilfen (`level.helps`, aufklappbar, nur Stufen mit H).** Die Engine kennt nur `"klaviatur"` und `"tabelle"`
+(`level.helpTable`, festes HTML je Stufe, wird nach der Antwort nicht neu gezeichnet). Dabei bleibt es:
+keine neuen Hilfe-Arten, Bauplan-Leiste und Quintenzirkel sind die `helpTable` der Stufe. Vor der Antwort
+wird in den Hilfen nichts hervorgehoben, was die Antwort zeigt; die Hervorhebung (Spalte violett, Treffer
+grün) gibt es in der Vorführung nach der Antwort.
+- `"klaviatur"`: zwei Oktaven wie bisher, Buchstaben auf den weißen Tasten. Einzige Ergänzung an der Engine
+  (zusätzlich, andere Pakete unverändert): `q.helpFrom` (MIDI-Nummer des untersten C; ohne das Feld wie bisher
+  `HELP_FROM[q.clef]`). Nötig, weil B-Dur im Violinschlüssel auf b beginnt (unter c') und D-Dur im
+  Bassschlüssel bis d' reicht. Regel: das C auf oder unter dem Grundton. Markiert (`q.helpMarks`): Stufe 1
+  und 2 die beiden Nachbarnoten (Entscheidung Sandra bei den Intervallen: die Klaviatur markiert die Töne der
+  Aufgabe); 4, 6, 8 alle gezeigten Noten (in 4 die Lücke nicht, in 6 auch die unpassende Note, wie sie
+  dasteht); 10 nichts (das letzte Kreuz verriete Schritt 1); 12 nur der Dur-Grundton (steht schon in der
+  Frage), in der zweigestrichenen Oktave, damit drei Halbtöne darunter Platz haben.
+- Bauplan-Leiste (`helpTable` der Stufen 1, 2, 4, 6, 8; `tileTable`): Kopf „1–2 … 7–8“, Zeile „Schritt“ mit
+  G G H G G G H in Kästchen, die Halbton-Spalten (3–4, 7–8) grau hinterlegt (`family`). Ohne Hervorhebung in
+  der Aufgabe: eine umrandete Spalte verriete in Stufe 1 und 2 die Antwort und in Stufe 4 den Schritt 1.
+  Satz (`helpText`): „Der Bauplan gibt die Schritte vor, die Klaviatur zeigt, ob die Noten ihn erfüllen.“
+- Quintenzirkel-Kästchen (`helpTable` der Stufe 10): eine Zeile je Anzahl Vorzeichen 0 … 7, Spalten
+  „♯-Tonart | ♭-Tonart“, ohne Hervorhebung. Wie die Tabelle bei den Intervallen ist das eine Nachschlagehilfe;
+  den Weg über das entscheidende Vorzeichen erzwingt Schritt 1.
+- Stufe 12: nur Klaviatur und Satz, keine Tabelle. Eine Spalte „parallel Moll“ gäbe beide Schritte durch
+  bloßes Ablesen vor; die Spalte steht in der Lerntafel „Quintenzirkel“ und auf der Ergebniskarte der Vorführung.
+- „Vorführen“ wie bei den Intervallen: erst nach der Antwort; Stufen mit Hilfen warten ohnehin auf
+  „Nächste Aufgabe“ (`waitsForNext`, auch ohne `level.demo`).
 
 **Vorführungen (`src/demo.js`, Bilder rein im Paket, testbar).**
 1. **„So baust du eine Dur-Tonleiter“** (erste Lerntafel, Beispiele C, G, F, D, B im Violinschlüssel; in den
-   Hilfen der Stufen 2, 4, 6, 8 für die Tonleiter der Aufgabe):
+   Hilfen der Stufen 4, 6, 8 für die Tonleiter der Aufgabe):
    Frage („G-Dur bauen: Grundton g'“) → Schritt 1 violett „1 · Bauplan“: je Bild eine Notenstufe als Stammton
-   mit Zahlenkreis 1 … 8, Ton erklingt; danach ein Bild, in dem die Bauplan-Leiste G G H G G G H erscheint →
+   mit Zahlenkreis 1 … 8 (nur der Grundton auf der 1 und der 8 trägt sein Vorzeichen schon: b, es, as), Ton
+   erklingt; danach ein Bild, in dem die Bauplan-Leiste G G H G G G H erscheint →
    Schritt 2 grün „2 · Klaviatur“: je Bild ein Schritt (7 Bilder), Tasten der beiden Töne grün, Halbtöne einzeln
    nummeriert, Bauplan-Kästchen des Schritts grün; passt es nicht, steht im Satz „e''–f'': 1 Halbton, der
-   Bauplan will Ganz → f'' wird zu fis''“, die Note bekommt das ♯ (Akzent-Rahmen), das Kästchen grün;
+   Bauplan will Ganz → f'' wird zu fis''“, die Note bekommt das ♯ (grün, Schritt 2; keine dritte Farbe), das Kästchen grün; ist der Abstand zu groß,
+   heißt es „a'–h': 2 Halbtöne, der Bauplan will Halb → h' wird zu b'“ (in Es- und As-Dur auch „3 Halbtöne,
+   der Bauplan will Ganz“);
    der folgende Schritt rechnet mit der berichtigten Note (fis''–g'': 1 Halbton = Halb ✓) → Ergebnis groß
    „G-Dur: g a h c d e fis g“ mit den Marken „Bauplan G G H G G G H“ / „1 Vorzeichen: Fis“.
    Bei C-Dur passt jeder Schritt („kein Vorzeichen nötig“). Etwa 1 + 8 + 1 + 7 + 1 = 18 Bilder.
-   In Stufe 1–3 (Ganz/Halb) dieselbe Vorführung verkürzt für das gefragte Notenpaar: Frage → Schritt 1 „welche
+   In Stufe 1 und 2 (Ganz/Halb mit Hilfen) dieselbe Vorführung verkürzt für das gefragte Notenpaar: Frage → Schritt 1 „welche
    Stufen? 3.→4.“ (Bauplan-Spalte violett) → Schritt 2 Halbtöne zählen → Ergebnis „e'–f' = Halbtonschritt“.
 2. **„So findest du die Tonart“** (Lerntafel, Hilfen Stufe 10): Schritt 1: Vorzeichen nacheinander aufbauen
    (je Bild eins, nummeriert), das entscheidende violett umrandet; Schritt 2: Klaviatur, vom letzten ♯ einen
    Halbton höher (grün) bzw. vorletztes ♭ = Grundton → Ergebnis „3 ♯ → A-Dur“ mit Marken
-   „letztes Kreuz Gis“ / „+1 Halbton → A“.
+   „letztes Kreuz Gis“ / „+1 Halbton → A“. Kurzfassung ohne zweiten Schritt für C-Dur („keine Vorzeichen →
+   C-Dur“) und F-Dur („ein einzelnes Be → F-Dur“), wie `DEMO_STEP_ONLY` bei den Intervallen.
 3. **„So findest du die parallele Molltonart“** (Lerntafel, Hilfen Stufe 12): Schritt 1: vom Dur-Grundton drei
-   Notenstufen abwärts (Kreise 1, 2, 3); Schritt 2: drei Halbtöne abwärts auf der Klaviatur → Ergebnis
-   „Es-Dur → c-Moll“ mit „3 Stufen“ / „3 Halbtöne“. Verweis auf die Intervalle: das ist eine kleine Terz.
+   Notenstufen abwärts (Kreise 1, 2, 3; die 1 ist der Dur-Grundton); Schritt 2: drei Halbtöne abwärts auf der
+   Klaviatur (Tasten 1, 2, 3 nach dem Grundton), der Stammton bekommt, wenn nötig, sein Vorzeichen (A-Dur:
+   F → fis; Des-Dur: H → b) → Ergebnis „Es-Dur → c-Moll“ mit „3 Stufen“ / „3 Halbtöne“. Verweis auf die
+   Intervalle: das ist eine kleine Terz. Ces-Dur beginnt auf der Taste H (im Satz erwähnen).
 
 **Lerntafeln (Reihenfolge).** So baust du eine Dur-Tonleiter (Vorführung) · Bauplan Dur (Violin/Bass, wie
 bisher, dazu die Bauplan-Leiste als Kästchentabelle) · Dur-Tonleitern bis 4 Vorzeichen · So findest du die
@@ -897,34 +935,75 @@ Tonart (Vorführung) · Quintenzirkel (wie bisher, darunter die Kästchentabelle
 Molltonart (Vorführung).
 
 **Spielstände.** Einmalige Umstellung `migrateTonleitern` in `src/store.js` (Marker `"tonleitern-neu"`,
-läuft nach `migrateIntervalle`, frischer Stand trägt beide Marker): `tonleitern-1→1, 2→2, 3→4, 4→5, 5→7,
-6→9, 7→11, 8→13`; `current` entsprechend; `notes` bleiben; statKeys der alten Stufen bleiben gleich
-(Notenkarte unverändert), neue Stufen benutzen dieselben statKey-Formen. Gespielte Stufen bleiben offen; die
-neuen Stufen 3, 6, 8, 10, 12 schalten wie üblich über die Stufe davor frei (bei altem Spielstand ggf. schon
-offen, weil die Folgestufe gespielt ist: `isUnlocked` prüfen, sonst `requires` nicht nötig). Cache
-`notenheld-v0.2.0-11`.
+frischer Stand trägt beide Marker): `tonleitern-1→1, 2→2, 3→4, 4→5, 5→7, 6→9, 7→11, 8→13`; `current`
+entsprechend; `notes` bleiben; statKeys der alten Stufen bleiben gleich (Notenkarte unverändert), neue Stufen
+benutzen dieselben statKey-Formen.
+- Reihenfolge zwingend: erst `migrateIntervalle` (macht aus `intervalle-5/-6` die alten `tonleitern-7/-8`),
+  dann `migrateTonleitern` (→ 11 und 13). Umgekehrt landete der Fortschritt auf „Welcher Ton passt nicht?“.
+  In `load` beide immer aufrufen und danach einmal speichern (`const a = …, b = …; if (a || b) save`), nicht
+  mit `||` verketten (sonst liefe die zweite beim ersten Laden nicht). Auch im v1-Zweig beide aufrufen.
+- In einem Durchgang in ein neues `levels`-Objekt umschreiben (nicht nacheinander im selben Objekt:
+  3→4 und danach 4→5 würde verketten); `mergeLevel` wie bei den Intervallen.
+- Freischaltung: Gespielte Stufen bleiben offen (`isUnlocked`: `played > 0`). Die neuen Stufen 3, 6, 8, 10, 12
+  öffnen sich wie üblich über die Stufe davor (`best ≥ 8`); `isUnlocked` öffnet eine Stufe nicht deshalb,
+  weil die Folgestufe gespielt ist. Folgen, bewusst hingenommen (keine Änderung an `isUnlocked`, kein
+  `requires`): (a) eine alte Stufe, die offen, aber noch nie gespielt war, ist erst wieder offen, wenn die
+  neue Stufe davor mit 8 geschafft ist; (b) wer die Tonarten früher im Paket „Intervalle“ gespielt hat, ohne
+  alt 6 zu schaffen, sieht 11 offen und 10 gesperrt (12 ist offen, sobald 11 `best ≥ 8` hat). Nichts
+  Gespieltes wird gesperrt; „Alle Stufen freischalten“ bleibt. Beide Fälle als Test festhalten.
+- Tests anpassen: `test/store.test.js` (die Tests zu `migrateIntervalle` rufen die Funktion einzeln auf und
+  bleiben; neu: beide nacheinander über `load`), `test/engine.test.js` (Liste der `keepRow`-Stufen: jetzt
+  `tonleitern-4` bis `-7`), `test/packs/tonleitern.test.js` (13 IDs).
+- Cache `notenheld-v0.2.0-11`.
 
 **Schritte (je eigener Opus-Agent, danach Prüfung Fable).**
 0. Stufen umbauen + Spielstand-Umstellung + Tests (Zahlen der Aufgaben festhalten, Halbtöne 3–4/7–8, keine
    unerlaubten Namen, `q.steps`-Antworten eindeutig, Umstellung alt → neu, auch mit vorher umgestellten
    Intervall-Spielständen).
-1. Hilfen: Bauplan-Leiste, Quintenzirkel-Kästchen, Klaviatur je Stufe; Warten auf „Nächste Aufgabe“.
+1. Hilfen: Bauplan-Leiste, Quintenzirkel-Kästchen, Klaviatur je Stufe (`q.helpFrom`, Test: jede markierte
+   Note liegt auf der gezeigten Klaviatur, für alle Aufgaben der Stufen mit Hilfen); Warten auf „Nächste
+   Aufgabe“.
 2. Vorführungen 1–3 + Lerntafeln; Ton je Bild über `audio.js`; Tests der reinen Bilderfolgen (Anzahl Bilder,
    jede Korrektur musikalisch richtig, für alle 9 Tonarten × beide Schlüssel nachgerechnet).
-3. Doku: ARCHITEKTUR (Hilfen `bauplan`, `quintenzirkel`), PLAN (dieser Abschnitt, „Umgesetzt“), README, CLAUDE.md
+3. Doku: ARCHITEKTUR (`q.helpFrom`, Hilfen der Tonleitern), PLAN (dieser Abschnitt, „Umgesetzt“), README, CLAUDE.md
    (Stand, Cache -11).
 
 **Akzeptanz.** `npm test` grün (am Mac „ℹ pass …“); Browser 420 und 320 px, hell und dunkel: jede Stufe eine
 Runde, Hilfen auf/zu, je eine Aufgabe ganz richtig und eine mit danebenliegendem Schritt 1; alle drei
 Vorführungen bis zum Ergebnis, Bildzähler und Knöpfe in einer Zeile bei 320 px; nichts überlappt, kein
 waagrechter Überlauf, keine Konsolenfehler; alter Spielstand (Tonleitern 1–8 und alte Intervalle) wird richtig
-umgestellt; andere Pakete unverändert.
+umgestellt; andere Pakete unverändert. UI-Texte: Anrede „du“, sachlich; `test/texte.test.js` prüft den ganzen
+Code in `src/` ohne Kommentare, auch Bezeichner: kein „falsch“, kein „Fehler!“ (stattdessen „daneben“, „passt
+nicht“, „Richtig wäre: …“).
 
-**Fragen an Sandra.**
-- 13 Stufen sind viel. Alternative: Stufe 3 (Ganz/Halb ohne Hilfen) und Stufe 8 (Vorzeichen mit Hilfen)
-  weglassen → 11 Stufen.
-- Stufe 4 zweischrittig (erst Ganz/Halb, dann Name aus 2–3 Knöpfen) und Stufe 5 offen über das Namensraster –
-  so gewollt?
+**Entscheidungen (ohne Rückfrage, Sandra 14:27: ohne Rückfragen bauen).**
+- 13 Stufen, nicht 11. Sandras Regel heißt „neuer Inhalt mit Hilfen, die nächste Stufe festigt ihn ohne“. Ohne
+  Stufe 3 gäbe es Ganz-/Halbtonschritte nur mit Hilfen, ohne Stufe 8 „Tonleiter und Vorzeichen“ nur ohne.
+  Stufe 3 bringt außerdem Neues (A-, E-, Es-, As-Dur und den Bassschlüssel bei den Schritten). Die Stufen mit
+  Hilfen sind kurz (nur Violinschlüssel); „Alle Stufen freischalten“ bleibt für Lehrkräfte.
+- Stufe 4 zweischrittig mit Knöpfen (erst Ganz/Halb, dann der Name aus 2–3 Knöpfen), Stufe 5 offen über das
+  Namensraster wie bisher (freies Abrufen ist die schwerere Form; Spielstand und statKeys bleiben).
+- Stufe 6 = alle Violin-Aufgaben von alt 5, Stufe 8 = alle 9 Tonarten im Violinschlüssel (derselbe Inhalt wie
+  die Stufe danach, nur ohne Bassschlüssel).
+- Hilfen heben vor der Antwort nichts hervor, was die Antwort zeigt; Stufe 12 ohne Tabelle (siehe „Hilfen“).
+- Einzige Ergänzung an der Engine: `q.helpFrom`. Keine neuen Hilfe-Arten, kein Neuzeichnen der Hilfen nach der
+  Antwort, keine Änderung an `isUnlocked`.
+
+**Prüfung (Fable, 20.11.2026).** Musiktheorie, Engine, Spielstände und Didaktik gegen Code und
+KONZEPT-gehirngerecht geprüft; die Auswahlsätze der Stufen 4, 10 und 12 für jede Tonart nachgerechnet.
+Geändert: (1) Bauplan-Leiste ohne umrandete Spalte in der Aufgabe (verriet in Stufe 1/2 die Antwort, in
+Stufe 4 den Schritt 1); (2) F-Dur-Knopf in Stufe 10 nennt die Tonart nicht mehr, G-Dur als weiterer
+Ein-Knopf-Fall, Vorzeichenlisten bis 7 (Eis/His/Ces/Fes dort erlaubt); (3) Stufe 12: „Stammton“ statt
+„Buchstabe“, Zählweise der Terz klargestellt, H/B-Fall Des-Dur → b-Moll, feste Variantenlisten, kein
+Rückgriff auf `minorChoices`, keine Moll-Spalte in den Hilfen; (4) Hilfen mit den vorhandenen Arten
+`klaviatur`/`tabelle` statt neuer Arten, Klaviatur zwei Oktaven mit `q.helpFrom` statt „Oktave + Quinte“
+(B-Dur im Violin- und D-Dur im Bassschlüssel lägen sonst neben der Klaviatur), keine Hervorhebung nach der
+Antwort in den Hilfen (die Engine zeichnet sie nicht neu); (5) Vorführung 1: Grundton mit eigenem Vorzeichen,
+Regel „zu klein → ♯, zu groß → ♭“ mit den 3-Halbton-Fällen in Es- und As-Dur, Berichtigung in Grün statt
+Akzentfarbe, Kurzfassung nur für Stufe 1 und 2 (Stufe 2 stand doppelt, Stufe 3 hat keine Hilfen); (6)
+Spielstände: Reihenfolge und Aufruf in `load`, Umschreiben in einem Durchgang, falsche Annahme zur
+Freischaltung berichtigt, anzupassende Tests benannt; (7) Stufe 4: Halbtonschritt nur bei der 4. Stufe,
+deshalb gewichtet ziehen; (8) Rückmeldung der Stufen ohne Hilfen nennt beide Denkschritte.
 
 ## Später (nicht geplant, nur notiert)
 
