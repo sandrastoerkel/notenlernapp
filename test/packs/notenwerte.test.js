@@ -2,9 +2,10 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import notenwerte, {
   BARS, parseBar, beatsOf, nameOf, fillChoices, barSvg, dotSvg, timeSigSvg, layoutBar, learnHtml, PITCH, DOT, TIME, rhythmOf,
-  MISSING_CHOICES, BEAT_CHOICES_4, ITEMS_8, pyramidSvg, featureTable, restTable, countTable, COUNT_SYLLABLES, REST_FEATURES,
+  MISSING_CHOICES, BEAT_CHOICES_4, ITEMS_8, ITEMS_1, ITEMS_4, ITEMS_6, BOARDS, valueDemo, beatsDemo, barDemo, countLabels, REST_COUNTS_IN_PARENS,
+  DEMO_STEPS_VALUE, DEMO_STEPS_BEATS, DEMO_STEPS_BAR, pyramidSvg, featureTable, restTable, countTable, COUNT_SYLLABLES, REST_FEATURES,
 } from "../../src/packs/notenwerte.js";
-import { N } from "../../src/music.js";
+import { N, beatsLabel } from "../../src/music.js";
 import { helpsHtml, helpsTitle, waitsForNext, hasHelps } from "../../src/engine.js";
 import { TOP, S, BOTTOM, X1 } from "../../src/staff.js";
 
@@ -398,16 +399,28 @@ test("Taktangabe 4/4: Ziffern je zwei Zwischenräume hoch", () => {
   assert.ok(Math.abs((TIME.size * 0.718) - 2 * S) < 0.1);
 });
 
-test("Lerntafel", () => {
-  assert.equal(notenwerte.learn.length, 1);
-  const c = notenwerte.learn[0];
-  assert.equal(c.clef, undefined);
+test("Lerntafeln: Reihenfolge, Tabelle mit Pyramide, drei Vorführungen mit eigenem Attribut", () => {
+  assert.deepEqual(notenwerte.learn.map((c) => c.title), ["So erkennst du einen Notenwert", "Notenwerte und Pausen", "So bestimmst du die Dauer", "So zählst du einen Takt"]);
+  assert.ok(notenwerte.learn.every((c) => c.clef === undefined));
+  const c = notenwerte.learn[1];
   const html = c.render();
   assert.equal(html, learnHtml());
-  assert.equal(count(html, /<svg/g), 13);
-  for (const t of ["ganze Note", "ganze Pause", "Sechzehntelpause", "punktierte halbe Note", "punktierte Viertelnote", "punktierte Achtelnote", "Schläge im 4/4", "1½", "¾"]) assert.ok(html.includes(t), t);
+  assert.equal(count(html, /<svg/g), 14);
+  assert.ok(html.includes(pyramidSvg()));
+  for (const t of ["ganze Note", "ganze Pause", "Sechzehntelpause", "punktierte halbe Note", "punktierte Viertelnote", "punktierte Achtelnote", "Schläge im 4/4", "1½", "¾", "Notenwert-Pyramide"]) assert.ok(html.includes(t), t);
   // keine <div>: .legend div hat eigene Styles
   assert.ok(!html.includes("<div"));
+  for (const [i, id] of [[0, "value"], [2, "beats"], [3, "bar"]]) {
+    const b = notenwerte.learn[i];
+    assert.equal(typeof b.mount, "function");
+    assert.ok(b.render().includes(`data-nw-board="${id}"`) && b.render().includes("data-demo-root"));
+    assert.equal(count(b.render(), /data-ex="/g), BOARDS[id].examples.length);
+  }
+  assert.deepEqual(BOARDS.value.examples.map((x) => x.label), NAMES_ALL.slice(0, 5));
+  assert.deepEqual(BOARDS.beats.examples.map((x) => x.label), ["Viertelnote", "Achtelpause", "punktierte halbe Note", "punktierte Viertelnote", "punktierte Achtelnote"]);
+  // Takte der Lerntafel: aus BARS, einer mit Pause, einer mit Punkt
+  const bars = BOARDS.bar.examples.map((x) => x.make());
+  assert.equal(bars.length, 3);
 });
 
 test("Gemischt (Stufe 10) nutzt die vier Stufen ohne Hilfen gleich oft", () => {
@@ -498,4 +511,130 @@ test("Hilfen Stufe 8: Zählleiste 1 + 2 + 3 + 4 + (Schläge grau), darunter die 
   assert.deepEqual([...t.matchAll(/tt-box">([^<]+)</g)].map((m) => m[1]), COUNT_SYLLABLES);
   assert.deepEqual([...t.matchAll(/<td class="tt-cell( fam)?">/g)].map((m) => !!m[1]), [true, false, true, false, true, false, true, false]);
   assert.ok(L[7].helpTable.includes(t) && L[7].helpTable.includes('class="nw-pyr small"'));
+});
+
+/* ---------- Vorführungen (Schritt 2) ---------- */
+
+const frameOk = (d) => {
+  assert.equal(d.steps.length, 2);
+  d.frames.forEach((f, i) => {
+    assert.ok(typeof f.body === "string" && f.body.includes("<svg"), `Bild ${i}`);
+    assert.ok(f.result ? f.step === 3 : !!f.text, `Bild ${i}`);
+  });
+  // Schritte der Reihe nach: 0, dann 1 …, dann 2 …, zuletzt das Ergebnis
+  const st = d.frames.map((f) => f.step);
+  assert.deepEqual(st, [...st].sort((a, b) => a - b));
+  assert.equal(st[0], 0); assert.equal(st[st.length - 1], 3);
+  assert.ok(st.includes(1) && st.includes(2));
+  assert.equal(d.frames.filter((f) => f.result).length, 1);
+};
+
+test("Vorführung „So erkennst du einen Notenwert“: 4 Bilder, Kopf violett, Hals/Fähnchen grün, Note unverändert", () => {
+  const feats = [["hohl", "ohne Hals"], ["hohl", "mit Hals"], ["schwarz", "kein Fähnchen"], ["schwarz", "1 Fähnchen"], ["schwarz", "2 Fähnchen"]];
+  ITEMS_1.forEach((it, k) => {
+    const d = valueDemo(it.el), [head, feat] = feats[k];
+    frameOk(d);
+    assert.deepEqual(d.steps, DEMO_STEPS_VALUE);
+    assert.equal(d.frames.length, 4);
+    assert.deepEqual(d.frames.map((f) => [count(f.body, /nw-ring s1/g), count(f.body, /nw-ring s2/g)]), [[0, 0], [1, 0], [1, 1], [1, 1]]);
+    assert.equal(d.frames[1].text, `Kopf ${head}`);
+    assert.ok(d.frames[2].text.startsWith(feat[0].toUpperCase() + feat.slice(1) + " → " + NAMES_ALL[k]));
+    // gestrichelt nur dort, wo kein Hals ist (ganze Note)
+    assert.equal(d.frames[2].body.includes("nw-ring s2 empty"), k === 0);
+    assert.deepEqual(d.frames[3].result.chips.map((c) => [c.step, c.text]), [[1, `Kopf ${head}`], [2, feat]]);
+    assert.ok(nb(d.frames[3].result.title).startsWith(NAMES_ALL[k][0].toUpperCase() + NAMES_ALL[k].slice(1) + " · "));
+    assert.deepEqual(d.frames[3].tones, [PITCH]);
+    // die Note selbst ist in jedem Bild dieselbe (Rahmen nur darüber)
+    const note = (b) => b.match(/<g class="note ">.*?<\/g>/)[0];
+    d.frames.forEach((f) => assert.equal(note(f.body), note(d.frames[0].body)));
+  });
+  assert.equal(nb(valueDemo(ITEMS_1[3].el).frames[3].result.title), "Achtelnote · ½ Schlag");
+});
+
+test("Vorführung „So bestimmst du die Dauer“: 4 Bilder, mit Punkt 5, die grüne Zeile der Pyramide passt", () => {
+  for (const it of [...ITEMS_4, ...ITEMS_6]) {
+    const e = it.el, d = beatsDemo(e);
+    frameOk(d);
+    assert.deepEqual(d.steps, DEMO_STEPS_BEATS);
+    assert.equal(d.frames.length, e.dot ? 5 : 4, it.key);
+    const row = [1, 2, 4, 8, 16].indexOf(e.v);
+    assert.ok(!/nw-pyr-row (hit|add)/.test(d.frames[0].body + d.frames[1].body), it.key);
+    assert.ok(d.frames[2].body.includes(`class="nw-pyr-row hit" data-row="${row}"`), it.key);
+    // Schritt 1 nennt keine Schläge
+    assert.ok(!/Schl|[¼½¾]|\d/.test(d.frames[1].text), d.frames[1].text);
+    assert.ok(d.frames[1].body.includes('class="nw-s1"'));
+    if (e.dot) {
+      assert.ok(d.frames[3].body.includes(`class="nw-pyr-row add" data-row="${row + 1}"`), it.key);
+      assert.ok(d.frames[1].text.startsWith("Ohne den Punkt: "));
+    }
+    const r = d.frames[d.frames.length - 1];
+    assert.equal(nb(r.result.title), `${nameOf(e)[0].toUpperCase()}${nameOf(e).slice(1)} = ${nb(beatsLabel(beatsOf(e)))}`, it.key);
+    assert.deepEqual(r.tones, e.rest ? [] : [PITCH]);
+  }
+  assert.deepEqual(beatsDemo(parseBar("4.")[0]).frames.map((f) => nb(f.text || f.result.title)), [
+    "Wie lange dauert das? Erst der Notenwert, dann die Schläge.", "Ohne den Punkt: Viertelnote", "Viertelnote = 1 Schlag",
+    "Punkt: die Hälfte dazu → 1 + ½", "Punktierte Viertelnote = 1½ Schläge",
+  ]);
+  assert.equal(nb(beatsDemo(parseBar("r8")[0]).frames[2].text), "Achtelpause = ½ Schlag, so lang wie die Achtelnote");
+});
+
+const segsOf = (body) => [...body.matchAll(/class="nw-seg s(\d)" data-from="([\d.]+)" data-to="([\d.]+)"/g)].map((m) => [+m[1], +m[2], +m[3]]);
+
+test("Vorführung „So zählst du einen Takt“: n + 4 Bilder, Summenleiste für alle 91 Aufgaben nachgerechnet", () => {
+  for (const it of ITEMS_8) {
+    const els = parseBar(it.bar), gap = it.gap, d = barDemo(els, gap), n = els.length, ans = els[gap];
+    const missing = beatsOf(ans), have = 4 - missing;
+    frameOk(d);
+    assert.deepEqual(d.steps, DEMO_STEPS_BAR);
+    assert.equal(d.frames.length, n + 4, it.key);
+    assert.ok(d.frames.length <= 9);
+    // Schritt 1: je Zeichen ein Bild, Summe wächst um dessen Dauer (Lücke: nichts), keine Zählzeiten
+    let sum = 0;
+    els.forEach((e, i) => {
+      const f = d.frames[1 + i], segs = segsOf(f.body);
+      assert.equal(f.step, 1);
+      if (i !== gap) sum += beatsOf(e);
+      assert.equal(segs.reduce((a, s) => a + s[2] - s[1], 0), sum * 2, `${it.key} Bild ${i + 1}`);
+      assert.ok(segs.every((s) => s[0] === 1));
+      assert.ok(!f.body.includes("nw-sum-label"));
+      assert.equal(f.text, i === gap ? "Lücke: überspringen" : `${nameOf(e)[0].toUpperCase()}${nameOf(e).slice(1)}: ${beatsLabel(beatsOf(e)).replace(" ", "\u00a0")} · bisher ${beatsLabel(sum).replace(" ", "\u00a0")}`);
+      assert.deepEqual(f.tones, i === gap || e.rest ? [] : [PITCH]);
+      // das gezählte Zeichen violett (auch die Lücke)
+      assert.equal(count(f.body, /class="nw-s1"/g), 1);
+    });
+    const sumFrame = d.frames[n + 1], pick = d.frames[n + 2], res = d.frames[n + 3];
+    assert.equal(sum, have);
+    assert.ok(sumFrame.body.includes("nw-sum-out s1"));
+    assert.equal(nb(sumFrame.text), `Im Takt ${have > 1 ? "stehen" : "steht"} ${nb(beatsLabel(have))} · bis 4 ${missing > 1 ? "fehlen" : "fehlt"} ${nb(beatsLabel(missing))}`);
+    // Schritt 2: die leeren Felder grün, die Lücke grün gefüllt
+    assert.deepEqual(segsOf(pick.body).filter((s) => s[0] === 2), [[2, have * 2, 8]]);
+    assert.equal(pick.step, 2);
+    assert.ok(pick.body.includes('<g class="filled nw-s2">') && !pick.body.includes('class="gap"'));
+    assert.equal(nb(pick.text), `${nb(beatsLabel(missing))} → ${nameOf(ans)}`);
+    // Ergebnis: Zählleiste in der echten Reihenfolge, die Felder des eingesetzten Werts grün
+    const start = els.slice(0, gap).reduce((a, e) => a + beatsOf(e) * 2, 0);
+    assert.deepEqual(segsOf(res.body), [[2, start, start + missing * 2]]);
+    const labels = [...res.body.matchAll(/class="nw-sum-label"[^>]*>([^<]+)</g)].map((m) => m[1]);
+    assert.deepEqual(labels, countLabels(els));
+    assert.equal(res.result.chips[1].text, nameOf(ans));
+    assert.ok(res.body.includes('<g class="filled nw-s2">'));
+  }
+  // Klammern nur bei Pausen (an deren Anfang bzw. während sie klingen), sonst die Zählzeiten
+  assert.equal(REST_COUNTS_IN_PARENS, true);
+  assert.deepEqual(countLabels(parseBar("8 r8 4 2")), ["1", "(+)", "2", "+", "3", "+", "4", "+"]);
+  assert.deepEqual(countLabels(parseBar("r2 2")), ["(1)", "(+)", "(2)", "(+)", "3", "+", "4", "+"]);
+  assert.deepEqual(countLabels(parseBar("16 16 8 4 2")), ["1", "+", "2", "+", "3", "+", "4", "+"]);
+  // eine Sechzehntel füllt ein halbes Feld
+  const d = barDemo(parseBar("16 16 8 4 2"), 4);
+  assert.deepEqual(segsOf(d.frames[1].body), [[1, 0, 0.5]]);
+  assert.deepEqual(segsOf(d.frames[2].body), [[1, 0, 0.5], [1, 0.5, 1]]);
+});
+
+test("„Vorführen“ in den Hilfen: jede Aufgabe der Stufen 1, 4, 6, 8 lässt sich vorführen, Stufe 2 nicht", () => {
+  for (const l of L) {
+    assert.equal(typeof l.demo === "function", [1, 4, 6, 8].includes(l.no), l.id);
+    if (!l.demo) continue;
+    for (const it of l.items) { const d = l.demo(Object.assign(it.make(), { key: it.key })); frameOk(d); }
+    assert.ok(helpsHtml(l, l.question(null)).includes("data-demo-btn disabled"));
+  }
 });

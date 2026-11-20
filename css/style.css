@@ -342,6 +342,20 @@ section { display: grid; gap: 14px; }
 .nw-pyr-head { font-family: var(--body); font-weight: 800; font-size: 10px; fill: var(--muted); }
 .nw-pyr .flag { font-family: var(--music); fill: var(--ink); }
 .nw-help-stack { display: grid; gap: 8px; justify-items: center; }
+/* Vorführungen „Notenwerte“: Rahmen über der Note, Zeichen in der Farbe des Schritts, Summenleiste */
+.nw-ring { fill: none; stroke-width: 2.2; }
+.nw-ring.s1 { stroke: var(--step1); } .nw-ring.s2 { stroke: var(--step2); }
+.nw-ring.empty { stroke-dasharray: 4 3; }
+.nw-s1 .notehead, .nw-s1 .flag, .nw-s1 .rest { fill: var(--step1); } .nw-s1 .stem { stroke: var(--step1); }
+.nw-s2 .notehead, .nw-s2 .flag, .nw-s2 .rest { fill: var(--step2); } .nw-s2 .stem { stroke: var(--step2); }
+.nw-sum { width: 100%; max-width: 300px; height: auto; display: block; margin: 0 auto; }
+.nw-sum-field { fill: var(--surface); stroke: var(--line); stroke-width: 1; }
+.nw-sum-field.beat { fill: var(--family); }
+.nw-seg.s1 { fill: var(--step1-soft); stroke: var(--step1); stroke-width: 1.4; }
+.nw-seg.s2 { fill: var(--step2-soft); stroke: var(--step2); stroke-width: 1.4; }
+.nw-sum-out { fill: none; stroke-width: 2; stroke-dasharray: 4 3; }
+.nw-sum-out.s1 { stroke: var(--step1); }
+.nw-sum-label { font-family: var(--display); font-weight: 800; font-size: 14px; fill: var(--fg); }
 /* Lerntafel mit Vorführung: Beispiel-Knöpfe */
 .legend > .demo-board { display: grid; gap: 10px; grid-column: 1 / -1; border: 0; padding: 0; min-width: 0; }
 .demo-pick { gap: 6px; }
