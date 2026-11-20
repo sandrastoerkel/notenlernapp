@@ -4,7 +4,7 @@ import intervalle, {
   POOL_1, POOL_2, POOL_3, POOL_4, POOL_5, POOL_6, POOL_7, POOL_8, POOL_9, POOL_10, BUILD_UP, BUILD_DOWN,
   X_LOW, X_HIGH, NOTE_VALUE, LEARN_ROWS, TYPES_RKG, TYPES_ALL, TYPES_NO_PRIME, ALLOWED_NAMES, QUALITY_ORDER,
   SIZE_ORDER, SIZE_NAMES, CHECK_NAMES, stepsText, frameText, qualityChoices, twoStepQuestion, intervalTable, TABLE_COLS,
-  TABLE_NOTE_LESS, TABLE_NOTE_MORE, baseQuality, intervalDemo, fineText, demoXs, DEMO_EXAMPLES, DEMO_STEPS, demoBoard,
+  TABLE_NOTE_LESS, TABLE_NOTE_MORE, baseQuality, intervalDemo, fineText, demoXs, DEMO_EXAMPLES, DEMO_STEPS, DEMO_STEP_ONLY, demoBoard,
   HELP_TEXT, HELP_TEXT_1, VERDICTS, VERDICT_OK, VERDICT_NUM, VERDICT_MORE, VERDICT_LESS,
   buildSvg, buildRevealSvg, buildHeight, checkBuild, usualNote, upperNote, pairExtra, intervalSvg, describe,
 } from "../../src/packs/intervalle.js";
@@ -62,7 +62,7 @@ test("Hilfen nur in Stufe 1, 3, 5 und 8, mit Kästchentabelle und Vorführung", 
   const t1 = L[0].helpTable;
   assert.equal(t1, intervalTable("rahmen", { split: true }));
   assert.equal((t1.match(/class="tt-label"/g) || []).length, 8);
-  assert.ok(t1.includes('<b class="num">1</b> Prime') && t1.includes('<b class="num">8</b> Oktave') && t1.includes("Stufen = Rahmenintervall"));
+  assert.ok(t1.includes('<b class="num">1</b> Prime') && t1.includes('<b class="num">8</b> Oktave') && t1.includes("Stufen = Intervall"));
   assert.ok(!/class="tt-box|Halbt|vermindert/.test(t1));
   // Stufe 3: klein | rein | groß, ohne die Zeile zu vermindert/übermäßig
   assert.equal(L[2].helpTable, intervalTable("rkg", { split: true }));
@@ -171,7 +171,7 @@ test("Musik jeder Aufgabe: Zahl aus den Buchstaben, Qualität aus den Halbtönen
 });
 const same = (a, b) => a.letter === b.letter && a.octave === b.octave && a.acc === b.acc;
 
-test("Stufe 1 und 2: Rahmenintervall, Stammtöne, acht Knöpfe in zwei Reihen", () => {
+test("Stufe 1 und 2: Intervall bestimmen, Stammtöne, acht Knöpfe in zwei Reihen", () => {
   for (const [l, pool, clefs] of [[L[0], POOL_1, ["treble"]], [L[1], POOL_2, ["treble", "bass"]]]) {
     assert.ok(pool.every((it) => it.low.acc === 0 && it.high.acc === 0 && inRange(it)));
     assert.deepEqual(new Set(pool.map((it) => it.clef)), new Set(clefs));
@@ -572,7 +572,7 @@ test("Vorführung: Sätze zu den Halbtönen, vermindert und übermäßig über d
   assert.equal(p.frames[2].text, "0 Halbtöne, dieselbe Taste → reine Prime");
   // Stufe 1: nur der erste Schritt, ohne Klaviatur
   const s1 = intervalDemo(N("E", 4), N("G", 4), { table: "rahmen", fine: false });
-  assert.deepEqual(s1.steps, DEMO_STEPS.slice(0, 1));
+  assert.deepEqual(s1.steps, [DEMO_STEP_ONLY]);
   assert.equal(s1.frames.length, 1 + 3 + 1);
   assert.equal(s1.frames[3].text, "3 Stufen = Terz.");
   assert.deepEqual(s1.frames[4].result, { title: "e'–g' = Terz", chips: [{ step: 1, text: "3 Stufen" }] });

@@ -147,7 +147,8 @@ export function stepsText(a, b) {
   return `${frameText(a, b)} · ${ALLOWED_NAMES.includes(name) ? `${half} → ${name}` : half}`;
 }
 
-/* ---------- Stufe 1 und 2: Rahmenintervall ---------- */
+/* ---------- Stufe 1 und 2: Intervall bestimmen (nur die Zahl; „Rahmenintervall“ heißt sie erst ab Stufe 3,
+   wo sie von der Feinbestimmung unterschieden wird – Sandra, 20.11.2026) ---------- */
 
 // Acht Knöpfe Prime … Oktave in zwei Reihen zu vier; Ziffern 1 bis 8 auf der Tastatur
 const NUMBER_SET = { choices: INTERVAL_NAMES, cols: 4, digits: true };
@@ -156,7 +157,7 @@ function numberQuestion(it) {
   const num = intervalNumber(it.low, it.high), answer = INTERVAL_NAMES[num - 1], frame = frameText(it.low, it.high);
   return {
     svg: intervalSvg(it),
-    prompt: "Welches Rahmenintervall?",
+    prompt: "Welches Intervall?",
     answer,
     choices: NUMBER_SET.choices.slice(), cols: NUMBER_SET.cols, digits: true,
     display: frame,
@@ -381,7 +382,7 @@ export function intervalTable(kind = "all", { row = null, hit = null, split = fa
   });
   const rahmen = kind === "rahmen";
   const table = tileTable({
-    head: rahmen ? ["Stufen = Rahmenintervall"] : ["Rahmen", ...TABLE_COLS],
+    head: rahmen ? ["Stufen = Intervall"] : ["Rahmen", ...TABLE_COLS],
     rows, family: rahmen ? [] : [TABLE_COLS.indexOf("rein")], split, cls: rahmen ? "tt-rahmen" : "",
   });
   const on = (q) => (delta === q ? " on" : "");
@@ -395,6 +396,8 @@ export function intervalTable(kind = "all", { row = null, hit = null, split = fa
 
 // Schritt-Marken (Farben: Schritt 1 violett, Schritt 2 grün)
 export const DEMO_STEPS = ["1 · Rahmen: Stufen zählen", "2 · Fein: Halbtöne zählen"];
+// Stufe 1 (nur die Zahl): ohne den Hilfsbegriff „Rahmen“
+export const DEMO_STEP_ONLY = "Stufen zählen";
 // Beispiele der Lerntafel: kleine Terz, große Terz, große Terz mit ♯, übermäßige Quarte, reine Quinte
 export const DEMO_EXAMPLES = [[N("E", 4), N("G", 4)], [N("C", 4), N("E", 4)], [N("D", 4), N("F", 4, 1)], [N("F", 4), N("H", 4)], [N("D", 4), N("A", 4)]];
 
@@ -492,7 +495,7 @@ export function intervalDemo(low, high, { clef = "treble", table = "all", fine =
     step: fine ? 3 : 2, kind: "ergebnis", n: 0, tones: [low, high], result: { title: `${pair} = ${name}`, chips },
     body: body(num, true, fine ? semi : 0, fine, fine ? hit : null),
   });
-  return { steps: fine ? DEMO_STEPS.slice() : DEMO_STEPS.slice(0, 1), frames };
+  return { steps: fine ? DEMO_STEPS.slice() : [DEMO_STEP_ONLY], frames };
 }
 
 /* ---------- Stufen ---------- */
@@ -507,7 +510,7 @@ const withHelps = (kind, text = HELP_TEXT) => ({
 
 const levels = [
   {
-    title: "Rahmenintervall bestimmen",
+    title: "Intervall bestimmen",
     subtitle: `Violinschlüssel · mit Hilfen · ${POOL_1.length} Intervalle`,
     hint: "Zähle die Notenstufen von der unteren zur oberen Note, beide mitgezählt: c'–e' sind c, d, e, also 3 Stufen → Terz. Klaviatur und Tabelle findest du unter „Hilfen“.",
     items: POOL_1,
@@ -517,7 +520,7 @@ const levels = [
     ...withHelps("rahmen", HELP_TEXT_1),
   },
   {
-    title: "Rahmenintervall ohne Hilfen",
+    title: "Intervall bestimmen ohne Hilfen",
     subtitle: `Violin- und Bassschlüssel · ${POOL_2.length} Intervalle`,
     hint: "Wie in Stufe 1, jetzt ohne Hilfen und auch im Bassschlüssel. Liegen beide Noten auf Linien oder beide in Zwischenräumen, ist die Zahl ungerade.",
     items: POOL_2,
