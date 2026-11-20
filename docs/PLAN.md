@@ -1348,6 +1348,37 @@ Lerntafel-Vorführungen bis zum letzten Bild, Knöpfe und Bildzähler bei 320 px
 Stufe 8 in einer Reihe, kein waagrechter Überlauf, keine Konsolenfehler; alter Spielstand umgestellt; „Noten
 lesen“, „Intervalle“ und „Tonleitern“ Stufe 1 unverändert.
 
+**Prüfung der Umsetzung (Opus, 20.11.2026).** Fable war im Nutzungslimit, deshalb hat Opus geprüft (eigener
+Agent, unabhängig von der Umsetzung). Nachgerechnet mit eigenen Skripten und eigener Tabelle der Notenwerte (nicht
+`music.js`): alle Aufgaben der 10 Stufen (Antworten, Knopfsätze, Texte nach Schritt 1, `partial`, `reveal`,
+`display`), die 25 Takte (Summe 4) und alle 91 Takt-Aufgaben je 20-mal gezogen (fehlende Dauer in der Leiste,
+Schritt 2 eindeutig, vier Werte derselben Sorte, nach Länge sortiert, Rhythmus = Takt); fehlend 1 (42), ½ (22),
+2 (17), ¼ (4), 1½ (4), 3 (2) bestätigt. Alle 91 Bilderfolgen der Vorführung 3 (n + 4 Bilder, laufende Summen,
+Felder der Summenleiste lückenlos, Lücke ohne Feld und ohne Ton, Umrandung bis 4, Zählleiste im Ergebnis mit
+Klammern bei Pausen), Vorführung 1 für alle 5 Notenwerte, Vorführung 2 für alle Noten, Pausen und punktierten
+Noten, Pyramide (1/2/4/8/16 gleich breite Kästchen, 4 · 2 · 1 · ½ · ¼), Lerntafeln. Zusammen 112 687 Einzelprüfungen;
+einzige Auffälligkeit eine zu strenge eigene Regel (punktierte halbe auf Schlag 1 über die Taktmitte ist korrekt,
+`BARS` unverändert seit Paket C). Nichts verrät die Antwort vorher: Texte nach Schritt 1 und Fragen ohne Antwort
+von Schritt 2, Hilfen ohne Hervorhebung, keine Antwort in Attributen der Notenzeile, „Vorführen“ vor der Antwort
+gesperrt. Stufe 10 aus 20 000 Ziehungen gleich verteilt auf 3/5/7/9, nie dieselbe Aufgabe zweimal hintereinander
+(alle Stufen). Spielstände (39 Prüfungen): alter Stand ohne Marker, nach Welle 7, nach Welle 8, frisch, v1, zweites
+Laden ändert nichts und speichert nicht; Freischaltung nach Umstellung wie geplant (4 zu, sonst offen). Andere
+Pakete: `question()` (300 je Stufe mit festem Zufall), Hilfen, Vorführungen und Lerntafeln von „Noten lesen“,
+„Intervalle“, „Tonleitern“ und „Akkorde“ byte-gleich mit 0cbe835; deren Quelltext ist unverändert. Die
+Engine-Änderung (`r.tones`/`silenceTones`) wirkt auf alle Pakete gleich: Auch in „Intervalle“ und „Tonleitern“
+verstummt eine laufende Tonfolge jetzt bei „Nächste Aufgabe“ und beim Öffnen der Vorführung (gewollt, vorher klang
+sie in die nächste Aufgabe). Tokens: keine festen Farben, alle benutzten Tokens hell und dunkel definiert;
+Wortliste grün; Cache `notenheld-v0.2.0-12`, PRECACHE vollständig (keine neuen Dateien). Browser (Headless Chrome,
+Service Worker gesperrt, Port 8082, 320 px hell und dunkel): Stufen 1, 6, 8 mit Hilfen, Schritt 1 daneben (Text
+ohne Antwort von Schritt 2, danach `partial`), „Vorführen“ bis zum Ergebnis, sechs Knöpfe in einer Reihe (6 und 8),
+Lerntafel „So zählst du einen Takt“ mit allen drei Beispielen bis zum letzten Bild, kein waagrechter Überlauf,
+keine Konsolenfehler (nur die bekannte Warnung, weil der Service Worker im Test gesperrt ist). Rhythmus mit Ton
+gemessen: nach „Nächste Aufgabe“ und nach „Vorführen“ kein weiterer Ton, ohne Weitergehen spielt der Takt zu Ende.
+Geändert: nur der Widerspruch im Abschnitt „Spielstände“ (alte Stufen 1 und 2 landen auf Stufen mit Hilfen) und
+der gleichlautende Kommentar in `store.js`; die Abbildung bleibt. Keine Fehler im Code gefunden. Mitgeprüft: der
+während der Prüfung hinzugekommene Commit 48b68ef (Punkt in Vorführung 2 in Schritt 1 schwarz, im Bild „die Hälfte
+dazu“ grün; im Browser hell und dunkel gemessen, nur Tokens `--ink`/`--step2`).
+
 ## Später (nicht geplant, nur notiert)
 
 - Altschlüssel für Bratsche als Stufen in „Noten lesen“.
