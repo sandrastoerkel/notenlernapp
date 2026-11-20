@@ -257,6 +257,11 @@ section { display: grid; gap: 14px; }
 .tt tr.hi .tt-label { color: var(--step1-ink); font-weight: 800; }
 .tt-box.hit { background: var(--step2); border-color: var(--step2); color: var(--step-on); }
 .tt-box.ref { border: 2px solid var(--step2); color: var(--step2-ink); }
+/* Paket „Tonleitern“: Spalte des Bauplans violett (Schritt 1, Vorführung), breite Kästchen für Tonartnamen
+   (Quintenzirkel) */
+.tt-box.s1 { background: var(--step1-soft); border-color: var(--step1); color: var(--step1-ink); }
+.tt-wide .tt-box { width: auto; min-width: var(--tile, 28px); padding: 0 6px; white-space: nowrap; }
+.tt-plan .tt-col { min-width: var(--tile, 28px); }
 .tt-split { display: flex; gap: 10px; align-items: flex-start; }
 .tt-wrap { display: grid; gap: 4px; justify-items: start; }
 .tt-note { color: var(--muted); }

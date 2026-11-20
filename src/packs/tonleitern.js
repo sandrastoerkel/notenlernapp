@@ -9,6 +9,7 @@
 // kommen Eis, His, Ces und Fes vor). Moll-Tonleitern folgen später als tonleitern-14 ff.
 import { N, LETTERS, midi, pc, SEMI, gName, helm, majorScale, staffPos, majorKeyFromKeySig, relativeMinor, majorName, minorName } from "../music.js";
 import { staffSvg, noteSvg, TOP, S } from "../staff.js";
+import { tileTable } from "../grid.js";
 
 const CLEF_SHORT = { treble: "Violin", bass: "Bass" };
 
@@ -588,6 +589,48 @@ function minorQuestion(it) {
   };
 }
 
+/* ---------- Hilfen zum Aufklappen (level.helps, engine.js) ---------- */
+
+// Vor der Antwort heben die Hilfen nichts hervor, was die Antwort zeigt (eine umrandete Spalte verriete in
+// Stufe 1 und 2 die Antwort, in Stufe 4 den ersten Schritt). Hervorgehoben wird erst in der Vorführung.
+export const HELP_TEXT_PLAN = "Der Bauplan gibt die Schritte vor, die Klaviatur zeigt, ob die Noten ihn erfüllen.";
+export const HELP_TEXT_KEY = "Zum Nachschlagen: Anzahl der Vorzeichen und Dur-Tonart. Den Halbton über dem letzten Kreuz findest du auf der Klaviatur.";
+export const HELP_TEXT_MINOR = "Vom Dur-Grundton drei Notenstufen abwärts, er selbst zählt als 1. Dann auf der Klaviatur drei Halbtöne abwärts: So bekommt der Stammton sein Vorzeichen.";
+export const PLAN_COLS = PLAN.map((_, i) => `${i + 1}–${i + 2}`);
+// Halbton-Spalten 3–4 und 7–8 (grau hinterlegt wie die Familie „rein“ bei den Intervallen)
+export const PLAN_FAMILY = PLAN.map((h, i) => (h === 1 ? i : -1)).filter((i) => i >= 0);
+export const PLAN_NOTE = "G = Ganztonschritt (2 Halbtöne) · H = Halbtonschritt (1 Halbton)";
+
+// Bauplan-Leiste als Kästchentabelle: Kopf „1–2 … 7–8“, Zeile „Schritt“ mit G G H G G G H.
+// opts (nur Vorführung und Lerntafel): col – Spalte violett (Schritt 1), done – so viele Schritte mit
+// Halbtonzahl in einer zweiten Zeile „Halbtöne“ (grün, Schritt 2), hit – Spalte, deren Bauplan-Kästchen
+// grün ist (der gerade geprüfte Schritt)
+export function planTable({ col = null, done = null, hit = null } = {}) {
+  const rows = [{ label: "Schritt", cells: PLAN_SHORT.map((t, i) => ({ text: t, state: i === hit ? "hit" : i === col ? "s1" : undefined })) }];
+  if (done !== null) rows.push({ label: "Halbtöne", cells: PLAN.map((h, i) => (i < done ? { text: h, state: "hit" } : null)) });
+  const table = tileTable({ head: ["Stufen", ...PLAN_COLS], rows, family: PLAN_FAMILY, cls: "tt-plan" });
+  return `<div class="tt-wrap">${table}<p class="tt-note small">${PLAN_NOTE}</p></div>`;
+}
+
+// Quintenzirkel-Kästchen: eine Zeile je Anzahl Vorzeichen 0 … 7, Spalten ♯-Tonart | ♭-Tonart (Dur, nur der
+// Grundton im Kästchen, damit die Tabelle in die Hilfen passt), ohne Hervorhebung (Nachschlagehilfe; den
+// Weg über das entscheidende Vorzeichen fragt Schritt 1)
+export const CIRCLE_NOTE = "Alle hier sind Dur-Tonarten: 3 ♯ → A-Dur, 3 ♭ → Es-Dur.";
+const tonicText = (f) => majorName(f).replace("-Dur", "");
+export function circleTable({ split = false } = {}) {
+  const rows = Array.from({ length: 8 }, (_, n) => ({
+    label: `<b class="num">${n}</b>`,
+    cells: [{ text: tonicText(n) }, { text: tonicText(-n) }],
+  }));
+  return `<div class="tt-wrap">${tileTable({ head: ["Anzahl", "♯-Tonart", "♭-Tonart"], rows, split, cls: "tt-wide" })}<p class="tt-note small">${CIRCLE_NOTE}</p></div>`;
+}
+
+const HELPS_BOTH = ["klaviatur", "tabelle"];
+const planHelps = () => ({ helps: HELPS_BOTH, helpText: HELP_TEXT_PLAN, helpTable: planTable() });
+const keyHelps = () => ({ helps: HELPS_BOTH, helpText: HELP_TEXT_KEY, helpTable: circleTable({ split: true }) });
+// Stufe 12: nur Klaviatur und Satz. Eine Spalte „parallel Moll“ gäbe beide Schritte durch bloßes Ablesen vor.
+const minorHelps = () => ({ helps: ["klaviatur"], helpText: HELP_TEXT_MINOR });
+
 /* ---------- Stufen ---------- */
 
 const check = (q, value) => value === q.answer;
@@ -601,6 +644,7 @@ const levels = [
     items: ITEMS_1,
     example: stepQuestion(find(ITEMS_1, "treble:C:2")).svg,
     question(prev) { return stepQuestion(pickStep(ITEMS_1, prev)); },
+    ...planHelps(),
   },
   {
     title: "Bauplan der Dur-Tonleiter",
@@ -609,6 +653,7 @@ const levels = [
     items: ITEMS_2,
     example: stepQuestion(find(ITEMS_2, "treble:D:2")).svg,
     question(prev) { return stepQuestion(pickStep(ITEMS_2, prev)); },
+    ...planHelps(),
   },
   {
     title: "Ganz- und Halbtonschritte ohne Hilfen",
@@ -625,6 +670,7 @@ const levels = [
     items: ITEMS_4,
     example: gapStepQuestion(find(ITEMS_4, "treble:G:6")).svg,
     question(prev) { return gapStepQuestion(pickStep(ITEMS_4, prev, Math.random, GAP_HALF_P)); },
+    ...planHelps(),
   },
   {
     title: "Welcher Ton fehlt? Ohne Hilfen",
@@ -644,6 +690,7 @@ const levels = [
     items: ITEMS_6,
     example: oddQuestion(find(ITEMS_6, "treble:G:6:-1")).svg,
     question(prev) { return oddQuestion(pickItem(ITEMS_6, prev)); },
+    ...planHelps(),
   },
   {
     title: "Welcher Ton passt nicht? Ohne Hilfen",
@@ -660,6 +707,7 @@ const levels = [
     items: ITEMS_8,
     example: sigQuestion(find(ITEMS_8, "treble:D")).svg,
     question(prev) { return sigQuestion(pickItem(ITEMS_8, prev)); },
+    ...planHelps(),
   },
   {
     title: "Tonleiter und Vorzeichen ohne Hilfen",
@@ -676,6 +724,7 @@ const levels = [
     items: ITEMS_10,
     example: keySvg({ clef: "treble", fifths: 4 }),
     question(prev) { return majorStepQuestion(pickKey(ITEMS_10, prev)); },
+    ...keyHelps(),
   },
   {
     title: "Tonart aus den Vorzeichen ohne Hilfen",
@@ -692,6 +741,7 @@ const levels = [
     items: ITEMS_12,
     example: keySvg({ clef: "treble", fifths: -3 }),
     question(prev) { return minorStepQuestion(pickKey(ITEMS_12, prev)); },
+    ...minorHelps(),
   },
   {
     title: "Parallele Molltonart ohne Hilfen",

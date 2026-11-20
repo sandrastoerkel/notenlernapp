@@ -6,11 +6,11 @@ import tonleitern, { oddQuestion, fitsKey, lowestY, LABEL_DESC,
   scaleNotes, scaleSvg, scaleX, sigList, sigChoices, fifthsOf, pickStep, usualNote, keyName,
   STEP_WHOLE, STEP_HALF, HALF_P, GAP_HALF_P, SCALE_W, SHARP_ORDER, FLAT_ORDER, SHARPS_7, FLATS_7,
   FIFTHS, keyChoices, keyChoicesFixed, minorChoices, sigText, sigSentence, nameChoices, gapStepQuestion,
-  signStep, decisiveSign, keyWay, MINOR_VARIANTS, stemChoices, minorTonicOf, majorTonicOf, minorWay, PLAN, NO_SIGNS,
+  signStep, decisiveSign, keyWay, planTable, circleTable, HELP_TEXT_PLAN, PLAN_COLS, MINOR_VARIANTS, stemChoices, minorTonicOf, majorTonicOf, minorWay, PLAN, NO_SIGNS,
 } from "../../src/packs/tonleitern.js";
 import { PACKS } from "../../src/packs/index.js";
 import { N, dia, midi, pc, SEMI, LETTERS, gName, majorScale, majorName, minorName, majorKeyFromKeySig, relativeMinor } from "../../src/music.js";
-import { feedbackText, makeRound, choicesClass, svgResultClass, choiceSet, stepsFeedback } from "../../src/engine.js";
+import { feedbackText, makeRound, choicesClass, svgResultClass, choiceSet, stepsFeedback, helpsHtml, hasHelps, waitsForNext, helpFrom, HELP_OCTAVES } from "../../src/engine.js";
 import { staffSvg } from "../../src/staff.js";
 
 const L = tonleitern.levels;
@@ -624,4 +624,85 @@ test("Lerntafel Quintenzirkel (aus dem Paket „Intervalle“)", () => {
   for (const r of [["keine Vorzeichen", "C-Dur", "a-Moll"], ["6 ♯", "Fis-Dur", "dis-Moll"], ["3 ♭", "Es-Dur", "c-Moll"], ["7 ♭", "Ces-Dur", "as-Moll"], ["7 ♯", "Cis-Dur", "ais-Moll"]]) assert.ok(q.includes(row(...r)), r.join());
   assert.equal((q.match(/<tr><td>/g) || []).length, 15);
   assert.ok(!/<h[1-6]/.test(q));
+});
+
+/* ---------- Hilfen (Schritt 1 der Welle 8) ---------- */
+
+const HELPED = [1, 2, 4, 6, 8, 10, 12];
+const questionsOf = (l) => {
+  // jede Aufgabe der Stufe einmal (über die Pakete-Funktionen, nicht zufällig)
+  const out = [];
+  for (let k = 0; k < l.items.length * 12; k++) out.push(l.question(out[out.length - 1] || null));
+  return out;
+};
+
+test("Hilfen: nur die Stufen 1, 2, 4, 6, 8, 10, 12, sie warten auf „Nächste Aufgabe“", () => {
+  for (const l of L) {
+    assert.equal(hasHelps(l), HELPED.includes(l.no), l.id);
+    assert.equal(waitsForNext(l), HELPED.includes(l.no), l.id);
+  }
+  for (const no of [1, 2, 4, 6, 8]) {
+    assert.deepEqual(byId(no).helps, ["klaviatur", "tabelle"]);
+    assert.equal(byId(no).helpText, HELP_TEXT_PLAN);
+    assert.equal(byId(no).helpTable, planTable());
+  }
+  assert.deepEqual(byId(10).helps, ["klaviatur", "tabelle"]);
+  assert.equal(byId(10).helpTable, circleTable({ split: true }));
+  assert.deepEqual(byId(12).helps, ["klaviatur"]);
+  assert.equal(byId(12).helpTable, undefined);
+});
+
+test("Hilfen: Bauplan-Leiste und Quintenzirkel ohne Hervorhebung", () => {
+  const plan = planTable();
+  assert.deepEqual(PLAN_COLS, ["1–2", "2–3", "3–4", "4–5", "5–6", "6–7", "7–8"]);
+  const boxes = [...plan.matchAll(/<span class="tt-box">([GH])<\/span>/g)].map((m) => m[1]);
+  assert.deepEqual(boxes, ["G", "G", "H", "G", "G", "G", "H"]);
+  // Halbton-Spalten 3–4 und 7–8 grau hinterlegt
+  const cells = [...plan.matchAll(/<td class="tt-cell( fam)?">/g)].map((m) => !!m[1]);
+  assert.deepEqual(cells, [false, false, true, false, false, false, true]);
+  for (const t of [plan, circleTable({ split: true })]) {
+    assert.ok(!/tt-box (hit|ref|s1)|class="hi"/.test(t), t);
+  }
+  const circle = circleTable();
+  for (const [n, sharp, flat] of [[0, "C", "C"], [3, "A", "Es"], [7, "Cis", "Ces"], [6, "Fis", "Ges"], [5, "H", "Des"]]) {
+    assert.ok(circle.includes(`<tr><td class="tt-label"><b class="num">${n}</b></td><td class="tt-cell"><span class="tt-box">${sharp}</span></td><td class="tt-cell"><span class="tt-box">${flat}</span></td></tr>`), String(n));
+  }
+  assert.ok(!circle.includes("Moll"));
+  assert.ok(circle.includes("<th class=\"tt-col\">♯-Tonart</th><th class=\"tt-col\">♭-Tonart</th>"));
+});
+
+test("Hilfen: jede markierte Note liegt auf der gezeigten Klaviatur, Markierungen je Stufe", () => {
+  for (const no of HELPED) {
+    const l = byId(no);
+    for (const q of questionsOf(l)) {
+      const from = helpFrom(q), to = from + 12 * HELP_OCTAVES;
+      const marks = (q.helpMarks || []).map(midi);
+      for (const m of marks) assert.ok(m >= from && m <= to, `${l.id} ${q.key}: ${m} nicht in ${from}–${to}`);
+      const html = helpsHtml(l, q);
+      const shown = [...html.matchAll(/class="[wb]key mark" data-midi="(\d+)"/g)].map((m) => +m[1]).sort((a, b) => a - b);
+      assert.deepEqual(shown, [...new Set(marks)].sort((a, b) => a - b), `${l.id} ${q.key}`);
+      if (no <= 8) {
+        // C auf oder unter dem Grundton
+        assert.equal(from % 12, 0);
+        assert.ok(from <= midi(q.notes[0]) && midi(q.notes[0]) - from < 12, q.key);
+        // die ganze Tonleiter passt auf die Klaviatur
+        assert.ok(midi(q.notes[7]) <= to, q.key);
+      }
+      if (no === 1 || no === 2) assert.equal(marks.length, 2);
+      if (no === 4) { assert.equal(marks.length, 7); assert.ok(!marks.includes(midi(q.note))); }
+      if (no === 6) assert.deepEqual(marks, q.shown.map(midi));
+      if (no === 8) assert.equal(marks.length, 8);
+      if (no === 10) assert.equal(marks.length, 0);
+      if (no === 12) {
+        assert.equal(marks.length, 1);
+        assert.equal(q.helpMarks[0].octave, 5);
+        assert.ok(marks[0] - 3 >= from);
+      }
+    }
+  }
+  // B-Dur im Violinschlüssel beginnt auf b (unter c'): Klaviatur ab c
+  const bq = questionsOf(byId(2)).find((q) => q.key.startsWith("treble:B:"));
+  assert.equal(helpFrom(bq), 48);
+  const cq = questionsOf(byId(1)).find((q) => q.clef === "bass");
+  assert.equal(helpFrom(cq), 48);
 });
