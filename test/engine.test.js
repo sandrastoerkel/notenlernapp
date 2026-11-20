@@ -1,10 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import {
   starsHtml, effectiveInput, makeRound, findLevel, nextLevel, countAnswer, feedbackText,
   resultMessage, dotsHtml, lettersHtml, namesHtml, usesNames, nameKey, typedText, NAME_MAX,
   choicesHtml, choicesClass, choiceCols, keyAction, blitzPoints, notesToPlay,
-  playMode, revealedSvg, playSchedule, rhythmEnd, answerDelay, PLAY_GAP, BEAT_MS, RHYTHM_TAIL, DELAY_OK, DELAY_BAD,
+  playMode, revealedSvg, svgResultClass, playSchedule, rhythmEnd, answerDelay, PLAY_GAP, BEAT_MS, RHYTHM_TAIL, DELAY_OK, DELAY_BAD,
 } from "../src/engine.js";
 import { toneEnd } from "../src/audio.js";
 import { PACKS } from "../src/packs/index.js";
@@ -188,6 +189,32 @@ test("playMode: gleichzeitig nur mit playTogether und mehreren Tönen", () => {
   assert.equal(playMode({ play: [n], playTogether: true }), "sequence");
   assert.equal(playMode({ note: n, playTogether: true }), "sequence");
   assert.equal(playMode({}), "sequence");
+});
+
+test("svgResultClass: ganze Zeile ok/bad, mit keepRow keine Klasse", () => {
+  assert.equal(svgResultClass({}, true), "ok");
+  assert.equal(svgResultClass({}, false), "bad");
+  assert.equal(svgResultClass({ keepRow: false }, false), "bad");
+  assert.equal(svgResultClass({ keepRow: true }, true), "");
+  assert.equal(svgResultClass({ keepRow: true }, false), "");
+});
+
+test("keepRow: nur Tonleitern Stufe 3 bis 5, alle anderen Stufen färben die ganze Zeile", () => {
+  const keep = ["tonleitern-3", "tonleitern-4", "tonleitern-5"];
+  for (const pack of PACKS) for (const level of pack.levels) {
+    let prev = null;
+    for (let i = 0; i < 30; i++) {
+      prev = level.question(prev, { notes: {} });
+      assert.equal(!!prev.keepRow, keep.includes(level.id), level.id);
+    }
+  }
+});
+
+test("keepRow: im Ablauf bekommt das <svg> keine Klasse ok/bad", () => {
+  const src = readFileSync(new URL("../src/engine.js", import.meta.url), "utf8");
+  // Der DOM-Teil setzt die Klasse nur über svgResultClass
+  assert.match(src, /rc = svgResultClass\(q, ok\)/);
+  assert.ok(!/svg\.classList\.add\(ok \?/.test(src));
 });
 
 test("revealedSvg: nach der Antwort revealSvg, sonst svg", () => {

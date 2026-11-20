@@ -488,9 +488,9 @@ in der kleinen Oktave (c–c', d–d'), E F G A B Es As in der großen Oktave
       Vorzeichen. 28 Aufgaben. Hinweis: „Jede Dur-Tonleiter hat denselben
       Bauplan: Ganz – Ganz – Halb – Ganz – Ganz – Ganz – Halb. Die Halbtöne
       liegen immer zwischen der 3. und 4. und der 7. und 8. Stufe. Achte auf die
-      Vorzeichen: In D-Dur ist e'–fis' ein Ganzton, fis'–g' ein Halbton.“ (Begriff
-      „Tetrachord“ nicht verwenden, bis Sandra entscheidet; Text spricht von
-      zwei gleich gebauten Vierergruppen nur in der Lerntafel.)
+      Vorzeichen: In D-Dur ist e'–fis' ein Ganzton, fis'–g' ein Halbton.“ (Die
+      Vierergruppen und der Begriff „Tetrachord“ stehen nur in der Lerntafel,
+      siehe Feinschliff.)
    3. **Welcher Ton fehlt?** C G D F B, Violinschlüssel, eine Note (Stufe
       2–7) ist eine Lücke. Eingabe Namensraster (`input: "letters"`,
       `acc: true`), Antwort `{ letter, acc }`. 30 Aufgaben. Nach der Antwort
@@ -501,11 +501,13 @@ in der kleinen Oktave (c–c', d–d'), E F G A B Es As in der großen Oktave
    5. **Welcher Ton passt nicht?** Tonleiter (bis 4 Vorzeichen, beide
       Schlüssel), bei genau einer Note (Stufe 2–7) ist das Vorzeichen um einen
       Halbton verschoben (das Vorzeichen fehlt oder es steht eines zu viel), nur übliche
-      Vorzeichen (keine Eis/His/Ces/Fes). Frage „Welcher Ton passt nicht in G-Dur?“ (Tonart in der Frage),
+      Vorzeichen (keine Eis/His/Ces/Fes), nur Vorzeichen der eigenen Sorte
+      (Feinschliff: in Kreuz-Tonarten kein ♭, in Be-Tonarten kein ♯, C-Dur
+      entfällt). Frage „Welcher Ton passt nicht in G-Dur?“ (Tonart in der Frage),
       Knöpfe: die sechs Namen der Noten 2–7, wie sie dastehen (`gName`,
       kurz, eine Reihe). `revealSvg`: richtige Tonleiter, berichtigte Note
       grün. Auflösung z. B. „In G-Dur heißt die 7. Stufe Fis, nicht F.“
-      144 Aufgaben (72 je Schlüssel). Im Code nicht das Wort „falsch“
+      68 Aufgaben (34 je Schlüssel; vor dem Feinschliff 144). Im Code nicht das Wort „falsch“
       verwenden, auch nicht in Bezeichnern (Wortliste prüft den Code).
    6. **Tonleiter und Vorzeichen.** Tonleiter mit Vorzeichen vor den Noten
       (bis 4, beide Schlüssel). Frage „Welche Vorzeichen stehen vorne?“
@@ -525,7 +527,8 @@ in der kleinen Oktave (c–c', d–d'), E F G A B Es As in der großen Oktave
    „Richtig wäre: Fis, Cis (D-Dur).“
 4. **Lerntafeln.** „Bauplan Dur“ (`clef: "treble"` und Bass-Variante):
    C-Dur mit Klammern an den Halbtönen, darunter „Ganz Ganz Halb · Ganz ·
-   Ganz Ganz Halb“, Satz zu den zwei gleich gebauten Vierergruppen.
+   Ganz Ganz Halb“, Satz zu den zwei gleich gebauten Vierergruppen (Tetrachorde)
+   mit kurzer Erklärung des Begriffs.
    „Dur-Tonleitern bis 4 Vorzeichen“ (ohne Schlüssel): Tabelle Tonart, Töne,
    Vorzeichen, Reihenfolge wie im Quintenzirkel (C G D A E, F B Es As).
    Liedanfänge: nicht in diesem Paket (sie gehören zu den Intervall-Hörstufen
@@ -556,8 +559,25 @@ in der kleinen Oktave (c–c', d–d'), E F G A B Es As in der großen Oktave
 - Ton nach der Antwort: Tonleiter vollständig und sauber hintereinander.
 - Keine Änderung an Sternen, XP und den anderen Paketen (außer Schritt 0).
 
-**Offen für Sandra.** Begriff „Tetrachord“ im Unterricht? (bis dahin nur
-„Vierergruppe“ in der Lerntafel).
+**Entschieden (Sandra, 20.11.2026).** „Tetrachord“ kommt in die Lerntafel, als
+„Vierergruppen (Tetrachorde)“ mit einem Satz zur Erklärung.
+
+### Feinschliff Tonleitern (Branch `tonleitern-feinschliff`, von `main` 5a5f175)
+
+1. Stufe 5: nur Vorzeichen der eigenen Sorte. Kreuz-Tonarten: ein ♯ fehlt oder
+   steht zu viel auf einem Stammton; Be-Tonarten ebenso mit ♭; C-Dur entfällt
+   (jedes Vorzeichen fiele dort sofort auf). `fitsKey(moved, fifths)`;
+   68 Aufgaben statt 144.
+2. Lerntafel „Bauplan Dur“: „Vierergruppen (Tetrachorde)“ und der Satz „Ein
+   Tetrachord sind vier stufenweise aufeinanderfolgende Töne im Umfang einer
+   Quarte – trotz des Namens kein Akkord.“
+3. Auflösung Stufe 3 bis 5: Die Zeile bleibt schwarz (`q.keepRow`), nur die
+   eingesetzte bzw. berichtigte Note ist grün, ihr Name steht grün unter der
+   Zeile (`scaleSvg`, `opts.label`). Das Feedback darunter wird wie bisher grün
+   bzw. rot. Andere Pakete unverändert.
+4. Kopfzeile bei 320 px: Tonknopf wurde abgeschnitten; `.icon-btn { flex: none }`
+   und engere Abstände unter 360 px.
+5. Cache `notenheld-v0.2.0-7`.
 
 ## Später (nicht geplant, nur notiert)
 

@@ -1,13 +1,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import tonleitern, { oddQuestion,
+import tonleitern, { oddQuestion, fitsKey, lowestY, LABEL_DESC,
   TONICS, KEYS_2, KEYS_4, ITEMS_1, ITEMS_2, ITEMS_3, ITEMS_4, ITEMS_5, ITEMS_6,
   scaleNotes, scaleSvg, scaleX, sigList, sigChoices, fifthsOf, pickStep, usualNote, keyName,
   STEP_WHOLE, STEP_HALF, HALF_P, SCALE_W, SHARP_ORDER, FLAT_ORDER,
 } from "../../src/packs/tonleitern.js";
 import { PACKS } from "../../src/packs/index.js";
 import { N, dia, midi, pc, gName, majorScale } from "../../src/music.js";
-import { feedbackText, makeRound, choicesClass } from "../../src/engine.js";
+import { feedbackText, makeRound, choicesClass, svgResultClass } from "../../src/engine.js";
 import { staffSvg } from "../../src/staff.js";
 
 const L = tonleitern.levels;
@@ -36,8 +36,9 @@ test("sechs Stufen mit eindeutigen IDs", () => {
 });
 
 test("Anzahl der Aufgaben je Stufe (festgehalten)", () => {
-  assert.deepEqual(ITEMS.map((p) => p.length), [14, 28, 30, 108, 144, 18]);
-  assert.deepEqual(ITEMS_5.filter((it) => it.clef === "treble").length, 72);
+  assert.deepEqual(ITEMS.map((p) => p.length), [14, 28, 30, 108, 68, 18]);
+  assert.deepEqual(ITEMS_5.filter((it) => it.clef === "treble").length, 34);
+  assert.ok(L[4].subtitle.includes("68 Aufgaben"));
   L.forEach((l, i) => {
     assert.equal(l.items, ITEMS[i]);
     assert.equal(new Set(l.items.map((it) => it.key)).size, l.items.length, l.id);
@@ -140,6 +141,16 @@ test("Stufe 3 und 4: Lücke, Antwort { letter, acc }, Klaviatur zählt die Tonkl
     for (const q of many(l, 300)) {
       assert.ok(q.svg.includes('class="gap"') && q.svg.includes(">?<"));
       assert.ok(!q.revealSvg.includes('class="gap"') && q.revealSvg.includes('class="note ok"'));
+      // Auflösung: nur die eingesetzte Note grün, ihr Name darunter, die Zeile bleibt schwarz
+      assert.equal(q.keepRow, true);
+      assert.equal(svgResultClass(q, true), "");
+      assert.equal(svgResultClass(q, false), "");
+      assert.equal((q.revealSvg.match(/class="note ok"/g) || []).length, 1);
+      const lab = [...q.revealSvg.matchAll(/<text class="note-label ok" x="([\d.]+)" y="([\d.]+)"[^>]*>([^<]+)<\/text>/g)];
+      assert.equal(lab.length, 1);
+      assert.equal(lab[0][3], gName(q.note));
+      const it = l.items.find((x) => x.key === q.key);
+      assert.equal(+lab[0][1], scaleX(it.i));
       assert.ok(l.check(q, { letter: q.answer.letter, acc: q.answer.acc }));
       assert.ok(!l.check(q, { letter: q.answer.letter, acc: q.answer.acc === 0 ? 1 : 0 }));
       assert.ok(!l.check(q, null));
@@ -180,7 +191,13 @@ test("Stufe 5: genau eine Note weicht um einen Halbton ab und ist die Antwort", 
     assert.equal(q.answer, gName(it.moved));
     assert.match(q.prompt, /^Welcher Ton passt nicht in [A-H][a-z]*-Dur\?$/);
     assert.match(q.statKey, /^[A-H][a-z]*-Dur, [2-7]\. Stufe \(Suchen\)$/);
-    assert.ok(q.revealSvg.includes('class="note ok"'));
+    assert.equal((q.revealSvg.match(/class="note ok"/g) || []).length, 1);
+    assert.equal(q.keepRow, true);
+    assert.equal(svgResultClass(q, false), "");
+    const lab = [...q.revealSvg.matchAll(/<text class="note-label ok" x="([\d.]+)"[^>]*>([^<]+)<\/text>/g)];
+    assert.equal(lab.length, 1);
+    assert.equal(lab[0][2], gName(it.notes[it.i]));
+    assert.equal(+lab[0][1], scaleX(it.i));
   }
   const g = ITEMS_5.find((x) => x.key === "treble:G:6:-1");
   assert.equal(gName(g.moved), "F");
@@ -190,6 +207,51 @@ test("Stufe 5: genau eine Note weicht um einen Halbton ab und ist die Antwort", 
   assert.equal(gq.answer, "F");
   assert.equal(gq.reveal, "In G-Dur heißt die 7. Stufe Fis, nicht F.");
   assert.equal(gq.display, "F passt nicht: In G-Dur heißt die 7. Stufe Fis.");
+});
+
+test("Stufe 5: nur Vorzeichen der eigenen Sorte, ohne C-Dur", () => {
+  assert.ok(!ITEMS_5.some((it) => it.k === "C"));
+  assert.deepEqual(new Set(ITEMS_5.map((it) => it.k)), new Set(KEYS_4.filter((k) => k !== "C")));
+  for (const it of ITEMS_5) {
+    const f = fifthsOf(it.notes[0]);
+    if (f > 0) assert.ok(it.moved.acc >= 0, it.key);
+    else assert.ok(f < 0 && it.moved.acc <= 0, it.key);
+    // die verschobene Note ist entweder ein Stammton (Vorzeichen fehlt) oder trägt ein Vorzeichen zu viel
+    const right = it.notes[it.i];
+    if (it.moved.acc === 0) assert.notEqual(right.acc, 0, it.key);
+    else assert.equal(right.acc, 0, it.key);
+    // in der gezeigten Tonleiter kommen nur Kreuze oder nur Be vor
+    assert.ok(!(it.shown.some((n) => n.acc > 0) && it.shown.some((n) => n.acc < 0)), it.key);
+  }
+  assert.equal(fitsKey(N("F", 4, -1), 1), false);
+  assert.equal(fitsKey(N("F", 4, 1), -1), false);
+  assert.equal(fitsKey(N("F", 4, 1), 0), false);
+  assert.equal(fitsKey(N("F", 4, 0), 0), false);
+  assert.equal(fitsKey(N("F", 4, 0), 1), true);
+  assert.equal(fitsKey(N("A", 4, -1), -1), true);
+  // Beispiele: G-Dur ohne Fis (fehlt), B-Dur mit Ges (zu viel); D-Dur mit As und F-Dur mit Dis entfallen
+  assert.ok(ITEMS_5.find((x) => x.key === "treble:G:6:-1"));
+  assert.ok(ITEMS_5.find((x) => x.key === "treble:B:5:-1"));
+  assert.ok(!ITEMS_5.find((x) => x.key === "treble:D:4:-1"));
+  assert.ok(!ITEMS_5.find((x) => x.key === "bass:F:5:1"));
+});
+
+test("scaleSvg: Name unter der Note, unter dem tiefsten Punkt, Höhe wächst mit", () => {
+  for (const clef of ["treble", "bass"]) for (const k of KEYS_4) {
+    const notes = scaleNotes(TONICS[clef][k]);
+    const svg = scaleSvg(notes, clef, { cls: { 3: "ok" }, label: { i: 3, text: gName(notes[3]) } });
+    const m = svg.match(/<text class="note-label ok" x="([\d.]+)" y="([\d.]+)" text-anchor="middle">([^<]+)<\/text>/);
+    assert.ok(m, `${clef} ${k}`);
+    assert.equal(+m[1], scaleX(3));
+    assert.equal(m[3], gName(notes[3]));
+    const y = +m[2], h = +svg.match(/viewBox="0 0 368 ([\d.]+)"/)[1];
+    assert.ok(y - 13 >= lowestY(notes, clef) + 5, `${clef} ${k}`);
+    assert.ok(h >= 122 && h >= y + LABEL_DESC, `${clef} ${k}`);
+  }
+  // ohne label unverändert
+  const notes = scaleNotes(TONICS.treble.D);
+  assert.ok(scaleSvg(notes, "treble").startsWith('<svg viewBox="0 0 368 122"'));
+  assert.ok(!scaleSvg(notes, "treble", { cls: { 2: "ok" } }).includes("note-label"));
 });
 
 test("Stufe 6: Vorzeichen in der Reihenfolge der Vorzeichnung, vier Knöpfe", () => {
@@ -222,6 +284,10 @@ test("Stufe 6: Vorzeichen in der Reihenfolge der Vorzeichnung, vier Knöpfe", ()
     // Auflösung: Vorzeichnung hinter dem Schlüssel, vor den Noten keine Vorzeichen
     assert.equal((q.revealSvg.match(/class="keysig"/g) || []).length, Math.abs(it.fifths));
     assert.ok(!q.revealSvg.includes('class="acc"'));
+    // Stufe 6 unverändert: ganze Zeile grün bzw. rot, kein Name darunter
+    assert.ok(!q.keepRow && !q.revealSvg.includes("note-label"));
+    assert.equal(svgResultClass(q, true), "ok");
+    assert.equal(svgResultClass(q, false), "bad");
   }
   const d = L[5].question({ key: "x" });
   assert.ok(d.reveal.startsWith("Richtig wäre: "));
@@ -272,8 +338,9 @@ test("Lerntafeln: Bauplan je Schlüssel, Tabelle der Dur-Tonleitern", () => {
   const t = tonleitern.learn[0].render();
   assert.ok(t.includes("Ganz\u00a0Ganz\u00a0Halb · Ganz · Ganz\u00a0Ganz\u00a0Halb"));
   assert.equal((t.match(/class="bracket"/g) || []).length, 2);
-  assert.ok(t.includes("e'–f'") && t.includes("h'–c''") && t.includes("Vierergruppen"));
-  assert.ok(!/Tetrachord/i.test(t));
+  assert.ok(t.includes("e'–f'") && t.includes("h'–c''") && t.includes("Vierergruppen (Tetrachorde)"));
+  assert.ok(t.includes("Ein Tetrachord sind vier stufenweise aufeinanderfolgende Töne im Umfang einer Quarte – trotz des Namens kein Akkord."));
+  assert.ok(!/zwei gleich gebauten Vierergruppen/.test(t));
   assert.ok(tonleitern.learn[1].render().includes("e–f"));
   const tab = tonleitern.learn[2].render();
   const rows = [...tab.matchAll(/<tr><td><b>([^<]+)<\/b><\/td><td>([^<]+)<\/td><td>([^<]+)<\/td><\/tr>/g)].map((m) => m.slice(1));
@@ -285,6 +352,9 @@ test("Lerntafeln: Bauplan je Schlüssel, Tabelle der Dur-Tonleitern", () => {
 test("Texte: keine verbotenen Wörter, Anrede du", () => {
   const texts = L.flatMap((l) => [l.title, l.subtitle, l.hint]).concat(tonleitern.learn.map((c) => c.render()));
   for (const l of L) for (const q of many(l, 50)) texts.push(q.prompt, q.display, q.reveal, ...(q.choices || []));
-  for (const t of texts) assert.ok(!/Fehler!|falsch|mühelos|Held|Champion|\bSie\b|Tetrachord/.test(t), t);
+  for (const t of texts) assert.ok(!/Fehler!|falsch|mühelos|Held|Champion|\bSie\b/.test(t), t);
+  // „Tetrachord“ nur in der Lerntafel „Bauplan Dur“, nicht in Stufen und Aufgaben
+  const levelTexts = texts.filter((t) => !tonleitern.learn.some((c) => c.render() === t));
+  assert.ok(levelTexts.every((t) => !/Tetrachord/.test(t)));
   assert.ok(L[5].hint.includes("Der Grundton steht zweimal da, sein Vorzeichen zählt nur einmal."));
 });

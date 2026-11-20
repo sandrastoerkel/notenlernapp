@@ -65,11 +65,25 @@ function gapSvg(x) {
   return `<g class="gap"><rect class="gap-box" x="${x - 10}" y="${MID - 17}" width="20" height="34" rx="3"/><text class="gap-q" x="${x}" y="${MID + 7.5}" text-anchor="middle">?</text></g>`;
 }
 
+// Name unter einer Note (Auflösung der Stufen 3 bis 5): Schriftgröße in SVG-Einheiten (bei 320 px Breite
+// etwa 12 px), Abstand zum tiefsten Punkt der Zeile und Platz für Unterlängen unter der Grundlinie.
+export const LABEL_SIZE = 18, LABEL_GAP = 6, LABEL_ASC = 13, LABEL_DESC = 6;
+// Tiefster Punkt der Zeile: unterste Linie oder der tiefste Kopf bzw. sein Vorzeichen (♯ reicht etwa
+// 1,4 Linienabstände unter die Kopfmitte, ♭ und der Kopf selbst etwa einen halben)
+export function lowestY(notes, clef, keySig) {
+  return notes.reduce((m, n) => {
+    const acc = keySig === undefined ? n.acc : 0;
+    return Math.max(m, yOfNote(n, clef) + (acc > 0 ? 1.4 * S : S / 2));
+  }, BOTTOM);
+}
+
 // Acht Noten in einer Zeile, schwarze Köpfe ohne Hals.
 // opts: mark [i, i + 1] (oder marks: Liste solcher Paare), gap i, cls { i: "ok" }, keySig (Vorzeichnung;
-// die Noten stehen dann ohne eigene Vorzeichen), svgCls (Klasse am <svg>).
+// die Noten stehen dann ohne eigene Vorzeichen), svgCls (Klasse am <svg>),
+// label { i, text } (Name in Grün unter Note i, Klasse "note-label ok", immer unter dem tiefsten Punkt
+// der Zeile; die Höhe des SVG wächst, falls nötig).
 export function scaleSvg(notes, clef, opts = {}) {
-  const { keySig, gap, cls = {} } = opts;
+  const { keySig, gap, cls = {}, label } = opts;
   const marks = opts.marks || (opts.mark ? [opts.mark] : []);
   const marked = new Set(marks.flat());
   let inner = "";
@@ -80,7 +94,13 @@ export function scaleSvg(notes, clef, opts = {}) {
     inner += noteSvg(shown, clef, x, cls[i] || (marked.has(i) ? "mark" : ""), { stemless: true });
   });
   marks.forEach(([i, j]) => { inner += bracketSvg(notes, clef, i, j, keySig); });
-  return staffSvg(clef, inner, { width: SCALE_W, keySig, cls: opts.svgCls });
+  let height;
+  if (label) {
+    const y = Math.round(lowestY(notes, clef, keySig) + LABEL_GAP + LABEL_ASC);
+    inner += `<text class="note-label ok" x="${scaleX(label.i, keySig)}" y="${y}" text-anchor="middle">${label.text}</text>`;
+    height = y + LABEL_DESC;
+  }
+  return staffSvg(clef, inner, { width: SCALE_W, keySig, cls: opts.svgCls, height });
 }
 
 /* ---------- Hilfen ---------- */
@@ -166,7 +186,8 @@ function gapQuestion(it) {
   return {
     key: it.key,
     svg: scaleSvg(it.notes, it.clef, { gap: it.i }),
-    revealSvg: scaleSvg(it.notes, it.clef, { cls: { [it.i]: "ok" } }),
+    revealSvg: scaleSvg(it.notes, it.clef, { cls: { [it.i]: "ok" }, label: { i: it.i, text: gName(n) } }),
+    keepRow: true,
     prompt: "Welcher Ton fehlt?",
     answer: { letter: n.letter, acc: n.acc },
     note: n,
@@ -191,14 +212,18 @@ const RARE = new Set(["E1", "H1", "C-1", "F-1"]);
 export const usualNote = (n) => n.acc >= -1 && n.acc <= 1 && !RARE.has(n.letter + n.acc);
 
 // Bei genau einer Note (Stufe 2 bis 7) ist das Vorzeichen um einen Halbton verschoben:
-// es fehlt, oder es steht eines zu viel (♯ oder ♭).
+// es fehlt, oder es steht eines zu viel. Nur Vorzeichen der eigenen Sorte: in Kreuz-Tonarten
+// fehlt ein ♯ oder ein ♯ steht zu viel, in Be-Tonarten ebenso mit ♭. Ein ♭ in einer Kreuz-Tonart
+// (oder umgekehrt) wäre ohne Prüfen der Schritte zu erkennen; C-Dur entfällt aus demselben Grund.
+export const fitsKey = (moved, fifths) => (fifths > 0 ? moved.acc >= 0 : fifths < 0 ? moved.acc <= 0 : false);
+
 function oddPool(clefs, keys) {
   const out = [];
   for (const clef of clefs) for (const k of keys) {
-    const notes = scaleNotes(TONICS[clef][k]);
+    const notes = scaleNotes(TONICS[clef][k]), fifths = fifthsOf(notes[0]);
     for (let i = 1; i <= 6; i++) for (const d of [1, -1]) {
       const n = notes[i], moved = N(n.letter, n.octave, n.acc + d);
-      if (!usualNote(moved)) continue;
+      if (!usualNote(moved) || !fitsKey(moved, fifths)) continue;
       const shown = notes.map((x, j) => (j === i ? moved : x));
       out.push({ key: `${clef}:${k}:${i}:${d}`, clef, k, notes, shown, i, moved });
     }
@@ -213,7 +238,8 @@ export function oddQuestion(it) {
   return {
     key: it.key,
     svg: scaleSvg(it.shown, it.clef),
-    revealSvg: scaleSvg(it.notes, it.clef, { cls: { [it.i]: "ok" } }),
+    revealSvg: scaleSvg(it.notes, it.clef, { cls: { [it.i]: "ok" }, label: { i: it.i, text: right } }),
+    keepRow: true,
     prompt: `Welcher Ton passt nicht in ${key}?`,
     answer,
     choices: it.shown.slice(1, 7).map(gName),
@@ -338,7 +364,7 @@ function planBoard(clef) {
   const notes = scaleNotes(TONICS[clef].C), names = notes.map(helm);
   return `<figure style="grid-column: 1 / -1; margin: 0">${scaleSvg(notes, clef, { marks: [[2, 3], [6, 7]] })}</figure>
     <p style="grid-column: 1 / -1; margin: 0; text-align: center"><b>Ganz Ganz Halb · Ganz · Ganz Ganz Halb</b></p>
-    <p class="small muted" style="grid-column: 1 / -1">Die Klammern zeigen die Halbtonschritte: ${names[2]}–${names[3]} und ${names[6]}–${names[7]}, also zwischen der 3. und 4. und der 7. und 8. Stufe. Die Tonleiter besteht aus zwei gleich gebauten Vierergruppen (Ganz – Ganz – Halb): ${names.slice(0, 4).join(" ")} und ${names.slice(4).join(" ")}. Dazwischen liegt ein Ganztonschritt.</p>`;
+    <p class="small muted" style="grid-column: 1 / -1">Die Klammern zeigen die Halbtonschritte: ${names[2]}–${names[3]} und ${names[6]}–${names[7]}, also zwischen der 3. und 4. und der 7. und 8. Stufe. Die Tonleiter teilt sich in zwei gleich gebaute Vierergruppen (Tetrachorde), je Ganz – Ganz – Halb: ${names.slice(0, 4).join(" ")} und ${names.slice(4).join(" ")}. Dazwischen liegt ein Ganztonschritt. Ein Tetrachord sind vier stufenweise aufeinanderfolgende Töne im Umfang einer Quarte – trotz des Namens kein Akkord.</p>`;
 }
 
 function keysBoard() {

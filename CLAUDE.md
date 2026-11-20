@@ -16,7 +16,8 @@ Statische Web-App: HTML, CSS, JavaScript, keine Abhängigkeiten, kein Build.
 - Paket F erledigt: Integration, Statistik je Stufe, Rhythmus und vollständiger Takt bei „Takt füllen“, Update-Hinweis des Service Workers, Screenshots (`docs/screens/`, neu erzeugen mit `docs/screens/screenshots.mjs`).
 - Release v0.2.0 (Tag `v0.2.0`, Cache `notenheld-v0.2.0-3`, `package.json` 0.2.0).
 - Paket G erledigt (Notenkarte, adaptive Auswahl; Cache `notenheld-v0.2.0-5`).
-- Paket „Tonleitern“ (Branch `paket-tonleitern`, Welle 5): Dur-Tonleitern bis 4 Vorzeichen, Stufen `tonleitern-1` bis `-6`, auf der Startseite zwischen „Notenwerte und Pausen“ und „Intervalle und Tonarten“; Notenkarte „neu“ jetzt grau. Cache `notenheld-v0.2.0-6`. Noch nicht auf `main`.
+- Paket „Tonleitern“ (Branch `paket-tonleitern`, Welle 5): Dur-Tonleitern bis 4 Vorzeichen, Stufen `tonleitern-1` bis `-6`, auf der Startseite zwischen „Notenwerte und Pausen“ und „Intervalle und Tonarten“; Notenkarte „neu“ jetzt grau. Cache `notenheld-v0.2.0-6`. Auf `main`.
+- Feinschliff Tonleitern (Branch `tonleitern-feinschliff`): Stufe 5 nur Vorzeichen der eigenen Sorte (68 Aufgaben, ohne C-Dur), Lerntafel mit „Tetrachord“, Auflösung Stufe 3–5 mit grüner Note und Namen (`q.keepRow`), Kopfzeile bei 320 px. Cache `notenheld-v0.2.0-7`. Noch nicht auf `main`.
 - Nächster Schritt: Test mit einem Kind (PLAN, Paket F Schritt 7). Noch offen aus der Übergabe zu Welle 3: Installation auf iOS und Android ungetestet.
 - Starten nur über einen Webserver (`npm run dev`), ES-Module laden nicht über `file://`.
 - Veröffentlichung über GitHub Pages (`.github/workflows/pages.yml`), Pfade immer relativ.

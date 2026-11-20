@@ -185,7 +185,10 @@ nach der Antwort) beginnen die Noten bei x = 126 im Abstand 30 und stehen ohne e
 Optionen: `mark: [i, i + 1]` bzw. `marks` (Nachbarnoten in `--accent`, Klasse `mark`, dazu eine
 eckige Klammer `.bracket` darunter, damit es nicht nur an der Farbe hängt), `gap: i` (gestrichelter
 Kasten `.gap-box` mit „?“ auf Höhe der Mittellinie statt der Note), `cls: { i: "ok" }` (einzelne
-Note färben), `keySig`, `svgCls`. Im Browser gemessen (getBBox): kein Vorzeichen berührt den Kopf
+Note färben), `keySig`, `svgCls`, `label: { i, text }` (Name in `--ok` unter Note i, Klasse
+`note-label ok`, 18 Einheiten groß, immer unter dem tiefsten Punkt der Zeile (`lowestY`: unterste
+Linie, Köpfe, ♯ reicht 1,4 LA unter die Kopfmitte); die Höhe des SVG wächst dann über 122). Die
+Auflösungen der Stufen 3 bis 5 nutzen `cls` und `label` zusammen mit `q.keepRow`. Im Browser gemessen (getBBox): kein Vorzeichen berührt den Kopf
 davor oder den Schlüssel, in allen Tonleitern der Stufen 3 bis 6 und ihren Auflösungen.
 
 **Akkorde.** `src/packs/akkorde.js` setzt Dreiklänge mit `chordSvg(notes, clef, x, opts)`:
@@ -237,6 +240,7 @@ Eine Stufe:
       display: "G (g')",       // Text fürs Feedback: „Richtig! G (g')“ bzw. „Das war ein G (g').“
       reveal: "Richtig wäre: A-Dur.", // optional, ganzer Satz bei falscher Antwort statt „Das war ein …“
       revealSvg: "<svg …>",    // optional, ersetzt nach der Antwort svg (richtig und falsch), z. B. der volle Takt
+      keepRow: false,          // optional, true: nach der Antwort kein ok/bad am <svg>, die Zeile bleibt schwarz
       play: [ /* Noten oder { note, beats } / { rest: true, beats } */ ], // optional, nach der Antwort abgespielt
       playTogether: false,     // optional, true spielt alle Töne aus play gleichzeitig (Akkord)
       choices: ["…"],          // nur bei input "choices": 4 bis 6 Auswahlknöpfe, enthält answer
@@ -274,6 +278,12 @@ der Lücke (`<g class="filled">`), und der ganze Takt erklingt auf h'.
 `revealSvg` (seit Paket F): Ist es gesetzt, ersetzt die Engine nach der Antwort
 das SVG der Aufgabe durch `revealSvg`; die Färbung `ok`/`bad` gilt für das
 angezeigte SVG. Ohne `revealSvg` bleibt `svg` stehen (`revealedSvg(q)`).
+
+`keepRow` (seit Feinschliff Tonleitern): Setzt eine Aufgabe `keepRow: true`,
+lässt die Engine die Klasse `ok`/`bad` am `<svg>` weg (`svgResultClass(q, ok)`
+gibt dann `""`); die Zeile bleibt schwarz, und das Paket färbt selbst einzelne
+Noten (Tonleitern, Stufe 3 bis 5). Das Feedback darunter wird wie bisher grün
+bzw. rot. Ohne `keepRow` unverändert.
 
 Gleichzeitiges Abspielen (seit Paket E): Setzt eine Aufgabe `playTogether: true`
 und enthält `play` mehr als einen Ton, startet die Engine alle Töne zur selben
@@ -369,7 +379,8 @@ Stufen-ID.
   `null` oder `{ buf, answer?, invalid? }`), `typedText(buf, invalid)`,
   Konstante `NAME_MAX` (4 Zeichen); entfallen: `setMod(acc)`
 - seit Paket F, ebenfalls rein und getestet: `revealedSvg(q)` (`q.revealSvg`
-  oder `q.svg`), `playSchedule(q)` (Abspielplan `[{ note, at, dur }]` in ms;
+  oder `q.svg`), `svgResultClass(q, ok)` (seit Feinschliff Tonleitern: `"ok"`,
+  `"bad"` oder `""` bei `q.keepRow`), `playSchedule(q)` (Abspielplan `[{ note, at, dur }]` in ms;
   `note` ist `null` bei Pausen, `dur` ist `null` bei Einträgen ohne Dauer),
   `rhythmEnd(q)` (Ende des letzten Eintrags mit Dauer in ms, sonst 0),
   `answerDelay(q, ok, muted)` (Wartezeit bis zur nächsten Aufgabe);

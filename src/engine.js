@@ -1,6 +1,8 @@
 // Generischer Rundenablauf: zehn Aufgaben, Feedback, Sterne und XP.
 // Die Engine kennt kein Paket im Detail: sie ruft level.question(prev, ctx) und level.check(q, value),
 // zeigt q.svg (nach der Antwort q.revealSvg, falls gesetzt) und baut die Antwort-Elemente nach der Eingabeart.
+// Nach der Antwort färbt sie die ganze Zeile grün bzw. rot (Klasse ok/bad am <svg>); setzt die Aufgabe
+// q.keepRow = true, bleibt die Zeile schwarz und nur das Feedback darunter wird grün bzw. rot.
 // Oben stehen reine Hilfsfunktionen (getestet in test/engine.test.js), unten der DOM-Teil.
 import { LETTERS, NAME_ACCS, N, gName, parseNoteName } from "./music.js";
 import { pianoSvg } from "./staff.js";
@@ -160,6 +162,10 @@ export const playMode = (q) => (q.playTogether && notesToPlay(q).length > 1 ? "t
 
 // SVG nach der Antwort: q.revealSvg, falls vorhanden, sonst q.svg
 export const revealedSvg = (q) => q.revealSvg || q.svg;
+// Klasse am <svg> nach der Antwort: "ok" bzw. "bad" färbt die ganze Zeile. Mit q.keepRow (optional)
+// bleibt die Zeile schwarz (""), weil das Paket selbst nur einzelne Noten färbt (z. B. „Tonleitern“,
+// Stufe 3 bis 5: nur die eingesetzte bzw. berichtigte Note grün, mit Namen darunter).
+export const svgResultClass = (q, ok) => (q.keepRow ? "" : ok ? "ok" : "bad");
 
 /* ---------- Ablauf im DOM ---------- */
 
@@ -274,11 +280,12 @@ function answer(r, value, el) {
   }
   // q.revealSvg (optional): SVG, das nach der Antwort statt q.svg erscheint, bei richtiger und falscher
   // Antwort, z. B. der vollständige Takt mit dem fehlenden Wert in der Lücke. Ohne revealSvg bleibt q.svg
-  // stehen. Die Färbung (Klasse ok/bad am <svg>) gilt in beiden Fällen für das angezeigte SVG.
+  // stehen. Die Färbung (Klasse ok/bad am <svg>) gilt in beiden Fällen für das angezeigte SVG,
+  // außer bei q.keepRow (svgResultClass): dann bleibt die Zeile schwarz.
   const shown = revealedSvg(q);
   if (shown !== q.svg) ui.staff.innerHTML = shown;
-  const svg = ui.staff.querySelector("svg");
-  if (svg) svg.classList.add(ok ? "ok" : "bad");
+  const svg = ui.staff.querySelector("svg"), rc = svgResultClass(q, ok);
+  if (svg && rc) svg.classList.add(rc);
   ui.feedback.textContent = feedbackText(q, ok);
   ui.feedback.className = "feedback " + (ok ? "ok" : "bad");
   if (playMode(q) === "together") playChord(notesToPlay(q));

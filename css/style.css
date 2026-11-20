@@ -98,7 +98,7 @@ p { margin: 0; }
 .top-stats { margin-left: auto; display: flex; gap: 8px; align-items: center; }
 .chip { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); font-weight: 700; font-size: 0.85rem; }
 .chip.gold { background: var(--gold-soft); border-color: transparent; }
-.icon-btn { width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); cursor: pointer; display: grid; place-items: center; }
+.icon-btn { flex: none; width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); cursor: pointer; display: grid; place-items: center; }
 .icon-btn:focus-visible, button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 1px; }
 
 .app {
@@ -146,6 +146,8 @@ section { display: grid; gap: 14px; }
 .bracket { fill: none; stroke: var(--accent); stroke-width: 1.6; }
 .gap-box { fill: none; stroke: var(--muted); stroke-width: 1.4; stroke-dasharray: 4 3; }
 .gap-q { font-family: var(--display); font-weight: 800; font-size: 21px; fill: var(--muted); }
+/* Tonleitern, Auflösung Stufe 3 bis 5: Name der eingesetzten bzw. berichtigten Note in Grün (= LABEL_SIZE in tonleitern.js) */
+.note-label.ok { fill: var(--ok); font-size: 18px; }
 
 /* answers */
 .answers { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
@@ -266,6 +268,14 @@ section { display: grid; gap: 14px; }
   .answers.choices.short .btn { font-size: 1.2rem; }
 }
 @media (prefers-reduced-motion: reduce) { .btn { transition: none; } }
+/* Kopfzeile bei 320 px: Logo, Serie, XP und Tonknopf passen nebeneinander, auch bei großen Zahlen */
+@media (max-width: 360px) {
+  .top-inner { gap: 6px; }
+  .logo { gap: 6px; font-size: 1rem; }
+  .logo-mark { width: 26px; height: 26px; border-radius: 8px; font-size: 17px; }
+  .top-stats { gap: 4px; }
+  .chip { gap: 3px; padding: 3px 7px; font-size: .78rem; }
+}
 
 /* Ergebnisfarbe: die Engine setzt "ok" oder "bad" auf das <svg> der Notenzeile */
 svg.ok .notehead, svg.ok .acc, svg.ok .flag { fill: var(--ok); } svg.ok .stem { stroke: var(--ok); }
