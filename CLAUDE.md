@@ -35,7 +35,7 @@ Statische Web-App: HTML, CSS, JavaScript, keine Abhängigkeiten, kein Build.
 ## Feste Entscheidungen (Sandra, November 2026)
 
 - Der Name „Notenheld“ bleibt. Bewusste Ausnahme von der Wortliste („Held“); in UI-Texten das Wort sonst nicht verwenden.
-- Eigenes App-Icon: Violinschlüssel auf Aquarell (Sandras Bild). Lizenz für das Bild noch offen.
+- Eigenes App-Icon: Violinschlüssel im Aquarell-Stil, von Sandra mit Apple Image Playground erstellt (KI-generiert), Hinweis in README und THIRD_PARTY.md.
 - Keine Begleit- oder Comic-Figuren (kein Drache, kein Schaf).
 - Vorzeichen-Noten (ab Stufe 7): Namensraster mit 21 Namen (C … H, Cis … His, Ces … B) oder tippen („fis“ und Enter). Kein ♭/♯-Schalter.
 - Bassschlüssel als Bravura-Umriss: Kopf auf der F-Linie, Punkte in den Zwischenräumen darüber und darunter. Nicht zurück zur Noto-Glyphe.

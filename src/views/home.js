@@ -41,7 +41,7 @@ export function render() {
   $("#homeAccuracy").textContent = acc === null ? "–" : acc + " %";
   const { level } = findLevel(ctx.packs, s.current);
   $("#homeContinue").textContent = (s.levels[level.id] ? "Weiter üben: " : "Starten: ") + "Stufe " + level.no;
-  $("#homeSub").textContent = s.dayStreak >= 2 ? `${s.dayStreak} Tage in Folge geübt. Eine Runde heute hält die Serie am Leben.` : "Eine Runde dauert etwa zwei Minuten. Zehn Noten, dann gibt es Sterne.";
+  $("#homeSub").textContent = s.dayStreak >= 2 ? `${s.dayStreak} Tage in Folge geübt. Eine Runde heute hält die Serie am Leben.` : "Eine Runde dauert etwa zwei Minuten. Zehn Aufgaben, dann gibt es Sterne.";
   $("#unlockAll").textContent = s.unlockAll ? "Demo-Freischaltung aufheben" : "Alle Stufen öffnen (Demo)";
   // Je Paket ein Abschnitt: Überschrift, dann die Stufen
   const unsure = countUnsure(s.notes, NOTE_KEYS);

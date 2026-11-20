@@ -49,8 +49,8 @@ Fonts ausgelieferten Teilmengen (Subsets), unverändert.
 
 Die Icons in `icons/` (`icon-192.png`, `icon-512.png`, `icon-maskable-512.png`,
 `apple-touch-icon.png`, `favicon-32.png`, `favicon-48.png`) stammen aus einem
-eigenen, von Hand gemalten Aquarell von **Sandra Störkel** (schwarzer
-Violinschlüssel auf Blau, Grün und Gelb). Sie sind kein fremder Bestandteil und
+Bild im Aquarell-Stil, das **Sandra Störkel** mit Apple Image Playground erstellt
+hat (KI-generiert; schwarzer Violinschlüssel auf Blau, Grün und Gelb). Sie
 enthalten keine Glyphe aus Noto Music mehr.
 
 Bearbeitung: quadratisch um den Schlüssel zugeschnitten und verkleinert; die
