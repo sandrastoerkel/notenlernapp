@@ -22,6 +22,8 @@ src/
   store.js              Fortschritt: Zustand, Freischaltung, Serie, Persistenz
   adapt.js              adaptive Auswahl: Zustand je Note (neu, unsicher, langsam, sicher), Gewichte (seit Paket G)
   engine.js             generischer Rundenablauf (10 Aufgaben, Feedback, Sterne, XP)
+  demo.js               Baukasten: Vorführung (Bilder mit Zurück/Abspielen/Weiter, Schritt-Marken, Ergebniskarte)
+  grid.js               Baukasten: Kästchentabelle („gehirngerechte“ Übersicht, eine Zeile je Eintrag)
   packs/index.js        Registry aller Themenpakete
   packs/noten.js        Paket „Noten lesen“ (8 Stufen)
   packs/notenwerte.js   Paket „Notenwerte und Pausen“
@@ -217,9 +219,25 @@ groß von Prime bis Oktave, 12), `TYPES_ALL` (dazu übermäßige Prime und Sekun
 Quarte und Quinte, verminderte Septime, 19), `TYPES_NO_PRIME` (abwärts und Bauen, 17), `ALLOWED_NAMES`;
 `qualityChoices(num, types)` (Knöpfe im zweiten Schritt), `frameText(a, b)` („e'–g': 3 Stufen → Terz“),
 `stepsText(a, b)` (beide Denkschritte; nur erlaubte Intervalle werden benannt), `twoStepQuestion(it, types, down)`,
-`frameTable()` und `semitoneTable(types)` (Tabellen der Hilfen, aus `semitonesFor` berechnet),
-`SIZE_ORDER`/`SIZE_NAMES` (die elf Intervalle rein/groß/klein ohne Prime, Stufe 10), `checkBuild`
-(Buchstabe und Vorzeichen), `VERDICTS` (Stufe 10). `lowerNote(high, num, quality)` in `music.js`.
+`intervalTable(kind, { row, hit, split })` (Kästchentabelle aus `grid.js`, Werte aus `semitonesFor`: `"rahmen"`
+Stufe 1 nur „1 Prime … 8 Oktave“, `"rkg"` Stufe 3 klein | rein | groß, `"all"` dazu die Zeile „vermindert = 1
+Halbton weniger · übermäßig = 1 Halbton mehr“; `row` violett, `hit` grün, bei vermindert/übermäßig das
+Bezugs-Kästchen umrandet (`baseQuality`) und der passende Teil der Zeile grün), `intervalDemo(low, high,
+{ clef, table, fine })` (Bilder der Vorführung, siehe unten), `fineText`, `demoXs`, `demoBoard`/`mountBoard`
+(Lerntafel), `CHECK_TYPES`/`CHECK_NAMES` (Ziele in Stufe 10: alle erlaubten ohne Prime, 17),
+`SIZE_ORDER`/`SIZE_NAMES` (rein/groß/klein ohne Prime: das gezeigte Intervall bei „Zahl stimmt nicht“),
+`checkBuild` (Buchstabe und Vorzeichen), `VERDICTS` (Stufe 10). `lowerNote(high, num, quality)` in `music.js`.
+
+**Vorführung „So bestimmst du ein Intervall“** (`intervalDemo`, seit 20.11.2026). Bilder: 1 Frage + je
+gezählter Notenstufe eins (Zwischenstufen als hohle violette Köpfe, Kreise 1, 2, 3 …, nach der letzten die
+Klammer und die violette Tabellenzeile) + je Halbton eins (die Taste über der vorigen leuchtet grün mit ihrer
+Zahl, schwarze Tasten mitgezählt; bei der Prime ein Bild „0 Halbtöne“) + 1 Ergebnis („e'–g' = kleine Terz“,
+Marken „3 Stufen“ violett, „3 Halbtöne“ grün). Satz zum letzten Halbton: „3 Halbtöne → kleine Terz“ bzw.
+„6 Halbtöne = rein 5 + 1 → übermäßige Quarte“, „9 Halbtöne = klein 10 − 1 → verminderte Septime“. Je Bild ein
+Ton (Stufe bzw. Taste). Klaviatur ab dem C unter der unteren Note, eine Oktave, wenn sie reicht, sonst zwei.
+Stufe 1 (`fine: false`): nur der erste Schritt, ohne Klaviatur. Verwendet als erste Lerntafel (fünf Beispiele
+e'–g', c'–e', d'–fis', f'–h', d'–a') und als `level.demo(q)` in den Stufen mit Hilfen (1, 3, 5, 8; beim Bauen
+das gebaute Intervall).
 
 ## Themenpakete (`src/packs/*.js`)
 
@@ -255,6 +273,7 @@ Eine Stufe:
   helps: ["klaviatur", "tabelle"], // optional (seit Welle 7): aufklappbarer Bereich „Hilfen“ unter der Notenzeile, nur während der Runde
   helpText: "…",               // optional, Satz oben in den Hilfen
   helpTable: "<table …>",      // optional, HTML der Tabelle in den Hilfen
+  demo(q) { return { steps, frames }; }, // optional (seit 20.11.2026): Vorführung der Aufgabe q für den Knopf „Vorführen“ in den Hilfen (src/demo.js)
   items: [ /* … */ ],          // optional, Vorrat der Aufgaben (nur für Tests und Blitz)
   question(prev, ctx) {        // liefert eine neue Aufgabe, nie dieselbe wie prev; ctx siehe unten
     return {
@@ -387,7 +406,35 @@ dieser Schlüssel gewählt ist; eine Tafel ohne `clef` erscheint bei beiden
 Schlüsseln. Alle Tafeln stehen in der Karte „Lerntafeln“ im Raster `.legend`;
 `title` zeigt die Ansicht als Überschrift (`<h3 class="legend-title">`, über
 die ganze Breite) vor dem Inhalt von `render()`. `render()` bringt deshalb
-keine eigene Hauptüberschrift mit.
+keine eigene Hauptüberschrift mit. Optional `mount(root)`: wird nach dem Einsetzen aufgerufen
+(`learn.js` `mountCards`) und verdrahtet Knöpfe, z. B. die Vorführung bei „Intervalle“. Die Lerntafeln
+werden nur beim Öffnen der Ansicht und beim Wechsel des Schlüssels neu aufgebaut, nicht beim Antippen der
+Notenzeile (eine laufende Vorführung bleibt stehen).
+
+## Gemeinsamer Baukasten „gehirngerecht“ (seit 20.11.2026)
+
+Für alle Pakete gedacht (Plan: `KONZEPT-gehirngerecht`, Reihenfolge Intervalle → Tonleitern → Notenwerte →
+Noten lesen → Dreiklänge).
+
+- **Farben der Denkschritte** (Tokens auf `:root`, hell und dunkel): `--step1`, `--step1-ink`, `--step1-soft`
+  (violett: Schritt 1, z. B. Stufen/Rahmen), `--step2`, `--step2-ink`, `--step2-soft` (grün: Schritt 2, z. B.
+  Halbtöne/Feinbestimmung), `--step-on` (Schrift auf dem vollen Grundton), `--family` (hinterlegte Spalte),
+  für die Klaviatur (hell und dunkel gleich) `--key-step2`, `--key-step2-soft`, `--key-step2-ink`,
+  `--key-step2-on`. Komponenten nutzen nur diese Tokens.
+- **Vorführung** (`src/demo.js`): `demo = { steps: ["1 · …", "2 · …"], frames: [{ step, body, text?, result?,
+  tones? }] }`; `step` 0 = Frage, 1/2 = Denkschritt, `steps.length + 1` = Ergebnis (`result = { title, chips:
+  [{ step, text }] }`). Reine Teile: `demoHtml(demo, i, playing)`, `marksHtml`, `markState`, `sayHtml`,
+  `resultHtml`, `countText`, `playLabel`. DOM: `mountDemo(root, demo)` → `{ stop, show(i), index() }`;
+  Knöpfe Zurück / Abspielen (Pause, `FRAME_MS` = 1000 ms je Bild, hält am Ende an) / Weiter, Bildzähler;
+  beim Zeigen eines Bilds klingen `tones` (`audio.js`, „Ton aus“ gilt). `stopDemos()` hält alle an
+  (`app.js` beim Wechsel der Ansicht, `learn.js` vor dem Neuaufbau, `engine.stop()`). Die Bilder baut das
+  Paket als reine Funktion (testbar in node).
+- **Kästchentabelle** (`src/grid.js`): `tileTable({ head, rows: [{ label, cells: [null | { text, state }], hi }],
+  family, split, cls })`: eine Zeile je Eintrag, Zahlen in Kästchen (`.tt-box`), leere Stellen als blasser
+  Punkt (`.tt-dot`), Familien-Spalten hinterlegt (`.fam`), Zeile violett (`hi`), Treffer grün (`hit`), Bezug
+  grün umrandet (`ref`); `split` setzt zwei Hälften nebeneinander (Hilfen; bis 380 px wieder untereinander).
+- **Klaviatur**: `pianoSvg({ …, counts: [[midi, Zahl] …] })` färbt gezählte Tasten (Klasse `count`) und
+  schreibt die Zahl darauf.
 
 ## Engine (`src/engine.js`)
 
@@ -413,6 +460,14 @@ Stufen-ID.
   c' bis c''', Bassschlüssel C bis c'; eigener Bereich, nicht `#pPiano`) und `helpTable`. Zu Beginn der Runde
   ist der Bereich zugeklappt; danach bleibt er so, wie du ihn gelassen hast (auf oder zu), der Inhalt wechselt
   mit jeder Aufgabe. Ob die Hilfe offen war, wird nicht gezählt. Stufen ohne `helps` zeigen keinen Bereich.
+  Aufbau: Satz und Knopf „Vorführen“ (nur mit `level.demo`) in einer Zeile, dann Klaviatur und Tabelle
+  (`.help-grid`, ab 600 px nebeneinander, Tabelle in zwei Hälften). Ab dem Aufklappen scrollt `practice.js`
+  so weit, dass die erste Reihe der Antwortknöpfe über der Tab-Leiste steht (`answersScroll`); kein Scrollen
+  innerhalb der Hilfen. Bis 380 px Breite stehen die Hilfen per CSS (`order`) unter den Antwortknöpfen.
+- „Vorführen“ (seit 20.11.2026): zu Beginn jeder Aufgabe gesperrt (`disabled`, verriete die Antwort), frei nach
+  der Antwort (nach dem letzten Schritt). Ein Klick löscht den Zeitgeber zur nächsten Aufgabe, die Runde wartet
+  (`isWaiting()`), Klaviatur und Tabelle weichen der Vorführung (`level.demo(q)` in `.help-demo`); „Weiter zur
+  nächsten Aufgabe“ oder Zuklappen der Hilfen geht weiter. Die Antwortzeit ist da schon gezählt.
 - `hooks`: `{ state, save, onFinish(result) }`; `result` ist
   `{ correct, total, stars, gained, avg, results }`
 - weitere Funktionen für die Ansichten: `stop()` (laufende Runde abbrechen,
