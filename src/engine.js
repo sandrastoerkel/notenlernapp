@@ -135,6 +135,17 @@ export const HELP_OCTAVES = 2;
 // Violinschlüssel beginnt auf b, D-Dur im Bassschlüssel reicht bis d'), sonst HELP_FROM[q.clef]
 export const helpFrom = (q) => (typeof q.helpFrom === "number" ? q.helpFrom : HELP_FROM[q.clef] ?? HELP_FROM.treble);
 export const hasHelps = (level) => !!(level && level.helps && level.helps.length);
+// Überschrift des Bereichs (ui.helpsTitle, das <summary>): nennt nur, was die Stufe wirklich zeigt. Mit Klaviatur
+// und Tabelle wie bisher „Hilfen: Klaviatur und Tabelle“, nur mit Klaviatur „Hilfen: Klaviatur“ (Tonleitern
+// Stufe 12). level.helpsTitle (optional) setzt einen eigenen Text.
+export const HELPS_TITLE = "Hilfen";
+const HELP_NAMES = { klaviatur: "Klaviatur", tabelle: "Tabelle" };
+export function helpsTitle(level) {
+  if (level && typeof level.helpsTitle === "string" && level.helpsTitle) return level.helpsTitle;
+  if (!hasHelps(level)) return HELPS_TITLE;
+  const parts = ["klaviatur", "tabelle"].filter((h) => level.helps.includes(h) && (h !== "tabelle" || level.helpTable)).map((h) => HELP_NAMES[h]);
+  return parts.length ? `${HELPS_TITLE}: ${parts.join(" und ")}` : HELPS_TITLE;
+}
 // Aufbau: Satz und daneben der Knopf „Vorführen“ (nur mit level.demo, zu Beginn gesperrt: er verriete die
 // Antwort; der Hinweis steht im title), dann Klaviatur und Tabelle (.help-grid: nebeneinander, wo Platz ist),
 // Platz für die Vorführung (.help-demo). Alles knapp gehalten, damit die Antwortknöpfe sichtbar bleiben.
@@ -281,8 +292,8 @@ function applyInput(r) {
 }
 
 // Runde starten.
-// ui: { staff, feedback, count, dots, answers, typed, piano, helps, helpsBody, next } (DOM-Elemente; typed zeigt den
-// getippten Namen, helps ist der aufklappbare Bereich <details>, helpsBody sein Inhalt, next der Knopf
+// ui: { staff, feedback, count, dots, answers, typed, piano, helps, helpsTitle, helpsBody, next } (DOM-Elemente; typed zeigt den
+// getippten Namen, helps ist der aufklappbare Bereich <details>, helpsTitle (optional) sein <summary>, helpsBody sein Inhalt, next der Knopf
 // „Nächste Aufgabe“ unter den Antworten, sichtbar nur, solange eine Stufe mit Hilfen wartet)
 // hooks: { state, save, onFinish({ correct, total, stars, gained, avg, results }) }
 export function startRound(level, ui, hooks) {
@@ -297,6 +308,7 @@ export function startRound(level, ui, hooks) {
   // Hilfen: nur bei Stufen mit helps; zu Beginn der Runde zugeklappt, danach bleibt der Bereich, wie du
   // ihn gelassen hast (auf oder zu), der Inhalt wechselt mit jeder Aufgabe
   if (ui.helps) { ui.helps.hidden = !hasHelps(level); ui.helps.open = false; }
+  if (ui.helpsTitle && hasHelps(level)) ui.helpsTitle.textContent = helpsTitle(level);
   if (r.level.input === "choices") {
     if (ui.answers) ui.answers.innerHTML = "";
   } else {

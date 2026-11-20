@@ -6,7 +6,7 @@ import {
   resultMessage, dotsHtml, lettersHtml, namesHtml, usesNames, nameKey, typedText, NAME_MAX,
   choicesHtml, choicesClass, choiceCols, keyAction, blitzPoints, notesToPlay,
   playMode, revealedSvg, svgResultClass, playSchedule, rhythmEnd, answerDelay, PLAY_GAP, BEAT_MS, RHYTHM_TAIL, DELAY_OK, DELAY_BAD,
-  choiceSet, setClass, stepsFeedback, digitAction, helpsHtml, hasHelps, HELP_FROM, helpFrom, DELAY_STEP_OK, DELAY_STEP_BAD,
+  choiceSet, setClass, stepsFeedback, digitAction, helpsHtml, hasHelps, HELP_FROM, helpFrom, helpsTitle, DELAY_STEP_OK, DELAY_STEP_BAD,
   startRound, stop, handleKey, ROUND_LENGTH, isWaiting, DEMO_LABEL, DEMO_WAIT, DEMO_READY, DEMO_NEXT, waitsForNext,
 } from "../src/engine.js";
 import { mock } from "node:test";
@@ -378,6 +378,42 @@ test("helpsHtml: q.helpFrom (optional) verschiebt die Klaviatur, ohne das Feld w
   assert.ok(h.includes('data-midi="48" data-id="w0"') && h.includes('data-midi="72" data-id="w14"'));
   assert.deepEqual([...h.matchAll(/class="[wb]key mark" data-midi="(\d+)"/g)].map((m) => +m[1]), [58]);
   assert.equal(helpsHtml(level, { clef: "treble", helpMarks: [] }), helpsHtml(level, { clef: "treble", helpFrom: 60, helpMarks: [] }));
+});
+
+test("helpsTitle: nennt nur, was die Stufe zeigt; alle Stufen mit Klaviatur und Tabelle wie bisher", () => {
+  const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
+  const fixed = html.match(/<summary>([^<]+)<\/summary>/)[1];
+  assert.equal(fixed, "Hilfen: Klaviatur und Tabelle");
+  const other = [];
+  for (const pack of PACKS) for (const level of pack.levels) {
+    if (!hasHelps(level)) continue;
+    if (helpsTitle(level) !== fixed) other.push([level.id, helpsTitle(level)]);
+  }
+  assert.deepEqual(other, [["tonleitern-12", "Hilfen: Klaviatur"]]);
+  assert.equal(helpsTitle({ helps: ["tabelle"], helpTable: "<table></table>" }), "Hilfen: Tabelle");
+  assert.equal(helpsTitle({ helps: ["klaviatur", "tabelle"] }), "Hilfen: Klaviatur", "Tabelle ohne helpTable wird nicht gezeigt");
+  assert.equal(helpsTitle({ helps: ["klaviatur"], helpsTitle: "Hilfen: Tasten" }), "Hilfen: Tasten");
+  assert.equal(helpsTitle({}), "Hilfen");
+});
+
+test("startRound setzt die Überschrift der Hilfen (ui.helpsTitle, optional); ohne Hilfen bleibt sie stehen", () => {
+  setMuted(true);
+  const tl = PACKS.find((p) => p.id === "tonleitern");
+  const ui = () => ({ staff: fakeEl(), feedback: fakeEl(), count: fakeEl(), dots: fakeEl(), answers: fakeEl(), typed: fakeEl(), piano: fakeEl(), helps: fakeEl(), helpsTitle: fakeEl(), helpsBody: fakeEl(), next: fakeEl() });
+  const hooks = { state: fresh(), save() {}, onFinish() {} };
+  const a = ui(); a.helpsTitle.textContent = "Hilfen: Klaviatur und Tabelle";
+  startRound(tl.levels[11], a, hooks);
+  assert.equal(a.helpsTitle.textContent, "Hilfen: Klaviatur");
+  startRound(tl.levels[9], a, hooks);
+  assert.equal(a.helpsTitle.textContent, "Hilfen: Klaviatur und Tabelle");
+  startRound(tl.levels[12], a, hooks);
+  assert.equal(a.helps.hidden, true);
+  assert.equal(a.helpsTitle.textContent, "Hilfen: Klaviatur und Tabelle", "Stufe ohne Hilfen: Bereich verborgen, Text unberührt");
+  // ohne ui.helpsTitle läuft die Runde wie bisher
+  const b = ui(); delete b.helpsTitle;
+  startRound(tl.levels[11], b, hooks);
+  assert.equal(b.helps.hidden, false);
+  stop();
 });
 
 // Kleines Ersatz-DOM für den Ablauf: Knöpfe entstehen aus innerHTML (data-choice), Klassen werden gemerkt

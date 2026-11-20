@@ -1055,6 +1055,7 @@ Entscheidungen bei der Umsetzung (ohne Rückfrage, Sandra 14:27):
   Intervall-Vorführung; nur Darstellung). Bauplan-Leiste bis 380 px mit Kästchen 21 px.
 - Offen für Sandra: Die Überschrift der Hilfen heißt fest „Hilfen: Klaviatur und Tabelle“ (`index.html`), auch in
   Stufe 12, die nur die Klaviatur hat. Eine Änderung bräuchte ein neues Feld an der Engine (bewusst nicht gemacht).
+  Erledigt in der Prüfung der Umsetzung (siehe unten).
 
 Prüfung im Browser (20.11.2026, Headless Chrome 153 über Playwright im Container, nicht am Mac; `python3 -m
 http.server 8080`, Service Worker beim Prüfen gesperrt): 420 und 320 px, hell und dunkel: alle 13 Stufen je eine
@@ -1065,6 +1066,32 @@ bis zum letzten Bild, Bildzähler und Knöpfe bei 320 px in einer Zeile; kein wa
 Konsolenfehler. Alter Spielstand (tonleitern-1 … -6, intervalle-3/-5/-6, ohne Marker) wird zu 1, 2, 4, 5, 7, 9,
 11, 13 umgestellt, `current` tonleitern-6 → -9, intervalle-3 entfällt. „Noten lesen“ Stufe 1 und „Intervalle“
 Stufe 1 starten und zeigen Zeile und Knöpfe wie bisher. Am iPhone/Mac noch nicht geprüft.
+
+**Prüfung der Umsetzung (Fable, 20.11.2026).** `git diff bd29c40..HEAD` geprüft. Musiktheorie mit einem eigenen
+Skript nachgerechnet (eigene Tabellen der 9 Tonleitern und 15 Tonarten, ohne `music.js` und ohne die
+vorhandenen Tests): alle 525 Aufgaben der 13 Stufen (Antwort, Knöpfe, Rückmeldungen, Vorzeichen im Bild,
+markierte Tasten), die Auswahlsätze der Stufen 4, 10 und 12 für jede Tonart, die Tonleiter-Vorführung für
+9 Tonarten × 2 Schlüssel (je 18 Bilder, jede Berichtigung, die 3-Halbton-Fälle in Es- und As-Dur), die
+Kurzfassung für alle 42 Notenpaare der Stufen 1 und 2, die Tonart-Vorführung für 15 Tonarten × 2 Schlüssel und
+die Moll-Vorführung für 15 Tonarten: rund 990 000 Einzelprüfungen, keine Abweichung (Gegenprobe: fünf absichtlich
+eingebaute Abweichungen wurden alle gefunden). Vor der Antwort verrät nichts die Lösung (Hilfen ohne
+Hervorhebung, „Vorführen“ gesperrt, Stufe 10 ohne markierte Taste, Stufe 12 nur der Dur-Grundton). Spielstände:
+alter Stand ohne Marker, Stand nach Welle 7, frischer Stand, v1 und Stand mit beiden Markern über `load`
+nachgestellt: richtig, ein Speichern, beim zweiten Laden keine Änderung. Andere Pakete: Stufen und Lerntafeln
+von „Noten lesen“, „Notenwerte“, „Intervalle“ und „Dreiklänge“ sind gegenüber bd29c40 gleich, `keySigSvg` und
+`helpsHtml` liefern für sie dasselbe wie vorher; die Änderung an `.demo-controls` bis 380 px betrifft auch die
+Intervall-Vorführung (nur Darstellung). Farben nur über Tokens, Wortliste eingehalten, Cache `-11`, keine neuen
+Dateien für PRECACHE.
+- Geändert: Die Überschrift der Hilfen richtet sich jetzt nach der Stufe (`helpsTitle(level)` in `engine.js`,
+  `ui.helpsTitle`, optional `level.helpsTitle`): Stufe 12 zeigt „Hilfen: Klaviatur“, alle anderen Stufen mit
+  Hilfen wie bisher „Hilfen: Klaviatur und Tabelle“ (Test in `test/engine.test.js`). Der offene Punkt oben ist
+  damit erledigt.
+- Im Browser (Headless Chromium über Playwright im Container, 320 px, hell und dunkel): Stufen 4, 10 und 12 je
+  eine Aufgabe mit Hilfen und „Vorführen“ bis zum Ergebnis, Lerntafel-Vorführung B-Dur; kein waagrechter
+  Überlauf, Knöpfe und Bildzähler in einer Zeile, keine Konsolenfehler. Am iPhone/Mac weiterhin nicht geprüft.
+- Offen für Sandra (so im Plan festgelegt, nicht geändert): In Stufe 10 nennt der Text nach Schritt 1 bei einem
+  einzelnen Be schon „F-Dur“ („… das merkst du dir.“), bevor Schritt 2 danach fragt. Das Quintenzirkel-Kästchen
+  in den Hilfen der Stufe 10 erlaubt, Schritt 2 nachzuschlagen (als Nachschlagehilfe gewollt).
 
 ## Später (nicht geplant, nur notiert)
 

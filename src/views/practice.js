@@ -108,7 +108,7 @@ function startRound() {
   engine.startRound(level, {
     staff: $("#pStaff"), feedback: $("#pFeedback"), count: $("#pCount"), dots: $("#pDots"),
     answers: $("#pAnswers"), typed: $("#pTyped"), piano: $("#pPiano"),
-    helps: $("#pHelps"), helpsBody: $("#pHelpsBody"), next: $("#pNext"),
+    helps: $("#pHelps"), helpsTitle: $("#pHelps summary"), helpsBody: $("#pHelpsBody"), next: $("#pNext"),
   }, { state: ctx.state, save: ctx.save, onFinish: showResult });
 }
 

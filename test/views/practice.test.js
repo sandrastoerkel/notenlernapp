@@ -87,7 +87,7 @@ test("Tastatur-Hinweis: Ziffern bei Stufen mit digits", () => {
 
 test("Hilfen: nur während der Runde, eigener Bereich unter der Notenzeile", () => {
   const src = readFileSync(new URL("../../src/views/practice.js", import.meta.url), "utf8");
-  assert.match(src, /helps: \$\("#pHelps"\), helpsBody: \$\("#pHelpsBody"\)/);
+  assert.match(src, /helps: \$\("#pHelps"\), helpsTitle: \$\("#pHelps summary"\), helpsBody: \$\("#pHelpsBody"\)/);
   assert.equal((src.match(/\$\("#pHelps"\)\.hidden = true/g) || []).length, 2);
   const html = readFileSync(new URL("../../index.html", import.meta.url), "utf8");
   const i = html.indexOf('id="pStaff"'), j = html.indexOf('id="pHelps"'), k = html.indexOf('id="pIntro"'), p = html.indexOf('id="pPiano"');
