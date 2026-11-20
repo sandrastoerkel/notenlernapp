@@ -4,6 +4,7 @@
 // Alle Noten stehen auf dem h' im Violinschlüssel (Mittellinie, Hals nach unten), damit nur der Wert zählt.
 import { N, VALUES, beats, beatsText, beatsLabel, valueName, staffPos } from "../music.js";
 import { staffSvg, noteSvg, restSvg, glyphSvg, S, TOP, BOTTOM, X1 } from "../staff.js";
+import { tileTable } from "../grid.js";
 
 const CLEF = "treble";
 export const PITCH = N("H", 4);
@@ -312,6 +313,92 @@ export const ITEMS_9 = barItems("5", (els, gap, ans) => {
 export const ITEMS_10 = [...ITEMS_3, ...ITEMS_5, ...ITEMS_7, ...ITEMS_9];
 const POOLS_10 = [ITEMS_3, ITEMS_5, POOL_7, ITEMS_9];
 
+/* ---------- Hilfen zum Aufklappen (level.helps = ["tabelle"], engine.js) ----------
+   Vor der Antwort hebt nichts etwas hervor; die Hilfen zeigen keine Notenbilder neben Namen (das wäre die
+   Antwort zum Ablesen). Hervorgehoben wird erst in der Vorführung. */
+
+// Stufe 1 „Merkmale“: eine Zeile je Notenwert, Spalten Kopf | Hals | Fähnchen. Mit einer Spalte je Notenwert
+// (Plan) wäre die Tabelle bei 320 px zu breit (Kopf „Sechzehntel“ und „schwarz“ in fünf Spalten), deshalb
+// gedreht und ohne Hinterlegung (tileTable hinterlegt nur Spalten).
+export function featureTable() {
+  const rows = NOTES.map((e) => ({
+    label: nameOf(e),
+    cells: [{ text: headOf(e) }, e.v === 1 ? null : { text: "ja" }, e.v >= 8 ? { text: e.v === 8 ? "1" : "2" } : null],
+  }));
+  return `<div class="tt-wrap">${tileTable({ head: ["Notenwert", "Kopf", "Hals", "Fähnchen"], rows, cls: "tt-wide nw-features" })}</div>`;
+}
+
+// Stufe 2 „Pausen“: woran du sie erkennst (Wortlaut aus dem bisherigen Hinweis), ohne Spalte mit dem Zeichen
+export const REST_FEATURES = [
+  ["ganze Pause", "Balken, hängt an der vierten Linie von unten"],
+  ["halbe Pause", "Balken, sitzt auf der Mittellinie"],
+  ["Viertelpause", "Zickzack"],
+  ["Achtelpause", "ein Haken"],
+  ["Sechzehntelpause", "zwei Haken"],
+];
+export function restTable() {
+  const rows = REST_FEATURES.map(([n, t]) => `<tr><td class="tt-label">${n}</td><td class="nw-rest-text">${t}</td></tr>`).join("");
+  return `<table class="tt nw-rests"><thead><tr><th class="tt-head">Pause</th><th class="tt-head">woran du sie erkennst</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+// Notenwert-Pyramide: fünf Zeilen gleich breit (1 ganze, 2 halbe, 4 Viertel, 8 Achtel, 16 Sechzehntel),
+// Kästchen mit kleinem Zeichen (die Sechzehntel-Zeile nur Kästchen), rechts die Schläge. Ohne Namen (der
+// Name ist Schritt 1) und ohne Pausen. opts (nur Vorführung): hit – Zeile grün (Schritt 2), add – Zeile
+// grün umrandet (beim Punkt: die Hälfte dazu); small – kleiner (Hilfen der Stufe 8).
+export const PYR = { w: 250, rh: 24, gap: 5, top: 16, numW: 40, scale: 0.4 };
+const PYR_SYMBOL_ROWS = 4;
+// Zeichen in einem Kästchen: g' (Hals nach oben), so passt es in die Höhe des Kästchens
+const SYM_PITCH = N("G", 4);
+const SYM_BOX = { 1: [64, 76], other: [28, 76] };
+function pyrSymbol(v, cx, top) {
+  const s = PYR.scale, [y0, y1] = SYM_BOX[v] || SYM_BOX.other;
+  const ty = r2(top + (PYR.rh - (y1 - y0) * s) / 2 - y0 * s), tx = r2(cx - (v >= 8 ? 3 : 0) * s);
+  return `<g transform="translate(${tx} ${ty}) scale(${s})">${noteSvg(SYM_PITCH, CLEF, 0, "", { value: v })}</g>`;
+}
+export function pyramidSvg({ hit = null, add = null, small = false } = {}) {
+  const width = PYR.w + PYR.numW, height = PYR.top + VALUES.length * (PYR.rh + PYR.gap);
+  let s = `<svg class="nw-pyr${small ? " small" : ""}" viewBox="0 0 ${width} ${height}" role="img" aria-label="Notenwert-Pyramide">`;
+  s += `<text class="nw-pyr-head" x="${PYR.w + PYR.numW / 2}" y="11" text-anchor="middle">Schläge</text>`;
+  VALUES.forEach((v, k) => {
+    const n = 2 ** k, bw = PYR.w / n, top = PYR.top + k * (PYR.rh + PYR.gap);
+    const cls = k === hit ? " hit" : k === add ? " add" : "";
+    s += `<g class="nw-pyr-row${cls}" data-row="${k}">`;
+    for (let i = 0; i < n; i++) {
+      const x = r2(i * bw);
+      s += `<rect class="nw-pyr-box" x="${r2(x + 1)}" y="${top}" width="${r2(bw - 2)}" height="${PYR.rh}" rx="3"/>`;
+      if (k < PYR_SYMBOL_ROWS) s += pyrSymbol(v, r2(x + bw / 2), top);
+    }
+    s += `<text class="nw-pyr-num" x="${PYR.w + PYR.numW / 2}" y="${top + PYR.rh / 2 + 5}" text-anchor="middle">${beatsText(beats(v))}</text></g>`;
+  });
+  return s + "</svg>";
+}
+export const PYR_DOT_NOTE = "Punkt: + die Hälfte";
+const pyramidBlock = (opts = {}) => `<div class="tt-wrap nw-pyr-wrap">${pyramidSvg(opts)}${opts.dot ? `<p class="tt-note small">${PYR_DOT_NOTE}</p>` : ""}</div>`;
+
+// Zählleiste in Achteln: „1 + 2 + 3 + 4 +“ („+“ gesprochen „und“), die Schlag-Felder grau hinterlegt.
+// [OFFEN Sandra] Schreibweise „+“ (daneben „1 u 2 u“, „1 und 2 und“): nur diese Konstante ändern.
+export const COUNT_SYLLABLES = ["1", "+", "2", "+", "3", "+", "4", "+"];
+export const COUNT_NOTE = "+ heißt „und“: eins und zwei und drei und vier und";
+export function countTable() {
+  const table = tileTable({ head: [], rows: [{ label: "Zählen", cells: COUNT_SYLLABLES.map((t) => ({ text: t })) }], family: [0, 2, 4, 6], cls: "nw-count" });
+  return `<div class="tt-wrap">${table}<p class="tt-note small">${COUNT_NOTE}</p></div>`;
+}
+
+export const HELP_TEXT_VALUE = "Erst den Kopf ansehen, dann Hals und Fähnchen.";
+export const HELP_TEXT_REST = "Achte auf die Form und bei den Balken auf die Lage.";
+export const HELP_TEXT_BEATS = "Eine Pause dauert so lang wie die Note mit demselben Wert.";
+export const HELP_TEXT_DOT = "Der Punkt verlängert eine Note um die Hälfte ihres Wertes.";
+export const HELP_TEXT_BAR = "Zähle die Werte im Takt zusammen und überspringe die Lücke. Was fehlt bis 4?";
+
+const tableHelps = (helpsTitle, helpText, helpTable) => ({ helps: ["tabelle"], helpsTitle, helpText, helpTable });
+export const HELPS = {
+  1: tableHelps("Hilfen: Merkmale", HELP_TEXT_VALUE, featureTable()),
+  2: tableHelps("Hilfen: Pausen", HELP_TEXT_REST, restTable()),
+  4: tableHelps("Hilfen: Notenwert-Pyramide", HELP_TEXT_BEATS, pyramidBlock()),
+  6: tableHelps("Hilfen: Notenwert-Pyramide", HELP_TEXT_DOT, pyramidBlock({ dot: true })),
+  8: tableHelps("Hilfen: Zählleiste und Pyramide", HELP_TEXT_BAR, `<div class="nw-help-stack">${countTable()}${pyramidBlock({ small: true })}</div>`),
+};
+
 function ask(it) { return Object.assign(it.make(), { key: it.key }); }
 
 const RAW = [
@@ -356,6 +443,7 @@ const levels = RAW.map((r, i) => ({
   items: r.items,
   question(prev) { return question(r, prev); },
   check(q, value) { return value === q.answer; },
+  ...(HELPS[i + 1] || {}),
 }));
 /* ---------- Lerntafel ---------- */
 

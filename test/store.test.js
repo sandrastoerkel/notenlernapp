@@ -291,11 +291,12 @@ test("Umstellung Notenwerte: 1→1, 2→2, 3→5, 4→7, 5→9, 6→10 in einem 
     "notenwerte-1": "notenwerte-1", "notenwerte-2": "notenwerte-2", "notenwerte-3": "notenwerte-5",
     "notenwerte-4": "notenwerte-7", "notenwerte-5": "notenwerte-9", "notenwerte-6": "notenwerte-10",
   });
-  // jede alte Stufe landet auf der neuen Stufe gleichen Inhalts ohne Hilfen
+  // jede alte Stufe landet auf der neuen Stufe gleichen Inhalts; 3–6 auf Stufen ohne Hilfen, 1 und 2 bleiben
+  // (gleicher Inhalt, jetzt mit Hilfen; Stufe 1 in zwei Schritten)
   for (const [from, to] of Object.entries(RENAMED_NOTENWERTE)) {
     const level = notenwerte.levels.find((l) => l.id === to);
     assert.ok(level, to);
-    assert.ok(!level.helps, `${from} → ${to} hat keine Hilfen`);
+    assert.equal(!!level.helps, from === "notenwerte-1" || from === "notenwerte-2", `${from} → ${to}`);
   }
   const s = OLD_NW();
   assert.equal(migrateNotenwerte(s), true);

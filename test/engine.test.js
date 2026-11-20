@@ -7,7 +7,7 @@ import {
   choicesHtml, choicesClass, choiceCols, keyAction, blitzPoints, notesToPlay,
   playMode, revealedSvg, svgResultClass, playSchedule, rhythmEnd, answerDelay, PLAY_GAP, BEAT_MS, RHYTHM_TAIL, DELAY_OK, DELAY_BAD,
   choiceSet, setClass, stepsFeedback, digitAction, helpsHtml, hasHelps, HELP_FROM, helpFrom, helpsTitle, DELAY_STEP_OK, DELAY_STEP_BAD,
-  startRound, stop, handleKey, ROUND_LENGTH, isWaiting, DEMO_LABEL, DEMO_WAIT, DEMO_READY, DEMO_NEXT, waitsForNext,
+  startRound, stop, handleKey, ROUND_LENGTH, isWaiting, DEMO_LABEL, DEMO_WAIT, DEMO_READY, DEMO_NEXT, waitsForNext, silenceTones,
 } from "../src/engine.js";
 import { mock } from "node:test";
 import { setMuted } from "../src/audio.js";
@@ -18,6 +18,7 @@ import noten from "../src/packs/noten.js";
 import { fresh } from "../src/store.js";
 import { N, same, gName, LETTERS } from "../src/music.js";
 import akkorde from "../src/packs/akkorde.js";
+import notenwerte, { ITEMS_8 } from "../src/packs/notenwerte.js";
 
 const key = (k, mods = {}) => ({ key: k, metaKey: false, ctrlKey: false, altKey: false, ...mods });
 
@@ -389,7 +390,10 @@ test("helpsTitle: nennt nur, was die Stufe zeigt; alle Stufen mit Klaviatur und 
     if (!hasHelps(level)) continue;
     if (helpsTitle(level) !== fixed) other.push([level.id, helpsTitle(level)]);
   }
-  assert.deepEqual(other, [["tonleitern-12", "Hilfen: Klaviatur"]]);
+  assert.deepEqual(other, [
+    ["notenwerte-1", "Hilfen: Merkmale"], ["notenwerte-2", "Hilfen: Pausen"], ["notenwerte-4", "Hilfen: Notenwert-Pyramide"],
+    ["notenwerte-6", "Hilfen: Notenwert-Pyramide"], ["notenwerte-8", "Hilfen: Zählleiste und Pyramide"], ["tonleitern-12", "Hilfen: Klaviatur"],
+  ]);
   assert.equal(helpsTitle({ helps: ["tabelle"], helpTable: "<table></table>" }), "Hilfen: Tabelle");
   assert.equal(helpsTitle({ helps: ["klaviatur", "tabelle"] }), "Hilfen: Klaviatur", "Tabelle ohne helpTable wird nicht gezeigt");
   assert.equal(helpsTitle({ helps: ["klaviatur"], helpsTitle: "Hilfen: Tasten" }), "Hilfen: Tasten");
@@ -660,4 +664,55 @@ test("Ablauf: Stufe ohne Hilfen geht wie bisher nach der Pause von selbst weiter
     }
     assert.ok(r.done()); assert.equal(r.done().correct, ROUND_LENGTH);
   } finally { stop(); mock.timers.reset(); }
+});
+
+/* ---------- Rhythmus verstummt beim Weitergehen (Welle 9, Notenwerte Stufe 8) ---------- */
+
+test("silenceTones: löscht die noch offenen Töne, auch aus r.timers", () => {
+  mock.timers.enable({ apis: ["setTimeout"] });
+  try {
+    const fired = [];
+    const r = { timers: new Set(), tones: new Set() };
+    for (const ms of [100, 200]) { const id = setTimeout(() => fired.push(ms), ms); r.timers.add(id); r.tones.add(id); }
+    const other = setTimeout(() => fired.push("weiter"), 300); r.timers.add(other);
+    silenceTones(r);
+    assert.equal(r.tones.size, 0); assert.deepEqual([...r.timers], [other]);
+    mock.timers.tick(500);
+    assert.deepEqual(fired, ["weiter"]);
+    assert.doesNotThrow(() => silenceTones(null));
+    assert.doesNotThrow(() => silenceTones({ timers: new Set() }));
+  } finally { mock.timers.reset(); }
+  // im Ablauf: beim Weitergehen (r.advance) und beim Öffnen der Vorführung
+  const src = readFileSync(new URL("../src/engine.js", import.meta.url), "utf8");
+  assert.match(src, /r\.advance = \(\) => \{[^}]*silenceTones\(r\)/);
+  assert.match(src, /function openDemo\(r\) \{[\s\S]*?silenceTones\(r\)[\s\S]*?\n\}/);
+});
+
+test("Ablauf Notenwerte Stufe 8: sofort „Nächste Aufgabe“ – der Rest des Rhythmus klingt nicht weiter", () => {
+  let started = 0;
+  const node = () => ({ connect: () => node(), gain: { setValueAtTime() {}, exponentialRampToValueAtTime() {} }, frequency: {}, start() {}, stop() {} });
+  class FakeAudio { constructor() { this.state = "running"; this.currentTime = 0; this.destination = {}; } createOscillator() { started++; return node(); } createGain() { return node(); } resume() {} }
+  const hadWindow = "window" in globalThis, oldWindow = globalThis.window;
+  globalThis.window = { AudioContext: FakeAudio };
+  setMuted(false);
+  mock.timers.enable({ apis: ["setTimeout"] });
+  try {
+    const level = notenwerte.levels[7];
+    assert.equal(waitsForNext(level), true);
+    const mk = (bar, gap) => Object.assign(ITEMS_8.find((it) => it.bar === bar && it.gap === gap).make(), { key: `${bar}:${gap}` });
+    // vier Viertel: Töne bei 0, 600, 1200, 1800 ms
+    const r = runLevel(level, [mk("4 4 4 4", 3), mk("2 2", 0)]);
+    r.click("1"); mock.timers.tick(DELAY_STEP_OK); r.click("Viertelnote");
+    assert.equal(started, 1, "der erste Ton klingt sofort");
+    r.next();
+    mock.timers.tick(5000);
+    assert.equal(started, 1, "die übrigen drei Töne sind gelöscht");
+    // ohne Weitergehen klingt der ganze Takt (zweite Aufgabe: zwei halbe Noten)
+    r.click("2"); mock.timers.tick(DELAY_STEP_OK); r.click("halbe Note");
+    mock.timers.tick(5000);
+    assert.equal(started, 3);
+  } finally {
+    stop(); mock.timers.reset(); setMuted(true);
+    if (hadWindow) globalThis.window = oldWindow; else delete globalThis.window;
+  }
 });

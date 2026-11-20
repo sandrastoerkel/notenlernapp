@@ -260,6 +260,16 @@ function later(r, fn, ms) {
   return id;
 }
 
+// Töne des Rhythmus aus q.play laufen über Zeitgeber (r.tones, seit Welle 9 „Notenwerte“). Mit „Nächste
+// Aufgabe“ kann man vor ihrem Ende weitergehen; dann und beim Öffnen der Vorführung werden die noch nicht
+// erklungenen Töne gelöscht, damit sie nicht in die nächste Aufgabe klingen. Ein schon klingender Ton endet
+// nach seiner Dauer.
+export function silenceTones(r) {
+  if (!r || !r.tones) return;
+  r.tones.forEach((id) => { clearTimeout(id); if (r.timers) r.timers.delete(id); });
+  r.tones.clear();
+}
+
 // Laufende Runde abbrechen (z. B. beim Wechsel des Tabs); offene Zeitgeber werden gelöscht
 export function stop() {
   if (!run) return;
@@ -300,7 +310,7 @@ export function startRound(level, ui, hooks) {
   stop();
   const r = {
     level, ui, hooks, items: makeRound(level, ROUND_LENGTH, { notes: hooks.state.notes }), idx: 0, correct: 0, results: [], times: [],
-    locked: false, buf: "", t0: 0, timers: new Set(),
+    locked: false, buf: "", t0: 0, timers: new Set(), tones: new Set(),
     input: effectiveInput(level.input, hooks.state.input, !!level.namesOnly),
   };
   run = r;
@@ -428,12 +438,15 @@ function finishQuestion(r, ok, text) {
   else playSchedule(q).forEach(({ note, at, dur }) => {
     if (!note) return; // Pause
     const go = () => (dur === null ? play(note) : play(note, undefined, dur / 1000));
-    if (at === 0) go(); else later(r, go, at);
+    if (at === 0) { go(); return; }
+    const id = later(r, () => { r.tones.delete(id); go(); }, at);
+    r.tones.add(id);
   });
   demoReady(r);
   r.advance = () => {
     if (run !== r) return;
     r.advance = null; r.waiting = false; r.demo = null;
+    silenceTones(r);
     if (ui.next) ui.next.hidden = true;
     r.locked = false; r.idx++;
     if (r.idx >= r.items.length) finish(r); else showQuestion(r);
@@ -461,6 +474,7 @@ function openDemo(r) {
   const body = r.ui.helpsBody;
   if (!r.advance || r.demo || !r.level.demo || !body) return;
   if (r.advanceId) { clearTimeout(r.advanceId); r.timers.delete(r.advanceId); }
+  silenceTones(r);
   r.waiting = true;
   const box = body.querySelector(".help-demo");
   body.querySelectorAll(".help-grid, .help-head").forEach((el) => { el.hidden = true; });

@@ -2,9 +2,10 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import notenwerte, {
   BARS, parseBar, beatsOf, nameOf, fillChoices, barSvg, dotSvg, timeSigSvg, layoutBar, learnHtml, PITCH, DOT, TIME, rhythmOf,
-  MISSING_CHOICES, BEAT_CHOICES_4, ITEMS_8,
+  MISSING_CHOICES, BEAT_CHOICES_4, ITEMS_8, pyramidSvg, featureTable, restTable, countTable, COUNT_SYLLABLES, REST_FEATURES,
 } from "../../src/packs/notenwerte.js";
 import { N } from "../../src/music.js";
+import { helpsHtml, helpsTitle, waitsForNext, hasHelps } from "../../src/engine.js";
 import { TOP, S, BOTTOM, X1 } from "../../src/staff.js";
 
 const MID = TOP + 2 * S;
@@ -426,4 +427,75 @@ test("Texte ohne unpassende Wörter", () => {
     texts.push(q.prompt, q.display, q.reveal, q.partial || "", ...q.choices, ...(q.steps || []).flatMap((s) => [s.prompt || "", s.ok || "", s.bad || "", ...s.choices]));
   }
   for (const t of texts) assert.ok(!/Fehler!|falsch|mühelos|Held|Champion/i.test(t), t);
+});
+
+/* ---------- Hilfen (Schritt 1) ---------- */
+
+const NAMES_ALL = ["ganze Note", "halbe Note", "Viertelnote", "Achtelnote", "Sechzehntelnote", "ganze Pause", "halbe Pause", "Viertelpause", "Achtelpause", "Sechzehntelpause"];
+
+test("Hilfen: nur die Stufen 1, 2, 4, 6, 8, nur als Tabelle, sie warten auf „Nächste Aufgabe“", () => {
+  assert.deepEqual(L.filter(hasHelps).map((l) => l.no), HELP_LEVELS);
+  for (const l of L) assert.equal(waitsForNext(l), HELP_LEVELS.includes(l.no), l.id);
+  assert.deepEqual(L.filter(hasHelps).map((l) => helpsTitle(l)), ["Hilfen: Merkmale", "Hilfen: Pausen", "Hilfen: Notenwert-Pyramide", "Hilfen: Notenwert-Pyramide", "Hilfen: Zählleiste und Pyramide"]);
+  for (const l of L.filter(hasHelps)) {
+    assert.deepEqual(l.helps, ["tabelle"], l.id);
+    assert.ok(l.helpText && l.helpTable, l.id);
+    const h = helpsHtml(l, l.question(null));
+    // keine Klaviatur, eine Tabelle in .help-grid; dieselbe Hilfe für jede Aufgabe (verrät nichts)
+    assert.ok(!h.includes("help-keys") && h.includes('<div class="help-grid"><div class="help-table-wrap">'), l.id);
+    for (let i = 0; i < 20; i++) assert.equal(helpsHtml(l, l.question(null)), h, l.id);
+    // vor der Antwort nichts hervorgehoben
+    assert.ok(!/class="[^"]*\b(hit|s1|ref|add)\b|tr class="hi"/.test(l.helpTable), l.id);
+  }
+  assert.equal(L[1].demo, undefined, "Stufe 2 ohne Vorführung");
+});
+
+test("Hilfen Stufe 1 (Merkmale): Kopf, Hals, Fähnchen je Notenwert, keine Notenbilder", () => {
+  const t = featureTable();
+  assert.ok(!t.includes("<svg"));
+  const rows = [...t.matchAll(/<tr><td class="tt-label">([^<]+)<\/td>(.*?)<\/tr>/g)].map((m) => [m[1], [...m[2].matchAll(/<td class="tt-cell">(.*?)<\/td>/g)].map((c) => (c[1].match(/tt-box">([^<]+)</) || [0, "–"])[1])]);
+  assert.deepEqual(rows, [
+    ["ganze Note", ["hohl", "–", "–"]], ["halbe Note", ["hohl", "ja", "–"]], ["Viertelnote", ["schwarz", "ja", "–"]],
+    ["Achtelnote", ["schwarz", "ja", "1"]], ["Sechzehntelnote", ["schwarz", "ja", "2"]],
+  ]);
+  assert.ok(t.includes("tt-wide"));
+  assert.equal(L[0].helpText, "Erst den Kopf ansehen, dann Hals und Fähnchen.");
+});
+
+test("Hilfen Stufe 2 (Pausen): woran du sie erkennst, ohne Zeichen", () => {
+  const t = restTable();
+  assert.ok(!t.includes("<svg") && !/class="rest"/.test(t));
+  assert.deepEqual(REST_FEATURES.map((r) => r[0]), NAMES_ALL.slice(5));
+  assert.ok(t.includes("hängt an der vierten Linie von unten") && t.includes("sitzt auf der Mittellinie") && t.includes("zwei Haken"));
+});
+
+test("Notenwert-Pyramide: 1 + 2 + 4 + 8 + 16 Kästchen, Schläge 4 · 2 · 1 · ½ · ¼, ohne Namen und Pausen", () => {
+  const p = pyramidSvg();
+  assert.equal(count(p, /class="nw-pyr-box"/g), 31);
+  assert.deepEqual([...p.matchAll(/class="nw-pyr-num"[^>]*>([^<]+)</g)].map((m) => m[1]), ["4", "2", "1", "½", "¼"]);
+  // Zeichen in den Zeilen 1–4 (1 + 2 + 4 + 8), die Sechzehntel-Zeile nur Kästchen
+  assert.equal(count(p, /<g class="note /g), 15);
+  assert.equal(count(p, /notehead open/g), 3);
+  assert.equal(count(p, /class="flag"/g), 8);
+  for (const n of NAMES_ALL) assert.ok(!p.includes(n), n);
+  assert.ok(!/\b(Note|Pause)\b/.test(p));
+  assert.ok(!/class="rest"/.test(p));
+  // jede Zeile gleich breit
+  for (let k = 0; k < 5; k++) {
+    const row = p.match(new RegExp(`data-row="${k}">(.*?)</g><g class="nw-pyr-row|data-row="${k}">(.*)</svg>`))[0];
+    const xs = [...row.matchAll(/<rect class="nw-pyr-box" x="([\d.]+)" y="[\d.]+" width="([\d.]+)"/g)].map((m) => [+m[1], +m[2]]);
+    assert.equal(xs.length, 2 ** k);
+    assert.ok(Math.abs(xs[xs.length - 1][0] + xs[xs.length - 1][1] + 1 - 250) < 0.05, `Zeile ${k}`);
+  }
+  assert.ok(pyramidSvg({ hit: 2 }).includes('class="nw-pyr-row hit" data-row="2"'));
+  assert.ok(L[5].helpTable.includes("Punkt: + die Hälfte") && !L[3].helpTable.includes("Punkt"));
+  assert.equal(L[3].helpText, "Eine Pause dauert so lang wie die Note mit demselben Wert.");
+});
+
+test("Hilfen Stufe 8: Zählleiste 1 + 2 + 3 + 4 + (Schläge grau), darunter die Pyramide klein", () => {
+  assert.deepEqual(COUNT_SYLLABLES, ["1", "+", "2", "+", "3", "+", "4", "+"]);
+  const t = countTable();
+  assert.deepEqual([...t.matchAll(/tt-box">([^<]+)</g)].map((m) => m[1]), COUNT_SYLLABLES);
+  assert.deepEqual([...t.matchAll(/<td class="tt-cell( fam)?">/g)].map((m) => !!m[1]), [true, false, true, false, true, false, true, false]);
+  assert.ok(L[7].helpTable.includes(t) && L[7].helpTable.includes('class="nw-pyr small"'));
 });
