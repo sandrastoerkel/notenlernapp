@@ -170,6 +170,13 @@ function numberQuestion(it) {
 
 // Schritt 1: Rahmenintervall (acht Knöpfe). Schritt 2: die zur richtigen Zahl passenden Intervalle aus
 // types, auch wenn Schritt 1 daneben lag (Sandra, 20.11.2026); die Aufgabe zählt dann als daneben.
+// Gibt es zur Zahl nur ein Intervall (Prime, Quarte, Quinte, Oktave in Stufe 3 und 4, sonst die Oktave),
+// bleibt der zweite Schritt als Bestätigung: Der Text nennt die Halbtonzahl zum Nachzählen, der eine Knopf
+// bestätigt. So bleibt der Ablauf „erst Rahmen, dann fein“ in jeder Aufgabe gleich. Ohne q.partial, weil
+// es im zweiten Schritt nichts zu entscheiden gab (nach falscher Zahl gilt q.reveal).
+export const finePrompt = (frame, numName, fine, semi) => (fine.length > 1
+  ? `${frame}. Welche ${numName}? Zähle die Halbtöne.`
+  : `${frame}. Die ${numName} ist hier rein: ${plural(semi, "Halbton", "Halbtöne")}. Zähle nach.`);
 export function twoStepQuestion(it, types, down = false) {
   const [first, second] = down ? [it.high, it.low] : [it.low, it.high];
   const num = intervalNumber(it.low, it.high), numName = INTERVAL_NAMES[num - 1];
@@ -182,11 +189,11 @@ export function twoStepQuestion(it, types, down = false) {
     choices: fine,
     steps: [
       { ...NUMBER_SET, choices: NUMBER_SET.choices.slice(), answer: numName, ok: `Richtig: ${frame}.`, bad: `Nicht ganz: ${frame}.` },
-      { choices: fine, cols: fine.length, answer, prompt: `${frame}. Welche ${numName}? Zähle die Halbtöne.` },
+      { choices: fine, cols: fine.length, answer, prompt: finePrompt(frame, numName, fine, intervalSemitones(it.low, it.high)) },
     ],
     display: steps,
     reveal: `Richtig wäre: ${answer} (${steps}).`,
-    partial: `Die Halbtöne stimmen, die Zahl nicht: ${steps}.`,
+    ...(fine.length > 1 ? { partial: `Die Halbtöne stimmen, die Zahl nicht: ${steps}.` } : {}),
     play: [first, second],
     low: it.low, high: it.high, clef: it.clef, down, num, quality: it.quality,
     helpMarks: [it.low, it.high],
@@ -477,7 +484,11 @@ const levels = [
 // innerhalb eines Paars 44 Einheiten (bei 40 berührte das ♯ von fis' fast die Hilfslinie von c'), von Paar
 // zu Paar 78, erstes Paar bei 78; so endet der letzte Kopf (278 + 10,3) vor dem Ende der Zeile (302).
 // Verminderte Quarte (c–fes) und verminderte Septime (c–heses) fehlen: über c bräuchten sie Fes bzw. ein Doppel-Be.
+// Steht ein ♯ vor der oberen Note einer Prime oder Sekunde (c'–cis', c'–dis'), liegt es auf Höhe des
+// unteren Kopfs und berührte bei 44 beide Köpfe: Das Paar wird 8 breiter, die untere Note rückt 6 nach
+// links, die obere 2 nach rechts (nach rechts weniger, damit die Hilfslinien zum nächsten Paar Abstand halten).
 const PAIR_DX = 44, PAIR_STEP = 78, PAIR_X0 = 78;
+export const pairExtra = (num, high) => (num <= 2 && high.acc > 0 ? { left: 6, right: 2 } : { left: 0, right: 0 });
 const TABLE = [
   [[1, "rein"], [1, "übermäßig"], [2, "klein"]],
   [[2, "groß"], [2, "übermäßig"], [3, "klein"]],
@@ -502,12 +513,13 @@ export const LEARN_ROWS = TABLE.flat().map(([num, q]) => ({ num, quality: q, nam
 function intervalBoard(clef) {
   const c = clef === "treble" ? N("C", 4) : N("C", 3);
   // Im Bassschlüssel hängt keine Note unter der Zeile (c liegt im zweiten Zwischenraum): Beschriftung 10 höher
-  const ly = clef === "treble" ? 114 : 104;
+  // (Violinschlüssel 118: das ♯ vor cis' und dis' reicht unter die Hilfslinie und stieß bei 114 an die Schrift)
+  const ly = clef === "treble" ? 118 : 104;
   const staves = TABLE.map((row) => {
     let inner = "";
     row.forEach(([num, q], i) => {
-      const x = PAIR_X0 + i * PAIR_STEP, high = aboveC(c, num, q);
-      inner += noteSvg(c, clef, x, "", { value: NOTE_VALUE }) + noteSvg(high, clef, x + PAIR_DX, "", { value: NOTE_VALUE });
+      const x = PAIR_X0 + i * PAIR_STEP, high = aboveC(c, num, q), wide = pairExtra(num, high);
+      inner += noteSvg(c, clef, x - wide.left, "", { value: NOTE_VALUE }) + noteSvg(high, clef, x + PAIR_DX + wide.right, "", { value: NOTE_VALUE });
       // Beschriftung zweizeilig, damit lange Namen („übermäßige Quarte“) nicht ineinanderlaufen
       inner += `<text class="note-label" x="${x + PAIR_DX / 2}" y="${ly}" text-anchor="middle">${q === "groß" ? "große" : q + "e"}</text>`;
       inner += `<text class="note-label" x="${x + PAIR_DX / 2}" y="${ly + 12}" text-anchor="middle">${INTERVAL_NAMES[num - 1]}</text>`;

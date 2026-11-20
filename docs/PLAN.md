@@ -684,7 +684,7 @@ jede neue Stufe eine Runde mit richtiger und falscher Antwort, nichts
 
 ## Welle 7: Intervalle neu (erst mit Hilfen, dann ohne)
 
-Ausgangsstand: `main` 74af595, Branch `intervalle-neu`. Plan „Paket Intervalle neu“ vom 20.11.2026 mit
+Ausgangsstand: Branch `paket-intervalle` 74af595 (noch nicht auf `main`; enthält auch `tonleitern-feinschliff`), Branch `intervalle-neu`. Plan „Paket Intervalle neu“ vom 20.11.2026 mit
 den Entscheidungen von Sandra. Anlass: ihr Unterrichtsweg. Die Schülerinnen und Schüler rechnen zuerst
 mit Klaviatur und Tabelle (Rahmenintervalle, Halbtonzahlen), danach ohne. Immer zuerst das
 Rahmenintervall (die Zahl aus den Notenstufen), dann die Feinbestimmung (die Qualität aus den
@@ -710,7 +710,11 @@ Halbton?“ entfällt hier (steht in Tonleitern 1–2).
 - Zweischrittige Antwort (`q.steps`): erst acht Knöpfe Prime … Oktave (2 × 4, Ziffern 1–8), dann die
   zur richtigen Zahl passenden Intervalle aus der erlaubten Menge (1 bis 3 Knöpfe). Ein Ergebnis je
   Aufgabe. Rückmeldung wie bisher: „e'–g': 3 Stufen → Terz · 3 Halbtöne → kleine Terz“; nur die Zahl
-  daneben: „Die Halbtöne stimmen, die Zahl nicht: …“.
+  daneben: „Die Halbtöne stimmen, die Zahl nicht: …“. Gibt es zur Zahl nur ein Intervall (in Stufe 3
+  und 4 Prime, Quarte, Quinte, Oktave; ab Stufe 5 nur die Oktave), bleibt der zweite Schritt als
+  Bestätigung: „c'–g': 5 Stufen → Quinte. Die Quinte ist hier rein: 7 Halbtöne. Zähle nach.“ mit dem
+  einen Knopf „reine Quinte“ (Prüfung 20.11.2026); nach falscher Zahl folgt dann die Auflösung
+  („Richtig wäre: …“) statt „Die Halbtöne stimmen“.
 - Erlaubt: rein, klein, groß (Prime bis Oktave) und ab Stufe 5 übermäßige Prime, übermäßige Sekunde,
   verminderte und übermäßige Quarte und Quinte, verminderte Septime. Oktave nur rein. Nicht dabei:
   verminderte Sekunde, verminderte/übermäßige Terz und Sexte, übermäßige Septime, verminderte Prime
@@ -746,7 +750,8 @@ Prime“ im zweiten Schritt, ebenso „reine Quarte/Quinte/Oktave“); abwärts 
 „Fehler finden“ verlangt weiter nur rein, klein, groß (eindeutige Urteile), die Rückmeldung benennt das
 gezeigte Intervall jetzt auch, wenn es vermindert oder übermäßig ist; Lerntafel „Intervalle über c'/c“
 mit 17 Intervallen (verminderte Quarte und Septime bräuchten über c Fes bzw. ein Doppel-Be, Beispiele
-cis'–f' und cis'–b' im Text); Quintenzirkel-Tafel mit nach „Tonleitern“; Paketangabe `grade` bleibt
+cis'–f' und cis'–b' im Text; steht ein ♯ vor der oberen Note von Prime oder Sekunde, ist das Paar
+8 Einheiten breiter, die Beschriftung im Violinschlüssel bei 118); Quintenzirkel-Tafel mit nach „Tonleitern“; Paketangabe `grade` bleibt
 „Klasse 5–9“ (wird nirgends angezeigt), „Tonleitern“ jetzt „Klasse 5–9“.
 
 **Akzeptanz.** `npm test` grün; Browser 420 und 320 px, hell und dunkel: jede Stufe Hilfen auf und zu,

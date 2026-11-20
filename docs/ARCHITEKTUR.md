@@ -405,7 +405,8 @@ Stufen-ID.
   `DELAY_STEP_OK` = 700 bzw. `DELAY_STEP_BAD` = 1600 ms und zeigt dann `steps[1]` mit dessen `prompt`, auch
   wenn der erste Schritt daneben lag. Erst nach dem letzten Schritt zählt die Aufgabe, einmal, und nur
   richtig, wenn alle Schritte stimmen (Statistik, Sterne, XP, `statKey` wie bisher). Rückmeldung
-  `stepsFeedback(q, oks)`: alles richtig `Richtig! ${display}`, nur der erste Schritt daneben `q.partial`,
+  `stepsFeedback(q, oks)`: alles richtig `Richtig! ${display}`, nur der erste Schritt daneben `q.partial`
+  (falls gesetzt; das Paket „Intervalle“ lässt es weg, wenn der zweite Schritt nur einen Knopf hat),
   sonst `q.reveal`. Ziffern: `digitAction(e, set)` bei Knopfsätzen mit `digits`.
 - Hilfen (seit Welle 7, `level.helps`): `helpsHtml(level, q)` baut `helpText`, die Klaviatur
   (`pianoSvg({ from: HELP_FROM[q.clef], octaves: 2, marks: q.helpMarks, interactive: false })`, Violinschlüssel
