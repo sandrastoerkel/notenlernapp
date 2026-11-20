@@ -860,8 +860,8 @@ trotzdem fragen, Aufgabe zählt als daneben (macht die Engine schon so, wie bei 
   Einträgen; `SHARP_ORDER`/`FLAT_ORDER` mit 4 bleiben). Eis, His, Ces und Fes sind hier richtig und nötig: das
   Verbot gilt nur für Töne in den Tonleitern bis 4 Vorzeichen. Ohne `cols` (kurze Texte: eine Reihe, bei 7
   Knöpfen 4 + 3; bei 320 px prüfen). Antwort: letztes ♯ bzw. vorletztes ♭. Bestätigungsschritt mit einem
-  Knopf: C-Dur „keine Vorzeichen“, G-Dur „Fis“ (nur ein Kreuz), F-Dur „B“ mit `ok`-Text „Ein einzelnes Be
-  steht für F-Dur: das merkst du dir.“ – der Knopf selbst nennt die Tonart nicht (sonst stünde die Antwort
+  Knopf: C-Dur „keine Vorzeichen“, G-Dur „Fis“ (nur ein Kreuz), F-Dur „B“ mit `ok`-Text „Richtig: Hier steht nur ein Be. Ein
+  einzelnes Be ist die Ausnahme, die Tonart merkst du dir.“ (nennt F-Dur nicht, seit 20.11.2026 nach der Prüfung) – der Knopf selbst nennt die Tonart nicht (sonst stünde die Antwort
   von Schritt 2 schon da). Schritt 2 „Welche Dur-Tonart?“ mit `keyChoices` wie bisher (nie zwei gleich
   klingende Tonarten). Rückmeldung: „Letztes Kreuz Dis · einen Halbton höher → E-Dur“ bzw. „Vorletztes Be Es →
   Es-Dur“. Nachgerechnet für alle 15 Tonarten (Eis → Fis-Dur, His → Cis-Dur, Ces → Ces-Dur).
@@ -1089,8 +1089,8 @@ Dateien für PRECACHE.
 - Im Browser (Headless Chromium über Playwright im Container, 320 px, hell und dunkel): Stufen 4, 10 und 12 je
   eine Aufgabe mit Hilfen und „Vorführen“ bis zum Ergebnis, Lerntafel-Vorführung B-Dur; kein waagrechter
   Überlauf, Knöpfe und Bildzähler in einer Zeile, keine Konsolenfehler. Am iPhone/Mac weiterhin nicht geprüft.
-- Offen für Sandra (so im Plan festgelegt, nicht geändert): In Stufe 10 nennt der Text nach Schritt 1 bei einem
-  einzelnen Be schon „F-Dur“ („… das merkst du dir.“), bevor Schritt 2 danach fragt. Das Quintenzirkel-Kästchen
+- Nach der Prüfung behoben: Der Text nach Schritt 1 bei einem einzelnen Be nennt „F-Dur“ nicht mehr (sonst stünde
+  die Antwort von Schritt 2 schon da). Offen für Sandra: Das Quintenzirkel-Kästchen
   in den Hilfen der Stufe 10 erlaubt, Schritt 2 nachzuschlagen (als Nachschlagehilfe gewollt).
 
 ## Später (nicht geplant, nur notiert)

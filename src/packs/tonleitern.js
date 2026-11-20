@@ -468,7 +468,7 @@ export const NO_SIGNS = "keine Vorzeichen";
 export function signStep(fifths) {
   const n = Math.abs(fifths), list = (fifths > 0 ? SHARPS_7 : FLATS_7).slice(0, n);
   if (fifths === 0) return { choices: [NO_SIGNS], answer: NO_SIGNS, ok: "Richtig: Hier steht kein Vorzeichen.", bad: "Nicht ganz: Hier steht kein Vorzeichen." };
-  if (fifths === -1) return { choices: list, answer: "B", ok: "Ein einzelnes Be steht für F-Dur: das merkst du dir.", bad: "Nicht ganz: Hier steht nur ein Be." };
+  if (fifths === -1) return { choices: list, answer: "B", ok: "Richtig: Hier steht nur ein Be. Ein einzelnes Be ist die Ausnahme, die Tonart merkst du dir.", bad: "Nicht ganz: Hier steht nur ein Be." };
   const d = decisiveSign(fifths);
   const fact = fifths === 1 ? "Fis ist das einzige Kreuz, also das letzte." : fifths > 0 ? `Das letzte Kreuz ist ${d}.` : `Das vorletzte Be ist ${d}.`;
   return { choices: list, answer: d, ok: `Richtig: ${fact}`, bad: `Nicht ganz: ${fact}` };

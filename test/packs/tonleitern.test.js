@@ -473,7 +473,7 @@ test("Stufe 10: zwei Schritte – entscheidendes Vorzeichen, dann die Dur-Tonart
     assert.deepEqual(fs, [...fs].sort((a, b) => a - b));
     assert.deepEqual(keyChoicesFixed(f), second);
   }
-  assert.equal(signStep(-1).ok, "Ein einzelnes Be steht für F-Dur: das merkst du dir.");
+  assert.equal(signStep(-1).ok, "Richtig: Hier steht nur ein Be. Ein einzelnes Be ist die Ausnahme, die Tonart merkst du dir.");
   assert.equal(keyWay(4), "Letztes Kreuz Dis · einen Halbton höher → E-Dur");
   assert.equal(keyWay(-3), "Vorletztes Be Es → Es-Dur");
   assert.equal(keyWay(6), "Letztes Kreuz Eis · einen Halbton höher → Fis-Dur");
