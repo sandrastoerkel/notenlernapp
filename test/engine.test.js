@@ -410,12 +410,14 @@ test("waitsAfter: Hilfen, daneben, richtig mit kurzem oder langem Text", () => {
 test("Abschlussprüfung Welle 10: Weiterlaufen nach „richtig“ je Stufe, nicht je Text", async () => {
   const { PACKS } = await import("../src/packs/index.js");
   const { okWaits, okTextsMax, OK_SAMPLE } = await import("../src/engine.js");
-  const want = { "notenwerte-3": true, "notenwerte-5": false, "tonleitern-3": false, "tonleitern-11": true, "akkorde-3": true, "akkorde-4": false, "akkorde-5": true, "akkorde-6": true, "intervall-2": false };
+  const want = { "notenwerte-3": false, "notenwerte-10": false, "notenwerte-5": false, "tonleitern-3": false, "tonleitern-11": true, "akkorde-3": true, "akkorde-4": false, "akkorde-5": true, "akkorde-6": true, "intervall-2": false };
   for (const p of PACKS) for (const level of p.levels) {
     if (hasHelps(level)) continue;
     const w = okWaits(level);
     // gleiche Entscheidung mit größerer Stichprobe
-    assert.equal(okTextsMax(level, OK_SAMPLE * 4) > AUTO_OK_MAX, w, level.id);
+    // (Stufen mit level.autoNext sind festgelegt: Notenwerte 3 und 10 laufen weiter, längster Text 48 Zeichen)
+    if (typeof level.autoNext === "boolean") { assert.equal(w, !level.autoNext, level.id); assert.ok(okTextsMax(level) <= 48, level.id); }
+    else assert.equal(okTextsMax(level, OK_SAMPLE * 4) > AUTO_OK_MAX, w, level.id);
     // innerhalb der Stufe einheitlich: jede richtige Antwort wartet oder keine, egal wie lang der Text ist
     let prev = null;
     for (let i = 0; i < 40; i++) {

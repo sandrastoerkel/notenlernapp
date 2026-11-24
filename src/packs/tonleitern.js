@@ -63,6 +63,11 @@ export const FLATS_FROM_SHARPS = "dieselben Buchstaben wie bei den Kreuzen, rüc
 export const fullOrderHint = (ctx) => `Kreuze: ${SHARPS_ALL.join(" ")} („${sp(ctx, "kreuze")}“)
 Be: ${FLATS_ALL.join(" ")} – ${FLATS_FROM_SHARPS} („${sp(ctx, "bes")}“ für die ersten fünf)
 Tonarten ♯: G D A E H Fis („${sp(ctx, "kreuz-tonarten")}“), ♭: F B Es As Des Ges („${sp(ctx, "be-tonarten")}“)`;
+// Startkarte Tonleitern 10 (Nachprüfung): Der Plan verlangt die ganze Reihenfolge mit dem gewählten Spruch auf
+// der Startkarte (Welle 10, Schritt 4). Kurzform in zwei Zeilen; die Erklärung der Be-Reihe und die
+// Tonarten-Sprüche stehen in den Hilfen (fullOrderHtml). Wird als Text eingesetzt (eigener Spruch nie als HTML).
+export const orderLines = (ctx) => `♯: ${SHARPS_ALL.join(" ")} („${sp(ctx, "kreuze")}“)
+♭: ${FLATS_ALL.join(" ")} („${sp(ctx, "bes")}“ bis Ges)`;
 export const fullOrderHtml = (ctx) => esc(fullOrderHint(ctx)).replace(/\n/g, "<br>");
 
 export function sigList(fifths) {
@@ -1055,7 +1060,7 @@ const levels = [
     title: "Tonart aus den Vorzeichen",
     twoSteps: true,
     subtitle: `Violinschlüssel · zwei Schritte · mit Hilfen · ${FIFTHS.length} Dur-Tonarten`,
-    hint: (ctx) => `Zwei Schritte:\n1. Das entscheidende Vorzeichen: bei Kreuzen das letzte, bei Be das vorletzte.\n2. Die Tonart: einen Halbton über dem letzten Kreuz (Fis → G-Dur), bei Be das vorletzte selbst (B, Es → B-Dur).\nEin einzelnes Be: F-Dur.\nReihenfolge der Vorzeichen und Merksprüche: in den Hilfen.`,
+    hint: (ctx) => `Zwei Schritte:\n1. Das entscheidende Vorzeichen: bei Kreuzen das letzte, bei Be das vorletzte.\n2. Die Tonart: einen Halbton über dem letzten Kreuz (Fis → G-Dur), bei Be das vorletzte selbst (B, Es → B-Dur).\nEin einzelnes Be: F-Dur.\n${orderLines(ctx)}`,
     items: ITEMS_10,
     example: keySvg({ clef: "treble", fifths: 4 }),
     question(prev) { return majorStepQuestion(pickKey(ITEMS_10, prev)); },

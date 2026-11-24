@@ -1939,6 +1939,14 @@ bestätigt. Die B-Befunde (zusammen 23, viele doppelt) sind in einer Korrekturru
   Quintenzirkel mit Vorzeichnung (382fed6).
 - Weiterlaufen nach „richtig“ je Stufe statt je Text (`okWaits`; offener Punkt 7 damit nach Voreinstellung
   „je Stufe“ gebaut, nach dem Kindertest prüfen; neu wartend auch Notenwerte 3 und 10) (7b41e03).
+Nachprüfung der Korrekturrunde (24.11.2026): alle B-Befunde bestätigt behoben; zwei Entscheidungen nachgeschärft:
+- Weiterlaufen je Stufe bleibt. Notenwerte 3 und 10 laufen aber wieder von selbst weiter (`autoNext: true`): Nur ein
+  Text („Richtig! Sechzehntelpause (¼ Schlag im 4/4-Takt)“, 48 Zeichen) lag 3 Zeichen über der Grenze; die Stufen
+  gleichen den Stufen 5, 7, 9, die weiterlaufen. Es warten nach „richtig“: Tonleitern 11, Dreiklänge 3, 5, 6.
+- Startkarte Tonleitern 10: Die ganze Reihenfolge mit dem gewählten Spruch steht wieder auf der Startkarte, wie
+  oben verlangt, in zwei kurzen Zeilen („♯: Fis Cis Gis Dis Ais Eis His („…“)“, „♭: B Es As Des Ges Ces Fes
+  („…“ bis Ges)“); Erklärung der Be-Reihe und Tonarten-Sprüche bleiben in den Hilfen (bei 320 px 16 statt rund
+  20 Zeilen, gegliedert).
 Nicht geändert (Entscheidungen Sandra bzw. offen): Pausenlage-Wortlaut (Punkt 6), reine Prime mit zwei ♭
 (Punkt 5), Zählleiste „(+)“ (Punkt 10), Balken je Schlag. C-Befunde (Feinschliff, spätere Wellen) bleiben in
 den Berichten. `npm test` 374 grün, `docs/screens/ueberlauf.mjs` 0 Treffer bei 320 und 420 px. Cache bleibt

@@ -337,10 +337,15 @@ test("Tonleitern: ganze Reihenfolge (aus music.js) und Sprüche in Stufe 8, 10, 
   // die ganze Reihenfolge mit Sprüchen in den Hilfen; „Kreuz-Reihe rückwärts“ als Buchstaben erklärt
   const h10 = startHint(by(10), { state: s });
   assert.ok(h10.includes("\n1. Das entscheidende Vorzeichen") && h10.includes("\n2. Die Tonart"), h10);
-  assert.ok(h10.includes("Reihenfolge der Vorzeichen und Merksprüche: in den Hilfen."));
+  // Nachprüfung: Die ganze Reihenfolge mit dem gewählten Spruch steht (wie im Plan) auch auf der Startkarte,
+  // als zwei kurze Zeilen; Erklärung der Be-Reihe und Tonarten-Sprüche nur in den Hilfen
+  assert.ok(h10.includes("\n♯: Fis Cis Gis Dis Ais Eis His („Fünf Cowboys Gehen Durch Alle Einkaufs-Hallen“)\n"), h10);
+  assert.ok(h10.includes("\n♭: B Es As Des Ges Ces Fes („Brezen Essen Asse Des Gesangs“ bis Ges)\n"), h10);
   assert.ok(h10.endsWith("Beide Schritte müssen stimmen."));
-  assert.ok(h10.split("\n").length <= 7, h10);
-  assert.ok(!h10.includes("Ais Eis His"));
+  assert.ok(h10.split("\n").length <= 7 && h10.length <= 420, h10);
+  assert.ok(!h10.includes("rückwärts") && !h10.includes("Geh Du Alter"));
+  { const e = fresh(); setzeEigen(e, "kreuze", "F<b> C G D A E H"); waehle(e, "kreuze", 1);
+    assert.ok(startHint(by(10), { state: e }).includes("♯: Fis Cis Gis Dis Ais Eis His („")); }
   const help10 = (st) => helpsHtml(by(10), makeRound(by(10), 1)[0], { state: st });
   assert.ok(help10(s).includes("Kreuze: Fis Cis Gis Dis Ais Eis His („Fünf Cowboys Gehen Durch Alle Einkaufs-Hallen“)"));
   assert.ok(help10(s).includes("Be: B Es As Des Ges Ces Fes – dieselben Buchstaben wie bei den Kreuzen, rückwärts: H E A D G C F (H mit ♭ heißt B) („Brezen Essen Asse Des Gesangs“ für die ersten fünf)"));

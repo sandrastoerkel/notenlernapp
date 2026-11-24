@@ -628,8 +628,9 @@ Stufen-ID.
   sein kann (`okWaits(level)`, seit der Abschlussprüfung je Stufe statt je Text: Stichprobe von `OK_SAMPLE` =
   1500 Aufgaben mit `okTextsMax`, je Stufe gemerkt und beim Start der Runde gerechnet; `level.autoNext`
   true/false setzt es fest; ohne `level.question` gilt der Text). Es laufen weiter: Noten lesen 1–8, Notenwerte
-  5, 7, 9, Tonleitern 3, Intervalle 2, Dreiklänge 1, 2, 4; alle übrigen Stufen ohne Hilfen warten auch nach
-  „richtig“ (u. a. Tonleitern 11, Dreiklänge 3, 5, 6, Notenwerte 3, 10). Gewartet wird
+  3, 5, 7, 9, 10, Tonleitern 3, Intervalle 2, Dreiklänge 1, 2, 4; alle übrigen Stufen ohne Hilfen warten auch nach
+  „richtig“ (u. a. Tonleitern 11, Dreiklänge 3, 5, 6). Notenwerte 3 und 10 sind mit `autoNext: true` festgelegt
+  (Nachprüfung): nur „Richtig! Sechzehntelpause (¼ Schlag im 4/4-Takt)“ hat 48 Zeichen. Gewartet wird
   ohne Zeitgeber (`isWaiting()`), bis du „Nächste Aufgabe“ tippst
   (`#pNext`, ohne die Hilfen zu öffnen sichtbar, auch bei 320 × 640 ohne Scrollen) oder Enter bzw. die
   Leertaste drückst (`handleKey`; ein fokussierter Knopf der Vorführung oder `summary` behält seine Taste).

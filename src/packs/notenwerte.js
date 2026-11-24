@@ -764,7 +764,10 @@ const RAW = [
     hint: "Zwei Schritte: 1. der Kopf – hohl oder schwarz? 2. Hals und Fähnchen.\nHohl ohne Hals: ganze Note\nHohl mit Hals: halbe Note\nSchwarz ohne Fähnchen: Viertelnote\nSchwarz, 1 Fähnchen: Achtelnote\nSchwarz, 2 Fähnchen: Sechzehntelnote" },
   { title: "Pausen erkennen", subtitle: "5 Pausenwerte · mit Hilfen", items: ITEMS_2, example: singleSvg(el(4, false, true), false),
     hint: `Ganze und halbe Pause sind ein ${REST_SHAPE}: Die ganze Pause ${WHOLE_REST_PLACE}, die halbe Pause ${HALF_REST_PLACE}. Die Achtelpause hat einen Haken, die Sechzehntelpause zwei.` },
-  { title: "Noten und Pausen erkennen ohne Hilfen", subtitle: "5 Notenwerte und 5 Pausen", items: ITEMS_3, example: singleSvg(el(8, false, true), false),
+  // autoNext (Nachprüfung): Stufen 3 und 10 laufen nach „richtig“ weiter wie die Stufen 5, 7, 9. Nur der Text
+  // „Richtig! Sechzehntelpause (¼ Schlag im 4/4-Takt)“ (48 Zeichen) liegt über AUTO_OK_MAX (45); er nennt nichts
+  // außer Antwort und Schlägen. Ohne diese Festlegung wartete die ganze Stufe nach jeder richtigen Antwort.
+  { autoNext: true, title: "Noten und Pausen erkennen ohne Hilfen", subtitle: "5 Notenwerte und 5 Pausen", items: ITEMS_3, example: singleSvg(el(8, false, true), false),
     hint: "Noten und Pausen gemischt, ohne Hilfen. Bei Noten erst der Kopf, dann Hals und Fähnchen; bei Pausen Form und Lage." },
   { twoSteps: true, title: "Wie viele Schläge?", subtitle: "4/4-Takt · Noten und Pausen · zwei Schritte · mit Hilfen", items: ITEMS_4, example: singleSvg(el(8), true),
     hint: "Zwei Schritte: Erst den Notenwert erkennen, dann die Schläge ablesen. Im 4/4-Takt dauert eine Viertelnote einen Schlag. Eine Pause dauert so lang wie die Note mit demselben Wert." },
@@ -778,7 +781,7 @@ const RAW = [
     hint: "Zwei Schritte: Erst zählen – die Werte im Takt zusammenzählen, die Lücke überspringen, dann: Was fehlt bis 4? Dann den Wert wählen, der genau so lang dauert." },
   { title: "Takt füllen ohne Hilfen", subtitle: `4/4-Takt mit Lücke · ${ITEMS_9.length} Aufgaben`, items: ITEMS_9, example: barSvg(parseBar("2 4 r8 8"), 3),
     hint: "Ein 4/4-Takt hat vier Schläge. Zähle zusammen, was schon im Takt steht, und überlege, wie viel bis vier fehlt." },
-  { title: "Alles gemischt", subtitle: "Stufen 3, 5, 7 und 9", items: ITEMS_10, pools: POOLS_10, example: barSvg(parseBar("2 8 8 8 8"), 3),
+  { autoNext: true, title: "Alles gemischt", subtitle: "Stufen 3, 5, 7 und 9", items: ITEMS_10, pools: POOLS_10, example: barSvg(parseBar("2 8 8 8 8"), 3),
     hint: "Notenwerte, Pausen, Schläge, Punkte und Takte aus den Stufen ohne Hilfen durcheinander." },
 ];
 
@@ -798,6 +801,7 @@ const levels = RAW.map((r, i) => ({
   hint: r.hint,
   // Zweischrittige Stufe (q.steps): Die Startkarte sagt „Beide Schritte müssen stimmen.“
   twoSteps: !!r.twoSteps,
+  ...(typeof r.autoNext === "boolean" ? { autoNext: r.autoNext } : {}),
   example: r.example,
   input: "choices",
   items: r.items,
