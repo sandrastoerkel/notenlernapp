@@ -389,18 +389,21 @@ const levels = [
 /* ---------- Lerntafeln ---------- */
 
 // Die vier Typen auf c' (Violin) bzw. c (Bass) nebeneinander, darunter Name und Halbtöne
+const TYPES_W = 352;
 function typesSvg(clef) {
   const root = clef === "treble" ? N("C", 4) : N("C", 3);
   const types = ["dur", "moll", "vermindert", "uebermaessig"];
   let inner = "";
+  // Abstand 72 und Breite TYPES_W (statt 58 und 320): Platz für die größere Beschriftung (board-label), bei
+  // 320 px Bildschirmbreite mindestens etwa 9 px hoch (Welle 10, B13)
   types.forEach((t, i) => {
-    const x = 104 + i * 58, notes = triad(root, t), [a, b] = TRIAD_TYPES[t].steps;
+    const x = 96 + i * 72, notes = triad(root, t), [a, b] = TRIAD_TYPES[t].steps;
     inner += chordSvg(notes, clef, x);
-    inner += `<text class="note-label" x="${x}" y="${BOTTOM + 30}" text-anchor="middle">${TRIAD_TYPES[t].name}</text>`;
-    inner += `<text class="note-label" x="${x}" y="${BOTTOM + 43}" text-anchor="middle" style="fill:var(--muted)">${a} + ${b}</text>`;
-    inner += `<text class="note-label" x="${x}" y="${BOTTOM + 56}" text-anchor="middle" style="fill:var(--muted)">${notes.map(helm).join("-")}</text>`;
+    inner += `<text class="note-label board-label" x="${x}" y="${BOTTOM + 32}" text-anchor="middle">${TRIAD_TYPES[t].name}</text>`;
+    inner += `<text class="note-label board-label" x="${x}" y="${BOTTOM + 47}" text-anchor="middle" style="fill:var(--muted)">${a} + ${b}</text>`;
+    inner += `<text class="note-label board-label" x="${x}" y="${BOTTOM + 62}" text-anchor="middle" style="fill:var(--muted)">${notes.map(helm).join("-")}</text>`;
   });
-  return staffSvg(clef, inner, { height: BOTTOM + 66 });
+  return staffSvg(clef, inner, { height: BOTTOM + 72, width: TYPES_W });
 }
 
 const WRAP = "grid-column:1/-1;display:block;border:0;padding:0";
@@ -429,7 +432,10 @@ function circleSvg() {
     const a = (i * 30 - 90) * Math.PI / 180, at = (r) => `x="${r2(c + r * Math.cos(a))}" y="${r2(c + r * Math.sin(a))}"`;
     s += `<text ${at(128)} text-anchor="middle" dominant-baseline="central" style="fill:var(--fg);font-family:var(--display);font-weight:700;font-size:${e.major.length > 4 ? 14 : 18}px">${e.major}</text>`;
     s += `<text ${at(92)} text-anchor="middle" dominant-baseline="central" style="fill:var(--accent);font-family:var(--display);font-weight:600;font-size:${e.minor.length > 4 ? 12 : 14}px">${e.minor}</text>`;
-    s += `<text ${at(60)} text-anchor="middle" dominant-baseline="central" style="fill:var(--muted);font-family:var(--body);font-weight:700;font-size:${e.sig.length > 3 ? 9 : 11}px">${e.sig}</text>`;
+    // Vorzeichen: zwei Angaben („5♯/7♭“) untereinander statt kleiner nebeneinander (lesbar bei 320 px, B13)
+    const sig = e.sig.split("/"), sy = r2(c + 60 * Math.sin(a)), sx = r2(c + 60 * Math.cos(a));
+    s += `<text x="${sx}" y="${sy}" text-anchor="middle" dominant-baseline="central" style="fill:var(--muted);font-family:var(--body);font-weight:700;font-size:12px">`
+      + (sig.length > 1 ? sig.map((t, k) => `<tspan x="${sx}" dy="${k ? 13 : -6.5}">${t}${k ? "" : "/"}</tspan>`).join("") : e.sig) + "</text>";
   });
   return s + "</svg>";
 }

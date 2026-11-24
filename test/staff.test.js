@@ -346,3 +346,27 @@ test("noteSvg mit natural: ♮ an der Stelle der Vorzeichen, Lage und Größe wi
   // ♮ wird mit der Note gefärbt (Klasse acc, CSS .note.ok .acc / svg.bad .acc)
   assert.ok(noteSvg(N("D", 4), "treble", 170, "ok", { natural: true }).startsWith('<g class="note ok">'));
 });
+
+test("pianoSvg fit: nur der nötige Ausschnitt, je eine weiße Taste Rand, mindestens eine Oktave", () => {
+  // e' bis a'' auf zwei Oktaven ab c': d' bis h'' (weiß 1 … 13)
+  const p = pianoSvg({ from: 60, octaves: 2, marks: [64, 81], interactive: false, fit: [64, 81] });
+  const ids = [...p.matchAll(/data-id="w(\d+)"/g)].map((m) => +m[1]);
+  assert.deepEqual([ids[0], ids.at(-1), ids.length], [1, 13, 13]);
+  assert.ok(p.includes("keys-wide"), "13 weiße Tasten: schmal");
+  assert.match(p, /viewBox="0 0 392 /);
+  // die erste sichtbare Taste beginnt am linken Rand
+  assert.match(p, /class="wkey" data-midi="62" data-id="w1" x="1"/);
+  // schwarze Tasten nur zwischen sichtbaren weißen
+  assert.ok(!p.includes('data-id="b0"') && p.includes('data-id="b1"'));
+  // kleiner Bereich: auf 8 weiße Tasten erweitert (erst nach oben), schwarze Ränder: weiße Taste darunter bzw. darüber
+  const q = pianoSvg({ from: 60, octaves: 2, marks: [66, 68], interactive: false, fit: [66, 68] });
+  const qi = [...q.matchAll(/data-id="w(\d+)"/g)].map((m) => +m[1]);
+  assert.deepEqual([qi[0], qi.length], [2, 8]);
+  assert.ok(!q.includes("keys-wide"));
+  // oben am Ende: nach unten erweitert
+  const r = pianoSvg({ from: 60, octaves: 2, interactive: false, fit: [84, 84] });
+  const ri = [...r.matchAll(/data-id="w(\d+)"/g)].map((m) => +m[1]);
+  assert.deepEqual([ri[0], ri.at(-1)], [7, 14]);
+  // ohne fit unverändert
+  assert.equal(pianoSvg({ from: 60, octaves: 2, interactive: false, fit: null }), pianoSvg({ from: 60, octaves: 2, interactive: false }));
+});

@@ -52,3 +52,59 @@ test("Teilerfolg: --part, --part-soft, --part-ink an allen drei Stellen, Schrift
     assert.ok(contrast(all["--part"], all["--surface"]) >= 3, `${name}: --part auf --surface`);
   }
 });
+
+/* ---------- Welle 10, Schritt 7: Lesbarkeit und Barrierefreiheit (B13, B14) ---------- */
+
+test("Fokus: Rahmen in var(--accent), mindestens 3 : 1 gegen --bg und --surface, hell und dunkel", () => {
+  const rules = [...plain.matchAll(/([^{}]*:focus(?:-visible)?[^{}]*)\{([^}]*)\}/g)];
+  assert.ok(rules.length >= 1, "es gibt eine Fokus-Regel");
+  for (const [, sel, body] of rules) {
+    const m = body.match(/outline\s*:\s*([^;]+);/);
+    assert.ok(m && /var\(--accent\)/.test(m[1]) && !/accent-soft/.test(m[1]), `${sel.trim()}: outline in var(--accent)`);
+  }
+  for (const name of Object.keys(blocks)) {
+    const t = theme(name);
+    for (const bg of ["--bg", "--surface"]) {
+      const c = contrast(t["--accent"], t[bg]);
+      assert.ok(c >= 3, `${name}: Fokus --accent auf ${bg} ${c.toFixed(2)}`);
+    }
+  }
+});
+
+test("Rückmeldung: --ok und --bad als Schrift ≥ 4,5 : 1 auf --bg, --surface und der eigenen soft-Fläche", () => {
+  for (const name of Object.keys(blocks)) {
+    const t = theme(name);
+    for (const k of ["--ok", "--bad"]) for (const bg of ["--bg", "--surface", `${k}-soft`]) {
+      const c = contrast(t[k], t[bg]);
+      assert.ok(c >= 4.5, `${name}: ${k} auf ${bg} ${c.toFixed(2)}`);
+    }
+    // Zeichen ✓/✗ auf den Punkten und Plaketten
+    for (const k of ["--ok", "--bad"]) {
+      const c = contrast(t["--on-mark"], t[k]);
+      assert.ok(c >= 4.5, `${name}: --on-mark auf ${k} ${c.toFixed(2)}`);
+    }
+    // Punkte und Ränder heben sich von der Karte ab (Grafik ≥ 3 : 1)
+    for (const k of ["--ok", "--bad", "--part"]) assert.ok(contrast(t[k], t["--surface"]) >= 3, `${name}: ${k} auf --surface`);
+  }
+});
+
+test("Neue Tokens (Schritt 7) an allen drei Stellen", () => {
+  for (const [name, block] of Object.entries(blocks)) {
+    const t = tokens(block);
+    for (const k of ["--on-mark", "--ok", "--bad", "--accent"]) assert.match(t[k] || "", /^#[0-9a-f]{6}$/i, `${k} in ${name}`);
+  }
+});
+
+test("Nicht nur Rot/Grün: Zeichen ✓/✗ in Knöpfen, Punkten und Rückmeldung, Teilerfolg halb gefüllt", () => {
+  assert.match(plain, /\.answers \.btn\.ok::after\s*\{[^}]*content:\s*"✓"/);
+  assert.match(plain, /\.answers \.btn\.bad::after\s*\{[^}]*content:\s*"✗"/);
+  assert.match(plain, /\.dot\.ok::after\s*\{\s*content:\s*"✓"/);
+  assert.match(plain, /\.dot\.bad::after\s*\{\s*content:\s*"✗"/);
+  assert.match(plain, /\.dot\.part\s*\{[^}]*linear-gradient\(90deg, var\(--part\) 50%, transparent 50%\)/);
+  assert.match(plain, /\.feedback\.ok::before\s*\{\s*content:\s*"✓ "/);
+  assert.match(plain, /\.feedback\.bad::before\s*\{\s*content:\s*"✗ "/);
+});
+
+test("Quintenzirkel-Kästchen: Kopfzeile auch über der zweiten Hälfte (keine versteckte thead)", () => {
+  assert.ok(!/tt-second thead\s*\{[^}]*display:\s*none/.test(plain));
+});

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
   starsHtml, effectiveInput, makeRound, findLevel, nextLevel, countAnswer, feedbackText,
-  resultMessage, dotsHtml, lettersHtml, namesHtml, usesNames, nameKey, typedText, NAME_MAX,
+  resultMessage, dotsHtml, markAnswer, clearMark, MARK_LABEL, lettersHtml, namesHtml, usesNames, nameKey, typedText, NAME_MAX,
   choicesHtml, choicesClass, choiceCols, keyAction, blitzPoints, notesToPlay,
   playMode, revealedSvg, svgResultClass, playSchedule, rhythmEnd, answerDelay, PLAY_GAP, BEAT_MS, RHYTHM_TAIL, DELAY_OK, AUTO_OK_MAX, waitsAfter, NEXT_STEP, DEMO_WAIT_SHORT, stepsResult,
   choiceSet, setClass, stepsFeedback, digitAction, helpsHtml, hasHelps, HELP_FROM, helpFrom, helpsTitle, DELAY_STEP_OK,
@@ -114,9 +114,32 @@ test("Feedback- und Ergebnistexte", () => {
 
 test("dotsHtml", () => {
   const h = dotsHtml([true, false], 2, 4);
-  assert.equal(h, `<span class="dot ok"></span><span class="dot bad"></span><span class="dot cur"></span><span class="dot "></span>`);
-  // Teilerfolg: eigene Klasse
-  assert.equal(dotsHtml([true, "part", false], 3, 3), `<span class="dot ok"></span><span class="dot part"></span><span class="dot bad"></span>`);
+  const dot = (c, i, label) => `<span class="dot ${c}" role="img" aria-label="Aufgabe ${i}: ${label}"></span>`;
+  assert.equal(h, dot("ok", 1, "richtig") + dot("bad", 2, "daneben") + dot("cur", 3, "jetzt") + dot("", 4, "noch offen"));
+  // Teilerfolg: eigene Klasse und eigener Text (nicht nur Farbe, Welle 10, B14)
+  assert.equal(dotsHtml([true, "part", false], 3, 3), dot("ok", 1, "richtig") + dot("part", 2, "teilweise richtig") + dot("bad", 3, "daneben"));
+});
+
+test("markAnswer/clearMark: Klasse und Stand im aria-label, danach wieder wie vorher", () => {
+  const btn = () => {
+    const attrs = {}, cls = new Set();
+    return { tagName: "BUTTON", textContent: " Fis ", dataset: {}, attrs,
+      classList: { add: (c) => cls.add(c), remove: (...c) => c.forEach((x) => cls.delete(x)), contains: (c) => cls.has(c) },
+      getAttribute: (k) => (k in attrs ? attrs[k] : null), setAttribute: (k, v) => { attrs[k] = v; }, removeAttribute: (k) => { delete attrs[k]; } };
+  };
+  const b = btn();
+  markAnswer(b, "ok");
+  assert.ok(b.classList.contains("ok"));
+  assert.equal(b.attrs["aria-label"], "Fis, richtig");
+  clearMark(b);
+  assert.ok(!b.classList.contains("ok") && !("aria-label" in b.attrs));
+  // vorhandenes aria-label bleibt Grundlage und kommt zurück
+  const c = btn(); c.attrs["aria-label"] = "Ton Fis";
+  markAnswer(c, "bad"); assert.equal(c.attrs["aria-label"], "Ton Fis, daneben");
+  clearMark(c); assert.equal(c.attrs["aria-label"], "Ton Fis");
+  // Tasten der Klaviatur (kein <button>): nur die Klasse
+  const k = { ...btn(), tagName: "rect" }; markAnswer(k, "bad"); assert.ok(!("aria-label" in k.attrs));
+  assert.deepEqual(MARK_LABEL, { ok: "richtig", bad: "daneben" });
 });
 
 test("Antwortknöpfe", () => {
@@ -404,7 +427,9 @@ test("helpsHtml: nur mit level.helps, Klaviatur ab c' bzw. C", () => {
   const level = { helps: ["klaviatur"], helpText: "T" };
   const h = helpsHtml(level, { clef: "bass", helpMarks: [N("E", 2), N("C", 3)] });
   assert.ok(h.startsWith('<p class="small help-text">T</p><div class="help-grid"><div class="help-keys">'));
-  assert.ok(h.includes('data-midi="36" data-id="w0"') && h.includes('data-midi="60" data-id="w14"'));
+  // zwei markierte Töne: nur der nötige Ausschnitt (fit) – D bis C, je eine weiße Taste Rand, 8 weiße Tasten
+  assert.ok(h.includes('data-midi="38" data-id="w1"') && h.includes('data-midi="48" data-id="w7"') && h.includes('data-id="w8"'));
+  assert.ok(!h.includes('data-id="w0"') && !h.includes('data-id="w9"'));
   assert.deepEqual([...h.matchAll(/class="[wb]key mark" data-midi="(\d+)"/g)].map((m) => +m[1]), [40, 48]);
   assert.ok(!h.includes("<table"));
   assert.ok(helpsHtml({ helps: ["tabelle"], helpTable: "<table></table>" }, {}).includes("<table></table>"));
@@ -425,6 +450,7 @@ test("helpsHtml: q.helpFrom (optional) verschiebt die Klaviatur, ohne das Feld w
   assert.equal(helpFrom({}), 60);
   assert.equal(helpFrom({ clef: "treble", helpFrom: 48 }), 48);
   const h = helpsHtml(level, { clef: "treble", helpFrom: 48, helpMarks: [N("H", 3, -1)] });
+  // ein markierter Ton: beide Oktaven ohne Ausschnitt
   assert.ok(h.includes('data-midi="48" data-id="w0"') && h.includes('data-midi="72" data-id="w14"'));
   assert.deepEqual([...h.matchAll(/class="[wb]key mark" data-midi="(\d+)"/g)].map((m) => +m[1]), [58]);
   assert.equal(helpsHtml(level, { clef: "treble", helpMarks: [] }), helpsHtml(level, { clef: "treble", helpFrom: 60, helpMarks: [] }));
@@ -560,7 +586,7 @@ test("Ablauf zweischrittig: richtig/richtig, Zahl daneben/dann Qualität, einmal
     assert.deepEqual(r.state.notes["kleine Terz"].hist, "10");
     assert.equal(r.ui.next.textContent, DEMO_NEXT, "danach wieder „Nächste Aufgabe“");
     r.next();
-    assert.ok(r.ui.dots.innerHTML.startsWith('<span class="dot ok"></span><span class="dot part"></span><span class="dot cur">'));
+    assert.ok(r.ui.dots.innerHTML.startsWith('<span class="dot ok" role="img" aria-label="Aufgabe 1: richtig"></span><span class="dot part" role="img" aria-label="Aufgabe 2: teilweise richtig"></span><span class="dot cur"'));
     assert.equal(r.ui.helps.open, true, "Hilfen bleiben offen, wenn du sie geöffnet hast");
     // 3. Aufgabe: Zahl richtig per Ziffer, Qualität daneben
     const e = { key: "3", preventDefault() {} };

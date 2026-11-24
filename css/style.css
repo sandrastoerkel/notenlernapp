@@ -40,10 +40,13 @@
   --accent: #2d4fd6;
   --accent-fg: #ffffff;
   --accent-soft: #e2e8ff;
-  --ok: #198f63;
+  /* Rückmeldung: --ok und --bad als Schrift auf --bg, --surface und der eigenen soft-Fläche mindestens 4,5 : 1
+     (Welle 10, B14; nachgerechnet in test/css.test.js). on-mark = Zeichen ✓/✗ auf einem ok-/bad-Punkt */
+  --ok: #157853;
   --ok-soft: #d9f3e7;
-  --bad: #cf4339;
+  --bad: #b63b32;
   --bad-soft: #fbe1de;
+  --on-mark: #ffffff;
   --gold: #e0a416;
   --gold-soft: #fff1cc;
   /* Teilerfolg (nur der erste Schritt daneben, Welle 10): aus dem Gold abgeleitet. part = Rand/Punkt,
@@ -77,6 +80,7 @@
     --bg: #0f1222; --surface: #191d34; --surface-2: #20253f; --fg: #eceffc; --muted: #9ba3c6; --line: #2d3352;
     --ink: #f1f3ff; --accent: #8197ff; --accent-fg: #0f1222; --accent-soft: #273066;
     --ok: #41d094; --ok-soft: #163a2d; --bad: #ff8178; --bad-soft: #47221f; --gold: #f3c452; --gold-soft: #3f3214;
+    --on-mark: #0f1222;
     --part: #f3c452; --part-soft: #3f3214; --part-ink: #f8d98c;
     --step1: #a49cf6; --step1-ink: #cfcaff; --step1-soft: #2d2a5e;
     --step2: #44cf9f; --step2-ink: #a5ecd3; --step2-soft: #11392f;
@@ -88,6 +92,7 @@
   --bg: #0f1222; --surface: #191d34; --surface-2: #20253f; --fg: #eceffc; --muted: #9ba3c6; --line: #2d3352;
   --ink: #f1f3ff; --accent: #8197ff; --accent-fg: #0f1222; --accent-soft: #273066;
   --ok: #41d094; --ok-soft: #163a2d; --bad: #ff8178; --bad-soft: #47221f; --gold: #f3c452; --gold-soft: #3f3214;
+  --on-mark: #0f1222;
   --part: #f3c452; --part-soft: #3f3214; --part-ink: #f8d98c;
   --step1: #a49cf6; --step1-ink: #cfcaff; --step1-soft: #2d2a5e;
   --step2: #44cf9f; --step2-ink: #a5ecd3; --step2-soft: #11392f;
@@ -121,7 +126,8 @@ p { margin: 0; }
 .chip { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); font-weight: 700; font-size: 0.85rem; }
 .chip.gold { background: var(--gold-soft); border-color: transparent; }
 .icon-btn { flex: none; width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); cursor: pointer; display: grid; place-items: center; }
-.icon-btn:focus-visible, button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 1px; }
+/* Fokus (Tastatur): Rahmen in --accent, gegen --bg und --surface mindestens 3 : 1 (test/css.test.js) */
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 
 .app {
   max-width: 720px; margin: 0 auto;
@@ -171,6 +177,12 @@ section { display: grid; gap: 14px; }
 .gap-q { font-family: var(--display); font-weight: 800; font-size: 21px; fill: var(--muted); }
 /* Tonleitern, Auflösung Stufe 3 bis 5: Name der eingesetzten bzw. berichtigten Note in Grün (= LABEL_SIZE in tonleitern.js) */
 .note-label.ok { fill: var(--ok); font-size: 18px; }
+/* Beschriftung in Lerntafeln (Intervalle über c'/c, Dreiklangstypen): größer, bei 320 px mindestens etwa 9 px */
+.note-label.board-label { font-size: 12.5px; }
+/* Tabellen der Lerntafeln: Abstand zwischen den Spalten („As-Dur  f-Moll“), Namen ohne Umbruch */
+.lt-table th, .lt-table td { padding: 2px 10px 2px 0; vertical-align: top; }
+.lt-table th:last-child, .lt-table td:last-child { padding-right: 0; }
+.lt-table b, .lt-table td:first-child { white-space: nowrap; }
 /* Lerntafel „Intervalle über c'“: feiner Trennstrich zwischen den Paaren, nur unter der Zeile (Welle 10, B15) */
 .pair-sep { stroke: var(--line); stroke-width: 1; }
 
@@ -179,6 +191,16 @@ section { display: grid; gap: 14px; }
 .answers .btn { padding: 14px 0; font-size: 1.2rem; font-family: var(--display); }
 .answers .btn.ok { background: var(--ok-soft); border-color: var(--ok); }
 .answers .btn.bad { background: var(--bad-soft); border-color: var(--bad); }
+/* Nicht nur Rot/Grün (B14): ✓ bzw. ✗ als Plakette oben rechts im Knopf; der Stand steht auch im aria-label
+   (engine.js, markAnswer). Der richtige Knopf bekommt nach einer falschen Antwort ebenfalls ✓. */
+.answers .btn { position: relative; }
+.answers .btn.ok, .answers .btn.bad { border-width: 2px; }
+.answers .btn.ok::after, .answers .btn.bad::after {
+  position: absolute; top: -7px; right: -5px; width: 18px; height: 18px; border-radius: 50%;
+  display: grid; place-items: center; font: 800 12px/1 var(--body); color: var(--on-mark); pointer-events: none;
+}
+.answers .btn.ok::after { content: "✓"; background: var(--ok); }
+.answers .btn.bad::after { content: "✗"; background: var(--bad); }
 /* Auswahlknöpfe (input "choices", Klasse von src/engine.js): Begriffe in zwei Spalten, kurze Texte
    (½, VII, 3 ♭) nebeneinander; Schrift Nunito, weil Outfit Brüche (½ ¼ ¾) winzig setzt; Knöpfe dürfen schmaler als ihr Text werden und brechen dann um */
 .answers.choices { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -199,13 +221,17 @@ section { display: grid; gap: 14px; }
 /* Nunito statt Outfit: die Bruchzeichen ½ ¼ ¾ sind in Outfit sehr klein */
 .feedback { min-height: 1.6em; font-weight: 800; font-family: var(--body); font-size: 1.05rem; }
 .feedback.ok { color: var(--ok); } .feedback.bad { color: var(--bad); }
+/* Zeichen vor der Rückmeldung (auch für Antworten über die Klaviatur): ✓ richtig, ✗ daneben */
+.feedback.ok::before { content: "✓ "; } .feedback.bad::before { content: "✗ "; }
 /* Teilerfolg: eigene Fläche statt Rot, damit er auf den ersten Blick von „daneben“ verschieden ist */
 .feedback.part { color: var(--part-ink); background: var(--part-soft); border-left: 4px solid var(--part); border-radius: 8px; padding: 4px 10px; }
 
 .dots { display: flex; gap: 5px; flex-wrap: wrap; }
-.dot { width: 14px; height: 8px; border-radius: 4px; background: var(--line); }
+/* Fortschrittspunkte: richtig ✓, daneben ✗ (Zeichen in --on-mark), Teilerfolg halb gefüllt, jetzt in --accent */
+.dot { width: 16px; height: 16px; border-radius: 50%; background: var(--line); display: inline-grid; place-items: center; font: 800 11px/1 var(--body); color: var(--on-mark); }
 .dot.ok { background: var(--ok); } .dot.bad { background: var(--bad); } .dot.cur { background: var(--accent); }
-.dot.part { background: var(--part); }
+.dot.ok::after { content: "✓"; } .dot.bad::after { content: "✗"; }
+.dot.part { background: linear-gradient(90deg, var(--part) 50%, transparent 50%); box-shadow: inset 0 0 0 2px var(--part); }
 
 /* piano */
 .piano svg { width: 100%; height: auto; display: block; max-width: 100%; }
@@ -250,8 +276,7 @@ section { display: grid; gap: 14px; }
    Die Hilfen stehen dann unter den Antwortknöpfen, die Tabelle wieder in einem Stück */
 @media (max-width: 380px) {
   #pHelps { order: 1; }
-  .help-table-wrap .tt-split { flex-direction: column; gap: 0; }
-  .help-table-wrap .tt-second thead { display: none; }
+  .help-table-wrap .tt-split { flex-direction: column; gap: 4px; }
 }
 
 /* Kästchentabelle (src/grid.js): eine Zeile je Eintrag, Zahlen in Kästchen, Familie hinterlegt,
@@ -275,6 +300,11 @@ section { display: grid; gap: 14px; }
    (Quintenzirkel) */
 .tt-box.s1 { background: var(--step1-soft); border-color: var(--step1); color: var(--step1-ink); }
 .tt-wide .tt-box { width: auto; min-width: var(--tile, 28px); padding: 0 6px; white-space: nowrap; }
+/* Quintenzirkel-Kästchen (geteilt in zwei Hälften): feste Spaltenbreiten, damit beide Hälften genau
+   untereinander bzw. nebeneinander stehen; Kopfzeile über jeder Hälfte (Welle 10, B13) */
+.tt-wide { table-layout: fixed; }
+.tt-wide th:first-child, .tt-wide td:first-child { width: 3.6rem; }
+.tt-wide th, .tt-wide td { width: 4.4rem; }
 .tt-plan { --tile: 24px; }
 /* Kopf „Stufen 1–2 …“ klein und leicht, damit er nicht wie eine dritte Ziffernreihe wirkt (Welle 10, A6) */
 .tt-plan th { font-size: .64rem; font-weight: 600; }
@@ -344,7 +374,7 @@ section { display: grid; gap: 14px; }
 }
 .note.step1 .notehead, .note.step1 .acc { fill: var(--step1); } .note.step1 .ledger { stroke: var(--step1); }
 .dm-num circle { fill: var(--step1-soft); stroke: var(--step1); stroke-width: 1.4; }
-.dm-num text { font-family: var(--display); font-weight: 800; font-size: 11px; fill: var(--step1-ink); }
+.dm-num text { font-family: var(--display); font-weight: 800; font-size: 13.5px; fill: var(--step1-ink); }
 .dm-bracket { fill: none; stroke: var(--step1); stroke-width: 1.8; }
 /* Paket „Tonleitern“, Vorführungen: Töne auf der Klaviatur grün (Schritt 2, beide Tasten des Schritts),
    berichtigte Noten grün, Klammer des geprüften Schritts grün, entscheidendes Vorzeichen violett umrandet */
@@ -369,7 +399,7 @@ section { display: grid; gap: 14px; }
 .nw-pyr-sum { fill: var(--step2-ink); }
 .nw-pyr-num { font-family: var(--display); font-weight: 800; font-size: 15px; fill: var(--fg); }
 .nw-pyr-row.hit .nw-pyr-num, .nw-pyr-row.add .nw-pyr-num { fill: var(--step2-ink); }
-.nw-pyr-head { font-family: var(--body); font-weight: 800; font-size: 10px; fill: var(--muted); }
+.nw-pyr-head { font-family: var(--body); font-weight: 800; font-size: 10.5px; fill: var(--muted); }
 .nw-pyr .flag { font-family: var(--music); fill: var(--ink); }
 .nw-help-stack { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; justify-items: center; }
 .nw-help-stack > * { max-width: 100%; }
@@ -402,7 +432,7 @@ section { display: grid; gap: 14px; }
 .nw-sum-label.hold { fill: var(--muted); font-weight: 700; }
 /* Summenleiste als Menge (Welle 10, Top 3): leere Leiste, Überschrift „Summe“, Marken 0 bis 4 */
 .nw-sum-track { fill: var(--surface); stroke: var(--line); stroke-width: 1.2; }
-.nw-sum-head { font-family: var(--body); font-weight: 800; font-size: 11px; fill: var(--muted); }
+.nw-sum-head { font-family: var(--body); font-weight: 800; font-size: 11.5px; fill: var(--muted); }
 .nw-sum-tick { stroke: var(--muted); stroke-width: 1.2; }
 .nw-sum-mark { font-family: var(--display); font-weight: 800; font-size: 12px; fill: var(--muted); }
 .demo-result-note { font-weight: 700; margin: 0; }

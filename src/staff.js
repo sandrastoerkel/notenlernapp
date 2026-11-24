@@ -288,12 +288,36 @@ export const BLACK = [{ l: "C", i: 0 }, { l: "D", i: 1 }, { l: "F", i: 3 }, { l:
 // (START_LABEL) an der Stelle der Zahlen, weil sie selbst nicht mitzählt. Auf einer schwarzen Taste ist
 // dafür kein Platz: dort steht „0“ (START_SHORT). Bei zwei Oktaven und schmalem Bildschirm (bis 380 px)
 // wird „Start“ zu klein, dann zeigt css/style.css ebenfalls „0“ (Klasse keys-wide am <svg>).
+// fit (Welle 10, B13): [tiefste, höchste MIDI-Nummer] – nur der nötige Ausschnitt der Oktaven wird gezeichnet:
+// die Tasten von fit[0] bis fit[1], je eine weiße Taste Rand und mindestens FIT_MIN weiße Tasten (eine
+// Oktave). Weniger Tasten heißt breitere Tasten: Namen und Zahlen bleiben bei 320 px lesbar (≥ 9 px).
+// keys-wide (kleinere Bildschirme: „0“ statt „Start“) gilt dann erst ab mehr als WIDE_KEYS weißen Tasten.
 export const START_LABEL = "Start", START_SHORT = "0";
+export const FIT_MIN = 8, WIDE_KEYS = 10;
+// Weiße Taste (Index ab from) zu einer MIDI-Nummer; schwarze Tasten: die weiße darunter (up: darüber)
+const WHITE_OF = [0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6];
+export function whiteIndex(from, m, up = false) {
+  const d = m - from, o = Math.floor(d / 12), semi = ((d % 12) + 12) % 12;
+  const black = [1, 3, 6, 8, 10].includes(semi);
+  return 7 * o + WHITE_OF[semi] + (black && up ? 1 : 0);
+}
+// Sichtbarer Bereich [erste, letzte weiße Taste] für fit
+export function fitRange(from, octaves, fit) {
+  const last = octaves * 7;
+  if (!fit || from === null) return [0, last];
+  let lo = Math.max(0, whiteIndex(from, Math.min(...fit)) - 1), hi = Math.min(last, whiteIndex(from, Math.max(...fit), true) + 1);
+  while (hi - lo + 1 < FIT_MIN && hi < last) hi++;
+  while (hi - lo + 1 < FIT_MIN && lo > 0) lo--;
+  return [lo, hi];
+}
 export function pianoSvg(opts = {}) {
-  const { from = null, octaves = 1, marks = [], interactive = true, counts = [], start = null } = opts;
+  const { from = null, octaves = 1, marks = [], interactive = true, counts = [], start = null, fit = null } = opts;
   const kw = interactive ? 38 : 30, kh = interactive ? 110 : 96, bw = interactive ? 24 : 18;
-  const whites = Array.from({ length: octaves * 7 + 1 }, (_, i) => ({ l: WHITE[i % 7], o: Math.floor(i / 7), i }));
-  const blacks = Array.from({ length: octaves }, (_, o) => BLACK.map((b) => ({ ...b, o, i: b.i + 7 * o }))).flat();
+  const [lo, hi] = fitRange(from, octaves, fit), x0 = 1 - lo * kw, n = hi - lo + 1;
+  const whites = Array.from({ length: octaves * 7 + 1 }, (_, i) => ({ l: WHITE[i % 7], o: Math.floor(i / 7), i, last: i === octaves * 7 }))
+    .filter(({ i }) => i >= lo && i <= hi);
+  const blacks = Array.from({ length: octaves }, (_, o) => BLACK.map((b) => ({ ...b, o, i: b.i + 7 * o }))).flat()
+    .filter((b) => b.i >= lo && b.i + 1 <= hi);
   const mk = new Set(marks);
   const keyAttr = (semi, o) => {
     if (from === null) return interactive ? ` data-semi="${semi}"` : "";
@@ -306,28 +330,28 @@ export function pianoSvg(opts = {}) {
   const keyCls = (semi, o) => `${isMark(semi, o) ? " mark" : ""}${countOf(semi, o) !== undefined ? " count" : ""}`;
   const bh = Math.round(kh * 6) / 10;
   const isStart = (semi, o) => from !== null && start !== null && from + 12 * o + semi === start;
-  const staticCls = `keys-static${octaves > 1 ? " keys-wide" : ""}`;
-  let s = `<svg viewBox="0 0 ${kw * whites.length + 2} ${kh + 2}"${interactive ? "" : ` class="${staticCls}"`} role="${interactive ? "group" : "img"}" aria-label="Klaviatur">`;
-  whites.forEach(({ l, o, i }) => {
+  const staticCls = `keys-static${n > WIDE_KEYS ? " keys-wide" : ""}`;
+  let s = `<svg viewBox="0 0 ${kw * n + 2} ${kh + 2}"${interactive ? "" : ` class="${staticCls}"`} role="${interactive ? "group" : "img"}" aria-label="Klaviatur">`;
+  whites.forEach(({ l, o, i, last }) => {
     const semi = SEMI[l];
     // das obere C gehört zur nächsten Oktave (data-semi 0 wie bisher)
-    const oo = i === whites.length - 1 ? octaves : o;
-    s += `<rect class="wkey${keyCls(semi, oo)}"${keyAttr(semi, oo)} data-id="w${i}" x="${1 + i * kw}" y="1" width="${kw}" height="${kh}" rx="3"/>`;
-    s += `<text class="klabel${keyCls(semi, oo)}" x="${1 + i * kw + kw / 2}" y="${kh - 8}" text-anchor="middle">${l}</text>`;
+    const oo = last ? octaves : o;
+    s += `<rect class="wkey${keyCls(semi, oo)}"${keyAttr(semi, oo)} data-id="w${i}" x="${x0 + i * kw}" y="1" width="${kw}" height="${kh}" rx="3"/>`;
+    s += `<text class="klabel${keyCls(semi, oo)}" x="${x0 + i * kw + kw / 2}" y="${kh - 8}" text-anchor="middle">${l}</text>`;
     const c = countOf(semi, oo);
-    if (c !== undefined) s += `<text class="kcount" x="${1 + i * kw + kw / 2}" y="${Math.round(bh + 16)}" text-anchor="middle">${c}</text>`;
+    if (c !== undefined) s += `<text class="kcount" x="${x0 + i * kw + kw / 2}" y="${Math.round(bh + 16)}" text-anchor="middle">${c}</text>`;
     if (isStart(semi, oo)) {
-      const x = 1 + i * kw + kw / 2, y = Math.round(bh + 16);
+      const x = x0 + i * kw + kw / 2, y = Math.round(bh + 16);
       s += `<text class="kcount kstart kstart-long" data-start="${start}" x="${x}" y="${y}" text-anchor="middle">${START_LABEL}</text>`
         + `<text class="kcount kstart kstart-short" data-start="${start}" x="${x}" y="${y}" text-anchor="middle">${START_SHORT}</text>`;
     }
   });
   blacks.forEach((b) => {
     const semi = SEMI[b.l] + 1;
-    s += `<rect class="bkey${keyCls(semi, b.o)}"${keyAttr(semi, b.o)} data-id="b${b.i}" x="${1 + (b.i + 1) * kw - bw / 2}" y="1" width="${bw}" height="${bh}" rx="2"/>`;
+    s += `<rect class="bkey${keyCls(semi, b.o)}"${keyAttr(semi, b.o)} data-id="b${b.i}" x="${x0 + (b.i + 1) * kw - bw / 2}" y="1" width="${bw}" height="${bh}" rx="2"/>`;
     const c = countOf(semi, b.o);
-    if (c !== undefined) s += `<text class="kcount on-black" x="${1 + (b.i + 1) * kw}" y="${Math.round(bh - 6)}" text-anchor="middle">${c}</text>`;
-    if (isStart(semi, b.o)) s += `<text class="kcount on-black kstart" data-start="${start}" x="${1 + (b.i + 1) * kw}" y="${Math.round(bh - 6)}" text-anchor="middle">${START_SHORT}</text>`;
+    if (c !== undefined) s += `<text class="kcount on-black" x="${x0 + (b.i + 1) * kw}" y="${Math.round(bh - 6)}" text-anchor="middle">${c}</text>`;
+    if (isStart(semi, b.o)) s += `<text class="kcount on-black kstart" data-start="${start}" x="${x0 + (b.i + 1) * kw}" y="${Math.round(bh - 6)}" text-anchor="middle">${START_SHORT}</text>`;
   });
   return s + "</svg>";
 }

@@ -2,7 +2,7 @@
 import { recordBlitz } from "../store.js";
 import { play } from "../audio.js";
 import { gName } from "../music.js";
-import { countAnswer, keyAction, lettersHtml, blitzPoints } from "../engine.js";
+import { countAnswer, keyAction, lettersHtml, blitzPoints, markAnswer, clearMark } from "../engine.js";
 
 const $ = (s) => document.querySelector(s);
 export const DURATION = 60000, TICK = 200, DELAY_OK = 250, DELAY_BAD = 900, LOW = 10;
@@ -60,7 +60,7 @@ function next() {
   B.cur = B.blitz.question(B.cur); B.n++;
   $("#bStaff").innerHTML = B.cur.svg;
   $("#bFeedback").textContent = ""; $("#bFeedback").className = "feedback";
-  document.querySelectorAll("#bAnswers .btn").forEach((b) => b.classList.remove("ok", "bad"));
+  document.querySelectorAll("#bAnswers .btn").forEach(clearMark);
 }
 
 function answer(letter, btn) {
@@ -70,7 +70,7 @@ function answer(letter, btn) {
   countAnswer(ctx.state, q, ok);
   if (ok) { B.combo++; B.best = Math.max(B.best, B.combo); B.score += blitzPoints(B.combo); } else { B.combo = 0; }
   $("#bScore").textContent = B.score; $("#bCombo").textContent = "Serie " + B.combo;
-  btn.classList.add(ok ? "ok" : "bad");
+  markAnswer(btn, ok ? "ok" : "bad");
   // Im Blitz nur der Name ohne Oktave, z. B. „F“
   const name = q.note ? gName(q.note) : q.display;
   const fb = $("#bFeedback");

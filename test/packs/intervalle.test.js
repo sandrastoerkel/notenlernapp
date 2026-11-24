@@ -332,13 +332,16 @@ test("Hilfen: Klaviatur zwei Oktaven je Schlüssel, Töne der Aufgabe markiert",
   for (const l of [L[0], L[2], L[4]]) for (const q of many(l, 80)) {
     const h = helpsHtml(l, q);
     assert.ok(h.includes('class="keys-static') && h.includes(l.helpTable) && h.includes(l.helpText), l.id);
-    assert.equal((h.match(/class="wkey/g) || []).length, 15);
-    assert.equal((h.match(/class="bkey/g) || []).length, 10);
+    // nur der nötige Ausschnitt (fit, Welle 10: B13): beide Töne, je eine weiße Taste Rand, mindestens 8 weiße
+    const whites = [...h.matchAll(/class="wkey[^"]*" data-midi="(\d+)"/g)].map((m) => +m[1]);
+    assert.ok(whites.length >= 8 && whites.length <= 15, `${l.id}: ${whites.length} weiße Tasten`);
+    assert.ok(whites[0] <= midi(q.low) && whites.at(-1) >= midi(q.high), `${l.id}: beide Töne sichtbar`);
     assert.ok(!/data-semi/.test(h), "nicht anklickbar");
     const marked = [...h.matchAll(/class="[wb]key mark" data-midi="(\d+)"/g)].map((m) => +m[1]).sort((a, b) => a - b);
     assert.deepEqual(marked, [...new Set([midi(q.low), midi(q.high)])].sort((a, b) => a - b), `${l.id} ${helm(q.low)}–${helm(q.high)}`);
-    const first = +h.match(/data-midi="(\d+)" data-id="w0"/)[1];
-    assert.equal(first, q.clef === "treble" ? 60 : 36);
+    // die Klaviatur beginnt weiter beim C der Hilfe (data-midi der ersten Oktave), sichtbar ist der Ausschnitt
+    const first = +h.match(/data-midi="(\d+)" data-id="w(\d+)"/)[1];
+    assert.ok(first >= (q.clef === "treble" ? 60 : 36), l.id);
   }
   // Bauen: nur die gegebene Note markiert
   for (const q of many(L[7], 80)) {

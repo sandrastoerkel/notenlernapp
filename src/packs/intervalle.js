@@ -461,14 +461,14 @@ export function demoStaffSvg(low, high, clef, k, bracket) {
 }
 
 // Klaviatur der Vorführung (wie die Hilfe-Klaviatur, nur zum Anschauen): ab dem C unter der unteren Note,
-// eine Oktave, wenn sie reicht, sonst zwei (größere Tasten auf schmalen Bildschirmen). Beide Töne markiert,
+// eine Oktave, wenn sie reicht, sonst zwei, davon nur der nötige Ausschnitt (fit, Welle 10: B13). Beide Töne markiert,
 // die ersten j Halbtöne über der unteren Note grün mit ihrer Zahl. active: false im ersten Schritt (blass).
 // Beim Zählen (active) trägt die untere Note die Aufschrift „Start“ (Welle 10, B6: sie zählt nicht mit).
 export function demoKeysSvg(low, high, j, active) {
   const from = 12 * Math.floor(midi(low) / 12), octaves = midi(high) <= from + 12 ? 1 : 2;
   const counts = Array.from({ length: j }, (_, t) => [midi(low) + t + 1, t + 1]);
   const start = active && midi(high) > midi(low) ? midi(low) : null;
-  return `<div class="demo-keys${active ? "" : " dim"}">${pianoSvg({ from, octaves, marks: [midi(low), midi(high)], counts, interactive: false, start })}</div>`;
+  return `<div class="demo-keys${active ? "" : " dim"}">${pianoSvg({ from, octaves, marks: [midi(low), midi(high)], counts, interactive: false, start, fit: [midi(low), midi(high)] })}</div>`;
 }
 
 // Ton zu einer MIDI-Nummer (nur für den Klang beim Zählen der Halbtöne, die Schreibweise spielt keine Rolle)
@@ -699,7 +699,7 @@ function aboveC(c, num, quality) {
 }
 
 // Tabelle über die ganze Breite der Merkhilfen (ohne eigene Farben; .legend gestaltet nur div-Zeilen)
-const TABLE_OPEN = `<table class="small" style="grid-column: 1 / -1; width: 100%; border-collapse: collapse; text-align: left">`;
+const TABLE_OPEN = `<table class="small lt-table" style="grid-column: 1 / -1; width: 100%; border-collapse: collapse; text-align: left">`;
 
 export const LEARN_ROWS = TABLE.flat().map(([num, q]) => ({ num, quality: q, name: intervalLabel(num, q), semitones: semitonesFor(num, q) }));
 
@@ -708,7 +708,10 @@ export function intervalBoard(clef) {
   const c = clef === "treble" ? N("C", 4) : N("C", 3);
   // Im Bassschlüssel hängt keine Note unter der Zeile (c liegt im zweiten Zwischenraum): Beschriftung 10 höher
   // (Violinschlüssel 118: das ♯ vor cis' und dis' reicht unter die Hilfslinie und stieß bei 114 an die Schrift)
-  const ly = clef === "treble" ? 118 : 104;
+  const ly = (clef === "treble" ? 118 : 104) + 3; // + 3: Platz für die größere Schrift (board-label)
+  // Beschriftung größer als .note-label (Klasse board-label, 12,5 px): bei 320 px Breite mindestens etwa 9 px
+  // hoch (Welle 10, B13); Zeilenabstand LH
+  const LH = 14;
   const layouts = TABLE.map((row) => pairLayout(row, clef, c));
   // gemeinsame Breite: rechter Rand der breitesten Zeile plus der Rand nach den Linien (wie in staffSvg)
   const width = Math.max(320, Math.ceil(Math.max(...layouts.flat().map((p) => p.end)) + 2 + 18));
@@ -717,12 +720,12 @@ export function intervalBoard(clef) {
     row.forEach((p) => {
       const mid = r1((p.x + p.x2) / 2);
       inner += noteSvg(c, clef, p.x, "", { value: NOTE_VALUE }) + noteSvg(p.high, clef, p.x2, "", { value: NOTE_VALUE });
-      if (p.sep !== null) inner += `<line class="pair-sep" x1="${p.sep}" x2="${p.sep}" y1="${ly - 11}" y2="${ly + 15}"/>`;
+      if (p.sep !== null) inner += `<line class="pair-sep" x1="${p.sep}" x2="${p.sep}" y1="${ly - 12}" y2="${ly + LH + 4}"/>`;
       // Beschriftung zweizeilig, damit lange Namen („übermäßige Quarte“) nicht ineinanderlaufen
-      inner += `<text class="note-label" x="${mid}" y="${ly}" text-anchor="middle">${p.quality === "groß" ? "große" : p.quality + "e"}</text>`;
-      inner += `<text class="note-label" x="${mid}" y="${ly + 12}" text-anchor="middle">${INTERVAL_NAMES[p.num - 1]}</text>`;
+      inner += `<text class="note-label board-label" x="${mid}" y="${ly}" text-anchor="middle">${p.quality === "groß" ? "große" : p.quality + "e"}</text>`;
+      inner += `<text class="note-label board-label" x="${mid}" y="${ly + LH}" text-anchor="middle">${INTERVAL_NAMES[p.num - 1]}</text>`;
     });
-    return staffSvg(clef, inner, { height: ly + 18, width });
+    return staffSvg(clef, inner, { height: ly + LH + 8, width });
   }).join("");
   const rows = LEARN_ROWS.map((r) => `<tr><td>${r.name}</td><td class="num">${r.semitones}</td><td><b>${helm(c)}–${helm(aboveC(c, r.num, r.quality))}</b></td></tr>`).join("");
   return `<figure style="grid-column: 1 / -1; margin: 0">${staves}</figure>

@@ -94,10 +94,32 @@ export function resultMessage(stars) {
   return "Noch wackelig. Übe zuerst in „Lernen“ mit den Lerntafeln.";
 }
 
-// Fortschrittspunkte: results[i] ist true (richtig), false (daneben) oder "part" (Teilerfolg, zählt als daneben)
+// Fortschrittspunkte: results[i] ist true (richtig), false (daneben) oder "part" (Teilerfolg, zählt als daneben).
+// Nicht nur über die Farbe (Welle 10, B14): ✓ und ✗ im Punkt, der Teilerfolg als halb gefüllter Punkt (CSS);
+// für Bildschirmleser trägt jeder Punkt seinen Stand als aria-label.
 const dotClass = (v) => (v === "part" ? "part" : v ? "ok" : "bad");
-export const dotsHtml = (results, idx, total) => Array.from({ length: total }, (_, i) =>
-  `<span class="dot ${i < idx ? dotClass(results[i]) : i === idx ? "cur" : ""}"></span>`).join("");
+export const DOT_LABEL = { ok: "richtig", bad: "daneben", part: "teilweise richtig", cur: "jetzt", "": "noch offen" };
+export const dotsHtml = (results, idx, total) => Array.from({ length: total }, (_, i) => {
+  const c = i < idx ? dotClass(results[i]) : i === idx ? "cur" : "";
+  return `<span class="dot ${c}" role="img" aria-label="Aufgabe ${i + 1}: ${DOT_LABEL[c]}"></span>`;
+}).join("");
+
+// Antwortknopf nach der Antwort markieren: Klasse ok/bad (Farbe und Zeichen ✓/✗ per CSS) und der Stand im
+// aria-label („Fis, richtig“). Tasten der Klaviatur bekommen nur die Klasse; das Zeichen steht in der Rückmeldung.
+export const MARK_LABEL = { ok: "richtig", bad: "daneben" };
+export function markAnswer(el, cls) {
+  el.classList.add(cls);
+  if (el.tagName !== "BUTTON") return;
+  if (el.dataset.aria === undefined) el.dataset.aria = el.getAttribute("aria-label") || "";
+  el.setAttribute("aria-label", `${el.dataset.aria || el.textContent.trim()}, ${MARK_LABEL[cls]}`);
+}
+// Markierung zurücknehmen (neue Aufgabe mit denselben Knöpfen)
+export function clearMark(el) {
+  el.classList.remove("ok", "bad");
+  if (el.dataset.aria === undefined) return;
+  if (el.dataset.aria) el.setAttribute("aria-label", el.dataset.aria); else el.removeAttribute("aria-label");
+  delete el.dataset.aria;
+}
 
 export const lettersHtml = () => LETTERS.map((l) => `<button class="btn" data-letter="${l}">${l}</button>`).join("");
 
@@ -195,8 +217,11 @@ export function helpsHtml(level, q, ctx) {
     : text;
   let grid = "";
   if (level.helps.includes("klaviatur")) {
+    // Ab zwei markierten Tönen nur der nötige Ausschnitt der zwei Oktaven (fit, mindestens eine Oktave): größere
+    // Tasten, lesbar bei 320 px. Mit einem Ton (Bauen, parallele Molltonart) bleiben beide Oktaven: Der gesuchte
+    // Ton liegt dann außerhalb der Markierung, und ein Ausschnitt verriete die Richtung bzw. Lage.
     const marks = (q.helpMarks || []).map(midi);
-    grid += `<div class="help-keys">${pianoSvg({ from: helpFrom(q), octaves: HELP_OCTAVES, marks, interactive: false })}</div>`;
+    grid += `<div class="help-keys">${pianoSvg({ from: helpFrom(q), octaves: HELP_OCTAVES, marks, interactive: false, fit: marks.length > 1 ? marks : null })}</div>`;
   }
   if (level.helps.includes("tabelle") && level.helpTable) grid += `<div class="help-table-wrap">${level.helpTable}</div>`;
   if (grid) out += `<div class="help-grid">${grid}</div>`;
@@ -405,7 +430,7 @@ function showQuestion(r) {
   if (ui.dots) ui.dots.innerHTML = dotsHtml(r.marks, r.idx, r.items.length);
   if (ui.helpsBody && hasHelps(r.level)) ui.helpsBody.innerHTML = helpsHtml(r.level, q, { state: r.hooks.state });
   showChoices(r);
-  all(ui.answers, ".btn").concat(all(ui.piano, "rect")).forEach((b) => b.classList.remove("ok", "bad"));
+  all(ui.answers, ".btn").concat(all(ui.piano, "rect")).forEach(clearMark);
   r.buf = ""; showTyped(r, "");
   r.t0 = performance.now();
 }
@@ -416,7 +441,7 @@ function markRight(r, q) {
   const right = a && typeof a === "object" && a.letter
     ? letterButton(r.ui.answers, a)
     : all(r.ui.answers, ".btn[data-choice]").find((b) => set.choices && set.choices[+b.dataset.choice] === a);
-  if (right) right.classList.add("ok");
+  if (right) markAnswer(right, "ok");
 }
 
 // Zweischrittige Aufgabe: Schritt auswerten; nach dem letzten Schritt wie eine einfache Antwort weiter
@@ -424,7 +449,7 @@ function answerStep(r, value, el) {
   const q = r.items[r.idx], { ui } = r, set = q.steps[r.step];
   const ok = value === set.answer;
   r.oks.push(ok);
-  if (el) el.classList.add(ok ? "ok" : "bad");
+  if (el) markAnswer(el, ok ? "ok" : "bad");
   if (!ok) markRight(r, q);
   if (r.step === q.steps.length - 1) return finishQuestion(r, r.oks.every(Boolean), stepsFeedback(q, r.oks), stepsResult(q, r.oks) === "part");
   r.locked = true;
@@ -449,7 +474,7 @@ function answer(r, value, el) {
   const q = r.items[r.idx];
   if (q.steps) return answerStep(r, value, el);
   const ok = !!r.level.check(q, value);
-  if (el) el.classList.add(ok ? "ok" : "bad");
+  if (el) markAnswer(el, ok ? "ok" : "bad");
   if (!ok) markRight(r, q);
   finishQuestion(r, ok, feedbackText(q, ok));
 }
