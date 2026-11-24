@@ -5,8 +5,8 @@ import assert from "node:assert/strict";
 import { MERKHILFEN, SPRUCH_MAX, initials, checkSpruch, meldung, spruch, wortZu, aktiv, waehle, setzeEigen, wahlHtml, showHtml, esc } from "../src/sprueche.js";
 import { fresh, load, save, reset, KEY_V2 } from "../src/store.js";
 import { N, staffPos, helm } from "../src/music.js";
-import { textOf, makeRound, feedbackText, helpsHtml } from "../src/engine.js";
-import noten, { lageText, revealText, displayName, PROMPT, LEGEND, legendHtml } from "../src/packs/noten.js";
+import { textOf, makeRound, feedbackText, feedbackParts, helpsHtml } from "../src/engine.js";
+import noten, { lageText, revealText, revealParts, displayName, PROMPT, LEGEND, legendHtml } from "../src/packs/noten.js";
 import tonleitern, { SHARPS_ALL, FLATS_ALL, circleBoard } from "../src/packs/tonleitern.js";
 import { learnCardsHtml } from "../src/views/learn.js";
 import { startHint } from "../src/views/practice.js";
@@ -220,8 +220,12 @@ test("B3: Lage einer Note für alle Noten der Stufen 3 und 6", () => {
     assert.deepEqual(l.items.map((it) => staffPos(it.n, it.clef)), [-2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
   }
   // Vorzeichen
-  assert.equal(lageText(N("F", 4, 1), "treble"), "1. Zwischenraum von unten, mit ♯");
-  assert.equal(lageText(N("H", 4, -1), "treble"), "3. Linie von unten, mit ♭");
+  // Vorzeichen mit Stammton und neuem Namen (Abschlussprüfung Welle 10)
+  assert.equal(lageText(N("F", 4, 1), "treble"), "1. Zwischenraum von unten, mit ♯: aus F wird Fis");
+  assert.equal(lageText(N("H", 4, -1), "treble"), "3. Linie von unten, mit ♭: aus H wird B");
+  assert.equal(lageText(N("E", 5, -1), "treble"), "4. Zwischenraum von unten, mit ♭: aus E wird Es");
+  assert.equal(lageText(N("A", 4, -1), "treble"), "2. Zwischenraum von unten, mit ♭: aus A wird As");
+  assert.equal(lageText(N("D", 5, 1), "treble"), "4. Linie von unten, mit ♯: aus D wird Dis");
   // weiter außen (in keiner Stufe): mit der Zahl der Hilfslinien
   assert.equal(lageText(N("H", 3), "treble"), "unter der 1. Hilfslinie unter der Zeile");
   assert.equal(lageText(N("A", 3), "treble"), "auf der 2. Hilfslinie unter der Zeile");
@@ -238,7 +242,7 @@ test("B3: Frage, Name der großen Oktave, Rückmeldung mit dem gewählten Spruch
   assert.equal(revealText(N("A", 4), "treble", s), "Das war ein A (a') – 2. Zwischenraum von unten (Fritz Aß Citronen-Eis).");
   assert.equal(revealText(N("C", 4), "treble", s), "Das war ein C (c') – auf der Hilfslinie unter der Zeile.");
   assert.equal(revealText(N("D", 4), "treble", s), "Das war ein D (d') – unter der Zeile, ohne Hilfslinie.");
-  assert.equal(revealText(N("F", 4, 1), "treble", s), "Das war ein Fis (fis') – 1. Zwischenraum von unten, mit ♯.");
+  assert.equal(revealText(N("F", 4, 1), "treble", s), "Das war ein Fis (fis') – 1. Zwischenraum von unten, mit ♯: aus F wird Fis.");
   assert.equal(revealText(N("G", 2), "bass", s), "Das war ein G (großes G) – 1. Linie von unten (Gute Hunde Dürfen Fast Alles).");
   assert.equal(revealText(N("C", 3), "bass", s), "Das war ein C (c) – 2. Zwischenraum von unten (Alle Clowns Essen Gern).");
   // gewählter (eigener) Spruch in der Rückmeldung einer Runde
@@ -252,6 +256,40 @@ test("B3: Frage, Name der großen Oktave, Rückmeldung mit dem gewählten Spruch
   const q = makeRound(noten.levels[3], 1, { state: s })[0];
   assert.match(q.statKey, /^[A-H]\w* \(.+, Bass\)$/);
   assert.ok(noten.levels[3].check(q, q.answer));
+});
+
+test("Abschlussprüfung Welle 10: Rückmeldung markiert das Wort des Spruchs zur Stelle der Note", () => {
+  const s = fresh();
+  const mark = (n, clef, st = s) => revealParts(n, clef, st).filter((x) => x.mark).map((x) => x.t);
+  // Violin-Linien E G H D F: g' ist die 2. Linie → „Geht“; f'' die 5. → „Fleiß“
+  assert.deepEqual(mark(N("G", 4), "treble"), ["Geht"]);
+  assert.deepEqual(mark(N("F", 5), "treble"), ["Fleiß"]);
+  assert.deepEqual(mark(N("E", 4), "treble"), ["Es"]);
+  // Zwischenräume F A C E, Bindestrich trennt: e'' → „Eis“
+  assert.deepEqual(mark(N("E", 5), "treble"), ["Eis"]);
+  assert.deepEqual(mark(N("A", 3), "bass"), ["Alles"]);
+  assert.deepEqual(mark(N("G", 3), "bass"), ["Gern"]);
+  // ohne Spruch (Hilfslinie, Vorzeichen): nichts markiert
+  assert.deepEqual(mark(N("C", 4), "treble"), []);
+  assert.deepEqual(mark(N("F", 4, 1), "treble"), []);
+  // Teile ergeben genau den Text; für alle Noten der Stufen 1, 2, 4, 5 genau ein markiertes Wort mit dem
+  // richtigen Anfangsbuchstaben
+  for (const no of [1, 2, 4, 5]) for (const it of noten.levels[no - 1].items) {
+    const parts = revealParts(it.n, it.clef, s);
+    assert.equal(parts.map((x) => x.t).join(""), revealText(it.n, it.clef, s));
+    const m = parts.filter((x) => x.mark);
+    assert.equal(m.length, 1);
+    assert.equal(m[0].t[0].toUpperCase(), it.n.letter);
+  }
+  // eigener Spruch: Wort aus dem Text des Kindes, als Text (kein HTML)
+  const t = fresh();
+  setzeEigen(t, "violin-linien", "Ein <Grüner> Hase Döst Friedlich");
+  assert.deepEqual(mark(N("G", 4), "treble", t), ["<Grüner>"]);
+  // Engine: Teile nur, wenn sie den gezeigten Text ergeben
+  const q = makeRound(noten.levels[0], 1, { notes: {}, state: s })[0];
+  assert.equal(feedbackParts(q, feedbackText(q, false)), q.revealParts);
+  assert.equal(feedbackParts(q, "anderer Text"), null);
+  assert.equal(feedbackParts({ reveal: "x" }, "x"), null);
 });
 
 test("Hinweise Noten 1, 2, 4, 5 mit dem gewählten Spruch; Bass mit Sandras Sprüchen", () => {

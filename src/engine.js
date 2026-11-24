@@ -86,6 +86,19 @@ export function countAnswer(s, q, ok, sec) {
 // Feedback nach der Antwort. q.reveal (optional) ist ein ganzer Satz für eine falsche Antwort, z. B.
 // „Richtig wäre: A-Dur.“, weil „Das war ein …“ nicht zu jedem Begriff passt; ohne reveal wie bisher.
 export const feedbackText = (q, ok) => (ok ? `Richtig! ${q.display}` : q.reveal || `Das war ein ${q.display}.`);
+// Rückmeldung in Teilen ({ t, mark }) statt eines Texts, wenn die Aufgabe sie mitbringt (q.revealParts, z. B.
+// Noten lesen: das Wort des Merkspruchs zur Stelle der Note) und sie genau den gezeigten Text ergeben; sonst
+// null. Rein, getestet. Die Teile werden nur als Text eingesetzt (Spruch des Kindes, nie HTML).
+export const feedbackParts = (q, text) => (Array.isArray(q.revealParts) && q.revealParts.map((x) => x.t).join("") === text ? q.revealParts : null);
+// Text der Rückmeldung setzen; markierte Teile in <b class="fb-mark"> (per textContent)
+function setFeedback(el, text, parts) {
+  if (!parts) { el.textContent = text; return; }
+  el.textContent = "";
+  for (const x of parts) {
+    if (x.mark) { const b = document.createElement("b"); b.className = "fb-mark"; b.textContent = x.t; el.append(b); }
+    else el.append(document.createTextNode(x.t));
+  }
+}
 
 export function resultMessage(stars) {
   if (stars === 3) return "Stark, fast alles richtig.";
@@ -497,7 +510,7 @@ function finishQuestion(r, ok, text, part = false) {
   if (shown !== q.svg) ui.staff.innerHTML = shown;
   const svg = ui.staff.querySelector("svg"), rc = svgResultClass(q, ok, part);
   if (svg && rc) svg.classList.add(rc);
-  ui.feedback.textContent = text;
+  setFeedback(ui.feedback, text, ok ? null : feedbackParts(q, text));
   ui.feedback.className = "feedback " + (part ? "part" : ok ? "ok" : "bad");
   if (playMode(q) === "together") playChord(notesToPlay(q));
   else playSchedule(q).forEach(({ note, at, dur }) => {

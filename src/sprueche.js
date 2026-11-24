@@ -107,6 +107,14 @@ export function wortZu(state, id, index) {
   return w ? w[0] : "";
 }
 
+// Der Spruch in drei Teilen um das Wort zur n-ten Stelle: [davor, Wort, danach] (Text in NFC), damit eine
+// Ansicht das Wort hervorheben kann, ohne HTML aus dem Text des Kindes zu bauen. Ohne Wort: [Spruch, "", ""].
+export function teileZu(state, id, index) {
+  const t = spruch(state, id).normalize("NFC"), w = words(t)[index];
+  if (!w) return [t, "", ""];
+  return [t.slice(0, w.index), w[0], t.slice(w.index + w[0].length)];
+}
+
 const slot = (state) => {
   if (!state.sprueche || typeof state.sprueche !== "object") state.sprueche = {};
   return state.sprueche;

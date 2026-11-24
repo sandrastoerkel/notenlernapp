@@ -2,7 +2,7 @@
 import { N, range, same, midi, pc, gName, helm, staffPos } from "../music.js";
 import { staffSvg, noteSvg } from "../staff.js";
 import { pickWeighted } from "../adapt.js";
-import { spruch, wahlHtml, showHtml, esc } from "../sprueche.js";
+import { spruch, teileZu, wahlHtml, showHtml, esc } from "../sprueche.js";
 
 const pool = (clef, notes) => notes.map((n) => ({ n, clef }));
 const clefLabel = (clef) => (clef === "both" ? "Beide Schlüssel" : clef === "treble" ? "Violinschlüssel" : "Bassschlüssel");
@@ -25,7 +25,8 @@ export const displayName = (n) => (n.octave === 2 ? `${gName(n)} (großes ${gNam
 
 // Lage einer Note in der Zeile (rein, Welle 10, B3), aus staffPos: 0, 2 … 8 Linien, 1 … 7 Zwischenräume
 // (je von unten gezählt), −1/9 unter/über der Zeile ohne Hilfslinie, −2/10 auf der Hilfslinie. Weiter außen
-// (kommt in den Stufen nicht vor) mit der Zahl der Hilfslinien. Bei Vorzeichen: „…, mit ♯“ bzw. „…, mit ♭“.
+// (kommt in den Stufen nicht vor) mit der Zahl der Hilfslinien. Bei Vorzeichen: „…, mit ♯: aus F wird Fis“
+// bzw. „…, mit ♭: aus H wird B“.
 export function lageText(n, clef) {
   const p = staffPos(n, clef);
   let t;
@@ -39,8 +40,8 @@ export function lageText(n, clef) {
     const where = below ? "unter" : "über";
     t = (below ? -p : p - 8) % 2 === 0 ? `auf der ${k}. Hilfslinie ${where} der Zeile` : `${where} der ${k}. Hilfslinie ${where} der Zeile`;
   }
-  if (n.acc > 0) t += ", mit ♯";
-  if (n.acc < 0) t += ", mit ♭";
+  // Vorzeichen: Stammton und neuer Name (Abschlussprüfung Welle 10), z. B. „…, mit ♭: aus H wird B“
+  if (n.acc) t += `, mit ${n.acc > 0 ? "♯" : "♭"}: aus ${n.letter} wird ${gName(n)}`;
   return t;
 }
 
@@ -54,8 +55,18 @@ export function spruchId(n, clef) {
 // Rückmeldung bei „daneben“: Name, Lage und bei Linien und Zwischenräumen der gewählte Spruch, z. B.
 // „Das war ein G (g') – 2. Linie von unten (Es Geht Hurtig Durch Fleiß).“ Wird per textContent gezeigt.
 export function revealText(n, clef, state) {
+  return revealParts(n, clef, state).map((x) => x.t).join("");
+}
+
+// Dieselbe Rückmeldung in Teilen ({ t, mark }): Das Wort des Spruchs zur Stelle der Note ist markiert
+// (Abschlussprüfung Welle 10, wortZu/teileZu), z. B. „… – 2. Linie von unten (Es [Geht] Hurtig Durch Fleiß).“
+// Die Engine setzt die Teile als Text ein (textContent), das markierte Wort in ein eigenes Element.
+export function revealParts(n, clef, state) {
   const id = spruchId(n, clef);
-  return `Das war ein ${displayName(n)} – ${lageText(n, clef)}${id ? ` (${spruch(state, id)})` : ""}.`;
+  const head = `Das war ein ${displayName(n)} – ${lageText(n, clef)}`;
+  if (!id) return [{ t: `${head}.` }];
+  const p = staffPos(n, clef), [vor, wort, nach] = teileZu(state, id, Math.floor(p / 2));
+  return [{ t: `${head} (${vor}` }, { t: wort, mark: true }, { t: `${nach}).` }].filter((x) => x.t);
 }
 
 export const PROMPT = "Wie heißt die Note?";
@@ -67,6 +78,7 @@ function makeQuestion(it, state) {
     answer: { letter: it.n.letter, acc: it.n.acc },
     display: displayName(it.n),
     reveal: revealText(it.n, it.clef, state),
+    revealParts: revealParts(it.n, it.clef, state),
     play: [it.n],
     note: it.n,
     clef: it.clef,
@@ -84,10 +96,10 @@ const RAW = [
   { clef: "treble", title: "Linien im Violinschlüssel", hint: (c) => `Die fünf Linien von unten nach oben: E G H D F. Merkspruch: „${spruch(c && c.state, "violin-linien")}“.`, items: pool("treble", [N("E", 4), N("G", 4), N("H", 4), N("D", 5), N("F", 5)]) },
   { clef: "treble", title: "Zwischenräume im Violinschlüssel", hint: (c) => `Die vier Zwischenräume von unten nach oben: F A C E. Merkspruch: „${spruch(c && c.state, "violin-raeume")}“.`, items: pool("treble", [N("F", 4), N("A", 4), N("C", 5), N("E", 5)]) },
   { clef: "treble", title: "Violinschlüssel mit Hilfslinien", hint: "Jetzt kommen Noten über und unter der Zeile dazu. Das c' liegt auf einer Hilfslinie unter der Zeile.", items: pool("treble", range(N("C", 4), N("A", 5))) },
-  { clef: "bass", title: "Linien im Bassschlüssel", hint: (c) => `Dieselbe Stelle heißt im Bassschlüssel anders: zwei Notennamen weiter. Aus E wird G, aus G wird H. Die Linien von unten: G H D F A. Merkspruch: „${spruch(c && c.state, "bass-linien")}“. Die beiden Punkte des Schlüssels umschließen das F.`, items: pool("bass", [N("G", 2), N("H", 2), N("D", 3), N("F", 3), N("A", 3)]) },
+  { clef: "bass", title: "Linien im Bassschlüssel", hint: (c) => `Dieselbe Linie wie im Violinschlüssel heißt im Bassschlüssel zwei Notennamen weiter: Aus E wird G, aus G wird H.\nDie Linien von unten: G H D F A.\nMerkspruch: „${spruch(c && c.state, "bass-linien")}“.\nDie beiden Punkte des Schlüssels umschließen das F.`, items: pool("bass", [N("G", 2), N("H", 2), N("D", 3), N("F", 3), N("A", 3)]) },
   { clef: "bass", title: "Zwischenräume im Bassschlüssel", hint: (c) => `Die Zwischenräume von unten: A C E G. Merkspruch: „${spruch(c && c.state, "bass-raeume")}“.`, items: pool("bass", [N("A", 2), N("C", 3), N("E", 3), N("G", 3)]) },
   { clef: "bass", title: "Bassschlüssel mit Hilfslinien", hint: "Das c' liegt im Bassschlüssel auf einer Hilfslinie über der Zeile, das E ganz unten.", items: pool("bass", range(N("E", 2), N("C", 4))) },
-  { clef: "treble", title: "Vorzeichen ♯ und ♭", hint: "♯ erhöht um einen Halbton (Fis, Cis, Gis). ♭ erniedrigt (B, Es, As, Des). Tippe den ganzen Namen an oder schreib ihn, z. B. „fis“ und Enter.", acc: true, items: pool("treble", [N("F", 4, 1), N("C", 5, 1), N("G", 4, 1), N("D", 5, 1), N("H", 4, -1), N("E", 5, -1), N("A", 4, -1), N("D", 5, -1)]) },
+  { clef: "treble", title: "Vorzeichen ♯ und ♭", hint: "♯ erhöht um einen Halbton und hängt „-is“ an: aus F wird Fis, ebenso Cis, Gis, Dis.\n♭ erniedrigt um einen Halbton: aus E wird Es, aus A wird As, aus D wird Des – und aus H wird B.\nTippe den ganzen Namen an oder schreib ihn, z. B. „fis“ und Enter.", acc: true, items: pool("treble", [N("F", 4, 1), N("C", 5, 1), N("G", 4, 1), N("D", 5, 1), N("H", 4, -1), N("E", 5, -1), N("A", 4, -1), N("D", 5, -1)]) },
   { clef: "both", title: "Alles gemischt", hint: "Beide Schlüssel, alle Lagen, hin und wieder ein Vorzeichen. Schau zuerst auf den Schlüssel. Die Namen ohne Vorzeichen stehen in der obersten Reihe.", acc: true, items: [] },
 ];
 RAW[7].items = [...RAW[2].items, ...RAW[5].items, ...RAW[6].items];
