@@ -1813,6 +1813,103 @@ und wird nicht neu gespeichert.
 
 **Entscheidungen Sandra (24.11.2026, nach dem Plan).** Zählsilbe „+“ (vom Rechen-Plus optisch abgesetzt); Zählzeiten: jeder Schlag wird gezeigt; Schläge ohne neuen Einsatz stehen in Klammern, also gehaltene Schläge langer Noten und Pausen (Halbe auf 1: „1 (2)“, Viertelpause auf 3: „(3)“; je Silbe eine Klammer); Balken je Schlag (2 + 2) auch in „2 8 8 8 8“; ganze und halbe Pause: „Rechteck“. Übrige offene Punkte (Merksprüche: Wortlaut „Geh Du Alter Esel Hole Fische“, Ces/Fes ohne Spruch, Voreinstellung Kreuz-Spruch, eigener Spruch bleibt beim Zurücksetzen; reine Prime mit zwei Vorzeichen) nach Voreinstellung des Plans bauen und Sandra im Bericht nennen.
 
+**Umgesetzt (24.11.2026).** Branch `korrekturen-10` von `main` 5b2dd1b (nicht von `notenwerte-neu` 7dcab7c, wie
+oben angenommen: Welle 9 war inzwischen auf `main`; Inhalt derselbe plus Pages-Workflow). Plan 0b58319, Sandras
+Entscheidungen c838989. Je Schritt ein Opus-Agent, danach eine Prüfung mit eigenem Commit. Cache
+`notenheld-v0.2.0-13`. `npm test` am Ende 365 grün, 0 rot. Noch nicht auf `main`.
+
+| Schritt | Umsetzung | Prüfung |
+|---|---|---|
+| 0 Engine (A1, B10, B11) | 0d92099 | aeef5fd |
+| 1 Fachliches (A3, A4, B1, A2-Zeile) | 0dc28c6 | – (Nachtrag ♮-Satz in Intervalle 6 mit Schritt 2) |
+| 2 Begriffe (A6, B5, B6, B15) | 753a042 | 55e6ea0 |
+| 3 Freischalt-Regel (A7) | 986e5bb | 292f449 |
+| 4 Merksprüche (A2, B3) | a64a507 | 2620487 |
+| 5 Balken (Top 1) | 1ea16a0 | d6bc7d4 |
+| 6 Zählen, Wortlaut, Vorführungen (Top 2–7, 10) | b58bfa3 | 28ee14d |
+| 7 Lesbarkeit, Barrierefreiheit (B13, B14) | 4d3c756 | 7d7657b |
+| 8 Doku, Cache, Bildschirmfotos | dieser Commit („Welle 10, Schritt 8“) | Abschlussprüfung |
+
+Abweichungen vom Plan und Entscheidungen der Prüfer, je Schritt:
+- **Schritt 0.** `waitsAfter` und `AUTO_OK_MAX` = 45 wie geplant; Noten lesen 1–8 (richtige Rückmeldungen 14–20
+  Zeichen) laufen wie vorher weiter, z. B. Intervalle 4 (53–70 Zeichen) wartet jetzt auch nach „richtig“. Neues
+  Feld `level.twoSteps` (Notenwerte 1, 4, 6, 8; Tonleitern 4, 10, 12; Intervalle 3–7) für „Beide Schritte müssen
+  stimmen.“; der Zusatz bleibt auch in Stufen, in denen einzelne Aufgaben nur einen Schritt haben. Prüfung:
+  **Tonleitern 10 bei C-, G-, F-Dur** zeigte noch einen Schritt mit nur einem Knopf (Bestätigung aus Welle 8) –
+  der Schritt entfällt dort ebenfalls, die Frage nennt die Vorzeichnung (`majorSinglePrompt`); Test über alle
+  Pakete und Stufen: kein Knopfsatz unter zwei Knöpfen. `--part` steht nur an Rand und Punkt, Schrift in
+  `--part-ink`.
+- **Schritt 1.** ♮ gemessen (Verovio 6.4.1/Bravura, Leipzig): `NAT_SIZE` 46px, `ACC_DY.natural` 6,
+  `ACC_X.natural` −20,5; im Browser geprüft, dass das Zeichen aus Noto Music kommt. 9 Aufgaben mit ♮ in
+  `POOL_5`, 18 in `POOL_6` wie erwartet. Quintenzirkel: Namen der Vorzeichen aus `music.js` abgeleitet
+  (`keyAccidentals`). Violin-Lerntafel bekam zusätzlich „Unter der Zeile, ohne Hilfslinie: d'“ (wie geplant).
+- **Schritt 2.** Intervalltafel: Trennstrich nur unter der Zeile (durch die Linien sähe er wie ein Taktstrich
+  aus), Zeilen dafür breiter (viewBox bis etwa 340, Noten etwa 6 % kleiner). Prüfung: „Start“ jetzt in **allen**
+  Vorführungen, die Halbtöne zählen (auch `stepDemo`, `scaleDemo`, `keyDemo`), nicht nur Intervalle und
+  Tonleitern 12; Lerntafel „parallele Molltonart“ ohne Verweis auf die Intervalle („kleine Terz abwärts“).
+  „Stammton“ nur im Hinweis von Tonleitern 4/12 erklärt (reicht).
+- **Schritt 3.** Wortlaut „Noch eine richtige Antwort, dann öffnet sich Stufe n.“ / „Noch k richtige
+  Antworten, …“ (statt „Noch 1 richtige“), „Ab 8 von 10 …“ ab vier fehlenden, „Die Stufen 2 und 7 sind offen.“
+  bei zwei Freischaltungen. Prüfung: `keepStufe` (geschützte Leerzeichen, auch „und 7“) liegt in `engine.js`,
+  damit die Startseite nicht die Ansicht „Üben“ importiert. „Stufe n ist offen.“ steht auch nach einer
+  schwachen Runde, wenn die Folgestufe schon offen ist (Aussage stimmt; bleibt). `requires`-Satz „Stufe 7 öffnet
+  sich ab 8 von 10 in Stufe 1.“ bleibt (derzeit nutzt kein Paket `requires`).
+- **Schritt 4.** Wie geplant; `checkSpruch` liefert zusätzlich `grund`, `meldung(r)` formuliert. Prüfung:
+  Prüfung, Zählung und Speichern in NFC (zerlegte Umlaute aus eingefügtem Text), Optionsfelder mindestens 44 px
+  hoch, die Ring-Tafel „Quintenzirkel“ der Dreiklänge zeigt die gewählten Tonarten-Sprüche mit Leserichtung
+  (gewählt wird nur in der Quintenzirkel-Tafel der Tonleitern). Rückmeldung zeigt den ganzen Spruch (`wortZu`
+  bleibt ungenutzt bereit); bei Vorzeichen-Noten kein Spruch. Wer einen Vorschlag wählt, verliert den zuvor
+  gespeicherten eigenen Text (Plan: wahl **oder** eigen); bei ungültiger Änderung gilt der zuletzt gültige
+  eigene Spruch weiter, ohne dass das Feld es sagt.
+- **Schritt 5.** Gemessen (Verovio 6.4.1, Bravura, Leipzig gleich): Balken 0,50 LA, Abstand 0,25 LA
+  (SMuFL beamThickness/beamSpacing), Außenkante bei unseren 3,5-LA-Hälsen 3,42 LA (Verhältnis zum einzelnen
+  Hals wie bei Verovio 3,25 zu 3,33). `bravura_metadata.json` ließ sich nicht laden, Werte aus dem
+  Verovio-Rendering. `BEAM_UNIT` = 1 Schlag (Sandra). Prüfung: Sechzehntel direkt vor der Lücke bekommt
+  mindestens 23 Einheiten (`GAP_FLAG_ADVANCE`), sonst stieß ihr Fähnchen an den Kasten der Lücke. Balken
+  bleibt in der Vorführung schwarz, wenn nur eine Note der Gruppe gefärbt ist (er gehört der Gruppe).
+  Fähnchen an der Gruppe mit der Lücke verraten den Wert nicht (geprüft für alle 91 Aufgaben).
+- **Schritt 6.** Zählzeiten nach Sandras Regel (`countSyllables`): jede Schlagzahl genau einmal, ohne neuen
+  Einsatz in Klammern; **gehaltene „+“ stehen unter den Noten nicht** („+“ ist kein Schlag), in der Zählleiste
+  stehen sie als „(+)“ – falls Sandra auch „1 (+) (2) (+)“ will, nur `countSyllables` ändern. Pausenlage:
+  „hängt unter der zweiten Linie von oben (das ist die vierte Linie von unten)“ bzw. „sitzt auf der
+  Mittellinie“, an `BAR_REST` nachgeprüft. Satz zur Lücke als `result.note` (`demo.js`). Prüfung: „zwischen
+  den Zählzeiten „1“ und „1 +““ statt „zwischen „1“ und „1 +““ (2 der 91 Aufgaben); Grenzfälle getestet
+  (Note auf „+“ über einen Schlag gehalten „+ (2)“, punktierte Viertel auf „+“, Pausen auf „+“, ganze Note und
+  Pause).
+- **Schritt 7.** Fokus ein Rahmen für alle Elemente (`:focus-visible`, 3 px `--accent`), hell 5,80/6,56,
+  dunkel 6,91/6,16 : 1. `--ok` #157853, `--bad` #b63b32 (nachgerechnet, nicht der Vorschlag der Prüfung),
+  neues Token `--on-mark`. Teilerfolg als halb gefüllter Punkt (im Bild entschieden, statt „~“); Punkte rund
+  16 × 16 statt Striche (Platz für ✓/✗). Klaviatur: Ausschnitt `fit` ab zwei markierten Tönen und in allen
+  Vorführungen; Hilfen mit einem Ton bleiben zweioktavig (Namen 9,6 px), sonst verriete der Ausschnitt die
+  Lage. Kleinste Schrift in Grafiken bei 320 px 9,0 px (Dreiklangstypen). Prüfung: Teilerfolg auch in der
+  Rückmeldung mit eigenem Zeichen; `--part` hell #b47e08 (auf `--bg` vorher nur 2,66 : 1, jetzt 3,13).
+  Bekannt, ohne Änderung: Punkte „noch offen“ blass (tragen keine Rückmeldung), ✓/✗ aus der Systemschrift
+  (iOS/Android ungetestet), Fokus an einer weißen Taste der Antwort-Klaviatur dunkel nur 2,7 : 1 (nicht per Tab
+  erreichbar).
+- **Schritt 8.** ARCHITEKTUR (Engine, Notenzeile, Merksprüche, Fortschritt), README, CLAUDE.md (Stand, feste
+  Entscheidungen 24.11.2026; Welle 9 als „auf `main`“ berichtigt), dieser Abschnitt. `sw.js` Cache -13;
+  `test/sw.test.js` prüft jetzt zusätzlich, dass `PRECACHE` genau den Dateibaum (src/, css/, fonts/, icons/,
+  Shell, Manifest) abdeckt und die Version mindestens -13 ist. Bildschirmfotos für die Abschlussprüfung außerhalb
+  des Repos (420 px hell, 320 px dunkel, mit Verzeichnis).
+
+**Offen für Sandra (Welle 10, nach der Umsetzung).** Gebaut ist jeweils die Voreinstellung; Punkte 1–4 der
+Liste oben hat Sandra am 24.11.2026 entschieden.
+1. Wortlaut „Geh Du Alter Esel Hole Fische“ (verbreitet, regional verschieden) bestätigen.
+2. Ces-/Fes-Be und die siebte Tonart (Cis-/Ces-Dur) ohne Spruch lassen? (Die App zeigt die Reihe selbst.)
+3. Voreinstellung des Kreuz-Spruchs: bisher der erste („Fünf Cowboys Gehen Durch Alle Einkaufs-Hallen“).
+4. Eigener Spruch bleibt beim Zurücksetzen erhalten (Voreinstellung ja).
+5. Reine Prime des'–des': ♭ an beiden Noten lassen (Voreinstellung) oder das zweite weglassen?
+6. Wortlaut der Pausenlage „hängt unter der zweiten Linie von oben“ (dazu „das ist die vierte Linie von
+   unten“) – oder ihr Wort aus dem Unterricht.
+7. Stufen mit gemischtem Weiterlaufen: In Tonleitern 10/11 und Akkorde 3, 5, 6 gehen nur ein Teil der richtigen
+   Antworten von selbst weiter (etwa 54 %, 59 %, 36 %, 85 %), weil die Grenze am Text hängt (`AUTO_OK_MAX` 45).
+   Nach dem Test mit Kindern: Grenze je Stufe statt je Text?
+8. „Stufe n ist offen.“ steht auch nach einer schwachen Runde, wenn die Folgestufe schon offen ist (stimmt,
+   kann aber überraschen).
+9. Benennung „Stufe“ (Stufe der App, Notenstufe, Stufe der Tonleiter): umbenennen („Lektion“, „Etappe“)? Nicht in
+   dieser Welle.
+10. Gehaltene „+“ unter langen Noten: bisher nur Schlagzahlen („1 (2)“), nicht „1 (+) (2) (+)“.
+
 ## Welle 11: Wiederholen (Voraussetzungen, Grundlagen wiederholen, Wiederholung über Tage, Jahrgang als Lehrkraft-Einstellung)
 
 Grundlage: KONZEPT-gehirngerecht, „Wiederholen ist der Kern“ und „Jahrgang“ (Sandra, 24.11.2026), Mängelliste B9

@@ -34,8 +34,9 @@ Auf den Startbildschirm legen:
 
 Für Entwicklerinnen und Entwickler:
 
-- Die Cache-Version steht oben in `sw.js` (`const CACHE = "notenheld-v0.2.0-12"`). Bei jedem Release erhöhen, sonst behalten installierte Geräte die alten Dateien.
-- Stand 20.11.2026: Live ist `main` 0cbe835 (Paket „Tonleitern“ mit 13 Stufen, erst mit Hilfen, dann ohne, drei Vorführungen, Cache `notenheld-v0.2.0-11`). Der Branch `notenwerte-neu` (Welle 9: Paket „Notenwerte und Pausen“ mit 10 Stufen, erst mit Hilfen, dann ohne, drei Vorführungen, Cache `notenheld-v0.2.0-12`) ist noch nicht veröffentlicht.
+- Die Cache-Version steht oben in `sw.js` (`const CACHE = "notenheld-v0.2.0-13"`). Bei jedem Release erhöhen, sonst behalten installierte Geräte die alten Dateien.
+- Stand 24.11.2026: Live ist `main` 5b2dd1b (Welle 9: Paket „Notenwerte und Pausen“ mit 10 Stufen, erst mit Hilfen, dann ohne, drei Vorführungen, Cache `notenheld-v0.2.0-12`).
+- Welle 10 „Korrekturen aus der Prüfung“ (Branch `korrekturen-10`, von `main` 5b2dd1b, Cache `notenheld-v0.2.0-13`, noch nicht auf `main`): Warten nach „daneben“ und Teilerfolg, Auflösungszeichen, „Stellung“, Bauplan „1 1 ½ 1 1 1 ½“, „Grob- und Feinbestimmung“, sichtbare Freischalt-Regel, wählbare Merksprüche (Tab „Lernen“), Balken und Zählzeiten bei den Notenwerten, Fokus, Kontrast und Zeichen ✓/✗, bessere Lesbarkeit bei 320 px.
 - Neue Dateien unter `src/`, `css/`, `fonts/` oder `icons/` in die Liste `PRECACHE` in `sw.js` eintragen; `test/sw.test.js` schlägt sonst fehl.
 - Beim Entwickeln hilft in Chrome DevTools unter Application → Service Workers „Update on reload“, damit Änderungen sofort sichtbar sind.
 - Die Icons in `icons/` sind aus einem Bild im Aquarell-Stil erzeugt, das Sandra Störkel mit Apple Image Playground erstellt hat (KI-generiert) (Violinschlüssel auf Blau, Grün und Gelb). Beim maskierbaren Icon liegt der Schlüssel ganz im sicheren Kreis, der Rand ist mit den verwischten Farben des Bildes aufgefüllt. Nachweise: [THIRD_PARTY.md](THIRD_PARTY.md).
@@ -58,7 +59,7 @@ Smartphone-Breite (420 px), helles Farbschema. Die dunklen Fassungen liegen dane
 | ---------- | --------------------------------------------------------------------------------------- |
 | Start      | Trefferquote, Tagesserie, XP, acht Stufen                                               |
 | Üben       | Zehn Noten pro Runde, Eingabe über Buchstaben oder Klaviatur, Ton, Sterne               |
-| Lernen     | Notenzeile zum Antippen, Merksprüche, alle Namen einblenden                             |
+| Lernen     | Notenzeile zum Antippen, Merksprüche (wählbar oder eigener Spruch), alle Namen einblenden |
 | Blitz      | 60 Sekunden, beide Schlüssel, Serienbonus, Rekord                                       |
 | Statistik  | Schwache Stellen, Sterne je Stufe, Fortschritt zurücksetzen                             |
 
@@ -84,7 +85,7 @@ Eine Stufe öffnet sich, sobald in der vorherigen 8 von 10 Noten richtig waren. 
 ## Technik
 
 - Reines HTML, CSS und JavaScript, keine Abhängigkeiten, kein Build.
-- Der Code ist in ES-Module aufgeteilt: `src/music.js` (Notenmodell), `src/staff.js` (SVG-Zeichner), `src/store.js` (Fortschritt), `src/engine.js` (Rundenablauf), `src/packs/` (Themenpakete), `src/views/` (die fünf Bereiche), `src/app.js` (Verdrahtung). Styles in `css/style.css`. Details in [docs/ARCHITEKTUR.md](docs/ARCHITEKTUR.md).
+- Der Code ist in ES-Module aufgeteilt: `src/music.js` (Notenmodell), `src/staff.js` (SVG-Zeichner), `src/store.js` (Fortschritt), `src/sprueche.js` (Merksprüche), `src/engine.js` (Rundenablauf), `src/packs/` (Themenpakete), `src/views/` (die fünf Bereiche), `src/app.js` (Verdrahtung). Styles in `css/style.css`. Details in [docs/ARCHITEKTUR.md](docs/ARCHITEKTUR.md).
 - Tests mit dem eingebauten Test-Runner von Node: `npm test` (ohne npm: `node --test "test/**/*.test.js"`).
 - Notenzeile, Noten und Klaviatur werden als SVG gezeichnet.
 - Töne entstehen per Web Audio API (keine Audiodateien).

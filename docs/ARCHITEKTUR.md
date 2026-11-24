@@ -22,6 +22,7 @@ src/
   store.js              Fortschritt: Zustand, Freischaltung, Serie, Persistenz
   adapt.js              adaptive Auswahl: Zustand je Note (neu, unsicher, langsam, sicher), Gewichte (seit Paket G)
   engine.js             generischer Rundenablauf (10 Aufgaben, Feedback, Sterne, XP)
+  sprueche.js           Merksprüche: Vorschläge, eigener Spruch, Prüfung der Anfangsbuchstaben (rein, seit Welle 10)
   demo.js               Baukasten: Vorführung (Bilder mit Zurück/Abspielen/Weiter ›, Schritt-Marken, Ergebniskarte)
   grid.js               Baukasten: Kästchentabelle („gehirngerechte“ Übersicht, eine Zeile je Eintrag)
   packs/index.js        Registry aller Themenpakete
@@ -123,19 +124,20 @@ Höhe `H = 122`. Eine halbe Stufe sind 6 Einheiten.
 | Funktion | Bedeutung |
 | -------- | --------- |
 | `staffSvg(clef, inner, opts)` | komplette Zeile mit Schlüssel; `inner` wird eingesetzt. Das dritte Argument ist entweder ein String (zusätzliche Klasse am `<svg>`, wie in der ersten Fassung) oder ein Objekt `{ cls, height, keySig, width }`: `height` darf die Höhe erhöhen, `width` ändert die Breite (Standard 320, Ausgabe dann unverändert; die Linien enden 18 vor dem rechten Rand, nur `scaleSvg` nutzt 368), `keySig` (Anzahl ♯ als positive, ♭ als negative Zahl, höchstens 7) zeichnet Vorzeichen hinter dem Schlüssel |
-| `noteSvg(n, clef, x, cls, opts)` | Note mit Hals, Hilfslinien und Vorzeichen; `cls` ist `""`, `"ok"`, `"bad"`, `"warn"` (langsam, Notenkarte, Token `--gold`), `"new"` (neu, Notenkarte, Token `--muted`) oder `"ghost"` (Lernen, Token `--accent`); `opts.value` ist `1`, `2`, `4`, `8`, `16` (ganze bis sechzehntel, Standard 4), `opts.stemless` lässt den Hals weg, `opts.flagless` (Balken) lässt das Fähnchen weg, der Hals endet dann im Balken (`beamStemEnd`) |
+| `noteSvg(n, clef, x, cls, opts)` | Note mit Hals, Hilfslinien und Vorzeichen; `cls` ist `""`, `"ok"`, `"bad"`, `"warn"` (langsam, Notenkarte, Token `--gold`), `"new"` (neu, Notenkarte, Token `--muted`) oder `"ghost"` (Lernen, Token `--accent`); `opts.value` ist `1`, `2`, `4`, `8`, `16` (ganze bis sechzehntel, Standard 4), `opts.stemless` lässt den Hals weg, `opts.flagless` (Balken) lässt das Fähnchen weg, der Hals endet dann im Balken (`beamStemEnd`); `opts.natural` (seit Welle 10) zeichnet vor einer Note ohne Vorzeichen ein Auflösungszeichen ♮ (Klasse `acc nat`, mitgefärbt wie ♯/♭) |
 | `beamSvg(xs, cy, up, levels, cls)` | waagrechte Balken einer Gruppe (Kopfmitten `xs` auf gleicher Höhe `cy`): erster Balken über alle Hälse, `levels` = `[[i, j], …]` Bereiche des zweiten Balkens (Sechzehntel); `<g class="beam-group">` mit `<rect class="beam">` |
 | `noteheadSvg(x, y, value)` | nur der Notenkopf mit Mitte (x, y), so wie ihn `noteSvg` zeichnet (ohne Hals, Hilfslinien, Vorzeichen); `value` 4, 8, 16 schwarz, 2 und 1 hohl, Standard 4. Nutzt die Ansicht „Lernen“ für „Alle Namen zeigen“ |
 | `restSvg(value, x)` | Pause (1, 2, 4, 8, 16); ganze und halbe als `<rect class="rest">`, die übrigen als Glyphe (`<text class="rest">`) |
 | `glyphSvg(char, x, y, size)` | ein Zeichen aus der Musikschrift |
 | `keySigSvg(clef, count)` | nur die Vorzeichen (wird von `staffSvg` genutzt); Kreuze in der Reihenfolge Fis Cis Gis Dis Ais Eis His, Be in der Reihenfolge B Es As Des Ges Ces Fes |
 | `keySigPos(clef, count, step, x0)` | seit Welle 8: Lage der Vorzeichen einer Vorzeichnung `[{ x, y, line, sharp }]` (x links, y Grundlinie, line Linie bzw. Zwischenraum); `step` (Standard 12) und `x0` nur für die Vorführung „So findest du die Tonart“ (Abstand 22 zum Mitzählen); `keySigSvg` nutzt sie mit den Standardwerten, Ausgabe unverändert |
-| `pianoSvg(opts)` | ohne Parameter wie bisher: eine Oktave Klaviatur (8 weiße, 5 schwarze Tasten, 13 `rect`), anklickbar; Tasten tragen `data-semi` (Halbtonzahl ab C, das obere C wieder 0). Seit Welle 7 mit `opts = { from, octaves, marks, interactive }`: `from` MIDI-Nummer des untersten C, `octaves` Anzahl Oktaven (weiße Tasten bis zum C darüber, bei 2: 15 weiße, 10 schwarze), `marks` MIDI-Nummern markierter Tasten (Klasse `mark`), `interactive: false` nur zum Anschauen (`<svg class="keys-static">`, kein `data-semi`, kleinere Tasten, größere Schrift); mit `from` trägt jede Taste `data-midi` |
+| `pianoSvg(opts)` | ohne Parameter wie bisher: eine Oktave Klaviatur (8 weiße, 5 schwarze Tasten, 13 `rect`), anklickbar; Tasten tragen `data-semi` (Halbtonzahl ab C, das obere C wieder 0). Seit Welle 7 mit `opts = { from, octaves, marks, interactive }`: `from` MIDI-Nummer des untersten C, `octaves` Anzahl Oktaven (weiße Tasten bis zum C darüber, bei 2: 15 weiße, 10 schwarze), `marks` MIDI-Nummern markierter Tasten (Klasse `mark`), `interactive: false` nur zum Anschauen (`<svg class="keys-static">`, kein `data-semi`, kleinere Tasten, größere Schrift); mit `from` trägt jede Taste `data-midi`. Seit der Vorführung `counts` (siehe Baukasten), seit Welle 10 `start` (Starttaste „Start“/„0“, B6) und `fit: [tiefste, höchste MIDI-Nummer]` (B13): nur der nötige Ausschnitt, je eine weiße Taste Rand, mindestens `FIT_MIN` = 8 weiße Tasten (`fitRange`, `whiteIndex`); `keys-wide` („0“ statt „Start“ bis 380 px) erst ab mehr als `WIDE_KEYS` = 10 weißen Tasten |
 
 Weitere Exporte: die Maße `S`, `TOP`, `BOTTOM`, `W`, `H`, `X0`, `X1`, die
 Glyphen-Tabelle `GLYPHS` (`treble`, `bass`, `notes[1…16]`, `rests[1…16]`,
-`flags[8]`, `flags[16]`), die Kopfmaße `HEAD`, `ACC_SIZE`, `ACC_DY`,
-`KEYSIG_DY` und `WHITE`, `BLACK` (Tasten der Klaviatur).
+`flags[8]`, `flags[16]`), die Kopfmaße `HEAD`, `ACC_SIZE`, `ACC_DY` (mit `natural`),
+`NAT_SIZE`, `KEYSIG_DY`, die Balkenmaße `BEAM` mit `stemX` und `beamStemEnd`, `WHITE`, `BLACK` (Tasten der
+Klaviatur), `START_LABEL`/`START_SHORT`, `FIT_MIN`, `WIDE_KEYS`, `whiteIndex`, `fitRange`.
 Beim Auswerten färbt die Engine die ganze Zeile: sie setzt `ok` oder `bad` als
 Klasse auf das `<svg>`; `css/style.css` färbt dann `.notehead`, `.acc`,
 `.flag` (Füllung) und `.stem` (Strich).
@@ -176,6 +178,14 @@ Kommentar in `staff.js`. Angaben in Linienabständen (LA):
   Note rückt das Vorzeichen um 3,15 weiter nach links. Hat die Note eine
   Hilfslinie (durch den Kopf oder direkt daneben), rückt es um weitere 1,9:
   Abstand zum Kopf 0,38–0,41 LA, die Hilfslinie bleibt frei (wie Verovio).
+- Auflösungszeichen ♮ (Welle 10, A3; `noteSvg(…, { natural: true })`): U+266E aus Noto Music (im Browser
+  geprüft, dass die eigene Schrift greift: `unicode-range` U+2669-266F). Gemessen gegen Verovio 6.4.1/Bravura
+  (Leipzig zur Kontrolle) an d', e', h', c'', e'', c' als ganze, halbe und Viertelnote: accidentalNatural 2,70 LA
+  hoch (Leipzig 2,81), 1,36 LA über und 1,34 LA unter der Linie, 0,245 LA vor dem Kopf (mit Hilfslinie 0,39).
+  Glyphe (fontTools) x 50…226, y −221…486 je 1000 em. Daraus `NAT_SIZE` = 46px (2,71 LA; bei 44px nur 2,59),
+  `ACC_DY.natural` = 6, `ACC_X.natural` = −20,5 (Abstand zum Kopf 0,247 LA); vor der ganzen Note und bei
+  Hilfslinien rückt es wie ♯/♭ weiter nach links. CSS `.acc.nat { font-size: 46px }`. Genutzt nur in
+  „Intervalle“ (`needsNatural`, siehe unten).
 - Hilfslinien ragen über den Kopf hinaus: bei schwarzen und halben Köpfen
   11 Einheiten zu jeder Seite (1,83 LA lang), bei der ganzen Note 13,4
   (2,23 LA, wie Verovio/Bravura 2,22). Die Vorzeichnung im Bassschlüssel ist dasselbe
@@ -184,7 +194,8 @@ Kommentar in `staff.js`. Angaben in Linienabständen (LA):
 - Pausen: Viertel, Achtel, Sechzehntel als Glyphen mit Schriftgröße 48
   (vier LA), Glyphenmitte 2,0 / 2,13 / 2,625 LA unter der obersten Linie.
   Ganze und halbe Pause sind Rechtecke (14 × 6,5): die ganze hängt an der
-  vierten Linie von unten, die halbe sitzt auf der Mittellinie.
+  vierten Linie von unten (= zweite Linie von oben, Oberkante `TOP + S`), die halbe sitzt auf der
+  Mittellinie (Unterkante `TOP + 2S`); so steht es seit Welle 10 auch in den Texten (`REST_SHAPE` „Rechteck“).
 - Balken (Welle 10, Schritt 5; `BEAM` in `staff.js`): gemessen an Verovio 6.4.1
   mit Bravura (Leipzig identisch) an h' mit Hals nach unten in „8 8“, „16 16 8“
   und „8 16 16“. Balkendicke 0,50 LA (`BEAM.thick` = 6), Abstand der beiden
@@ -234,6 +245,11 @@ zwei halbe Stufen darüber oder darunter, ♭ auf seiner Stufe und bis zwei halb
 Stufen darüber), rückt es wie in `staff.js` 1,9 (0,16 LA) weiter nach links
 (`accTouchesLedger`). `opts.keySig` lässt Vorzeichen weg, die die Vorzeichnung
 schon enthält.
+Seit Welle 10: Frage „Welche Stellung?“ mit `INVERSION_LABELS` („Grundstellung“, „Sextakkord (1. Umkehrung)“,
+„Quartsextakkord (2. Umkehrung)“, `cols: 1`; `INVERSIONS` in `music.js` bleibt für die Rückmeldungen).
+Quintenzirkel „Wie viele Vorzeichen hat …?“: Fragebild ohne Dreiklang (leere Zeile), die Vorzeichnung erst in
+`revealSvg`; Namen der Vorzeichen aus `keyAccidentals(sig)` (i-tes ♯ = 7. Stufe der Tonart mit i ♯, i-tes ♭ =
+4. Stufe der Tonart mit i ♭). Die Ring-Tafel „Quintenzirkel“ zeigt die gewählten Tonarten-Sprüche.
 
 **Intervalle.** `src/packs/intervalle.js` (neu seit Welle 7, davor Welle 6): zwei ganze Noten bei `X_LOW`/`X_HIGH`
 (`intervalSvg`; Stufe 7 abwärts mit der oberen Note links). Bauaufgaben (Stufe 8, 9):
@@ -255,6 +271,12 @@ Platz der Zeichen, freier Raum im Paar `PAIR_INNER` 6, zwischen den Paaren `PAIR
 `.pair-sep` unter der Zeile), `CHECK_TYPES`/`CHECK_NAMES` (Ziele in Stufe 10: alle erlaubten ohne Prime, 17),
 `SIZE_ORDER`/`SIZE_NAMES` (rein/groß/klein ohne Prime: das gezeigte Intervall bei „anderes Intervall (Notenstufen)“),
 `checkBuild` (Buchstabe und Vorzeichen), `VERDICTS` (Stufe 10). `lowerNote(high, num, quality)` in `music.js`.
+Seit Welle 10: `needsNatural(first, second)` (gleiche Notenstufe, erste mit, zweite ohne Vorzeichen; rein) setzt
+das ♮ in Aufgabe, Auflösung und Vorführung (Stufe 5: 9, Stufe 6: 18 Aufgaben, im Test nachgezählt),
+`naturalText` den Satz „Das ♮ hebt das ♭ auf: d'.“ in Rückmeldung und erstem Vorführbild. Die reine Prime
+des'–des' zeigt das ♭ an beiden Noten. Grobbestimmung (Schritt 1, Frage „Grobbestimmung: Welches Intervall?“,
+Marken „1 · Grob: Stufen zählen“ / „2 · Fein: Halbtöne zählen“); gibt es zur Zahl nur ein Intervall (Prime,
+Quarte, Quinte, Oktave in 3/4, sonst die Oktave), hat die Aufgabe nur einen Schritt (siehe Engine).
 
 **Vorführung „So bestimmst du ein Intervall“** (`intervalDemo`, seit 20.11.2026). Bilder: 1 Frage + je
 gezählter Notenstufe eins (Zwischenstufen als hohle violette Köpfe, Kreise 1, 2, 3 …, nach der letzten die
@@ -291,7 +313,7 @@ Eine Stufe:
   no: 1,
   title: "Linien im Violinschlüssel",
   subtitle: "Violinschlüssel · 5 Noten", // optional, kleine Zeile unter dem Titel auf der Startseite
-  hint: "Text auf der Startkarte der Stufe",
+  hint: "Text auf der Startkarte der Stufe", // seit Welle 10 auch (ctx) => Text (ctx: { state }), z. B. mit Merkspruch
   example: "<svg …>",          // optional, festes SVG für die Startkarte (vor der Runde)
   input: "letters",            // "letters" | "choices" | "keys"
   acc: false,                  // optional, true zeigt bei "letters" das Namensraster (21 Namen) statt C–H
@@ -299,7 +321,8 @@ Eine Stufe:
   requires: "x-1",             // optional, Stufen-ID im selben Paket, deren best >= 8 diese Stufe öffnet (sonst die Stufe davor; seit Welle 7 von keinem Paket genutzt)
   digits: false,               // optional, true: Hinweis „Tastatur: 1 Prime … 8 Oktave“ auf der Startkarte (Knopfsätze mit digits)
   helps: ["klaviatur", "tabelle"], // optional (seit Welle 7): aufklappbarer Bereich „Hilfen“ unter der Notenzeile, nur während der Runde
-  helpText: "…",               // optional, Satz oben in den Hilfen
+  helpText: "…",               // optional, Satz oben in den Hilfen (HTML; seit Welle 10 auch (ctx) => HTML)
+  twoSteps: true,              // optional (seit Welle 10): zweischrittige Stufe, Startkarte mit „Beide Schritte müssen stimmen.“
   helpTable: "<table …>",      // optional, HTML der Tabelle in den Hilfen
   helpsTitle: "…",             // optional, eigene Überschrift der Hilfen (sonst aus helps: „Hilfen: Klaviatur und Tabelle“ bzw. „Hilfen: Klaviatur“)
   demo(q) { return { steps, frames }; }, // optional (seit 20.11.2026): Vorführung der Aufgabe q für den Knopf „Vorführen“ in den Hilfen (src/demo.js)
@@ -318,7 +341,7 @@ Eine Stufe:
       choices: ["…"],          // nur bei input "choices": 4 bis 6 Auswahlknöpfe, enthält answer
       cols: 4,                 // optional, feste Spaltenzahl der Knöpfe (Klasse cols, --cols), z. B. Prime … Oktave in 2 × 4
       digits: true,            // optional, Ziffer k auf der Tastatur wählt den k-ten Knopf
-      steps: [ /* optional, zweischrittig: { choices, cols?, digits?, answer, prompt?, ok?, bad? } je Schritt */ ],
+      steps: [ /* optional, zweischrittig: { choices, cols?, digits?, answer, prompt?, ok?, bad? } je Schritt; seit Welle 10 auch nur ein Eintrag */ ],
       partial: "…",            // optional, Rückmeldung, wenn nur der erste Schritt daneben lag (Satz mit Punkt)
       helpMarks: [N("E", 4)],  // optional, Töne, die die Klaviatur der Hilfen markiert
       note: N("G", 4),         // optional, die gefragte Note (Ton im Blitz, Feedback ohne Oktave)
@@ -337,14 +360,16 @@ passen bei 420 px in eine Zeile); sind alle Texte höchstens 4 Zeichen lang
 einer Reihe, ab 7 in zwei Reihen). Buchstaben und Klaviatur bleiben bei 7
 Spalten. In der Regel 4 bis 6 Knöpfe; Ausnahmen im Paket „Dreiklänge und
 Quintenzirkel“: Stufe 1 hat laut PLAN zwei (Dur, Moll), Stufe 4 drei (die drei
-Lagen), Stufe 6 alle sieben Stufen I bis VII. Im Paket „Tonleitern“ haben Stufe 1 bis 3
+Stellungen, seit Welle 10 untereinander), Stufe 6 alle sieben Stufen I bis VII. Im Paket „Tonleitern“ haben Stufe 1 bis 3
 (`tonleitern-1` … `-3`) nur zwei Knöpfe („Ganztonschritt“, „Halbtonschritt“); Halbtöne
 werden dort mit Wahrscheinlichkeit 0,4 gezogen. Seit Welle 8 zweischrittig: Stufe 4 (Ganz/Halb, dann
 2 oder 3 Namen), Stufe 10 (das entscheidende Vorzeichen, 2 bis 7 Knöpfe; bei C-, G- und F-Dur gäbe es nur
 einen Knopf, dort entfällt der Schritt seit Welle 10; dann vier Dur-Tonarten in fester Reihenfolge nach dem Quintenzirkel) und Stufe 12 (drei
 aufeinanderfolgende Stammtöne, dann 2 oder 3 Molltonarten desselben Stammtons). Raten reicht in etwa 5,5 % der Runden für 8 von 10.
 Im Paket „Intervalle“ (seit Welle 7) hat die Grobbestimmung (so heißt die Zahl seit Welle 10) acht Knöpfe (Prime … Oktave, `cols: 4`)
-und der zweite Schritt nur die zur Zahl passenden Intervalle (1 bis 3 Knöpfe, z. B. nur „reine Oktave“).
+und der zweite Schritt die zur Zahl passenden Intervalle (2 oder 3 Knöpfe; gäbe es nur einen, z. B. „reine Oktave“,
+entfällt der Schritt seit Welle 10). Ein Test über alle Pakete und Stufen stellt sicher, dass kein Knopfsatz
+weniger als zwei Knöpfe hat.
 
 Rhythmen (seit Paket F): Ein Eintrag in `play` ist entweder eine Note (wie
 bisher; mehrere Noten nacheinander im Abstand `PLAY_GAP` = 500 ms) oder ein Wert
@@ -353,8 +378,8 @@ Pause. `beats` zählt Schläge (Viertel = 1, punktierte Viertel 1,5); ein Schlag
 dauert `BEAT_MS` = 600 ms (Tempo 100). Der Ton klingt dann `beats · 0,6 s`
 lang (`play(n, vol, dur)` in `audio.js`). Die nächste Aufgabe erscheint erst,
 wenn der Rhythmus vorbei ist, plus `RHYTHM_TAIL` = 300 ms (bei
-ausgeschaltetem Ton wie bisher nach 800 bzw. 1600 ms). Wartet die Stufe auf
-„Nächste Aufgabe“ (Hilfen), kann man vorher weitergehen: Die Zeitgeber der Töne
+ausgeschaltetem Ton nach 800 ms); das gilt seit Welle 10 nur nach richtigen Antworten, nach „daneben“ wartet
+die Runde immer (`waitsAfter`). Wartet die Runde auf „Nächste Aufgabe“, kann man vorher weitergehen: Die Zeitgeber der Töne
 stehen in `r.tones`, `silenceTones(r)` löscht sie beim Weitergehen (`r.advance`)
 und beim Öffnen der Vorführung (seit Welle 9; ein schon klingender Ton endet nach
 seiner Dauer). Genutzt von „Takt
@@ -436,8 +461,11 @@ Regeln für Pakete:
 Lerntafel (optional, erscheint im Tab „Lernen“ als Karte):
 
 ```js
-{ title: "Notenwerte", clef: "treble", render() { return "<div>…HTML…</div>"; } }
+{ title: "Notenwerte", clef: "treble", render(ctx) { return "<div>…HTML…</div>"; } }
 ```
+
+`render(ctx)` bekommt seit Welle 10 `ctx = { state }` (gewählte Merksprüche); Tafeln ohne Parameter laufen
+unverändert.
 
 `clef` ist optional. Eine Tafel mit `clef` erscheint nur, wenn im Tab „Lernen“
 dieser Schlüssel gewählt ist; eine Tafel ohne `clef` erscheint bei beiden
@@ -540,6 +568,39 @@ Vorführung tragen `data-nw-board="value|beats|bar"`. Klassen: `.nw-ring` (Rahme
 (Zeichen in der Farbe des Schritts), `.nw-pyr*`, `.nw-sum*`, `.nw-seg`, `.nw-rests`, `.nw-und`, `.nw-cnt`,
 `.nw-count-fig`, `.demo-result-note`; `tileTable({ blank })` setzt ein Zeichen in leere Felder („–“ in Stufe 1).
 
+## Merksprüche (`src/sprueche.js`, seit Welle 10)
+
+Rein, ohne DOM, getestet in `test/sprueche.test.js`. `MERKHILFEN` je Kennung `{ wofuer, buchstaben, reihe,
+vorschlaege }` (Vorschläge laut KONZEPT-gehirngerecht, Sandra 20. und 24.11.2026; der erste ist die
+Voreinstellung): `violin-linien` „Es Geht Hurtig Durch Fleiß“, `violin-raeume` „Fritz Aß Citronen-Eis“,
+`bass-linien` „Gute Hunde Dürfen Fast Alles“, `bass-raeume` „Alle Clowns Essen Gern“, `kreuze` (drei
+Vorschläge), `kreuz-tonarten` „Geh Du Alter Esel Hole Fische“, `be-tonarten` „Frische Brezen Essen Asse Des
+Gesangs“; `bes` (Reihenfolge der Be) ist abgeleitet (`von: "be-tonarten"`, ohne das erste Wort, keine eigene
+Wahl). Nicht abgedeckt: siebte Tonart (Cis-/Ces-Dur) und sechstes/siebtes Be (Ces, Fes); dort zeigt die App die
+Reihe selbst.
+
+- `initials(text)`: Wörter an Leerzeichen und Bindestrichen getrennt, Apostroph gehört zum Wort, Umlaute bleiben
+  Umlaute; gerechnet wird in NFC (zerlegte Umlaute aus eingefügtem Text).
+- `checkSpruch(id, text)` → `{ ok, soll, ist, stelle, grund }`, `meldung(r)` („Das 3. Wort muss mit H
+  beginnen.“, „Es fehlen 2 Wörter.“), `SPRUCH_MAX` = 80.
+- `aktiv(state, id)` (Nummer oder `"eigen"`), `spruch(state, id)` (geltender Spruch), `wortZu(state, id, i)`,
+  `waehle(state, id, n)`, `setzeEigen(state, id, text)` (speichert nur gültige Sprüche).
+- HTML: `esc`, `showHtml(state, id)` (`<span data-spruch-show>`, `learn.js` frischt die Stelle nach einer Wahl
+  per `textContent` auf, `refreshSprueche`), `wahlHtml(state, id)` (Optionsfelder je Vorschlag, „Eigener Spruch“
+  mit Feld und `aria-live`-Meldung; verdrahtet in `learn.js` `wireSprueche`). Der eigene Text kommt vom Kind und
+  wird überall als Text eingesetzt (`textContent` bzw. `esc`), nie als HTML (Test mit `<b>` und `&`).
+- Gewählt wird in „Lernen“: Tafel „Merkhilfen“ je Schlüssel und Tafel „Quintenzirkel“ der Tonleitern (Kreuze,
+  ♯-Tonarten, ♭-Tonarten). Angezeigt in den Hinweisen Noten 1, 2, 4, 5, der Rückmeldung „Noten lesen“, Hinweis
+  und Hilfen Tonleitern 8, 10, 11 (Startkarte 10 mit der ganzen Reihe Fis … His / B … Fes, aus `music.js`
+  abgeleitet) und der Ring-Tafel „Quintenzirkel“ der Dreiklänge (mit Leserichtung). Dafür dürfen `level.hint`
+  und `level.helpText` Funktionen `(ctx) => Text` sein (`engine.textOf`), und `card.render(ctx)` bekommt
+  `{ state }`.
+- „Noten lesen“ (B3): Frage „Wie heißt die Note?“ (`PROMPT`); Rückmeldung daneben `revealText(n, clef, state)`:
+  Name, Lage aus `lageText(n, clef)` (aus `staffPos`, Lagen −2 bis 10, weiter außen mit der Zahl der
+  Hilfslinien) und bei Linien/Zwischenräumen ohne Vorzeichen der gewählte Spruch (`spruchId`), z. B. „Das war
+  ein G (g') – 2. Linie von unten (Es Geht Hurtig Durch Fleiß).“; bei Vorzeichen „…, mit ♯“ ohne Spruch; große
+  Oktave „G (großes G)“ (`displayName`). `statKey`, Prüfung und adaptive Auswahl unverändert.
+
 ## Engine (`src/engine.js`)
 
 `startRound(level, ui, hooks)` führt zehn Aufgaben durch. Die Engine kennt kein
@@ -552,24 +613,50 @@ Stufen-ID.
   `typed` zeigt den getippten Namen, nur bei Stufen mit Namensraster; `helps` ist das `<details>` der
   Hilfen, `helpsBody` sein Inhalt; `next` ist der Knopf „Nächste Aufgabe“ `#pNext` direkt unter den
   Antwortknöpfen)
-- Weiter zur nächsten Aufgabe (seit 20.11.2026, Entscheidung Sandra): Stufen ohne `helps` gehen wie bisher nach
-  `answerDelay` von selbst weiter. Stufen mit `helps` (`waitsForNext(level)`, „Intervalle“ 1, 3, 5, 8, seit Welle 8 auch „Tonleitern“ 1, 2, 4, 6, 8, 10, 12) warten
-  nach der letzten Antwort einer Aufgabe ohne Zeitgeber (`isWaiting()`), bis du „Nächste Aufgabe“ tippst
+- Weiter zur nächsten Aufgabe (seit Welle 10, A1): Nach der letzten Antwort einer Aufgabe entscheidet die reine
+  Funktion `waitsAfter(level, ok, text)`: Stufe mit `helps` (`waitsForNext(level)`, Sonderfall, z. B. „Intervalle“
+  1, 3, 5, 8, „Tonleitern“ 1, 2, 4, 6, 8, 10, 12, „Notenwerte“ 1, 2, 4, 6, 8) → warten; daneben (auch
+  Teilerfolg) → **immer** warten; richtig in einer Stufe ohne Hilfen → nur von selbst weiter (nach
+  `answerDelay(q, muted)`), wenn der Rückmeldetext höchstens `AUTO_OK_MAX` = 45 Zeichen hat (Startwert),
+  sonst warten. Noten lesen 1–8 (richtige Rückmeldungen 14–20 Zeichen) laufen wie vorher weiter; in Tonleitern
+  10/11 und Akkorde 3, 5, 6 wechselt das Verhalten innerhalb einer Runde je nach Text (offen). Gewartet wird
+  ohne Zeitgeber (`isWaiting()`), bis du „Nächste Aufgabe“ tippst
   (`#pNext`, ohne die Hilfen zu öffnen sichtbar, auch bei 320 × 640 ohne Scrollen) oder Enter bzw. die
   Leertaste drückst (`handleKey`; ein fokussierter Knopf der Vorführung oder `summary` behält seine Taste).
   Während des Wartens zählen keine Antworten. Auch die zehnte Aufgabe wartet; erst das Tippen zeigt die
   Ergebniskarte.
 - Zweischrittige Aufgaben (seit Welle 7, `q.steps`): Die Engine zeigt die Knöpfe von `steps[0]`
-  (Frage `q.prompt`), wertet die Wahl aus (`ok`/`bad`-Text farbig, richtige Wahl markiert), wartet
-  `DELAY_STEP_OK` = 700 bzw. `DELAY_STEP_BAD` = 1600 ms und zeigt dann `steps[1]` mit dessen `prompt`, auch
-  wenn der erste Schritt daneben lag. Erst nach dem letzten Schritt zählt die Aufgabe, einmal, und nur
-  richtig, wenn alle Schritte stimmen (Statistik, Sterne, XP, `statKey` wie bisher). Rückmeldung
-  `stepsFeedback(q, oks)`: alles richtig `Richtig! ${display}`, nur der erste Schritt daneben `q.partial`
-  (falls gesetzt; das Paket „Intervalle“ lässt es weg, wenn der zweite Schritt nur einen Knopf hat),
-  sonst `q.reveal`. Ziffern: `digitAction(e, set)` bei Knopfsätzen mit `digits`.
-- Hilfen (seit Welle 7, `level.helps`): `helpsHtml(level, q)` baut `helpText`, die Klaviatur
-  (`pianoSvg({ from: helpFrom(q), octaves: 2, marks: q.helpMarks, interactive: false })`, Violinschlüssel
-  c' bis c''', Bassschlüssel C bis c'; eigener Bereich, nicht `#pPiano`) und `helpTable`. Seit Welle 8 darf eine
+  (Frage `q.prompt`), wertet die Wahl aus (`ok`/`bad`-Text farbig, richtige Wahl markiert). Schritt 1 richtig →
+  nach `DELAY_STEP_OK` = 700 ms `steps[1]` mit dessen `prompt`; Schritt 1 daneben → seit Welle 10 **kein
+  Zeitgeber**: `#pNext` erscheint mit der Aufschrift „Weiter zu Schritt 2“ (`NEXT_STEP`; Knopf, Enter oder
+  Leertaste), danach heißt er wieder „Nächste Aufgabe“ (`DELAY_STEP_BAD` und `DELAY_BAD` gibt es nicht mehr).
+  Erst nach dem letzten Schritt zählt die Aufgabe, einmal, und nur richtig, wenn alle Schritte stimmen
+  (Statistik, Sterne, XP, `statKey` wie bisher). Rückmeldung `stepsFeedback(q, oks)`: alles richtig
+  `Richtig! ${display}`, nur der erste Schritt daneben `q.partial` (falls gesetzt), sonst `q.reveal`.
+  Ziffern: `digitAction(e, set)` bei Knopfsätzen mit `digits`.
+- Ein-Schritt-Aufgaben (seit Welle 10, B10): `q.steps` darf nur einen Eintrag haben (Intervalle 3–7, wenn es zur
+  Zahl nur ein Intervall gibt: Rückmeldung „c'–f': 4 Stufen → Quarte · hier rein: 5 Halbtöne“; Tonleitern 10 bei
+  C-, G- und F-Dur nur der Schritt „Tonart“ mit eigener Frage `majorSinglePrompt`). Kein Knopfsatz hat weniger als
+  zwei Knöpfe (Test über alle Pakete). `level.twoSteps` markiert die zweischrittigen Stufen (Notenwerte 1, 4, 6,
+  8; Tonleitern 4, 10, 12; Intervalle 3–7); `startHint(level, ctx)` in `practice.js` hängt „Beide Schritte
+  müssen stimmen.“ an (`TWO_STEPS_NOTE`, bei mehrzeiligen Hinweisen in eine eigene Zeile).
+- Teilerfolg (seit Welle 10, B10): `isPartial(q, oks)` (q.partial gesetzt, Schritt 1 daneben, letzter Schritt
+  richtig) bzw. `stepsResult(q, oks)` → `"ok"`, `"part"`, `"bad"`. Bei `"part"` bekommt die Rückmeldung die
+  Klasse `part` (eigene Fläche mit Rand, davor ein halb gefüllter Punkt per CSS), die Notenzeile wird nicht
+  rot (`svgResultClass(q, ok, part)` → `""`), der Fortschrittspunkt heißt `.dot.part`. Die Aufgabe zählt
+  weiter als daneben. Tokens `--part` (Rand, Punkt; hell ≥ 3 : 1 auf `--bg`, `--surface`, `--part-soft`),
+  `--part-soft`, `--part-ink` (Schrift, hell 7,1 : 1, dunkel 9,1 : 1), an allen drei Stellen von `:root`.
+- Nicht nur Farbe (seit Welle 10, B14): `markAnswer(el, cls)` setzt nach der Antwort `ok`/`bad` am gewählten
+  und `ok` am richtigen Knopf (Plakette ✓/✗ per CSS) und ergänzt das `aria-label` („Fis, richtig“);
+  `clearMark(el)` nimmt beides bei der nächsten Aufgabe zurück (Tasten der Klaviatur bekommen nur die Klasse).
+  Die Rückmeldung beginnt mit ✓/✗ (CSS), `dotsHtml` gibt jedem Punkt `role="img"` und ein `aria-label`
+  („Aufgabe 2: teilweise richtig“, `DOT_LABEL`). Fokus für alle Elemente: `:focus-visible` 3 px in `--accent`.
+- Hilfen (seit Welle 7, `level.helps`): `helpsHtml(level, q, ctx)` baut `helpText` (seit Welle 10 über
+  `textOf(level.helpText, ctx)`, also auch als Funktion), die Klaviatur
+  (`pianoSvg({ from: helpFrom(q), octaves: 2, marks: q.helpMarks, interactive: false, fit })`, Violinschlüssel
+  c' bis c''', Bassschlüssel C bis c'; eigener Bereich, nicht `#pPiano`; ab zwei markierten Tönen seit Welle 10
+  nur der Ausschnitt `fit`, mit einem Ton bleiben beide Oktaven, sonst verriete der Ausschnitt Richtung bzw.
+  Lage) und `helpTable`. Seit Welle 8 darf eine
   Aufgabe `q.helpFrom` setzen (MIDI-Nummer des untersten C; optional, ohne das Feld wie bisher
   `HELP_FROM[q.clef]`): „Tonleitern“ nimmt das C auf oder unter dem Grundton (B-Dur im Violinschlüssel ab c,
   D-Dur im Bassschlüssel ab d), bei den Tonarten c'. Zu Beginn der Runde
@@ -580,10 +667,15 @@ Stufen-ID.
   so weit, dass die erste Reihe der Antwortknöpfe über der Tab-Leiste steht (`answersScroll`); kein Scrollen
   innerhalb der Hilfen. Bis 380 px Breite stehen die Hilfen per CSS (`order`) unter den Antwortknöpfen.
 - „Vorführen“ (seit 20.11.2026): zu Beginn jeder Aufgabe gesperrt (`disabled`, verriete die Antwort), frei nach
-  der Antwort (nach dem letzten Schritt), auch während die Runde auf „Nächste Aufgabe“ wartet. Klaviatur und
+  der Antwort (nach dem letzten Schritt), auch während die Runde auf „Nächste Aufgabe“ wartet. Seit Welle 10
+  (B11) steht daneben sichtbar „nach deiner Antwort“ (`DEMO_WAIT_SHORT`, `data-demo-wait`), `demoReady` nimmt
+  den Zusatz weg. Klaviatur und
   Tabelle weichen der Vorführung (`level.demo(q)` in `.help-demo`, darunter ein zweiter Knopf „Nächste
   Aufgabe“); „Nächste Aufgabe“ (dort oder `#pNext`), Enter/Leertaste oder Zuklappen der Hilfen während der
   Vorführung geht weiter (Zuklappen ohne Vorführung nicht). Die Antwortzeit ist da schon gezählt.
+- Startkarte und Ergebniskarte (`practice.js`): Hinweis per `startHint(level, { state })` als Text
+  (`textContent`); Ergebniskarte mit eigener Zeile zur Freischaltung (`resultInfo`, siehe Fortschritt) und
+  „Ø 2,3 s pro Aufgabe“ (Dezimalkomma, „pro Note“ nur in „Noten lesen“; `resultLine`).
 - `hooks`: `{ state, save, onFinish(result) }`; `result` ist
   `{ correct, total, stars, gained, avg, results }`
 - weitere Funktionen für die Ansichten: `stop()` (laufende Runde abbrechen,
@@ -594,7 +686,9 @@ Stufen-ID.
   `feedbackText`, `resultMessage`, `dotsHtml`, `lettersHtml`, `choicesHtml`,
   `choicesClass(choices)`, `choiceCols(choices)`,
   `keyAction(e)` (nur noch `{ letter }` für C–H oder `null`), `blitzPoints(combo)`,
-  `notesToPlay(q)`, `playMode(q)`
+  `notesToPlay(q)`, `playMode(q)`; seit Welle 10 `waitsAfter`, `textOf(v, ctx)` (Text oder `(ctx) => Text`),
+  `keepStufe(text)`, `isPartial`, `stepsResult`, `markAnswer`, `clearMark` (DOM, aber ohne Zustand), Konstanten
+  `AUTO_OK_MAX`, `NEXT_STEP`, `DEMO_WAIT_SHORT`, `DOT_LABEL`, `MARK_LABEL`
 - seit Paket F2 (Namensraster), rein und getestet: `usesNames(level)`,
   `namesHtml()` (21 Knöpfe), `nameKey(buf, e)` (Taste auf den Puffer anwenden:
   `null` oder `{ buf, answer?, invalid? }`), `typedText(buf, invalid)`,
@@ -604,12 +698,11 @@ Stufen-ID.
   `"bad"` oder `""` bei `q.keepRow`), `playSchedule(q)` (Abspielplan `[{ note, at, dur }]` in ms;
   `note` ist `null` bei Pausen, `dur` ist `null` bei Einträgen ohne Dauer),
   `rhythmEnd(q)` (Ende des letzten Eintrags mit Dauer in ms, sonst 0),
-  `answerDelay(q, ok, muted)` (Wartezeit bis zur nächsten Aufgabe);
-  Konstanten `ROUND_LENGTH`, `DELAY_OK`, `DELAY_BAD`, `PLAY_GAP`, `BEAT_MS`,
-  `RHYTHM_TAIL`
+  `answerDelay(q, muted)` (Wartezeit bis zur nächsten Aufgabe, seit Welle 10 nur noch nach richtigen Antworten);
+  Konstanten `ROUND_LENGTH`, `DELAY_OK`, `PLAY_GAP`, `BEAT_MS`, `RHYTHM_TAIL`
 - seit Welle 7, rein und getestet: `choiceSet(q, step)`, `setClass(set)`, `stepsFeedback(q, oks)`,
-  `digitAction(e, set)`, `hasHelps(level)`, `helpsHtml(level, q)`; Konstanten `DELAY_STEP_OK`,
-  `DELAY_STEP_BAD`, `HELP_FROM`, `HELP_OCTAVES`; seit Welle 8 `helpFrom(q)` (`q.helpFrom` oder `HELP_FROM[q.clef]`)
+  `digitAction(e, set)`, `hasHelps(level)`, `helpsHtml(level, q, ctx)`; Konstanten `DELAY_STEP_OK`,
+  `HELP_FROM`, `HELP_OCTAVES`; seit Welle 8 `helpFrom(q)` (`q.helpFrom` oder `HELP_FROM[q.clef]`)
 - `notesToPlay(q)` liefert nur die Noten aus `play` (ohne Pausen); damit
   bleibt `playMode` für Akkorde unverändert
 
@@ -693,8 +786,9 @@ langsam: 2, sicher: 1 }`, `FENSTER = 12`, `ZEIT_DECKEL = 10`, `MIN_ZEITEN = 3`
   Startseite bei „Noten lesen“, Schlüssel aus `NOTE_KEYS` in `packs/noten.js`;
   Text aus `unsureText(k)` in `views/home.js`)
 
-Die Engine ruft `question(prev, ctx)` mit `ctx = { notes: state.notes }`
-(`makeRound(level, count, ctx)`). Pakete ohne zweiten Parameter laufen
+Die Engine ruft `question(prev, ctx)` mit `ctx = { notes: state.notes, state }`
+(`makeRound(level, count, ctx)`; `state` seit Welle 10 für den gewählten Merkspruch in der Rückmeldung,
+`ctx.round` enthält die bisher erzeugten Aufgaben der Runde). Pakete ohne zweiten Parameter laufen
 unverändert. Bisher nutzt nur „Noten lesen“ (Stufen 1 bis 8) die gewichtete
 Auswahl, Blitz nicht. Die Aufgaben einer Runde entstehen beim Start, die
 Gewichte wirken also ab der nächsten Runde.
@@ -705,7 +799,9 @@ Gewichte wirken also ab der nächsten Runde.
 (`notenheld-v<Version>-<Zähler>`; bei jedem Release erhöhen) und liefert sie
 „Cache zuerst“ aus; Seitenaufrufe ohne Netz bekommen `index.html`.
 `test/sw.test.js` prüft, dass jede Datei aus `src/`, `css/`, `fonts/` und
-`icons/` in `PRECACHE` steht. Beim Aktivieren löscht der Worker alte Caches
+`icons/` (aus dem Dateibaum gelesen) sowie `index.html`, das Manifest und alle von dort verlinkten Dateien in
+`PRECACHE` stehen, jeder Eintrag als Datei existiert und die Cache-Version seit Welle 10 mindestens
+`notenheld-v0.2.0-13` ist. Beim Aktivieren löscht der Worker alte Caches
 der App und übernimmt die offenen Seiten (`clients.claim`).
 
 Updates (seit Paket F): Der neue Worker ruft beim Installieren **kein**
@@ -730,7 +826,8 @@ Zustand (persistiert unter `localStorage["notenheld.v2"]`):
   notes: { "G (g', Violin)": { ok, bad, sec, timed, last, hist, hsec } },   // je Aufgabe (statKey)
   answered, correct, bestCombo, blitzRecord,
   unlockAll, muted, input, current: "noten-1",
-  migrated: ["intervalle-neu", "tonleitern-neu"],   // einmalige Umstellungen, die schon gelaufen sind (seit Welle 7)
+  migrated: ["intervalle-neu", "tonleitern-neu", "notenwerte-neu"],   // einmalige Umstellungen, die schon gelaufen sind (seit Welle 7)
+  sprueche: { "kreuze": { wahl: 1 }, "violin-linien": { eigen: "…" } },   // gewählte Merksprüche (seit Welle 10)
 }
 ```
 
@@ -755,6 +852,12 @@ Stand trägt alle drei Marker): `notenwerte-1→1, 2→2, 3→5, 4→7, 5→9, 6
 `levels`-Objekt (sonst verkettet 3→5 mit 5→9), `current` entsprechend, `notes` bleibt (keine statKeys im Paket).
 `migrateAll` ruft alle drei auf (`a || b || c`); die Reihenfolge ist für die Notenwerte unkritisch. Folge der
 Freischaltung bei einem alten Stand, der alles geschafft hatte: 4 bleibt zu, bis 3 geschafft ist (im Test).
+
+Feld `sprueche` (Welle 10, Schritt 4): je Kennung aus `MERKHILFEN` entweder `{ wahl: n }` (Nummer des
+Vorschlags) oder `{ eigen: "Text" }` (NFC, höchstens 80 Zeichen, nur gespeichert, wenn die Anfangsbuchstaben
+passen). Gelesen und geschrieben wird nur über `src/sprueche.js`. Keine Umstellung nötig: Fehlt das Feld, setzt
+`load` über `fresh()` `{}`; ein alter Stand wird dadurch nicht neu gespeichert (Test). `reset` behält
+`sprueche` wie `muted` und `input` (Einstellung, kein Fortschritt).
 
 Ein Eintrag in `notes` (seit Paket G): `ok` und `bad` zählen richtige und
 falsche Antworten, `sec` ist die Summe der Antwortzeiten richtiger Antworten
@@ -796,7 +899,7 @@ und `save` greifen auf `localStorage` zu): `KEY_V1`, `KEY_V2`, `fresh()`,
 `isUnlocked(s, pack, levelId)`, `unlockedBy(pack, levelId)`, `unlocks(pack, levelId)`, `starsFor(correct)`,
 `recordRound(s, levelId, correct)` → `{ stars, gained }`,
 `recordAnswer(s, key, ok, sec, now)` (`sec` optional, zählt nur bei richtigen Antworten), `recordBlitz(s, score, bestCombo)` →
-`{ record, gained }`, `reset(s)` (behält nur `muted` und `input`),
+`{ record, gained }`, `reset(s)` (behält nur `muted`, `input` und `sprueche`),
 `accuracy(s)`.
 
 ## Tests

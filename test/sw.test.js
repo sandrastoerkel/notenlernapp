@@ -111,3 +111,17 @@ test("Cache-Version seit Welle 9 (Notenwerte gehirngerecht) mindestens -12", () 
   const n = +sw.match(/^const CACHE = "notenheld-v[\d.]+-(\d+)";$/m)[1];
   assert.ok(n >= 12, String(n));
 });
+
+test("Cache-Version seit Welle 10 (Korrekturen, Merksprüche) mindestens -13", () => {
+  // neues Modul src/sprueche.js und geänderte Dateien in fast allen Paketen: Geräte müssen neu laden
+  const n = +sw.match(/^const CACHE = "notenheld-v[\d.]+-(\d+)";$/m)[1];
+  assert.ok(n >= 13, String(n));
+});
+
+test("Liste deckt genau den Dateibaum der App ab (nichts fehlt, nichts zu viel)", () => {
+  // aus dem Dateibaum: alles unter src/, css/, fonts/, icons/ und die Dateien der Shell
+  const tree = ["src", "css", "fonts", "icons"].flatMap(walk).map((f) => `./${f}`);
+  const expected = new Set(["./", "./index.html", "./manifest.webmanifest", ...tree]);
+  assert.deepEqual([...new Set(list)].sort(), [...expected].sort());
+  assert.ok(list.includes("./src/sprueche.js"));
+});
