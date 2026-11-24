@@ -58,7 +58,7 @@ test("Hilfen nur in Stufe 1, 3, 5 und 8, mit Kästchentabelle und Vorführung", 
   }
   for (const l of L.filter((x) => !x.helps)) assert.ok(!/mit Hilfen/.test(l.subtitle), l.id);
   assert.equal(L[0].helpText, HELP_TEXT_1);
-  for (const i of [2, 4, 7]) assert.equal(L[i].helpText, "Die Zahl kommt aus den Notenstufen, die Klaviatur brauchst du nur für die Halbtöne. Stufen: Beide Noten zählen mit. Halbtöne: Die Starttaste zählt nicht, du zählst die Schritte.");
+  for (const i of [2, 4, 7]) assert.equal(L[i].helpText, "Die Zahl kommt aus den Notenstufen, die Klaviatur brauchst du nur für die Halbtöne. Stufen: Beide Noten zählen mit. Halbtöne: Die Starttaste („Start“, kurz „S“) zählt nicht, du zählst die Schritte.");
   // Stufe 1: nur die Zahlen Prime … Oktave (Zahl = Stufen), keine Halbtöne
   const t1 = L[0].helpTable;
   assert.equal(t1, intervalTable("grob", { split: true }));
@@ -696,7 +696,7 @@ test("Welle 10, B5: Grob- und Feinbestimmung – Fragen, Marken, Tabellenkopf, E
 test("Welle 10, B6: Satz zum Zählen in den Hilfen ab Stufe 3, „Start“ genau an der unteren Note", () => {
   for (const l of L.filter((x) => x.helps && x.no >= 3)) assert.ok(l.helpText.endsWith(COUNT_RULE), l.id);
   assert.ok(!L[0].helpText.includes(COUNT_RULE));
-  assert.equal(COUNT_RULE, "Stufen: Beide Noten zählen mit. Halbtöne: Die Starttaste zählt nicht, du zählst die Schritte.");
+  assert.equal(COUNT_RULE, "Stufen: Beide Noten zählen mit. Halbtöne: Die Starttaste („Start“, kurz „S“) zählt nicht, du zählst die Schritte.");
   const all = [...DEMO_EXAMPLES.map(([low, high]) => ({ low, high, clef: "treble" })), ...POOL_3, ...POOL_5];
   for (const it of all) {
     const d = intervalDemo(it.low, it.high, { clef: it.clef }), num = intervalNumber(it.low, it.high), tag = `${helm(it.low)}–${helm(it.high)}`;
@@ -705,8 +705,9 @@ test("Welle 10, B6: Satz zum Zählen in den Hilfen ab Stufe 3, „Start“ genau
       const starts = [...f.body.matchAll(/data-start="(\d+)"/g)].map((m) => +m[1]);
       if (f.step >= 2 && !prime) {
         assert.ok(starts.length >= 1 && starts.every((x) => x === midi(it.low)), `${tag} Bild ${i}`);
-        // weiße Taste: „Start“ (bei zwei Oktaven bis 380 px „0“ über css), schwarze Taste: „0“
-        assert.ok(/>Start<\/text>/.test(f.body) || /kstart"[^>]*>0</.test(f.body), `${tag} Bild ${i}`);
+        // weiße Taste: „Start“ (bei zwei Oktaven bis 380 px „S“ über css), schwarze Taste: „S“ (keine Ziffer)
+        assert.ok(/>Start<\/text>/.test(f.body) || /kstart"[^>]*>S</.test(f.body), `${tag} Bild ${i}`);
+        assert.ok(!/kstart[^"]*"[^>]*>\d</.test(f.body), `${tag} Bild ${i}: Starttaste ohne Ziffer`);
       } else assert.deepEqual(starts, [], `${tag} Bild ${i}`);
     });
     assert.ok(d.frames[num].text.endsWith(COUNT_RULE), tag);

@@ -370,3 +370,12 @@ test("pianoSvg fit: nur der nötige Ausschnitt, je eine weiße Taste Rand, minde
   // ohne fit unverändert
   assert.equal(pianoSvg({ from: 60, octaves: 2, interactive: false, fit: null }), pianoSvg({ from: 60, octaves: 2, interactive: false }));
 });
+
+test("Abschlussprüfung Welle 10: Starttaste ohne Ziffer (sonst zählt man sie mit)", async () => {
+  const { START_SHORT, START_LABEL, pianoSvg } = await import("../src/staff.js");
+  assert.equal(START_LABEL, "Start");
+  assert.equal(START_SHORT, "S");
+  assert.doesNotMatch(START_SHORT, /\d/);
+  // schwarze Starttaste (Cis über c'): „S“
+  assert.match(pianoSvg({ from: 60, octaves: 1, interactive: false, start: 61, counts: [[62, "1"]] }), /kstart"[^>]*>S</);
+});

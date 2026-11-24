@@ -12,7 +12,7 @@ import { play } from "./audio.js";
 
 // Fester Satz zum Zählen (Welle 10, B6): in den Hilfen der Intervalle ab Stufe 3 und der parallelen
 // Molltonart sowie in deren Vorführungen beim Wechsel zu Schritt 2. Die Starttaste trägt dort „Start“.
-export const COUNT_RULE = "Stufen: Beide Noten zählen mit. Halbtöne: Die Starttaste zählt nicht, du zählst die Schritte.";
+export const COUNT_RULE = "Stufen: Beide Noten zählen mit. Halbtöne: Die Starttaste („Start“, kurz „S“) zählt nicht, du zählst die Schritte.";
 
 // Abspielen: ein Bild pro Sekunde, am Ende hält die Vorführung an
 export const FRAME_MS = 1000;

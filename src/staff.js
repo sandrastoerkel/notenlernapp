@@ -286,13 +286,14 @@ export const BLACK = [{ l: "C", i: 0 }, { l: "D", i: 1 }, { l: "F", i: 3 }, { l:
 // grün) mit ihrer Zahl auf der Taste (weiß: unter den schwarzen Tasten, schwarz: unten in der Taste).
 // start (Welle 10, B6): MIDI-Nummer der Starttaste beim Halbtöne-Zählen; sie trägt die Aufschrift „Start“
 // (START_LABEL) an der Stelle der Zahlen, weil sie selbst nicht mitzählt. Auf einer schwarzen Taste ist
-// dafür kein Platz: dort steht „0“ (START_SHORT). Bei zwei Oktaven und schmalem Bildschirm (bis 380 px)
-// wird „Start“ zu klein, dann zeigt css/style.css ebenfalls „0“ (Klasse keys-wide am <svg>).
+// dafür kein Platz: dort steht „S“ (START_SHORT; keine Ziffer, eine „0“ neben 1, 2, 3 lud zum Mitzählen ein –
+// Abschlussprüfung Welle 10). Bei zwei Oktaven und schmalem Bildschirm (bis 380 px) wird „Start“ zu klein,
+// dann zeigt css/style.css ebenfalls „S“ (Klasse keys-wide am <svg>).
 // fit (Welle 10, B13): [tiefste, höchste MIDI-Nummer] – nur der nötige Ausschnitt der Oktaven wird gezeichnet:
 // die Tasten von fit[0] bis fit[1], je eine weiße Taste Rand und mindestens FIT_MIN weiße Tasten (eine
 // Oktave). Weniger Tasten heißt breitere Tasten: Namen und Zahlen bleiben bei 320 px lesbar (≥ 9 px).
-// keys-wide (kleinere Bildschirme: „0“ statt „Start“) gilt dann erst ab mehr als WIDE_KEYS weißen Tasten.
-export const START_LABEL = "Start", START_SHORT = "0";
+// keys-wide (kleinere Bildschirme: „S“ statt „Start“) gilt dann erst ab mehr als WIDE_KEYS weißen Tasten.
+export const START_LABEL = "Start", START_SHORT = "S";
 export const FIT_MIN = 8, WIDE_KEYS = 10;
 // Weiße Taste (Index ab from) zu einer MIDI-Nummer; schwarze Tasten: die weiße darunter (up: darüber)
 const WHITE_OF = [0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6];

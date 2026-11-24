@@ -797,7 +797,7 @@ test("Vorführung „So baust du eine Dur-Tonleiter“: 18 Bilder, jede Berichti
         assert.ok(f.text.endsWith("✓") && !f.fix, f.text);
       }
       // gezählte Halbtöne auf der Klaviatur = Bauplan, beide Tasten grün
-      // (ohne die Starttaste: Sie trägt „Start“ bzw. „0“ und zählt nicht mit)
+      // (ohne die Starttaste: Sie trägt „Start“ bzw. „S“ und zählt nicht mit)
       assert.equal((f.body.match(/<text class="kcount(?: on-black)?"/g) || []).length, x.want, id);
       assert.ok(f.body.includes("tl-keys") && f.body.includes('class="tl-bracket"'));
       // Bauplan-Kästchen des Schritts grün, darunter die Halbtöne bis hierher
@@ -957,7 +957,7 @@ test("Welle 10, B5: Fachwörter beim ersten Auftreten erklärt (Tonleitern 4, 10
 });
 
 test("Welle 10, B6/B15: Tonleitern 12 mit Start-Beschriftung an der oberen Note, Satz in den Hilfen, Stufe 8 zweizeilig", () => {
-  assert.ok(HELP_TEXT_MINOR.endsWith("Stufen: Beide Noten zählen mit. Halbtöne: Die Starttaste zählt nicht, du zählst die Schritte."));
+  assert.ok(HELP_TEXT_MINOR.endsWith("Stufen: Beide Noten zählen mit. Halbtöne: Die Starttaste („Start“, kurz „S“) zählt nicht, du zählst die Schritte."));
   for (const f of FIFTHS) {
     const d = minorDemo(f), tm = midi(majorTonicOf(f));
     d.frames.forEach((fr, i) => {
@@ -965,7 +965,7 @@ test("Welle 10, B6/B15: Tonleitern 12 mit Start-Beschriftung an der oberen Note,
       if (fr.step >= 2) assert.ok(starts.length && starts.every((x) => x === tm), `${f} Bild ${i}`);
       else assert.deepEqual(starts, [], `${f} Bild ${i}`);
     });
-    assert.ok(d.frames[3].text.endsWith("Halbtöne: Die Starttaste zählt nicht, du zählst die Schritte."), String(f));
+    assert.ok(d.frames[3].text.endsWith("Halbtöne: Die Starttaste („Start“, kurz „S“) zählt nicht, du zählst die Schritte."), String(f));
   }
   assert.ok(textOf(byId(8).hint).includes("\n♯: Fis – Cis – Gis – Dis\n♭: B – Es – As – Des\n"), textOf(byId(8).hint));
   assert.ok(tonleitern.levels.filter((l) => /\d\. Stufe(?! der Tonleiter)/.test(textOf(l.hint))).length === 0, "Stufe der Tonleiter ausgeschrieben");

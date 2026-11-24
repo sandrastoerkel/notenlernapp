@@ -344,7 +344,7 @@ section { display: grid; gap: 14px; }
 .kcount { font-family: var(--display); font-weight: 800; font-size: 15px; fill: var(--key-step2-ink); pointer-events: none; }
 .kcount.on-black { fill: var(--key-step2-on); font-size: 13px; }
 /* Starttaste beim Halbtöne-Zählen (Welle 10, B6): „Start“ auf der markierten Taste, sie zählt nicht mit.
-   Schwarze Taste und zwei Oktaven bis 380 px: „0“ (Satz in src/staff.js, pianoSvg) */
+   Schwarze Taste und zwei Oktaven bis 380 px: „S“, keine Ziffer (Satz in src/staff.js, pianoSvg) */
 .kstart { fill: var(--accent-fg); }
 .kstart-long { font-size: 11px; }
 .kstart-short { display: none; }
