@@ -795,7 +795,8 @@ test("Vorführung „So baust du eine Dur-Tonleiter“: 18 Bilder, jede Berichti
         assert.ok(f.text.endsWith("✓") && !f.fix, f.text);
       }
       // gezählte Halbtöne auf der Klaviatur = Bauplan, beide Tasten grün
-      assert.equal((f.body.match(/<text class="kcount/g) || []).length, x.want, id);
+      // (ohne die Starttaste: Sie trägt „Start“ bzw. „0“ und zählt nicht mit)
+      assert.equal((f.body.match(/<text class="kcount(?: on-black)?"/g) || []).length, x.want, id);
       assert.ok(f.body.includes("tl-keys") && f.body.includes('class="tl-bracket"'));
       // Bauplan-Kästchen des Schritts grün, darunter die Halbtöne bis hierher
       assert.equal((f.body.match(/tt-box hit/g) || []).length, 1 + (i + 1), id);
@@ -966,4 +967,31 @@ test("Welle 10, B6/B15: Tonleitern 12 mit Start-Beschriftung an der oberen Note,
   }
   assert.ok(byId(8).hint.includes("\n♯: Fis – Cis – Gis – Dis\n♭: B – Es – As – Des\n"), byId(8).hint);
   assert.ok(tonleitern.levels.filter((l) => /\d\. Stufe(?! der Tonleiter)/.test(l.hint)).length === 0, "Stufe der Tonleiter ausgeschrieben");
+});
+
+// Prüfung Schritt 2 (B6): Die Starttaste trägt in jeder Vorführung, die Halbtöne zählt, ihre Aufschrift –
+// nicht nur bei der parallelen Molltonart. Sonst gälte die Regel „Die Starttaste zählt nicht“ nur an einer Stelle.
+test("Prüfung Schritt 2, B6: Start-Beschriftung in allen Vorführungen, die Halbtöne zählen", () => {
+  const starts = (fr) => [...fr.body.matchAll(/data-start="(\d+)"/g)].map((m) => +m[1]);
+  for (const it of [...ITEMS_1, ...ITEMS_2]) {
+    const d = stepDemo(it.notes, it.i, it.clef), a = midi(it.notes[it.i]);
+    d.frames.forEach((fr, i) => {
+      if (fr.step >= 2) assert.ok(starts(fr).length && starts(fr).every((x) => x === a), `${it.clef} ${it.k} ${it.i} Bild ${i}`);
+      else assert.deepEqual(starts(fr), []);
+    });
+  }
+  for (const clef of ["treble", "bass"]) for (const k of Object.keys(TONICS[clef])) {
+    const tonic = TONICS[clef][k], d = scaleDemo(tonic, clef), steps = buildSteps(tonic);
+    const counting = d.frames.filter((fr) => fr.step === 2);
+    assert.equal(counting.length, 7);
+    counting.forEach((fr, i) => assert.ok(starts(fr).length && starts(fr).every((x) => x === midi(steps[i].a)), `${clef} ${k} Schritt ${i}`));
+    // Frage, Notenstufen und Ergebnis (alle acht Töne markiert) ohne Starttaste
+    d.frames.filter((fr) => fr.step !== 2).forEach((fr) => assert.deepEqual(starts(fr), []));
+  }
+  // Tonart aus Kreuzen: „+ 1 Halbton“ ab dem letzten Kreuz; bei Be wird nicht gezählt
+  for (let f = -7; f <= 7; f++) {
+    const d = keyDemo(f), n = d.frames.filter((fr) => starts(fr).length).length;
+    assert.equal(n > 0, f > 0, String(f));
+  }
+  assert.ok(!tonleitern.learn.some((b) => /wie bei den Intervallen/.test(b.render())), "Lerntafel ohne Verweis auf das spätere Paket");
 });

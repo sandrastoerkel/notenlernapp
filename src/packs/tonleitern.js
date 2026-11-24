@@ -668,7 +668,8 @@ const stepBracket = (xa, xb, y) => `<path class="tl-bracket" d="M${xa - 10} ${y}
 // Ton zu einer MIDI-Nummer (nur für den Klang, die Schreibweise spielt keine Rolle)
 const pitchNote = (m) => N("C", Math.floor(m / 12) - 1, m % 12);
 // Klaviatur der Vorführung: Töne grün (marks), gezählte Halbtöne grün mit Zahl; active false: blass;
-// start: Starttaste beim Halbtöne-Zählen mit der Aufschrift „Start“ (Welle 10, B6; nur parallele Molltonart)
+// start: Starttaste beim Halbtöne-Zählen mit der Aufschrift „Start“ (Welle 10, B6). Sie steht in allen
+// Vorführungen, die Halbtöne zählen (Schritt, Tonleiter, Tonart mit Kreuzen, parallele Molltonart): überall dieselbe Regel
 function keysSvg(from, octaves, marks, counts, active, start = null) {
   return `<div class="demo-keys tl-keys${active ? "" : " dim"}">${pianoSvg({ from, octaves, marks, counts, interactive: false, start })}</div>`;
 }
@@ -747,7 +748,7 @@ export function scaleDemo(tonic, clef = "treble") {
     frames.push({
       step: 2, tones: [st.a, st.fixed], text, fix: changed ? { from: st.b, to: st.fixed } : null,
       body: stageHtml(scaleDemoSvg(cur.slice(), clef, { cls: { ...cls }, circles: 8, pair: [st.i, st.i + 1], height, ref }),
-        keysSvg(from, octaves, [midi(st.a), midi(st.fixed)], counts, true), planTable({ done: st.i + 1, hit: st.i })),
+        keysSvg(from, octaves, [midi(st.a), midi(st.fixed)], counts, true, midi(st.a)), planTable({ done: st.i + 1, hit: st.i })),
     });
   }
   const n = Math.abs(fifths);
@@ -786,14 +787,14 @@ export function stepDemo(notes, i, clef = "treble") {
     const text = last ? `${halftones(semi)} = ${kind}` : `Ab ${helm(a)} jede Taste zählen, auch die schwarzen: 1 Halbton.`;
     frames.push({
       step: 2, tones: [pitchNote(midi(a) + j)], text,
-      body: stageHtml(staff(true, true), keysSvg(from, octaves, [midi(a), midi(b)], Array.from({ length: j }, (_, t) => [midi(a) + t + 1, t + 1]), true),
+      body: stageHtml(staff(true, true), keysSvg(from, octaves, [midi(a), midi(b)], Array.from({ length: j }, (_, t) => [midi(a) + t + 1, t + 1]), true, midi(a)),
         planTable({ col: last ? null : i, hit: last ? i : null })),
     });
   }
   frames.push({
     step: 3, tones: [a, b],
     result: { title: `${pair} = ${kind}`, chips: [{ step: 1, text: `${stepLabel(i)}: ${PLAN_WORD[PLAN[i]]}` }, { step: 2, text: halftones(semi) }] },
-    body: stageHtml(staff(true, true), keysSvg(from, octaves, [midi(a), midi(b)], Array.from({ length: semi }, (_, t) => [midi(a) + t + 1, t + 1]), true), planTable({ hit: i })),
+    body: stageHtml(staff(true, true), keysSvg(from, octaves, [midi(a), midi(b)], Array.from({ length: semi }, (_, t) => [midi(a) + t + 1, t + 1]), true, midi(a)), planTable({ hit: i })),
   });
   return { steps: DEMO_STEPS_SCALE.slice(), frames };
 }
@@ -858,7 +859,7 @@ export function keyDemo(fifths, clef = "treble") {
     frames.push({ step: 1, tones: [nameNote(name)], text, body: stageHtml(sigDemoSvg(clef, fifths, k, last ? dIndex : null), dim) });
   }
   const dm = keyMidi(d);
-  const keys = fifths > 0 ? keysSvg(60, 1, [dm], [[dm + 1, 1]], true) : keysSvg(60, 1, [dm], [], true);
+  const keys = fifths > 0 ? keysSvg(60, 1, [dm], [[dm + 1, 1]], true, dm) : keysSvg(60, 1, [dm], [], true);
   const tonicName = gName(tonic);
   frames.push({
     step: 2, tones: fifths > 0 ? [pitchNote(dm), pitchNote(dm + 1)] : [pitchNote(dm)],
@@ -1101,7 +1102,7 @@ export const BOARDS = {
   },
   minor: {
     examples: [-3, 0, 3, -5, -7].map((f) => ({ label: majorName(f), make: () => minorDemo(f) })),
-    intro: "Die parallele Molltonart hat dieselben Vorzeichen. Erst drei Notenstufen abwärts, der Dur-Grundton zählt als 1. Dann drei Halbtöne abwärts. Das ist derselbe Weg wie bei den Intervallen: eine kleine Terz abwärts.",
+    intro: "Die parallele Molltonart hat dieselben Vorzeichen. Erst drei Notenstufen abwärts, der Dur-Grundton zählt als 1. Dann drei Halbtöne abwärts. Zusammen ist das eine kleine Terz abwärts.",
     after: "Achtung H und B: In Des-Dur ist der Stammton H, mit ♭ heißt er B → b-Moll. Ces-Dur beginnt auf der Taste H, drei Halbtöne darunter liegt as → as-Moll.",
   },
 };

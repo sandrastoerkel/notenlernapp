@@ -455,7 +455,9 @@ Noten lesen → Dreiklänge).
   mit „Start“ (`START_LABEL`, Klasse `kstart`, `data-start`); auf schwarzen Tasten und bei zwei Oktaven bis
   380 px (Klasse `keys-wide`) steht „0“. Fester Satz dazu `COUNT_RULE` in `demo.js` („Stufen: Beide Noten zählen
   mit. Halbtöne: Die Starttaste zählt nicht, du zählst die Schritte.“): Hilfen der Intervalle ab Stufe 3 und
-  Tonleitern 12, Vorführungen beim Wechsel zu Schritt 2.
+  Tonleitern 12, Vorführungen beim Wechsel zu Schritt 2. Die Starttaste ist in allen Vorführungen beschriftet,
+  die Halbtöne zählen: Intervall, Ganz-/Halbtonschritt (`stepDemo`), Dur-Tonleiter (`scaleDemo`, je Schritt die
+  untere Note), Tonart aus Kreuzen (`keyDemo`, letztes Kreuz), parallele Molltonart (`minorDemo`, Dur-Grundton).
 - **Bis 380 px** stehen die drei Knöpfe der Vorführung und der Bildzähler in einer Zeile (seit Welle 8: kleinere
   Abstände und Schrift, `flex-wrap: nowrap`; vorher rutschte der Zähler darunter).
 
