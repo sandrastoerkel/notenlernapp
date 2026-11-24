@@ -200,6 +200,13 @@ Kommentar in `staff.js`. Angaben in Linienabständen (LA):
   der Außenkante des ersten bis zur Außenkante des letzten Halses; der zweite
   Balken endet am Gruppenende an der Halskante, innen in der Halsmitte.
   Farbe: `.beam` wie der Notenkopf (Fläche), `svg.ok`/`svg.bad`, `.nw-s1`/`.nw-s2`.
+  Ist in der Vorführung nur eine Note der Gruppe gefärbt (gezählte Note violett, eingesetzte Antwort grün),
+  bleibt der Balken in der Tintenfarbe: Er gehört der ganzen Gruppe, ein gefärbter Balken würde auch die
+  Nachbarn als gezählt bzw. als Antwort ausweisen (Prüfung Schritt 5).
+- Abstand vor der Lücke (`layoutBar`, `GAP_FLAG_ADVANCE` = 23): Eine Sechzehntel direkt vor der Lücke steht in
+  der Aufgabe mit Fähnchen (1,15 LA breit); mit c · Dauer^0,6 berührte es den Kasten der Lücke. Sie bekommt
+  deshalb mindestens 23 Einheiten (0,35 LA frei), die übrigen Zeichen teilen sich den Rest wie bisher. Betrifft
+  „16 ? 8“, „16 16 ?“ und „8 16 ?“; Aufgabe und Auflösung haben dieselben Abstände.
 
 **Tonleitern.** `src/packs/tonleitern.js` setzt acht Noten in eine Zeile mit
 `scaleSvg(notes, clef, opts)`: schwarze Köpfe ohne Hals (`noteSvg(…, { stemless: true })`),

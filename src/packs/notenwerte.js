@@ -78,11 +78,19 @@ function gapSvg(left) {
 
 // Abstände im Takt (wie Verovio): c · Dauer^0,6; die Lücke bekommt immer den Platz einer Viertel,
 // damit ihre Breite nichts über den fehlenden Wert verrät.
+// Ausnahme (Prüfung Schritt 5): Eine Sechzehntel direkt vor der Lücke steht in der Aufgabe mit Fähnchen
+// (ihre Gruppe trägt dort keinen Balken). Das Fähnchen ist 1,15 LA breit, der Kasten der Lücke beginnt 5 vor
+// der Stelle der Lücke; mit dem Abstand c · Dauer^0,6 (knapp 19) berührte das Fähnchen den Kasten. Diese eine
+// Note bekommt deshalb mindestens GAP_FLAG_ADVANCE, den Rest teilen sich die anderen Zeichen wie bisher.
+// Frage und Auflösung rechnen mit demselben Aufruf, die Abstände bleiben also gleich.
+export const GAP_FLAG_ADVANCE = 23; // 13,8 (Fähnchen) + 5 (Kasten) + 4,2 frei (0,35 LA)
 export function layoutBar(els, gap = -1) {
   const w = els.map((el, i) => Math.pow(i === gap ? 1 : beatsOf(el), 0.6));
-  const c = (X1 - CONTENT_X) / w.reduce((a, b) => a + b, 0);
+  const total = X1 - CONTENT_X, sum = w.reduce((a, b) => a + b, 0);
+  const tight = gap > 0 && !els[gap - 1].rest && els[gap - 1].v === 16 && (total / sum) * w[gap - 1] < GAP_FLAG_ADVANCE ? gap - 1 : -1;
+  const c = tight < 0 ? total / sum : (total - GAP_FLAG_ADVANCE) / (sum - w[tight]);
   let left = CONTENT_X;
-  return w.map((wi) => { const l = r2(left); left += c * wi; return l; });
+  return w.map((wi, i) => { const l = r2(left); left += i === tight ? GAP_FLAG_ADVANCE : c * wi; return l; });
 }
 
 /* --- Balken (Welle 10, Schritt 5) ---

@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import notenwerte, {
-  BARS, parseBar, beatsOf, nameOf, fillChoices, barSvg, dotSvg, timeSigSvg, layoutBar, learnHtml, PITCH, DOT, TIME, rhythmOf,
+  BARS, parseBar, beatsOf, nameOf, fillChoices, barSvg, dotSvg, timeSigSvg, layoutBar, GAP_FLAG_ADVANCE, learnHtml, PITCH, DOT, TIME, rhythmOf,
   MISSING_CHOICES, BEAT_CHOICES_4, ITEMS_8, ITEMS_1, ITEMS_4, ITEMS_6, BOARDS, valueDemo, beatsDemo, barDemo, countLabels, REST_COUNTS_IN_PARENS,
   DEMO_STEPS_VALUE, DEMO_STEPS_BEATS, DEMO_STEPS_BAR, pyramidSvg, featureTable, restTable, countTable, COUNT_SYLLABLES, REST_FEATURES,
   beamGroups, secondaryBeams, needsStub, onsetsOf, barBeams, BEAM_UNIT, HELP_TEXT_BEAM, BEAM_PICTURES, beamPictureSvg,
@@ -382,6 +382,31 @@ test("Abstände im Takt: wachsen mit der Dauer, Lücke wie eine Viertel", () => 
   const g = layoutBar(parseBar("2 4 8 8"), 0), dg = g.map((x, i) => (g[i + 1] ?? X1) - x);
   assert.ok(Math.abs(dg[0] - dg[1]) < 0.02);
   assert.ok(xs[xs.length - 1] < X1 - 20);
+});
+
+test("Abstände im Takt: Fähnchen berührt weder den Kasten der Lücke noch das nächste Zeichen (alle 91 Aufgaben)", () => {
+  // Breite der Fähnchen ab der linken Kopfkante (Noto Music bei 48 px: Achtel 1,1 LA, Sechzehntel 1,15 LA)
+  const FLAG_W = { 8: 1.1 * S, 16: 1.15 * S }, BOX = 5, FREI = 3;
+  let n = 0, weit = 0;
+  for (const bar of BARS) {
+    const els = parseBar(bar);
+    els.forEach((_, gap) => {
+      n++;
+      const xs = layoutBar(els, gap), frage = new Set(barBeams(els, gap).flat());
+      assert.ok(Math.abs(xs[0] - layoutBar(els)[0]) < 0.01 && xs[xs.length - 1] < X1 - 20, bar);
+      els.forEach((e, i) => {
+        if (i === gap || e.rest || e.v < 8 || frage.has(i)) return; // nur Noten mit Fähnchen im Fragebild
+        const next = i + 1 < els.length ? xs[i + 1] - (i + 1 === gap ? BOX : 0) : X1;
+        assert.ok(next - (xs[i] + FLAG_W[e.v]) >= FREI, `${bar}, Lücke ${gap}, Zeichen ${i}`);
+        if (i + 1 === gap && e.v === 16) { weit++; assert.ok(Math.abs(xs[i + 1] - xs[i] - GAP_FLAG_ADVANCE) < 0.02); }
+      });
+    });
+  }
+  assert.equal(n, 91);
+  assert.equal(weit, 3); // „16 ? 8“, „16 16 ?“, „8 16 ?“
+  // ohne Sechzehntel vor der Lücke bleibt die Regel c · Dauer^0,6 unverändert
+  const g = layoutBar(parseBar("16 16 8 4 2"), 0), d = g.map((x, i) => (g[i + 1] ?? X1) - x);
+  assert.ok(Math.abs(d[2] / d[1] - Math.pow(2, 0.6)) < 0.01);
 });
 
 test("Punkt: rechts vom Kopf, auf einer Linie im Zwischenraum darüber", () => {
