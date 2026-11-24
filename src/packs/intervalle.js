@@ -1,8 +1,8 @@
 // Paket „Intervalle“: zehn Stufen und drei Lerntafeln (neu seit 20.11.2026, docs/PLAN.md, Welle 7).
 // Unterrichtsweg (Sandra): erst mit Hilfen (Klaviatur und Tabelle zum Aufklappen), dann ohne. Immer zuerst
-// das Rahmenintervall (die Zahl aus den Notenstufen), dann die Feinbestimmung (die Qualität aus den
-// Halbtönen). Vermindert und übermäßig gehören dazu (musisches Gymnasium), Jahrgangsstufen stehen an keiner Stufe.
-// Stufen: 1–2 Rahmenintervall, 3–6 zweischrittig (rein/klein/groß, dann mit vermindert/übermäßig),
+// die Grobbestimmung (die Zahl aus den Notenstufen), dann die Feinbestimmung (die Qualität aus den
+// Halbtönen). Seit Welle 10 (Sandra, 24.11.2026) heißt es überall „Grob- und Feinbestimmung“. Vermindert und übermäßig gehören dazu (musisches Gymnasium), Jahrgangsstufen stehen an keiner Stufe.
+// Stufen: 1–2 Grobbestimmung (nur die Zahl), 3–6 zweischrittig (rein/klein/groß, dann mit vermindert/übermäßig),
 // 7 abwärts, 8–9 bauen, 10 Fehler finden. Freischaltung der Reihe nach.
 // Die Tonarten-Stufen (bis 20.11.2026 intervalle-5 und -6) stehen jetzt im Paket „Tonleitern“ (7 und 8).
 // Intervallzahl aus dem diatonischen Abstand, Qualität aus der Halbtonzahl (src/music.js).
@@ -12,7 +12,7 @@ import {
 } from "../music.js";
 import { staffSvg, noteSvg, pianoSvg, BOTTOM, S, H } from "../staff.js";
 import { tileTable } from "../grid.js";
-import { demoHtml, mountDemo } from "../demo.js";
+import { demoHtml, mountDemo, COUNT_RULE } from "../demo.js";
 
 const CLEF_SHORT = { treble: "Violin", bass: "Bass" };
 // Zwei ganze Noten nebeneinander, 60 Einheiten (5 Linienabstände) von Kopfmitte zu Kopfmitte: das
@@ -171,7 +171,7 @@ export function stepsText(a, b) {
   return `${frameText(a, b)} · ${ALLOWED_NAMES.includes(name) ? `${half} → ${name}` : half}`;
 }
 
-/* ---------- Stufe 1 und 2: Intervall bestimmen (nur die Zahl; „Rahmenintervall“ heißt sie erst ab Stufe 3,
+/* ---------- Stufe 1 und 2: Intervall bestimmen (nur die Zahl; „Grobbestimmung“ heißt sie erst ab Stufe 3,
    wo sie von der Feinbestimmung unterschieden wird – Sandra, 20.11.2026) ---------- */
 
 // Acht Knöpfe Prime … Oktave in zwei Reihen zu vier; Ziffern 1 bis 8 auf der Tastatur
@@ -195,12 +195,14 @@ function numberQuestion(it) {
 
 /* ---------- Stufe 3 bis 7: zwei Schritte ---------- */
 
-// Schritt 1: Rahmenintervall (acht Knöpfe). Schritt 2: die zur richtigen Zahl passenden Intervalle aus
+// Schritt 1: Grobbestimmung (acht Knöpfe). Schritt 2: die zur richtigen Zahl passenden Intervalle aus
 // types, auch wenn Schritt 1 daneben lag (Sandra, 20.11.2026); die Aufgabe zählt dann als daneben
 // (Teilerfolg, q.partial: nicht rot gezeigt).
 // Gibt es zur Zahl nur ein Intervall (Prime, Quarte, Quinte, Oktave in Stufe 3 und 4, sonst die Oktave),
 // entfällt der zweite Schritt (Welle 10, Befund B10: ein Knopf ist keine Entscheidung): Die Aufgabe endet
 // nach Schritt 1, die Rückmeldung nennt die Halbtonzahl („4 Stufen → Quarte · hier rein: 5 Halbtöne“).
+// Frage zu Schritt 1 (Welle 10, B5)
+export const GROB_PROMPT = "Grobbestimmung: Welches Intervall?", GROB_PROMPT_DOWN = "Abwärts – Grobbestimmung: Welches Intervall?";
 export const finePrompt = (frame, numName) => `${frame}. Welche ${numName}? Zähle die Halbtöne.`;
 // Rückmeldung der Aufgaben mit nur einem Schritt: „c'–f': 4 Stufen → Quarte · hier rein: 5 Halbtöne“
 export const singleText = (frame, quality, semi) => `${frame} · hier ${quality}: ${plural(semi, "Halbton", "Halbtöne")}`;
@@ -214,7 +216,7 @@ export function twoStepQuestion(it, types, down = false) {
   const numberStep = { ...NUMBER_SET, choices: NUMBER_SET.choices.slice(), answer: numName, ok: `Richtig: ${frame}.`, bad: `Nicht ganz: ${frame}.` };
   return {
     svg: pairSvg(it.clef, first, second),
-    prompt: down ? "Abwärts: Welches Rahmenintervall?" : "Welches Rahmenintervall?",
+    prompt: down ? GROB_PROMPT_DOWN : GROB_PROMPT,
     answer,
     choices: fine,
     steps: single ? [numberStep] : [numberStep, { choices: fine, cols: fine.length, answer, prompt: finePrompt(frame, numName) }],
@@ -303,16 +305,16 @@ export function checkBuild(q, value) {
 
 // Verlangt werden alle erlaubten Intervalle außer der Prime (17): rein, klein, groß und seit 20.11.2026
 // (Sandra) auch übermäßige Sekunde, verminderte und übermäßige Quarte und Quinte, verminderte Septime.
-// Jedes Urteil bleibt eindeutig: anderer Buchstabe → „Zahl stimmt nicht“, gleicher Buchstabe und genau
+// Jedes Urteil bleibt eindeutig: anderer Buchstabe → „anderes Intervall (Notenstufen)“, gleicher Buchstabe und genau
 // ein Halbton mehr bzw. weniger → „ein Halbton zu viel/zu wenig“, sonst „stimmt“.
 // Die Rückmeldung benennt das gezeigte Intervall, wenn es erlaubt ist (stepsText).
 export const CHECK_TYPES = TYPES_NO_PRIME;
 export const CHECK_NAMES = CHECK_TYPES.map((t) => t.name);
-// Bei „Zahl stimmt nicht“ ist das gezeigte Intervall selbst rein, groß oder klein (Sekunde bis Oktave)
+// Bei „anderes Intervall“ ist das gezeigte Intervall selbst rein, groß oder klein (Sekunde bis Oktave)
 export const SIZE_ORDER = TYPES_RKG.filter((t) => t.num > 1);
 export const SIZE_NAMES = SIZE_ORDER.map((r) => r.name);
 
-export const VERDICT_OK = "stimmt", VERDICT_NUM = "Zahl stimmt nicht (Stufen)", VERDICT_MORE = "ein Halbton zu viel", VERDICT_LESS = "ein Halbton zu wenig";
+export const VERDICT_OK = "stimmt", VERDICT_NUM = "anderes Intervall (Notenstufen)", VERDICT_MORE = "ein Halbton zu viel", VERDICT_LESS = "ein Halbton zu wenig";
 export const VERDICTS = [VERDICT_OK, VERDICT_NUM, VERDICT_MORE, VERDICT_LESS];
 const isSizeName = (name) => SIZE_NAMES.includes(name);
 
@@ -370,10 +372,10 @@ function checkQuestion(it) {
   };
 }
 
-/* ---------- Übersicht: Rahmenintervall → Halbtöne (Kästchentabelle aus src/grid.js) ---------- */
+/* ---------- Übersicht: Intervall (Grobbestimmung) → Halbtöne (Kästchentabelle aus src/grid.js) ---------- */
 
 const HELPS = ["klaviatur", "tabelle"];
-export const HELP_TEXT = "Die Zahl kommt aus den Notenstufen, die Klaviatur brauchst du nur für die Halbtöne.";
+export const HELP_TEXT = `Die Zahl kommt aus den Notenstufen, die Klaviatur brauchst du nur für die Halbtöne. ${COUNT_RULE}`;
 // Stufe 1 (nur Stammtöne): die Zahl aus den Notenstufen; auf der Klaviatur sind das die weißen Tasten
 export const HELP_TEXT_1 = "Die Zahl kommt aus den Notenstufen: Zähle beide Noten mit. Bei Stammtönen sind das auf der Klaviatur die weißen Tasten.";
 
@@ -386,7 +388,7 @@ export const rowLabel = (num) => `<b class="num">${num}</b> ${INTERVAL_NAMES[num
 export const baseQuality = (num, quality) => (quality === "übermäßig" ? (isPerfectNumber(num) ? "rein" : "groß")
   : quality === "vermindert" ? (isPerfectNumber(num) ? "rein" : "klein") : quality);
 
-// Tabelle je Stufe. kind: "rahmen" (Stufe 1: nur die Rahmenintervalle, die Zahl sind die Notenstufen),
+// Tabelle je Stufe. kind: "grob" (Stufe 1: nur die Zahlen Prime … Oktave, die Zahl sind die Notenstufen),
 // "rkg" (Stufe 3: klein | rein | groß), "all" (Stufe 5 und 8, Vorführung, Lerntafel: dazu die Zeile
 // „vermindert = 1 Halbton weniger · übermäßig = 1 Halbton mehr“). Halbtonzahlen aus semitonesFor.
 // row: Zahl, deren Zeile violett leuchtet (Schritt 1); hit: { num, quality } – Treffer grün (Schritt 2), bei
@@ -397,17 +399,17 @@ export function intervalTable(kind = "all", { row = null, hit = null, split = fa
   const delta = hit && ref !== hit.quality ? hit.quality : null;
   const rows = INTERVAL_NAMES.map((_, i) => {
     const num = i + 1;
-    const cells = kind === "rahmen" ? [] : TABLE_COLS.map((q) => {
+    const cells = kind === "grob" ? [] : TABLE_COLS.map((q) => {
       const semi = semitonesFor(num, q);
       if (semi === null) return null;
       return { text: semi, state: hit && hit.num === num && q === ref ? (delta ? "ref" : "hit") : undefined };
     });
     return { label: rowLabel(num), cells, hi: row === num };
   });
-  const rahmen = kind === "rahmen";
+  const grob = kind === "grob";
   const table = tileTable({
-    head: rahmen ? ["Stufen = Intervall"] : ["Rahmen", ...TABLE_COLS],
-    rows, family: rahmen ? [] : [TABLE_COLS.indexOf("rein")], split, cls: rahmen ? "tt-rahmen" : "",
+    head: grob ? ["Stufen = Intervall"] : ["Intervall", ...TABLE_COLS],
+    rows, family: grob ? [] : [TABLE_COLS.indexOf("rein")], split, cls: grob ? "tt-grob" : "",
   });
   const on = (q) => (delta === q ? " on" : "");
   const note = kind === "all"
@@ -419,8 +421,8 @@ export function intervalTable(kind = "all", { row = null, hit = null, split = fa
 /* ---------- Vorführung „So bestimmst du ein Intervall“ (src/demo.js) ---------- */
 
 // Schritt-Marken (Farben: Schritt 1 violett, Schritt 2 grün)
-export const DEMO_STEPS = ["1 · Rahmen: Stufen zählen", "2 · Fein: Halbtöne zählen"];
-// Stufe 1 (nur die Zahl): ohne den Hilfsbegriff „Rahmen“
+export const DEMO_STEPS = ["1 · Grob: Stufen zählen", "2 · Fein: Halbtöne zählen"];
+// Stufe 1 (nur die Zahl): ohne die Fachwörter „Grob-“ und „Feinbestimmung“
 export const DEMO_STEP_ONLY = "Stufen zählen";
 // Beispiele der Lerntafel: kleine Terz, große Terz, große Terz mit ♯, übermäßige Quarte, reine Quinte
 export const DEMO_EXAMPLES = [[N("E", 4), N("G", 4)], [N("C", 4), N("E", 4)], [N("D", 4), N("F", 4, 1)], [N("F", 4), N("H", 4)], [N("D", 4), N("A", 4)]];
@@ -461,10 +463,12 @@ export function demoStaffSvg(low, high, clef, k, bracket) {
 // Klaviatur der Vorführung (wie die Hilfe-Klaviatur, nur zum Anschauen): ab dem C unter der unteren Note,
 // eine Oktave, wenn sie reicht, sonst zwei (größere Tasten auf schmalen Bildschirmen). Beide Töne markiert,
 // die ersten j Halbtöne über der unteren Note grün mit ihrer Zahl. active: false im ersten Schritt (blass).
+// Beim Zählen (active) trägt die untere Note die Aufschrift „Start“ (Welle 10, B6: sie zählt nicht mit).
 export function demoKeysSvg(low, high, j, active) {
   const from = 12 * Math.floor(midi(low) / 12), octaves = midi(high) <= from + 12 ? 1 : 2;
   const counts = Array.from({ length: j }, (_, t) => [midi(low) + t + 1, t + 1]);
-  return `<div class="demo-keys${active ? "" : " dim"}">${pianoSvg({ from, octaves, marks: [midi(low), midi(high)], counts, interactive: false })}</div>`;
+  const start = active && midi(high) > midi(low) ? midi(low) : null;
+  return `<div class="demo-keys${active ? "" : " dim"}">${pianoSvg({ from, octaves, marks: [midi(low), midi(high)], counts, interactive: false, start })}</div>`;
 }
 
 // Ton zu einer MIDI-Nummer (nur für den Klang beim Zählen der Halbtöne, die Schreibweise spielt keine Rolle)
@@ -497,7 +501,7 @@ export function intervalDemo(low, high, { clef = "treble", table = "all", fine =
   for (let k = 1; k <= num; k++) {
     const lastStep = k === num, n = stepNote(low, high, k, num);
     const text = lastStep
-      ? `${plural(num, "Stufe", "Stufen")} = ${numName}.${fine ? " Jetzt die Halbtöne auf der Klaviatur." : ""}`
+      ? `${plural(num, "Stufe", "Stufen")} = ${numName}.${fine ? ` Jetzt die Halbtöne auf der Klaviatur. ${COUNT_RULE}` : ""}`
       : `${helm(n)} ist Stufe ${k}.`;
     frames.push({ step: 1, kind: "stufe", n: k, tones: [n], text, body: body(k, lastStep, 0, false, null) });
   }
@@ -529,7 +533,7 @@ const find = (pool, low, high) => pool.find((it) => same(it.low, low) && same(it
 // Hilfen: Text, Klaviatur, Tabelle (zwei Hälften) und die Vorführung der aktuellen Aufgabe (erst nach der Antwort)
 const withHelps = (kind, text = HELP_TEXT) => ({
   helps: HELPS, helpText: text, helpTable: intervalTable(kind, { split: true }),
-  demo: (q) => intervalDemo(q.low, q.high, { clef: q.clef, table: kind, fine: kind !== "rahmen" }),
+  demo: (q) => intervalDemo(q.low, q.high, { clef: q.clef, table: kind, fine: kind !== "grob" }),
 });
 
 const levels = [
@@ -541,7 +545,7 @@ const levels = [
     example: intervalSvg(find(POOL_1, N("C", 4), N("E", 4))),
     question(prev, ctx) { return numberQuestion(pickBy(POOL_1, prev, byNum, pairKey, roundOf(ctx))); },
     digits: true,
-    ...withHelps("rahmen", HELP_TEXT_1),
+    ...withHelps("grob", HELP_TEXT_1),
   },
   {
     title: "Intervall bestimmen ohne Hilfen",
@@ -555,7 +559,7 @@ const levels = [
   {
     title: "Rein, klein, groß",
     subtitle: `Violinschlüssel · zwei Schritte · mit Hilfen · ${POOL_3.length} Aufgaben`,
-    hint: "Zwei Schritte: Erst das Rahmenintervall aus den Notenstufen, dann die Halbtöne. Prime, Quarte, Quinte und Oktave sind hier rein, Sekunde, Terz, Sexte und Septime klein oder groß.",
+    hint: "Zwei Schritte: Erst die Grobbestimmung aus den Notenstufen, dann die Feinbestimmung aus den Halbtönen. Grobbestimmung = nur die Zahl: Prime, Sekunde, Terz … Feinbestimmung = rein, klein oder groß. Prime, Quarte, Quinte und Oktave sind hier rein, Sekunde, Terz, Sexte und Septime klein oder groß.",
     items: POOL_3,
     example: intervalSvg(find(POOL_3, N("E", 4), N("G", 4))),
     twoSteps: true,
@@ -587,7 +591,7 @@ const levels = [
   {
     title: "Vermindert und übermäßig ohne Hilfen",
     subtitle: `Violin- und Bassschlüssel · zwei Schritte · ${POOL_6.length} Aufgaben`,
-    hint: "Dasselbe ohne Hilfen, im Violin- und Bassschlüssel. Die Zahl bestimmst du immer zuerst, sie kommt nur aus den Notenstufen.",
+    hint: "Dasselbe ohne Hilfen, im Violin- und Bassschlüssel. Die Zahl bestimmst du immer zuerst, sie kommt nur aus den Notenstufen. Das Auflösungszeichen ♮ hebt ein ♯ oder ♭ an derselben Stelle wieder auf.",
     items: POOL_6,
     example: intervalSvg(find(POOL_6, N("E", 3, -1), N("F", 3, 1))),
     twoSteps: true,
@@ -607,7 +611,7 @@ const levels = [
   {
     title: "Intervall bauen",
     subtitle: `Violinschlüssel · aufwärts · mit Hilfen · ${POOL_8.length} Aufgaben`,
-    hint: "Erst der Buchstabe: Zähle ab der gegebenen Note die Stufen, sie zählt mit – für eine Terz über e' also e, f, g. Dann die Halbtöne: Die große Terz hat 4, also gis'. Die Schreibweise zählt: Gis ist nicht As. Wähle den ganzen Namen oder tippe ihn ein.",
+    hint: "Erst der Buchstabe: Zähle ab der gegebenen Note die Notenstufen, sie zählt mit – für eine Terz über e' also e, f, g. Dann die Halbtöne: Die große Terz hat 4, also gis'. Die Schreibweise zählt: Gis ist nicht As. Wähle den ganzen Namen oder tippe ihn ein.",
     input: "letters",
     acc: true,
     namesOnly: true,
@@ -632,7 +636,7 @@ const levels = [
   {
     title: "Fehler finden",
     subtitle: `Violinschlüssel · ${POOL_10.length} Aufgaben`,
-    hint: "Jemand hat ein Intervall gebaut, auch verminderte und übermäßige. Prüfe in zwei Schritten: Stimmt die Zahl? Zähle die Notenstufen. Stimmt sie, zähle die Halbtöne: einer zu viel, einer zu wenig oder genau richtig?",
+    hint: "Jemand hat ein Intervall gebaut, auch verminderte und übermäßige. Prüfe in zwei Schritten: Stimmt die Zahl? Zähle die Notenstufen – passt sie nicht, ist es ein anderes Intervall. Stimmt sie, zähle die Halbtöne: einer zu viel, einer zu wenig oder genau richtig?",
     items: POOL_10,
     example: intervalSvg({ clef: "treble", low: N("E", 4), high: N("G", 4) }),
     question(prev, ctx) { return checkQuestion(pickCheck(POOL_10, prev, roundOf(ctx))); },
@@ -641,16 +645,44 @@ const levels = [
 
 /* ---------- Lerntafeln ---------- */
 
-// Intervalle über c' (Violinschlüssel) bzw. c (Bassschlüssel), je Zeile höchstens drei Beispiele.
-// Drei statt vier, damit das Vorzeichen der oberen Note nicht an den Kopf der unteren stößt. Ganze Noten:
-// innerhalb eines Paars 44 Einheiten (bei 40 berührte das ♯ von fis' fast die Hilfslinie von c'), von Paar
-// zu Paar 78, erstes Paar bei 78; so endet der letzte Kopf (278 + 10,3) vor dem Ende der Zeile (302).
+// Intervalle über c' (Violinschlüssel) bzw. c (Bassschlüssel), je Zeile höchstens drei Beispiele, ganze Noten.
+// Seit Welle 10 (B15) gehören die zwei Noten eines Paars sichtbar zusammen: Der freie Raum innerhalb eines
+// Paars ist klein, der zwischen den Paaren deutlich größer, dazu ein feiner Trennstrich unter der Zeile
+// zwischen den Beschriftungen (nicht durch die Linien: das sähe aus wie ein Taktstrich). Bis Welle 9 standen
+// die Noten in festem Abstand (44 im Paar, 78 von Paar zu Paar): Paare ohne Vorzeichen wirkten dadurch
+// weiter als die Lücke zum nächsten Paar.
+// Gerechnet wird mit dem Platz, den die Zeichen belegen (Maße aus src/staff.js): Kopf der ganzen Note
+// halbe Breite 10,28; Hilfslinie halbe Länge 13,4; ♯ reicht 25,15, ♭ 24,15 links vor die Kopfmitte, mit
+// Hilfslinie 1,9 weiter. Steht ein ♯ vor der oberen Note einer Prime oder Sekunde (c'–cis', c'–dis'), liegt es
+// auf Höhe des unteren Kopfs: dort 8 mehr (pairExtra, so breit wie bis Welle 9). Zeilenbreite nach Bedarf
+// (alle Zeilen einer Tafel gleich breit, damit sie gleich groß erscheinen).
 // Verminderte Quarte (c–fes) und verminderte Septime (c–heses) fehlen: über c bräuchten sie Fes bzw. ein Doppel-Be.
-// Steht ein ♯ vor der oberen Note einer Prime oder Sekunde (c'–cis', c'–dis'), liegt es auf Höhe des
-// unteren Kopfs und berührte bei 44 beide Köpfe: Das Paar wird 8 breiter, die untere Note rückt 6 nach
-// links, die obere 2 nach rechts (nach rechts weniger, damit die Hilfslinien zum nächsten Paar Abstand halten).
-const PAIR_DX = 44, PAIR_STEP = 78, PAIR_X0 = 78;
+export const PAIR_INNER = 6, PAIR_OUTER = 26, PAIR_X0 = 78;
+const HEAD_HALF = 10.28, LEDGER_HALF = 13.4, ACC_LEFT = { 1: 25.15, [-1]: 24.15 }, ACC_LEDGER = 1.9;
 export const pairExtra = (num, high) => (num <= 2 && high.acc > 0 ? { left: 6, right: 2 } : { left: 0, right: 0 });
+const hasLedger = (n, clef) => { const p = staffPos(n, clef); return p <= -2 || p >= 10; };
+// Platz rechts bzw. links der Kopfmitte (links mit Vorzeichen)
+const rightExt = (n, clef) => (hasLedger(n, clef) ? LEDGER_HALF : HEAD_HALF);
+const leftExt = (n, clef) => (n.acc ? ACC_LEFT[n.acc] + (hasLedger(n, clef) ? ACC_LEDGER : 0) : rightExt(n, clef));
+// Lage einer Zeile: [{ x (untere Note), x2 (obere Note), inner (freier Raum im Paar), outer (freier Raum zum
+// nächsten Paar, beim letzten null), sep (x des Trennstrichs davor, beim ersten null), end (rechter Rand) }]
+export function pairLayout(row, clef, c) {
+  const out = [];
+  let x = PAIR_X0;
+  row.forEach(([num, q], i) => {
+    const high = aboveC(c, num, q), wide = pairExtra(num, high);
+    if (i) {
+      const prev = out[i - 1], gapFrom = prev.x2 + rightExt(prev.high, clef);
+      x = gapFrom + PAIR_OUTER + leftExt(c, clef);
+      prev.outer = PAIR_OUTER;
+      out.push({ sep: gapFrom + PAIR_OUTER / 2 });
+    } else out.push({ sep: null });
+    const inner = PAIR_INNER + wide.left + wide.right;
+    const x2 = x + rightExt(c, clef) + inner + leftExt(high, clef);
+    Object.assign(out[i], { num, quality: q, high, x, x2, inner, outer: null, end: x2 + rightExt(high, clef) });
+  });
+  return out.map((p) => ({ ...p, x: r1(p.x), x2: r1(p.x2), sep: p.sep === null ? null : r1(p.sep), end: r1(p.end) }));
+}
 const TABLE = [
   [[1, "rein"], [1, "übermäßig"], [2, "klein"]],
   [[2, "groß"], [2, "übermäßig"], [3, "klein"]],
@@ -672,21 +704,25 @@ const TABLE_OPEN = `<table class="small" style="grid-column: 1 / -1; width: 100%
 export const LEARN_ROWS = TABLE.flat().map(([num, q]) => ({ num, quality: q, name: intervalLabel(num, q), semitones: semitonesFor(num, q) }));
 
 // Die Überschrift setzt learn.js aus dem title der Tafel
-function intervalBoard(clef) {
+export function intervalBoard(clef) {
   const c = clef === "treble" ? N("C", 4) : N("C", 3);
   // Im Bassschlüssel hängt keine Note unter der Zeile (c liegt im zweiten Zwischenraum): Beschriftung 10 höher
   // (Violinschlüssel 118: das ♯ vor cis' und dis' reicht unter die Hilfslinie und stieß bei 114 an die Schrift)
   const ly = clef === "treble" ? 118 : 104;
-  const staves = TABLE.map((row) => {
+  const layouts = TABLE.map((row) => pairLayout(row, clef, c));
+  // gemeinsame Breite: rechter Rand der breitesten Zeile plus der Rand nach den Linien (wie in staffSvg)
+  const width = Math.max(320, Math.ceil(Math.max(...layouts.flat().map((p) => p.end)) + 2 + 18));
+  const staves = layouts.map((row) => {
     let inner = "";
-    row.forEach(([num, q], i) => {
-      const x = PAIR_X0 + i * PAIR_STEP, high = aboveC(c, num, q), wide = pairExtra(num, high);
-      inner += noteSvg(c, clef, x - wide.left, "", { value: NOTE_VALUE }) + noteSvg(high, clef, x + PAIR_DX + wide.right, "", { value: NOTE_VALUE });
+    row.forEach((p) => {
+      const mid = r1((p.x + p.x2) / 2);
+      inner += noteSvg(c, clef, p.x, "", { value: NOTE_VALUE }) + noteSvg(p.high, clef, p.x2, "", { value: NOTE_VALUE });
+      if (p.sep !== null) inner += `<line class="pair-sep" x1="${p.sep}" x2="${p.sep}" y1="${ly - 11}" y2="${ly + 15}"/>`;
       // Beschriftung zweizeilig, damit lange Namen („übermäßige Quarte“) nicht ineinanderlaufen
-      inner += `<text class="note-label" x="${x + PAIR_DX / 2}" y="${ly}" text-anchor="middle">${q === "groß" ? "große" : q + "e"}</text>`;
-      inner += `<text class="note-label" x="${x + PAIR_DX / 2}" y="${ly + 12}" text-anchor="middle">${INTERVAL_NAMES[num - 1]}</text>`;
+      inner += `<text class="note-label" x="${mid}" y="${ly}" text-anchor="middle">${p.quality === "groß" ? "große" : p.quality + "e"}</text>`;
+      inner += `<text class="note-label" x="${mid}" y="${ly + 12}" text-anchor="middle">${INTERVAL_NAMES[p.num - 1]}</text>`;
     });
-    return staffSvg(clef, inner, { height: ly + 18 });
+    return staffSvg(clef, inner, { height: ly + 18, width });
   }).join("");
   const rows = LEARN_ROWS.map((r) => `<tr><td>${r.name}</td><td class="num">${r.semitones}</td><td><b>${helm(c)}–${helm(aboveC(c, r.num, r.quality))}</b></td></tr>`).join("");
   return `<figure style="grid-column: 1 / -1; margin: 0">${staves}</figure>
@@ -699,7 +735,7 @@ function intervalBoard(clef) {
 export function demoBoard() {
   const picks = DEMO_EXAMPLES.map(([a, b], i) => `<button class="btn${i ? "" : " on"}" data-ex="${i}" aria-pressed="${!i}">${pairText(a, b)}</button>`).join("");
   return `<div class="demo-board" data-demo-board>
-    <p class="small">Erst das Rahmenintervall (die Zahl aus den Notenstufen), dann die Feinbestimmung (die Halbtöne). Wähle ein Beispiel, dann „Weiter ›“ oder „Abspielen“.</p>
+    <p class="small">Erst die Grobbestimmung (nur die Zahl aus den Notenstufen: Prime, Sekunde, Terz …), dann die Feinbestimmung (rein, klein oder groß, aus den Halbtönen). Wähle ein Beispiel, dann „Weiter ›“ oder „Abspielen“.</p>
     <div class="row demo-pick" role="group" aria-label="Beispiel">${picks}</div>
     <div class="demo" data-demo-root>${demoHtml(intervalDemo(...DEMO_EXAMPLES[0]), 0)}</div>
     <p class="small">${HELP_TEXT} Übermäßige Quarte (f'–h') und verminderte Quinte (h'–f'') haben beide 6 Halbtöne.</p>
@@ -724,7 +760,7 @@ export function mountBoard(container) {
 export default {
   id: "intervalle",
   title: "Intervalle",
-  subtitle: "Rahmenintervall und Feinbestimmung, bauen, Fehler finden",
+  subtitle: "Grob- und Feinbestimmung, bauen, Fehler finden",
   grade: "Klasse 5–9",
   levels,
   learn: [

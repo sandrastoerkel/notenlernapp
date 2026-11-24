@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { startLabel, keysHint, lettersLabel, resultInfo, answersScroll, startHint, TWO_STEPS_NOTE } from "../../src/views/practice.js";
+import { startLabel, keysHint, lettersLabel, resultInfo, answersScroll, startHint, TWO_STEPS_NOTE, resultLine, avgText } from "../../src/views/practice.js";
 import { PACKS } from "../../src/packs/index.js";
 import { lockText } from "../../src/views/home.js";
 import { fresh } from "../../src/store.js";
@@ -128,4 +128,15 @@ test("Startkarte: zweischrittige Stufen sagen „Beide Schritte müssen stimmen.
   // die Startkarte nutzt startHint
   const src = readFileSync(new URL("../../src/views/practice.js", import.meta.url), "utf8");
   assert.match(src, /\$\("#pHint"\)\.textContent = startHint\(level\)/);
+});
+
+test("Welle 10, B5/B15: Tastaturhinweis ohne Klammerzusatz, Ergebniskarte mit Komma und „pro Aufgabe“", () => {
+  const h = keysHint(lv(intervalle, 3));
+  assert.ok(!/\(|Rahmen/i.test(h), h);
+  assert.equal(avgText(0.1), "0,1");
+  assert.equal(avgText(2.345), "2,3");
+  assert.equal(resultLine({ id: "noten" }, 12, 2.34), "+12 XP · Ø 2,3 s pro Note");
+  for (const id of ["notenwerte", "tonleitern", "intervalle", "akkorde"]) assert.equal(resultLine({ id }, 5, 0.1), "+5 XP · Ø 0,1 s pro Aufgabe");
+  const src = readFileSync(new URL("../../src/views/practice.js", import.meta.url), "utf8");
+  assert.ok(src.includes("${resultLine(pack, gained, avg)}") && !src.includes("s pro Note${"));
 });

@@ -281,7 +281,7 @@ test("pianoSvg mit Parametern: zwei Oktaven, nicht anklickbar, markierte Tasten 
   const p = pianoSvg({ from: 60, octaves: 2, marks: [64, 70], interactive: false });
   assert.equal(count(p, /class="wkey/g), 15);
   assert.equal(count(p, /class="bkey/g), 10);
-  assert.ok(p.includes('class="keys-static"') && !p.includes("data-semi"));
+  assert.ok(p.includes('class="keys-static keys-wide"') && !p.includes("data-semi"));
   assert.ok(p.includes('data-midi="60" data-id="w0"') && p.includes('data-midi="84" data-id="w14"'));
   assert.deepEqual([...p.matchAll(/class="[wb]key mark" data-midi="(\d+)"/g)].map((m) => +m[1]), [64, 70]);
   assert.equal(count(p, /class="klabel mark"/g), 1);

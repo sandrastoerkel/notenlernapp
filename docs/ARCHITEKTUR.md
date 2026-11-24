@@ -222,13 +222,15 @@ groß von Prime bis Oktave, 12), `TYPES_ALL` (dazu übermäßige Prime und Sekun
 Quarte und Quinte, verminderte Septime, 19), `TYPES_NO_PRIME` (abwärts und Bauen, 17), `ALLOWED_NAMES`;
 `qualityChoices(num, types)` (Knöpfe im zweiten Schritt), `frameText(a, b)` („e'–g': 3 Stufen → Terz“),
 `stepsText(a, b)` (beide Denkschritte; nur erlaubte Intervalle werden benannt), `twoStepQuestion(it, types, down)`,
-`intervalTable(kind, { row, hit, split })` (Kästchentabelle aus `grid.js`, Werte aus `semitonesFor`: `"rahmen"`
+`intervalTable(kind, { row, hit, split })` (Kästchentabelle aus `grid.js`, Werte aus `semitonesFor`: `"grob"`
 Stufe 1 nur „1 Prime … 8 Oktave“, `"rkg"` Stufe 3 klein | rein | groß, `"all"` dazu die Zeile „vermindert = 1
 Halbton weniger · übermäßig = 1 Halbton mehr“; `row` violett, `hit` grün, bei vermindert/übermäßig das
 Bezugs-Kästchen umrandet (`baseQuality`) und der passende Teil der Zeile grün), `intervalDemo(low, high,
 { clef, table, fine })` (Bilder der Vorführung, siehe unten), `fineText`, `demoXs`, `demoBoard`/`mountBoard`
-(Lerntafel), `CHECK_TYPES`/`CHECK_NAMES` (Ziele in Stufe 10: alle erlaubten ohne Prime, 17),
-`SIZE_ORDER`/`SIZE_NAMES` (rein/groß/klein ohne Prime: das gezeigte Intervall bei „Zahl stimmt nicht“),
+(Lerntafel), `pairLayout(row, clef, c)` (Lerntafel „Intervalle über c'“ seit Welle 10: Lage der Paare nach dem
+Platz der Zeichen, freier Raum im Paar `PAIR_INNER` 6, zwischen den Paaren `PAIR_OUTER` 26, feiner Trennstrich
+`.pair-sep` unter der Zeile), `CHECK_TYPES`/`CHECK_NAMES` (Ziele in Stufe 10: alle erlaubten ohne Prime, 17),
+`SIZE_ORDER`/`SIZE_NAMES` (rein/groß/klein ohne Prime: das gezeigte Intervall bei „anderes Intervall (Notenstufen)“),
 `checkBuild` (Buchstabe und Vorzeichen), `VERDICTS` (Stufe 10). `lowerNote(high, num, quality)` in `music.js`.
 
 **Vorführung „So bestimmst du ein Intervall“** (`intervalDemo`, seit 20.11.2026). Bilder: 1 Frage + je
@@ -318,7 +320,7 @@ werden dort mit Wahrscheinlichkeit 0,4 gezogen. Seit Welle 8 zweischrittig: Stuf
 2 oder 3 Namen), Stufe 10 (das entscheidende Vorzeichen, 2 bis 7 Knöpfe; bei C-, G- und F-Dur gäbe es nur
 einen Knopf, dort entfällt der Schritt seit Welle 10; dann vier Dur-Tonarten in fester Reihenfolge nach dem Quintenzirkel) und Stufe 12 (drei
 aufeinanderfolgende Stammtöne, dann 2 oder 3 Molltonarten desselben Stammtons). Raten reicht in etwa 5,5 % der Runden für 8 von 10.
-Im Paket „Intervalle“ (seit Welle 7) haben das Rahmenintervall acht Knöpfe (Prime … Oktave, `cols: 4`)
+Im Paket „Intervalle“ (seit Welle 7) hat die Grobbestimmung (so heißt die Zahl seit Welle 10) acht Knöpfe (Prime … Oktave, `cols: 4`)
 und der zweite Schritt nur die zur Zahl passenden Intervalle (1 bis 3 Knöpfe, z. B. nur „reine Oktave“).
 
 Rhythmen (seit Paket F): Ein Eintrag in `play` ist entweder eine Note (wie
@@ -430,7 +432,7 @@ Für alle Pakete gedacht (Plan: `KONZEPT-gehirngerecht`, Reihenfolge Intervalle 
 Noten lesen → Dreiklänge).
 
 - **Farben der Denkschritte** (Tokens auf `:root`, hell und dunkel): `--step1`, `--step1-ink`, `--step1-soft`
-  (violett: Schritt 1, z. B. Stufen/Rahmen), `--step2`, `--step2-ink`, `--step2-soft` (grün: Schritt 2, z. B.
+  (violett: Schritt 1, z. B. Stufen/Grobbestimmung), `--step2`, `--step2-ink`, `--step2-soft` (grün: Schritt 2, z. B.
   Halbtöne/Feinbestimmung), `--step-on` (Schrift auf dem vollen Grundton), `--family` (hinterlegte Spalte),
   für die Klaviatur (hell und dunkel gleich) `--key-step2`, `--key-step2-soft`, `--key-step2-ink`,
   `--key-step2-on`. Komponenten nutzen nur diese Tokens.
@@ -449,15 +451,20 @@ Noten lesen → Dreiklänge).
   Punkt (`.tt-dot`), Familien-Spalten hinterlegt (`.fam`), Zeile violett (`hi`), Treffer grün (`hit`), Bezug
   grün umrandet (`ref`); `split` setzt zwei Hälften nebeneinander (Hilfen; bis 380 px wieder untereinander).
 - **Klaviatur**: `pianoSvg({ …, counts: [[midi, Zahl] …] })` färbt gezählte Tasten (Klasse `count`) und
-  schreibt die Zahl darauf.
+  schreibt die Zahl darauf. `start: midi` (seit Welle 10, B6) beschriftet die Starttaste beim Halbtöne-Zählen
+  mit „Start“ (`START_LABEL`, Klasse `kstart`, `data-start`); auf schwarzen Tasten und bei zwei Oktaven bis
+  380 px (Klasse `keys-wide`) steht „0“. Fester Satz dazu `COUNT_RULE` in `demo.js` („Stufen: Beide Noten zählen
+  mit. Halbtöne: Die Starttaste zählt nicht, du zählst die Schritte.“): Hilfen der Intervalle ab Stufe 3 und
+  Tonleitern 12, Vorführungen beim Wechsel zu Schritt 2.
 - **Bis 380 px** stehen die drei Knöpfe der Vorführung und der Bildzähler in einer Zeile (seit Welle 8: kleinere
   Abstände und Schrift, `flex-wrap: nowrap`; vorher rutschte der Zähler darunter).
 
-**Tonleitern (Welle 8).** Denkschritte: 1 = Bauplan (G G H G G G H), 2 = Klaviatur (Halbtöne → Vorzeichen); bei
+**Tonleitern (Welle 8).** Denkschritte: 1 = Bauplan (Leiste 1 1 ½ 1 1 1 ½, seit Welle 10; in Sätzen „Ganz – Ganz – Halb – Ganz – Ganz –
+Ganz – Halb“ = `PLAN_TEXT`), 2 = Klaviatur (Halbtöne → Vorzeichen); bei
 den Tonarten 1 = entscheidendes Vorzeichen (letztes ♯, vorletztes ♭), 2 = Halbton höher bzw. ablesen; bei Moll
 1 = Terz abwärts (drei Notenstufen, Dur-Grundton = 1), 2 = drei Halbtöne abwärts. Hilfen (`level.helps`, nur die
-vorhandenen Arten): Stufen 1, 2, 4, 6, 8 Klaviatur + Bauplan-Leiste (`planTable()`, Kästchentabelle 1–2 … 7–8,
-Halbton-Spalten als `family`), Stufe 10 Klaviatur ohne Markierung + Quintenzirkel-Kästchen (`circleTable`),
+vorhandenen Arten): Stufen 1, 2, 4, 6, 8 Klaviatur + Bauplan-Leiste (`planTable()`, Kästchentabelle mit kleinem Kopf „Stufen 1–2 … 7–8“, Zeile „Tonschritt“
+(`PLAN_SHORT` 1 / ½), in der Vorführung grüne Zeile „Halbtöne“; Halbton-Spalten als `family`), Stufe 10 Klaviatur ohne Markierung + Quintenzirkel-Kästchen (`circleTable`),
 Stufe 12 nur Klaviatur (Dur-Grundton in der zweigestrichenen Oktave). Vor der Antwort hebt keine Hilfe etwas
 hervor. Vorführungen als reine Funktionen im Paket: `scaleDemo(tonic, clef)` (18 Bilder: Frage, 8 Stufen,
 Bauplan-Leiste, 7 Schritte, Ergebnis; Berichtigung immer an der oberen Note, zu klein → ♯, zu groß → ♭, grün

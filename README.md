@@ -73,13 +73,13 @@ Smartphone-Breite (420 px), helles Farbschema. Die dunklen Fassungen liegen dane
 7. Vorzeichen ♯ und ♭
 8. Alles gemischt
 
-Das sind die Stufen von „Noten lesen“. Weitere Pakete: Notenwerte und Pausen (zehn Stufen: Notenwerte, Pausen, Schläge, Punktierungen, Takt füllen; immer erst mit Hilfen – Merkmale, Notenwert-Pyramide, Zählleiste – dann ohne; drei Vorführungen als Lerntafeln), Tonleitern (13 Stufen: Ganz- und Halbtonschritte, welcher Ton fehlt, welcher Ton passt nicht, Vorzeichen, Tonart aus den Vorzeichen, parallele Molltonart; immer erst mit Hilfen – Klaviatur, Bauplan-Leiste bzw. Quintenzirkel – dann ohne; drei Vorführungen als Lerntafeln), Intervalle (zehn Stufen: Rahmenintervall, dann rein/klein/groß und vermindert/übermäßig in zwei Schritten, abwärts, bauen, Fehler finden; Stufe 1, 3, 5 und 8 mit aufklappbaren Hilfen: Klaviatur und Tabelle), Dreiklänge und Quintenzirkel.
+Das sind die Stufen von „Noten lesen“. Weitere Pakete: Notenwerte und Pausen (zehn Stufen: Notenwerte, Pausen, Schläge, Punktierungen, Takt füllen; immer erst mit Hilfen – Merkmale, Notenwert-Pyramide, Zählleiste – dann ohne; drei Vorführungen als Lerntafeln), Tonleitern (13 Stufen: Ganz- und Halbtonschritte, welcher Ton fehlt, welcher Ton passt nicht, Vorzeichen, Tonart aus den Vorzeichen, parallele Molltonart; immer erst mit Hilfen – Klaviatur, Bauplan-Leiste bzw. Quintenzirkel – dann ohne; drei Vorführungen als Lerntafeln), Intervalle (zehn Stufen: erst nur die Zahl, dann Grob- und Feinbestimmung – rein/klein/groß und vermindert/übermäßig in zwei Schritten, abwärts, bauen, Fehler finden; Stufe 1, 3, 5 und 8 mit aufklappbaren Hilfen: Klaviatur und Tabelle), Dreiklänge und Quintenzirkel.
 
 Eine Stufe öffnet sich, sobald in der vorherigen 8 von 10 Noten richtig waren. Zum Ausprobieren gibt es auf der Startseite „Alle Stufen öffnen (Demo)“.
 
 ## Tastatur
 
-`C` `D` `E` `F` `G` `A` `H` antworten sofort. Beim Rahmenintervall (Paket „Intervalle“) wählen `1` bis `8` Prime bis Oktave. In Stufen mit Vorzeichen tippst du den ganzen Namen (`fis`, `es`, `b` …) und bestätigst mit `Enter`; `Backspace` löscht ein Zeichen, `Esc` leert die Eingabe. Auf dem Bildschirm stehen dort alle 21 Namen von C bis B in drei Reihen.
+`C` `D` `E` `F` `G` `A` `H` antworten sofort. Bei der Grobbestimmung (Paket „Intervalle“) wählen `1` bis `8` Prime bis Oktave. In Stufen mit Vorzeichen tippst du den ganzen Namen (`fis`, `es`, `b` …) und bestätigst mit `Enter`; `Backspace` löscht ein Zeichen, `Esc` leert die Eingabe. Auf dem Bildschirm stehen dort alle 21 Namen von C bis B in drei Reihen.
 
 ## Technik
 

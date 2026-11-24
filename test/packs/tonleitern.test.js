@@ -8,6 +8,7 @@ import tonleitern, { oddQuestion, fitsKey, lowestY, LABEL_DESC,
   FIFTHS, keyChoices, keyChoicesFixed, minorChoices, sigText, sigSentence, nameChoices, gapStepQuestion,
   signStep, majorSinglePrompt, decisiveSign, keyWay, planTable, scaleDemo, stepDemo, keyDemo, minorDemo, buildSteps, stemNotes, sigDemoSvg,
   DEMO_STEPS_SCALE, DEMO_STEPS_KEY, DEMO_STEP_KEY_ONLY, DEMO_STEPS_MINOR, BOARDS, circleTable, HELP_TEXT_PLAN, PLAN_COLS, MINOR_VARIANTS, stemChoices, minorTonicOf, majorTonicOf, minorWay, PLAN, NO_SIGNS,
+  PLAN_SHORT, PLAN_NOTE, PLAN_TEXT, sigWay, HELP_TEXT_MINOR, DECISIVE_PROMPT,
 } from "../../src/packs/tonleitern.js";
 import { PACKS } from "../../src/packs/index.js";
 import { N, dia, midi, pc, SEMI, LETTERS, gName, helm, majorScale, majorName, minorName, majorKeyFromKeySig, relativeMinor } from "../../src/music.js";
@@ -346,12 +347,12 @@ test("Stufe 8 und 9: Vorzeichen in der Reihenfolge der Vorzeichnung, vier Knöpf
     assert.ok(!q.keepRow && !q.revealSvg.includes("note-label"));
     assert.equal(svgResultClass(q, true), "ok");
     assert.equal(svgResultClass(q, false), "bad");
-    assert.ok(q.display.includes("Bauplan G G H G G G H"), q.display);
+    assert.ok(q.display.includes("Bauplan Ganz – Ganz – Halb – Ganz – Ganz – Ganz – Halb"), q.display);
   }
   const d = byId(9).question({ key: "x" });
   assert.ok(d.reveal.startsWith("Richtig wäre: "));
   const dq = makeRound(byId(8), 30).find((q) => q.key === "treble:D");
-  if (dq) assert.equal(dq.display, "Fis, Cis (D-Dur): der Bauplan G G H G G G H braucht Fis und Cis");
+  if (dq) assert.equal(dq.display, "Fis, Cis (D-Dur): der Bauplan Ganz – Ganz – Halb – Ganz – Ganz – Ganz – Halb braucht Fis und Cis");
 });
 
 test("nie dieselbe Aufgabe zweimal hintereinander", () => {
@@ -501,7 +502,7 @@ test("Stufe 10: zwei Schritte – entscheidendes Vorzeichen, dann die Dur-Tonart
       assert.equal(stepsResult(q, [false]), "bad");
     } else {
       assert.deepEqual(q.steps[0].choices, signStep(q.fifths).choices);
-      assert.equal(q.prompt, "Welches Vorzeichen ist entscheidend?");
+      assert.equal(q.prompt, "Welches Vorzeichen ist entscheidend? (Entscheidendes Vorzeichen = bei Kreuzen das letzte, bei Be das vorletzte.)");
       assert.equal(stepsFeedback(q, [true, true]), `Richtig! ${keyWay(q.fifths)}`);
       assert.equal(stepsResult(q, [false, true]), "part");
     }
@@ -688,8 +689,18 @@ test("Hilfen: nur die Stufen 1, 2, 4, 6, 8, 10, 12, sie warten auf „Nächste A
 test("Hilfen: Bauplan-Leiste und Quintenzirkel ohne Hervorhebung", () => {
   const plan = planTable();
   assert.deepEqual(PLAN_COLS, ["1–2", "2–3", "3–4", "4–5", "5–6", "6–7", "7–8"]);
-  const boxes = [...plan.matchAll(/<span class="tt-box">([GH])<\/span>/g)].map((m) => m[1]);
-  assert.deepEqual(boxes, ["G", "G", "H", "G", "G", "G", "H"]);
+  const boxes = [...plan.matchAll(/<span class="tt-box">(1|½)<\/span>/g)].map((m) => m[1]);
+  assert.deepEqual(boxes, ["1", "1", "½", "1", "1", "1", "½"]);
+  assert.deepEqual(PLAN_SHORT, boxes);
+  // drei Ziffernreihen nicht verwechseln: Kopf „Stufen“, Zeile „Tonschritt“, Erklärung 1 / ½
+  assert.ok(plan.includes('<th class="tt-head">Stufen</th>') && plan.includes('<td class="tt-label">Tonschritt</td>'));
+  assert.ok(!plan.includes('<td class="tt-label">Schritt</td>'));
+  assert.ok(plan.includes(`<p class="tt-note small">${PLAN_NOTE}</p>`));
+  assert.equal(PLAN_NOTE.replace(/\u00a0/g, " "), "1 = Ganztonschritt (2 Halbtöne) · ½ = Halbtonschritt (1 Halbton)");
+  // mit Halbtönen (Vorführung): zweite Zeile „Halbtöne“, grün (hit)
+  const done = planTable({ done: 7 });
+  assert.ok(done.includes('<td class="tt-label">Halbtöne</td>'));
+  assert.deepEqual([...done.matchAll(/<span class="tt-box hit">(\d)<\/span>/g)].map((m) => +m[1]), [2, 2, 1, 2, 2, 2, 1]);
   // Halbton-Spalten 3–4 und 7–8 grau hinterlegt
   const cells = [...plan.matchAll(/<td class="tt-cell( fam)?">/g)].map((m) => !!m[1]);
   assert.deepEqual(cells, [false, false, true, false, false, false, true]);
@@ -795,7 +806,7 @@ test("Vorführung „So baust du eine Dur-Tonleiter“: 18 Bilder, jede Berichti
     assert.equal(changed, Math.abs(fifthsOf(tonic)) - (tonic.acc ? 1 : 0), id);
     const r = d.frames[17].result;
     assert.equal(r.title, `${keyName(tonic)}: ${final.map(NAME).join(" ")}`);
-    assert.deepEqual(r.chips[0], { step: 1, text: "Bauplan G G H G G G H" });
+    assert.deepEqual(r.chips[0], { step: 1, text: "Bauplan Ganz – Ganz – Halb – Ganz – Ganz – Ganz – Halb" });
     const f = fifthsOf(tonic);
     assert.deepEqual(r.chips[1], { step: 2, text: f ? `${Math.abs(f)} Vorzeichen: ${sigList(f)}` : "kein Vorzeichen nötig" });
     assert.deepEqual(d.frames[17].tones, final);
@@ -806,7 +817,7 @@ test("Vorführung „So baust du eine Dur-Tonleiter“: 18 Bilder, jede Berichti
   assert.equal(g.frames[15].text, "e''–f'': 1 Halbton, der Bauplan will Ganz → f'' wird zu fis''");
   assert.equal(g.frames[16].text, "fis''–g'': 1 Halbton = Halb ✓");
   assert.equal(g.frames[17].result.title, "G-Dur: g a h c d e fis g");
-  assert.deepEqual(g.frames[17].result.chips.map((c) => c.text), ["Bauplan G G H G G G H", "1 Vorzeichen: Fis"]);
+  assert.deepEqual(g.frames[17].result.chips.map((c) => c.text), ["Bauplan Ganz – Ganz – Halb – Ganz – Ganz – Ganz – Halb", "1 Vorzeichen: Fis"]);
   assert.equal(scaleDemo(TONICS.treble.F).frames[12].text, "a'–h': 2 Halbtöne, der Bauplan will Halb → h' wird zu b'");
   assert.equal(scaleDemo(TONICS.treble.As).frames[10].text, "as'–h': 3 Halbtöne, der Bauplan will Ganz → h' wird zu b'");
   assert.ok(scaleDemo(TONICS.treble.Es).frames.some((f) => /3 Halbtöne, der Bauplan will Ganz/.test(f.text || "")));
@@ -875,10 +886,10 @@ test("Vorführung „So findest du die parallele Molltonart“: alle 15 Tonarten
     assert.deepEqual(d.frames[1].tones, [t]);
     assert.equal(dia(d.frames[3].tones[0]), dia(t) - 2);
     assert.equal(d.frames[3].tones[0].acc, 0);
-    assert.ok(d.frames[3].text.endsWith(`Stammton ${m.letter}.`), d.frames[3].text);
+    assert.ok(d.frames[3].text.includes(`Stammton ${m.letter}.`), d.frames[3].text);
     // Schritt 2: drei Halbtöne abwärts, je eine Taste mehr gezählt
     for (let j = 1; j <= 3; j++) {
-      assert.equal((d.frames[3 + j].body.match(/<text class="kcount/g) || []).length, j);
+      assert.equal((d.frames[3 + j].body.match(/<text class="kcount(?: on-black)?"/g) || []).length, j);
       assert.equal(midi(d.frames[3 + j].tones[0]), midi(t) - j);
     }
     assert.ok(d.frames[6].text.includes(`→ ${minorName(f)}`) && d.frames[6].text.includes("kleine Terz"), d.frames[6].text);
@@ -910,4 +921,49 @@ test("„Vorführen“ in den Hilfen: jede Aufgabe der Stufen mit Hilfen lässt 
   assert.deepEqual(BOARDS.scale.examples.map((e) => e.label), ["C-Dur", "G-Dur", "F-Dur", "D-Dur", "B-Dur"]);
   assert.deepEqual(BOARDS.minor.examples.map((e) => e.label), ["Es-Dur", "C-Dur", "A-Dur", "Des-Dur", "Ces-Dur"]);
   for (const b of Object.values(BOARDS)) for (const ex of b.examples) assert.ok(ex.make().frames.length >= 3);
+});
+
+test("Welle 10, A6: Bauplan 1 / ½, in Sätzen ausgeschrieben (sigWay alle neun Tonarten, Ergebniskarte)", () => {
+  assert.deepEqual(PLAN_SHORT, ["1", "1", "½", "1", "1", "1", "½"]);
+  assert.equal(PLAN_TEXT, "Ganz – Ganz – Halb – Ganz – Ganz – Ganz – Halb");
+  const want = { C: "passt ohne Vorzeichen", G: "braucht Fis", D: "braucht Fis und Cis", A: "braucht Fis, Cis und Gis", E: "braucht Fis, Cis, Gis und Dis",
+    F: "braucht B", B: "braucht B und Es", Es: "braucht B, Es und As", As: "braucht B, Es, As und Des" };
+  for (const k of KEYS_4) {
+    const f = fifthsOf(TONICS.treble[k]);
+    assert.equal(sigWay(f), `der Bauplan ${PLAN_TEXT} ${want[k]}`, k);
+    for (const clef of ["treble", "bass"]) {
+      const d = scaleDemo(TONICS[clef][k], clef), r = d.frames[d.frames.length - 1].result;
+      assert.equal(r.chips[0].text, `Bauplan ${PLAN_TEXT}`, k);
+      for (const fr of d.frames) assert.ok(!/G G H|\bG = |\bH = /.test((fr.text || "") + fr.body), `${k} ${clef}`);
+    }
+  }
+  // Lerntafeln, Hilfen und Hinweise: kein G/H als Kürzel für einen Tonschritt
+  const texts = [planTable(), ...tonleitern.levels.map((l) => l.hint + (l.helpText || "")), ...tonleitern.learn.map((b) => b.render())];
+  for (const t of texts) assert.ok(!/G G H|G = Ganz|H = Halb/.test(t), t.slice(0, 80));
+});
+
+test("Welle 10, B5: Fachwörter beim ersten Auftreten erklärt (Tonleitern 4, 10, 12)", () => {
+  assert.ok(byId(4).hint.includes("Stammton = Note ohne Vorzeichen"));
+  assert.ok(byId(12).hint.includes("Stammton = Note ohne Vorzeichen"));
+  assert.ok(byId(12).hint.includes("kleine Terz abwärts") && !byId(12).hint.includes("wie bei den Intervallen"));
+  assert.ok(byId(10).hint.includes("bei Kreuzen das letzte, bei Be das vorletzte"));
+  assert.ok(DECISIVE_PROMPT.includes("Entscheidendes Vorzeichen = bei Kreuzen das letzte, bei Be das vorletzte"));
+  // „Tetrachord“ nur in der Lerntafel (dort erklärt), in keiner Frage
+  for (const l of tonleitern.levels) for (const q of makeRound(l, 20)) assert.ok(!/Tetrachord/.test(q.prompt + JSON.stringify(q.steps || [])), l.id);
+  assert.ok(tonleitern.learn.some((b) => /Tetrachord sind vier stufenweise/.test(b.render())));
+});
+
+test("Welle 10, B6/B15: Tonleitern 12 mit Start-Beschriftung an der oberen Note, Satz in den Hilfen, Stufe 8 zweizeilig", () => {
+  assert.ok(HELP_TEXT_MINOR.endsWith("Stufen: Beide Noten zählen mit. Halbtöne: Die Starttaste zählt nicht, du zählst die Schritte."));
+  for (const f of FIFTHS) {
+    const d = minorDemo(f), tm = midi(majorTonicOf(f));
+    d.frames.forEach((fr, i) => {
+      const starts = [...fr.body.matchAll(/data-start="(\d+)"/g)].map((m) => +m[1]);
+      if (fr.step >= 2) assert.ok(starts.length && starts.every((x) => x === tm), `${f} Bild ${i}`);
+      else assert.deepEqual(starts, [], `${f} Bild ${i}`);
+    });
+    assert.ok(d.frames[3].text.endsWith("Halbtöne: Die Starttaste zählt nicht, du zählst die Schritte."), String(f));
+  }
+  assert.ok(byId(8).hint.includes("\n♯: Fis – Cis – Gis – Dis\n♭: B – Es – As – Des\n"), byId(8).hint);
+  assert.ok(tonleitern.levels.filter((l) => /\d\. Stufe(?! der Tonleiter)/.test(l.hint)).length === 0, "Stufe der Tonleiter ausgeschrieben");
 });

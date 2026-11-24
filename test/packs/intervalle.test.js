@@ -7,11 +7,12 @@ import intervalle, {
   TABLE_NOTE_LESS, TABLE_NOTE_MORE, baseQuality, intervalDemo, fineText, demoXs, DEMO_EXAMPLES, DEMO_STEPS, DEMO_STEP_ONLY, demoBoard,
   HELP_TEXT, HELP_TEXT_1, VERDICTS, VERDICT_OK, VERDICT_NUM, VERDICT_MORE, VERDICT_LESS,
   buildSvg, buildRevealSvg, buildHeight, checkBuild, usualNote, upperNote, pairExtra, intervalSvg, describe,
+  pairLayout, intervalBoard, PAIR_INNER, PAIR_OUTER, GROB_PROMPT, GROB_PROMPT_DOWN, demoKeysSvg,
 } from "../../src/packs/intervalle.js";
 import { PACKS } from "../../src/packs/index.js";
 import { N, dia, midi, gName, helm, intervalSemitones, lowerNote, semitonesFor, intervalNumber, intervalName, INTERVAL_NAMES, intervalLabel } from "../../src/music.js";
 import { feedbackText, stepsFeedback, helpsHtml, makeRound, DEMO_LABEL } from "../../src/engine.js";
-import { demoHtml } from "../../src/demo.js";
+import { demoHtml, COUNT_RULE } from "../../src/demo.js";
 import { staffSvg, noteSvg } from "../../src/staff.js";
 
 const L = intervalle.levels;
@@ -57,10 +58,10 @@ test("Hilfen nur in Stufe 1, 3, 5 und 8, mit Kästchentabelle und Vorführung", 
   }
   for (const l of L.filter((x) => !x.helps)) assert.ok(!/mit Hilfen/.test(l.subtitle), l.id);
   assert.equal(L[0].helpText, HELP_TEXT_1);
-  for (const i of [2, 4, 7]) assert.equal(L[i].helpText, "Die Zahl kommt aus den Notenstufen, die Klaviatur brauchst du nur für die Halbtöne.");
-  // Stufe 1: nur die Rahmenintervalle (Zahl = Stufen), keine Halbtöne
+  for (const i of [2, 4, 7]) assert.equal(L[i].helpText, "Die Zahl kommt aus den Notenstufen, die Klaviatur brauchst du nur für die Halbtöne. Stufen: Beide Noten zählen mit. Halbtöne: Die Starttaste zählt nicht, du zählst die Schritte.");
+  // Stufe 1: nur die Zahlen Prime … Oktave (Zahl = Stufen), keine Halbtöne
   const t1 = L[0].helpTable;
-  assert.equal(t1, intervalTable("rahmen", { split: true }));
+  assert.equal(t1, intervalTable("grob", { split: true }));
   assert.equal((t1.match(/class="tt-label"/g) || []).length, 8);
   assert.ok(t1.includes('<b class="num">1</b> Prime') && t1.includes('<b class="num">8</b> Oktave') && t1.includes("Stufen = Intervall"));
   assert.ok(!/class="tt-box|Halbt|vermindert/.test(t1));
@@ -82,7 +83,7 @@ test("Hilfen nur in Stufe 1, 3, 5 und 8, mit Kästchentabelle und Vorführung", 
 const ttRows = (html) => [...html.matchAll(/<tr( class="hi")?><td class="tt-label"><b class="num">(\d)<\/b> (\w+)<\/td>((?:<td class="tt-cell[^"]*">.*?<\/td>)*)<\/tr>/g)]
   .map((m) => [+m[2], m[3], [...m[4].matchAll(/<td class="tt-cell( fam)?">(?:<span class="tt-box([^"]*)">(\d+)<\/span>|<span class="tt-dot"[^>]*>·<\/span>)<\/td>/g)].map((c) => ({ v: c[3] === undefined ? "·" : +c[3], fam: !!c[1], st: (c[2] || "").trim() })), !!m[1]]);
 
-test("Kästchentabelle: eine Zeile je Rahmenintervall, Werte aus semitonesFor, Familie rein hinterlegt", () => {
+test("Kästchentabelle: eine Zeile je Intervall (Grobbestimmung), Werte aus semitonesFor, Familie rein hinterlegt", () => {
   assert.deepEqual(TABLE_COLS, ["klein", "rein", "groß"]);
   for (const kind of ["rkg", "all"]) for (const split of [false, true]) {
     const rows = ttRows(intervalTable(kind, { split }));
@@ -117,7 +118,7 @@ test("Kästchentabelle: eine Zeile je Rahmenintervall, Werte aus semitonesFor, F
   assert.ok(v7.includes(`<span class="tt-less on">`));
   assert.deepEqual([baseQuality(2, "übermäßig"), baseQuality(5, "vermindert"), baseQuality(7, "vermindert"), baseQuality(3, "klein")], ["groß", "rein", "klein", "klein"]);
   // Stufe 1: nur Namen, Zeile hervorhebbar
-  assert.ok(intervalTable("rahmen", { row: 5 }).includes('<tr class="hi"><td class="tt-label"><b class="num">5</b> Quinte</td></tr>'));
+  assert.ok(intervalTable("grob", { row: 5 }).includes('<tr class="hi"><td class="tt-label"><b class="num">5</b> Quinte</td></tr>'));
 });
 
 test("Erlaubte Intervalle: rein/klein/groß und die sieben verminderten bzw. übermäßigen", () => {
@@ -293,7 +294,7 @@ test("Lerntafel: mehr Abstand, wenn ein ♯ vor Prime oder Sekunde steht", () =>
 
 test("twoStepQuestion: Rückmeldungen (Beispiel e'–g')", () => {
   const q = twoStepQuestion({ clef: "treble", low: N("E", 4), high: N("G", 4), num: 3, quality: "klein" }, TYPES_ALL);
-  assert.equal(q.prompt, "Welches Rahmenintervall?");
+  assert.equal(q.prompt, "Grobbestimmung: Welches Intervall?");
   assert.equal(q.steps[0].ok, "Richtig: e'–g': 3 Stufen → Terz.");
   assert.equal(q.steps[0].bad, "Nicht ganz: e'–g': 3 Stufen → Terz.");
   assert.equal(q.steps[1].prompt, "e'–g': 3 Stufen → Terz. Welche Terz? Zähle die Halbtöne.");
@@ -330,7 +331,7 @@ test("Notation: zwei ganze Noten nebeneinander, Vorzeichen vor der Note", () => 
 test("Hilfen: Klaviatur zwei Oktaven je Schlüssel, Töne der Aufgabe markiert", () => {
   for (const l of [L[0], L[2], L[4]]) for (const q of many(l, 80)) {
     const h = helpsHtml(l, q);
-    assert.ok(h.includes('class="keys-static"') && h.includes(l.helpTable) && h.includes(l.helpText), l.id);
+    assert.ok(h.includes('class="keys-static') && h.includes(l.helpTable) && h.includes(l.helpText), l.id);
     assert.equal((h.match(/class="wkey/g) || []).length, 15);
     assert.equal((h.match(/class="bkey/g) || []).length, 10);
     assert.ok(!/data-semi/.test(h), "nicht anklickbar");
@@ -547,7 +548,7 @@ test("Vorführung: Bilder = 1 Frage + Stufen + Halbtöne + 1 Ergebnis, Nummern 1
       assert.equal(f.body.includes('class="demo-keys dim"'), f.step < 2);
       const j = f.step === 2 ? f.n : f.step === 3 ? semi : 0;
       assert.deepEqual(countedKeys(f.body), Array.from({ length: j }, (_, t) => midi(it.low) + t + 1), `${tag} Bild ${i}`);
-      assert.deepEqual([...f.body.matchAll(/class="kcount[^"]*"[^>]*>(\d+)</g)].map((m) => +m[1]).sort((a, b) => a - b), Array.from({ length: j }, (_, t) => t + 1));
+      assert.deepEqual([...f.body.matchAll(/class="kcount(?: on-black)?"[^>]*>(\d+)</g)].map((m) => +m[1]).sort((a, b) => a - b), Array.from({ length: j }, (_, t) => t + 1));
       // beide Töne der Aufgabe markiert
       for (const n of [it.low, it.high]) assert.ok(f.body.includes(`mark`) && new RegExp(`key mark( count)?" data-midi="${midi(n)}"`).test(f.body), `${tag} ${helm(n)}`);
       // Treffer grün erst im letzten Halbton-Bild und im Ergebnis
@@ -558,7 +559,7 @@ test("Vorführung: Bilder = 1 Frage + Stufen + Halbtöne + 1 Ergebnis, Nummern 1
     const name = intervalName(it.low, it.high), last = d.frames[d.frames.length - 1];
     const nat = needsNatural(it.low, it.high) ? ` ${naturalText(it.low, it.high)}` : "";
     assert.equal(d.frames[0].text, `Welches Intervall ist ${tag}?${nat} Erst die Stufen zählen, beide Noten mit.`);
-    assert.equal(d.frames[num].text, `${num} ${num === 1 ? "Stufe" : "Stufen"} = ${INTERVAL_NAMES[num - 1]}. Jetzt die Halbtöne auf der Klaviatur.`);
+    assert.equal(d.frames[num].text, `${num} ${num === 1 ? "Stufe" : "Stufen"} = ${INTERVAL_NAMES[num - 1]}. Jetzt die Halbtöne auf der Klaviatur. ${COUNT_RULE}`);
     assert.equal(d.frames[d.frames.length - 2].text, semi === 0 ? `0 Halbtöne, dieselbe Taste → ${name}` : fineText(it.low, it.high));
     assert.deepEqual(last.result, { title: `${tag} = ${name}`, chips: [{ step: 1, text: `${num} ${num === 1 ? "Stufe" : "Stufen"}` }, { step: 2, text: `${semi} ${semi === 1 ? "Halbton" : "Halbtöne"}` }] });
     for (const f of d.frames) assert.ok(!FORBIDDEN.test(f.text || f.result.title), f.text);
@@ -569,7 +570,7 @@ test("Vorführung: Sätze zu den Halbtönen, vermindert und übermäßig über d
   const d = intervalDemo(N("E", 4), N("G", 4));
   assert.deepEqual(d.frames.map((f) => f.text || f.result.title), [
     "Welches Intervall ist e'–g'? Erst die Stufen zählen, beide Noten mit.", "e' ist Stufe 1.", "f' ist Stufe 2.",
-    "3 Stufen = Terz. Jetzt die Halbtöne auf der Klaviatur.", "Ab e' jede Taste zählen, auch die schwarzen: 1 Halbton.",
+    `3 Stufen = Terz. Jetzt die Halbtöne auf der Klaviatur. ${COUNT_RULE}`, "Ab e' jede Taste zählen, auch die schwarzen: 1 Halbton.",
     "2 Halbtöne.", "3 Halbtöne → kleine Terz", "e'–g' = kleine Terz"]);
   assert.equal(fineText(N("F", 4), N("H", 4)), "6 Halbtöne = rein 5 + 1 → übermäßige Quarte");
   assert.equal(fineText(N("H", 4), N("F", 5)), "6 Halbtöne = rein 7 − 1 → verminderte Quinte");
@@ -587,7 +588,7 @@ test("Vorführung: Sätze zu den Halbtönen, vermindert und übermäßig über d
   assert.equal(p.frames.length, 4);
   assert.equal(p.frames[2].text, "0 Halbtöne, dieselbe Taste → reine Prime");
   // Stufe 1: nur der erste Schritt, ohne Klaviatur
-  const s1 = intervalDemo(N("E", 4), N("G", 4), { table: "rahmen", fine: false });
+  const s1 = intervalDemo(N("E", 4), N("G", 4), { table: "grob", fine: false });
   assert.deepEqual(s1.steps, [DEMO_STEP_ONLY]);
   assert.equal(s1.frames.length, 1 + 3 + 1);
   assert.equal(s1.frames[3].text, "3 Stufen = Terz.");
@@ -672,4 +673,67 @@ test("Aufgaben mit ♮: 9 in Stufe 5, 18 in Stufe 6, alle übermäßige Primen v
   assert.ok(!svg.includes("♮"));
   // Hinweis der Stufe 5 erklärt das Zeichen
   assert.ok(L[4].hint.includes("♮") && L[4].hint.includes("des'–d'"));
+});
+
+test("Welle 10, B5: Grob- und Feinbestimmung – Fragen, Marken, Tabellenkopf, Erklärung in Stufe 3", () => {
+  assert.equal(GROB_PROMPT, "Grobbestimmung: Welches Intervall?");
+  assert.equal(GROB_PROMPT_DOWN, "Abwärts – Grobbestimmung: Welches Intervall?");
+  for (const no of [3, 4, 5, 6]) for (const q of makeRound(L[no - 1], 20)) assert.equal(q.prompt, GROB_PROMPT, `intervall-${no}`);
+  for (const q of makeRound(L[6], 20)) assert.equal(q.prompt, GROB_PROMPT_DOWN);
+  assert.deepEqual(DEMO_STEPS, ["1 · Grob: Stufen zählen", "2 · Fein: Halbtöne zählen"]);
+  for (const kind of ["rkg", "all"]) {
+    const t = intervalTable(kind);
+    assert.ok(t.includes('<th class="tt-head">Intervall</th>') && !/Rahmen/.test(t), kind);
+  }
+  assert.ok(intervalTable("grob").includes('class="tt tt-grob"'));
+  assert.ok(L[2].hint.includes("Grobbestimmung = nur die Zahl: Prime, Sekunde, Terz …") && L[2].hint.includes("Feinbestimmung = rein, klein oder groß"));
+  assert.equal(intervalle.subtitle, "Grob- und Feinbestimmung, bauen, Fehler finden");
+});
+
+test("Welle 10, B6: Satz zum Zählen in den Hilfen ab Stufe 3, „Start“ genau an der unteren Note", () => {
+  for (const l of L.filter((x) => x.helps && x.no >= 3)) assert.ok(l.helpText.endsWith(COUNT_RULE), l.id);
+  assert.ok(!L[0].helpText.includes(COUNT_RULE));
+  assert.equal(COUNT_RULE, "Stufen: Beide Noten zählen mit. Halbtöne: Die Starttaste zählt nicht, du zählst die Schritte.");
+  const all = [...DEMO_EXAMPLES.map(([low, high]) => ({ low, high, clef: "treble" })), ...POOL_3, ...POOL_5];
+  for (const it of all) {
+    const d = intervalDemo(it.low, it.high, { clef: it.clef }), num = intervalNumber(it.low, it.high), tag = `${helm(it.low)}–${helm(it.high)}`;
+    const prime = midi(it.high) === midi(it.low);
+    d.frames.forEach((f, i) => {
+      const starts = [...f.body.matchAll(/data-start="(\d+)"/g)].map((m) => +m[1]);
+      if (f.step >= 2 && !prime) {
+        assert.ok(starts.length >= 1 && starts.every((x) => x === midi(it.low)), `${tag} Bild ${i}`);
+        // weiße Taste: „Start“ (bei zwei Oktaven bis 380 px „0“ über css), schwarze Taste: „0“
+        assert.ok(/>Start<\/text>/.test(f.body) || /kstart"[^>]*>0</.test(f.body), `${tag} Bild ${i}`);
+      } else assert.deepEqual(starts, [], `${tag} Bild ${i}`);
+    });
+    assert.ok(d.frames[num].text.endsWith(COUNT_RULE), tag);
+  }
+  // ohne zweiten Schritt (Stufe 1): keine Starttaste
+  assert.ok(!intervalDemo(N("E", 4), N("G", 4), { table: "grob", fine: false }).frames.some((f) => f.body.includes("data-start")));
+  assert.ok(!demoKeysSvg(N("E", 4), N("G", 4), 0, false).includes("data-start"));
+});
+
+test("Welle 10, B15: Intervalltafel – Paare eng, Lücken weit, Trennstrich; Knopf „anderes Intervall (Notenstufen)“", () => {
+  for (const [clef, c] of [["treble", N("C", 4)], ["bass", N("C", 3)]]) {
+    const svg = intervalBoard(clef);
+    for (const row of [[[1, "rein"], [1, "übermäßig"], [2, "klein"]], [[2, "groß"], [2, "übermäßig"], [3, "klein"]], [[3, "groß"], [4, "rein"], [4, "übermäßig"]],
+      [[5, "vermindert"], [5, "rein"], [5, "übermäßig"]], [[6, "klein"], [6, "groß"], [7, "klein"]], [[7, "groß"], [8, "rein"]]]) {
+      const lay = pairLayout(row, clef, c);
+      const inner = Math.max(...lay.map((p) => p.inner)), outer = Math.min(...lay.filter((p) => p.outer !== null).map((p) => p.outer));
+      assert.ok(inner < outer, `${clef}: Paarabstand ${inner} < Lückenabstand ${outer}`);
+      assert.ok(outer >= 2 * PAIR_INNER + 8);
+      // Trennstrich mittig in der Lücke, Noten in Reihenfolge, keine Überschneidung
+      lay.forEach((p, i) => {
+        assert.ok(p.x2 > p.x);
+        if (i) assert.ok(p.sep > lay[i - 1].x2 && p.sep < p.x, `${clef} ${i}`);
+      });
+    }
+    assert.equal((svg.match(/class="pair-sep"/g) || []).length, 2 * 5 + 1);
+    // alle Zeilen gleich breit, die Noten enden vor dem Ende der Linien
+    const widths = [...svg.matchAll(/viewBox="0 0 (\d+) /g)].map((m) => +m[1]);
+    assert.equal(new Set(widths).size, 1);
+  }
+  assert.equal(VERDICT_NUM, "anderes Intervall (Notenstufen)");
+  assert.ok(L[9].hint.includes("anderes Intervall"));
+  assert.ok(L[5].hint.includes("♮"), "Stufe 6 nennt das Auflösungszeichen");
 });

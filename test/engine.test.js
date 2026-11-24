@@ -520,7 +520,7 @@ test("Ablauf zweischrittig: richtig/richtig, Zahl daneben/dann Qualität, einmal
     // Hilfen: sichtbar, zugeklappt, Inhalt mit Klaviatur
     assert.equal(r.ui.helps.hidden, false); assert.equal(r.ui.helps.open, false);
     assert.ok(r.ui.helpsBody.innerHTML.includes("keys-static"));
-    assert.equal(r.ui.feedback.textContent, "Welches Rahmenintervall?");
+    assert.equal(r.ui.feedback.textContent, "Grobbestimmung: Welches Intervall?");
     assert.deepEqual(r.buttons(), ["Prime", "Sekunde", "Terz", "Quarte", "Quinte", "Sexte", "Septime", "Oktave"]);
     assert.ok(r.ui.answers.classList.contains("cols"));
     // 1. Aufgabe: richtig, richtig

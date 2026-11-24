@@ -247,8 +247,13 @@ export const BLACK = [{ l: "C", i: 0 }, { l: "D", i: 1 }, { l: "F", i: 3 }, { l:
 // über CSS). Jede Taste trägt dann data-midi.
 // counts (seit der Vorführung): [[MIDI-Nummer, Beschriftung] …] – gezählte Tasten (Klasse count, Schritt 2
 // grün) mit ihrer Zahl auf der Taste (weiß: unter den schwarzen Tasten, schwarz: unten in der Taste).
+// start (Welle 10, B6): MIDI-Nummer der Starttaste beim Halbtöne-Zählen; sie trägt die Aufschrift „Start“
+// (START_LABEL) an der Stelle der Zahlen, weil sie selbst nicht mitzählt. Auf einer schwarzen Taste ist
+// dafür kein Platz: dort steht „0“ (START_SHORT). Bei zwei Oktaven und schmalem Bildschirm (bis 380 px)
+// wird „Start“ zu klein, dann zeigt css/style.css ebenfalls „0“ (Klasse keys-wide am <svg>).
+export const START_LABEL = "Start", START_SHORT = "0";
 export function pianoSvg(opts = {}) {
-  const { from = null, octaves = 1, marks = [], interactive = true, counts = [] } = opts;
+  const { from = null, octaves = 1, marks = [], interactive = true, counts = [], start = null } = opts;
   const kw = interactive ? 38 : 30, kh = interactive ? 110 : 96, bw = interactive ? 24 : 18;
   const whites = Array.from({ length: octaves * 7 + 1 }, (_, i) => ({ l: WHITE[i % 7], o: Math.floor(i / 7), i }));
   const blacks = Array.from({ length: octaves }, (_, o) => BLACK.map((b) => ({ ...b, o, i: b.i + 7 * o }))).flat();
@@ -263,7 +268,9 @@ export function pianoSvg(opts = {}) {
   const countOf = (semi, o) => cnt.get(from + 12 * o + semi);
   const keyCls = (semi, o) => `${isMark(semi, o) ? " mark" : ""}${countOf(semi, o) !== undefined ? " count" : ""}`;
   const bh = Math.round(kh * 6) / 10;
-  let s = `<svg viewBox="0 0 ${kw * whites.length + 2} ${kh + 2}"${interactive ? "" : ' class="keys-static"'} role="${interactive ? "group" : "img"}" aria-label="Klaviatur">`;
+  const isStart = (semi, o) => from !== null && start !== null && from + 12 * o + semi === start;
+  const staticCls = `keys-static${octaves > 1 ? " keys-wide" : ""}`;
+  let s = `<svg viewBox="0 0 ${kw * whites.length + 2} ${kh + 2}"${interactive ? "" : ` class="${staticCls}"`} role="${interactive ? "group" : "img"}" aria-label="Klaviatur">`;
   whites.forEach(({ l, o, i }) => {
     const semi = SEMI[l];
     // das obere C gehört zur nächsten Oktave (data-semi 0 wie bisher)
@@ -272,12 +279,18 @@ export function pianoSvg(opts = {}) {
     s += `<text class="klabel${keyCls(semi, oo)}" x="${1 + i * kw + kw / 2}" y="${kh - 8}" text-anchor="middle">${l}</text>`;
     const c = countOf(semi, oo);
     if (c !== undefined) s += `<text class="kcount" x="${1 + i * kw + kw / 2}" y="${Math.round(bh + 16)}" text-anchor="middle">${c}</text>`;
+    if (isStart(semi, oo)) {
+      const x = 1 + i * kw + kw / 2, y = Math.round(bh + 16);
+      s += `<text class="kcount kstart kstart-long" data-start="${start}" x="${x}" y="${y}" text-anchor="middle">${START_LABEL}</text>`
+        + `<text class="kcount kstart kstart-short" data-start="${start}" x="${x}" y="${y}" text-anchor="middle">${START_SHORT}</text>`;
+    }
   });
   blacks.forEach((b) => {
     const semi = SEMI[b.l] + 1;
     s += `<rect class="bkey${keyCls(semi, b.o)}"${keyAttr(semi, b.o)} data-id="b${b.i}" x="${1 + (b.i + 1) * kw - bw / 2}" y="1" width="${bw}" height="${bh}" rx="2"/>`;
     const c = countOf(semi, b.o);
     if (c !== undefined) s += `<text class="kcount on-black" x="${1 + (b.i + 1) * kw}" y="${Math.round(bh - 6)}" text-anchor="middle">${c}</text>`;
+    if (isStart(semi, b.o)) s += `<text class="kcount on-black kstart" data-start="${start}" x="${1 + (b.i + 1) * kw}" y="${Math.round(bh - 6)}" text-anchor="middle">${START_SHORT}</text>`;
   });
   return s + "</svg>";
 }

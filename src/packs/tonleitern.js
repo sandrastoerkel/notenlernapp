@@ -10,7 +10,7 @@
 import { N, LETTERS, dia, midi, pc, SEMI, gName, helm, majorScale, staffPos, majorKeyFromKeySig, relativeMinor, majorName, minorName, parseNoteName } from "../music.js";
 import { staffSvg, noteSvg, pianoSvg, keySigPos, TOP, S } from "../staff.js";
 import { tileTable } from "../grid.js";
-import { demoHtml, mountDemo } from "../demo.js";
+import { demoHtml, mountDemo, COUNT_RULE } from "../demo.js";
 
 const CLEF_SHORT = { treble: "Violin", bass: "Bass" };
 
@@ -144,10 +144,12 @@ const lowerFirst = (t) => t.charAt(0).toLowerCase() + t.slice(1);
 
 // Halbtöne der sieben Schritte einer Dur-Tonleiter: Ganz – Ganz – Halb – Ganz – Ganz – Ganz – Halb
 export const PLAN = [2, 2, 1, 2, 2, 2, 1];
-// Kurzform in der Bauplan-Leiste: G = Ganztonschritt, H = Halbtonschritt
-export const PLAN_SHORT = PLAN.map((h) => (h === 2 ? "G" : "H"));
-export const PLAN_TEXT = PLAN_SHORT.join(" ");
+// Kurzform in der Bauplan-Leiste (Sandra, 24.11.2026): 1 = Ganztonschritt, ½ = Halbtonschritt. „G“ und „H“
+// gehen nicht, weil G und H auch Notennamen sind.
+export const PLAN_SHORT = PLAN.map((h) => (h === 2 ? "1" : "½"));
 const PLAN_WORD = { 2: "Ganz", 1: "Halb" };
+// In Sätzen ausgeschrieben: „Ganz – Ganz – Halb – Ganz – Ganz – Ganz – Halb“ (bricht bei 320 px um, nie abgekürzt)
+export const PLAN_TEXT = PLAN.map((h) => PLAN_WORD[h]).join(" – ");
 // Schritt von Stufe i + 1 zu Stufe i + 2 als Text: „6.→7. Stufe“
 export const stepLabel = (i) => `${i + 1}.→${i + 2}. Stufe`;
 
@@ -466,6 +468,8 @@ export function keyWay(fifths) {
 // Vorzeichen“), G-Dur („Fis“) und F-Dur („B“) gäbe es nur einen Knopf: Dort entfällt der Schritt in der
 // Aufgabe (majorStepQuestion, Welle 10, Befund B10: ein Knopf ist keine Entscheidung).
 export const NO_SIGNS = "keine Vorzeichen";
+// Frage zu Schritt 1 mit der Erklärung des Fachworts (Welle 10, B5)
+export const DECISIVE_PROMPT = "Welches Vorzeichen ist entscheidend? (Entscheidendes Vorzeichen = bei Kreuzen das letzte, bei Be das vorletzte.)";
 export function signStep(fifths) {
   const n = Math.abs(fifths), list = (fifths > 0 ? SHARPS_7 : FLATS_7).slice(0, n);
   if (fifths === 0) return { choices: [NO_SIGNS], answer: NO_SIGNS, ok: "Richtig: Hier steht kein Vorzeichen.", bad: "Nicht ganz: Hier steht kein Vorzeichen." };
@@ -490,7 +494,7 @@ export function majorStepQuestion(it) {
   return {
     key: it.key,
     svg: keySvg(it),
-    prompt: single ? majorSinglePrompt(it.fifths) : "Welches Vorzeichen ist entscheidend?",
+    prompt: single ? majorSinglePrompt(it.fifths) : DECISIVE_PROMPT,
     answer,
     choices: second,
     steps: single ? [{ choices: second, answer }] : [first, { choices: second, answer, prompt: majorStepPrompt(it.fifths) }],
@@ -605,20 +609,25 @@ function minorQuestion(it) {
 // Stufe 1 und 2 die Antwort, in Stufe 4 den ersten Schritt). Hervorgehoben wird erst in der Vorführung.
 export const HELP_TEXT_PLAN = "Der Bauplan gibt die Schritte vor, die Klaviatur zeigt, ob die Noten ihn erfüllen.";
 export const HELP_TEXT_KEY = "Zum Nachschlagen: Anzahl der Vorzeichen und Dur-Tonart. Den Halbton über dem letzten Kreuz findest du auf der Klaviatur.";
-export const HELP_TEXT_MINOR = "Vom Dur-Grundton drei Notenstufen abwärts, er selbst zählt als 1. Dann auf der Klaviatur drei Halbtöne abwärts: So bekommt der Stammton sein Vorzeichen.";
+export const HELP_TEXT_MINOR = `Vom Dur-Grundton drei Notenstufen abwärts, er selbst zählt als 1. Dann auf der Klaviatur drei Halbtöne abwärts: So bekommt der Stammton sein Vorzeichen. ${COUNT_RULE}`;
 export const PLAN_COLS = PLAN.map((_, i) => `${i + 1}–${i + 2}`);
 // Halbton-Spalten 3–4 und 7–8 (grau hinterlegt wie die Familie „rein“ bei den Intervallen)
 export const PLAN_FAMILY = PLAN.map((h, i) => (h === 1 ? i : -1)).filter((i) => i >= 0);
-export const PLAN_NOTE = "G = Ganztonschritt (2 Halbtöne) · H = Halbtonschritt (1 Halbton)";
+// Geschützte Leerzeichen in den Klammern: „(1 Halbton)“ bricht bei schmaler Breite nicht auseinander
+export const PLAN_NOTE = "1 = Ganztonschritt (2\u00a0Halbtöne) · ½ = Halbtonschritt (1\u00a0Halbton)";
+// Zeilennamen der Bauplan-Leiste. Drei Reihen aus Ziffern (Kopf 1–2 …, Bauplan 1 1 ½ …, Halbtöne 2 2 1 …)
+// sind leicht zu verwechseln: Der Kopf ist klein und heißt „Stufen“, die Bauplan-Zeile „Tonschritt“, die
+// Halbton-Zeile ist grün (Welle 10, A6).
+export const PLAN_ROW = "Tonschritt", PLAN_HALF_ROW = "Halbtöne", PLAN_HEAD = "Stufen";
 
-// Bauplan-Leiste als Kästchentabelle: Kopf „1–2 … 7–8“, Zeile „Schritt“ mit G G H G G G H.
+// Bauplan-Leiste als Kästchentabelle: Kopf „Stufen 1–2 … 7–8“, Zeile „Tonschritt“ mit 1 1 ½ 1 1 1 ½.
 // opts (nur Vorführung und Lerntafel): col – Spalte violett (Schritt 1), done – so viele Schritte mit
 // Halbtonzahl in einer zweiten Zeile „Halbtöne“ (grün, Schritt 2), hit – Spalte, deren Bauplan-Kästchen
 // grün ist (der gerade geprüfte Schritt)
 export function planTable({ col = null, done = null, hit = null } = {}) {
-  const rows = [{ label: "Schritt", cells: PLAN_SHORT.map((t, i) => ({ text: t, state: i === hit ? "hit" : i === col ? "s1" : undefined })) }];
-  if (done !== null) rows.push({ label: "Halbtöne", cells: PLAN.map((h, i) => (i < done ? { text: h, state: "hit" } : null)) });
-  const table = tileTable({ head: ["Stufen", ...PLAN_COLS], rows, family: PLAN_FAMILY, cls: "tt-plan" });
+  const rows = [{ label: PLAN_ROW, cells: PLAN_SHORT.map((t, i) => ({ text: t, state: i === hit ? "hit" : i === col ? "s1" : undefined })) }];
+  if (done !== null) rows.push({ label: PLAN_HALF_ROW, cells: PLAN.map((h, i) => (i < done ? { text: h, state: "hit" } : null)) });
+  const table = tileTable({ head: [PLAN_HEAD, ...PLAN_COLS], rows, family: PLAN_FAMILY, cls: "tt-plan" });
   return `<div class="tt-wrap">${table}<p class="tt-note small">${PLAN_NOTE}</p></div>`;
 }
 
@@ -658,9 +667,10 @@ const numSvg = (x, y, k) => `<g class="dm-num"><circle cx="${x}" cy="${y}" r="${
 const stepBracket = (xa, xb, y) => `<path class="tl-bracket" d="M${xa - 10} ${y}V${y + 6}H${xb + 10}V${y}"/>`;
 // Ton zu einer MIDI-Nummer (nur für den Klang, die Schreibweise spielt keine Rolle)
 const pitchNote = (m) => N("C", Math.floor(m / 12) - 1, m % 12);
-// Klaviatur der Vorführung: Töne grün (marks), gezählte Halbtöne grün mit Zahl; active false: blass
-function keysSvg(from, octaves, marks, counts, active) {
-  return `<div class="demo-keys tl-keys${active ? "" : " dim"}">${pianoSvg({ from, octaves, marks, counts, interactive: false })}</div>`;
+// Klaviatur der Vorführung: Töne grün (marks), gezählte Halbtöne grün mit Zahl; active false: blass;
+// start: Starttaste beim Halbtöne-Zählen mit der Aufschrift „Start“ (Welle 10, B6; nur parallele Molltonart)
+function keysSvg(from, octaves, marks, counts, active, start = null) {
+  return `<div class="demo-keys tl-keys${active ? "" : " dim"}">${pianoSvg({ from, octaves, marks, counts, interactive: false, start })}</div>`;
 }
 const stageHtml = (staff, keys, table) => `<div class="demo-staff">${staff}</div>`
   + `<div class="demo-pair">${keys}${table ? `<div class="demo-table">${table}</div>` : ""}</div>`;
@@ -720,7 +730,7 @@ export function scaleDemo(tonic, clef = "treble") {
   }
   frames.push({
     step: 1, tones: [],
-    text: `Der Bauplan: Ganz – Ganz – Halb – Ganz – Ganz – Ganz – Halb. Jetzt prüft die Klaviatur jeden Schritt.`,
+    text: `Der Bauplan: ${PLAN_TEXT}. Jetzt prüft die Klaviatur jeden Schritt.`,
     body: stageHtml(scaleDemoSvg(stems, clef, { circles: 8, height, ref }), dimKeys, planTable()),
   });
   // Schritt 2: je Bild ein Schritt; berichtigte Noten grün mit ihrem Vorzeichen
@@ -892,7 +902,7 @@ export function minorDemo(fifths) {
   }];
   for (let k = 1; k <= 3; k++) {
     const n = stems[k - 1];
-    const text = k === 3 ? `${helm(n)} ist 3 → Stammton ${n.letter}.` : `${helm(n)} ist ${k}.`;
+    const text = k === 3 ? `${helm(n)} ist 3 → Stammton ${n.letter}. ${COUNT_RULE}` : `${helm(n)} ist ${k}.`;
     frames.push({ step: 1, tones: [n], text, body: stageHtml(svg(stems, k, { [k - 1]: k > 1 ? "step1" : "" }), dim) });
   }
   const tm = midi(t);
@@ -908,13 +918,13 @@ export function minorDemo(fifths) {
     const notes = last ? [t, stems[1], m] : stems;
     frames.push({
       step: 2, tones: [pitchNote(tm - j)], text,
-      body: stageHtml(svg(notes, 3, last ? { 2: "step2" } : {}), keysSvg(from, octaves, [tm], counts, true)),
+      body: stageHtml(svg(notes, 3, last ? { 2: "step2" } : {}), keysSvg(from, octaves, [tm], counts, true, tm)),
     });
   }
   frames.push({
     step: 3, tones: [t, m],
     result: { title: `${major} → ${minor}`, chips: [{ step: 1, text: "3 Stufen" }, { step: 2, text: "3 Halbtöne" }] },
-    body: stageHtml(svg([t, stems[1], m], 3, { 2: "step2" }), keysSvg(from, octaves, [tm, midi(m)], Array.from({ length: 3 }, (_, s) => [tm - s - 1, s + 1]), true)),
+    body: stageHtml(svg([t, stems[1], m], 3, { 2: "step2" }), keysSvg(from, octaves, [tm, midi(m)], Array.from({ length: 3 }, (_, s) => [tm - s - 1, s + 1]), true, tm)),
   });
   return { steps: DEMO_STEPS_MINOR.slice(), frames };
 }
@@ -928,7 +938,7 @@ const levels = [
   {
     title: "Ganz- und Halbtonschritte in C-Dur",
     subtitle: `Violin- und Bassschlüssel · mit Hilfen · ${ITEMS_1.length} Schritte`,
-    hint: "In C-Dur liegen die Halbtonschritte zwischen e und f und zwischen h und c, also zwischen der 3. und 4. und der 7. und 8. Stufe. Auf der Klaviatur: Dort liegt keine schwarze Taste dazwischen.",
+    hint: "In C-Dur liegen die Halbtonschritte zwischen e und f und zwischen h und c, also zwischen der 3. und 4. und der 7. und 8. Stufe der Tonleiter. Auf der Klaviatur: Dort liegt keine schwarze Taste dazwischen.",
     items: ITEMS_1,
     example: stepQuestion(find(ITEMS_1, "treble:C:2")).svg,
     question(prev) { return stepQuestion(pickStep(ITEMS_1, prev)); },
@@ -937,7 +947,7 @@ const levels = [
   {
     title: "Bauplan der Dur-Tonleiter",
     subtitle: `G-, D-, F- und B-Dur · mit Hilfen · ${ITEMS_2.length} Schritte`,
-    hint: "Jede Dur-Tonleiter hat denselben Bauplan: Ganz – Ganz – Halb – Ganz – Ganz – Ganz – Halb. Die Halbtöne liegen immer zwischen der 3. und 4. und der 7. und 8. Stufe. Achte auf die Vorzeichen: In D-Dur ist e'–fis' ein Ganzton, fis'–g' ein Halbton.",
+    hint: "Jede Dur-Tonleiter hat denselben Bauplan: Ganz – Ganz – Halb – Ganz – Ganz – Ganz – Halb. Die Halbtöne liegen immer zwischen der 3. und 4. und der 7. und 8. Stufe der Tonleiter. Achte auf die Vorzeichen: In D-Dur ist e'–fis' ein Ganzton, fis'–g' ein Halbton.",
     items: ITEMS_2,
     example: stepQuestion(find(ITEMS_2, "treble:D:2")).svg,
     question(prev) { return stepQuestion(pickStep(ITEMS_2, prev)); },
@@ -955,7 +965,7 @@ const levels = [
     title: "Welcher Ton fehlt?",
     twoSteps: true,
     subtitle: `Violinschlüssel · bis 2 Vorzeichen · zwei Schritte · mit Hilfen · ${ITEMS_4.length} Aufgaben`,
-    hint: "Zwei Schritte: Erst der Bauplan – zähle ab dem Grundton, welcher Schritt zur Lücke führt, Ganz oder Halb. Dann die Klaviatur – welcher Ton liegt so viele Halbtöne über der Note davor?",
+    hint: "Zwei Schritte: Erst der Bauplan – zähle ab dem Grundton, welcher Schritt zur Lücke führt, Ganz oder Halb. Dann die Klaviatur – welcher Ton liegt so viele Halbtöne über der Note davor? Zur Wahl stehen der Stammton (Stammton = Note ohne Vorzeichen) und seine Formen mit ♯ oder ♭.",
     items: ITEMS_4,
     example: gapStepQuestion(find(ITEMS_4, "treble:G:6")).svg,
     question(prev) { return gapStepQuestion(pickStep(ITEMS_4, prev, Math.random, GAP_HALF_P)); },
@@ -984,7 +994,7 @@ const levels = [
   {
     title: "Welcher Ton passt nicht? Ohne Hilfen",
     subtitle: `Violin- und Bassschlüssel · ${ITEMS_7.length} Aufgaben`,
-    hint: "Bei einer Note fehlt ein Vorzeichen oder es steht eines zu viel. Prüfe die Schritte von Note zu Note: Halbtöne gehören nur zwischen die 3. und 4. und die 7. und 8. Stufe.",
+    hint: "Bei einer Note fehlt ein Vorzeichen oder es steht eines zu viel. Prüfe die Schritte von Note zu Note: Halbtöne gehören nur zwischen die 3. und 4. und die 7. und 8. Stufe der Tonleiter.",
     items: ITEMS_7,
     example: oddQuestion(find(ITEMS_7, "bass:D:2:-1")).svg,
     question(prev) { return oddQuestion(pickItem(ITEMS_7, prev)); },
@@ -992,7 +1002,7 @@ const levels = [
   {
     title: "Tonleiter und Vorzeichen",
     subtitle: `Violinschlüssel · mit Hilfen · ${KEYS_4.length} Tonarten`,
-    hint: "Die Vorzeichen einer Tonart stehen vorne hinter dem Schlüssel, in fester Reihenfolge: Kreuze Fis, Cis, Gis, Dis, Be B, Es, As, Des. Der Grundton steht zweimal da, sein Vorzeichen zählt nur einmal.",
+    hint: "Die Vorzeichen einer Tonart stehen vorne hinter dem Schlüssel, in fester Reihenfolge:\n♯: Fis – Cis – Gis – Dis\n♭: B – Es – As – Des\nDer Grundton steht zweimal da, sein Vorzeichen zählt nur einmal.",
     items: ITEMS_8,
     example: sigQuestion(find(ITEMS_8, "treble:D")).svg,
     question(prev) { return sigQuestion(pickItem(ITEMS_8, prev)); },
@@ -1028,7 +1038,7 @@ const levels = [
     title: "Parallele Molltonart",
     twoSteps: true,
     subtitle: `Violinschlüssel · zwei Schritte · mit Hilfen · ${FIFTHS.length} Molltonarten`,
-    hint: "Zwei Schritte wie bei den Intervallen: Erst die Terz abwärts – drei Notenstufen, der Dur-Grundton zählt als 1 (Es, D, C). Dann drei Halbtöne abwärts, so bekommt der Stammton sein Vorzeichen. Moll wird klein geschrieben.",
+    hint: "Zwei Schritte: Erst die Terz abwärts – drei Notenstufen, der Dur-Grundton zählt als 1 (Es, D, C). Das ergibt den Stammton (Stammton = Note ohne Vorzeichen). Dann drei Halbtöne abwärts, so bekommt der Stammton sein Vorzeichen: Zusammen ist das eine kleine Terz abwärts. Moll wird klein geschrieben.",
     items: ITEMS_12,
     example: keySvg({ clef: "treble", fifths: -3 }),
     question(prev) { return minorStepQuestion(pickKey(ITEMS_12, prev)); },
@@ -1056,7 +1066,7 @@ function planBoard(clef) {
   return `${FIG(scaleSvg(notes, clef, { marks: [[2, 3], [6, 7]] }))}
     <p style="grid-column: 1 / -1; margin: 0; text-align: center"><b>Ganz Ganz Halb · Ganz · Ganz Ganz Halb</b></p>
     ${FIG(planTable())}
-    <p class="small muted" style="grid-column: 1 / -1">Die Klammern zeigen die Halbtonschritte: ${names[2]}–${names[3]} und ${names[6]}–${names[7]}, also zwischen der 3. und 4. und der 7. und 8. Stufe. Die Tonleiter teilt sich in zwei gleich gebaute Vierergruppen (Tetrachorde), je Ganz – Ganz – Halb: ${names.slice(0, 4).join(" ")} und ${names.slice(4).join(" ")}. Dazwischen liegt ein Ganztonschritt. Ein Tetrachord sind vier stufenweise aufeinanderfolgende Töne im Umfang einer Quarte – trotz des Namens kein Akkord.</p>`;
+    <p class="small muted" style="grid-column: 1 / -1">Die Klammern zeigen die Halbtonschritte: ${names[2]}–${names[3]} und ${names[6]}–${names[7]}, also zwischen der 3. und 4. und der 7. und 8. Stufe der Tonleiter. Die Tonleiter teilt sich in zwei gleich gebaute Vierergruppen (Tetrachorde), je Ganz – Ganz – Halb: ${names.slice(0, 4).join(" ")} und ${names.slice(4).join(" ")}. Dazwischen liegt ein Ganztonschritt. Ein Tetrachord sind vier stufenweise aufeinanderfolgende Töne im Umfang einer Quarte – trotz des Namens kein Akkord.</p>`;
 }
 
 function circleBoard() {

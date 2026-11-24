@@ -178,3 +178,11 @@ test("Lerntafeln: Zeilen zu Stellen der Zeile stimmen mit staffPos", () => {
   const html = noten.learn[1].render();
   assert.ok(html.includes("Unterste Linie") && html.includes("Unter der Zeile, ohne Hilfslinie"));
 });
+
+test("Welle 10, B15: Hinweise Stufe 3 und 4 (Namen statt Tonhöhe, „liegt auf“)", async () => {
+  const noten = (await import("../../src/packs/noten.js")).default;
+  const [, , l3, l4] = noten.levels;
+  assert.ok(l3.hint.includes("Das c' liegt auf einer Hilfslinie unter der Zeile.") && !l3.hint.includes("hängt"), l3.hint);
+  assert.ok(l4.hint.startsWith("Dieselbe Stelle heißt im Bassschlüssel anders: zwei Notennamen weiter. Aus E wird G, aus G wird H."), l4.hint);
+  assert.ok(!l4.hint.includes("zwei Stufen tiefer"));
+});

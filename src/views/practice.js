@@ -13,14 +13,18 @@ export const startLabel = () => `Runde starten · ${engine.ROUND_LENGTH} Aufgabe
 // Hinweis auf der Startkarte (rein, getestet): bei zweischrittigen Stufen (level.twoSteps) mit dem Zusatz,
 // dass ein Teilerfolg (nur der erste Schritt daneben) nicht als richtig zählt
 export const TWO_STEPS_NOTE = "Beide Schritte müssen stimmen.";
+// Zeile der Ergebniskarte: „+12 XP · Ø 2,3 s pro Note“ (Dezimalkomma; „pro Note“ nur in „Noten lesen“,
+// sonst „pro Aufgabe“ – Welle 10, B15)
+export const avgText = (avg) => avg.toFixed(1).replace(".", ",");
+export const resultLine = (pack, gained, avg) => `+${gained} XP · Ø ${avgText(avg)} s pro ${pack && pack.id === "noten" ? "Note" : "Aufgabe"}`;
 export const startHint = (level) => (level.twoSteps ? `${level.hint} ${TWO_STEPS_NOTE}` : level.hint);
 
 // Tastatur-Hinweis auf der Startkarte (rein, getestet): ohne Vorzeichen Buchstaben, mit Namensraster
 // der ganze Name und Enter
 const kbd = (t) => `<span class="kbd">${t}</span>`;
-// Stufen mit level.digits (Rahmenintervall Prime … Oktave): Ziffern 1 bis 8
+// Stufen mit level.digits (Grobbestimmung Prime … Oktave): Ziffern 1 bis 8
 export const keysHint = (level) => (level && level.digits
-  ? `Tastatur: ${kbd("1")} Prime, ${kbd("2")} Sekunde … ${kbd("8")} Oktave (Rahmenintervall)`
+  ? `Tastatur: ${kbd("1")} Prime, ${kbd("2")} Sekunde … ${kbd("8")} Oktave`
   : engine.usesNames(level)
   ? `Tastatur: Namen tippen, z. B. ${kbd("fis")} ${kbd("es")} ${kbd("b")}, dann ${kbd("Enter")}. ${kbd("⌫")} löscht, ${kbd("Esc")} leert.`
   : `Tastatur: ${kbd("C")} ${kbd("D")} ${kbd("E")} … ${kbd("H")}`);
@@ -129,7 +133,7 @@ function showResult(res) {
       ${engine.starsHtml(stars)}
       <p class="big num">${c} / ${res.total}</p>
       <p class="muted">${engine.resultMessage(stars)}</p>
-      <p class="small muted num">+${gained} XP · Ø ${avg.toFixed(1)} s pro Note${note ? ` · ${note}` : ""}</p>
+      <p class="small muted num">${resultLine(pack, gained, avg)}${note ? ` · ${note}` : ""}</p>
       <div class="row" style="justify-content:center">
         <button class="btn primary" id="rAgain">Nochmal</button>
         ${nextOpen ? `<button class="btn" id="rNext">Stufe ${next.no}</button>` : ""}

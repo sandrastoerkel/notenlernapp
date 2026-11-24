@@ -2,13 +2,17 @@
 // Zurück / Abspielen (Pause) / Weiter ›, Schritt-Marken („1 · …“ violett, „2 · …“ grün), Bildzähler und
 // großer Ergebniskarte. Die Bilder baut das Paket (rein, in node testbar), dieses Modul zeigt sie nur.
 //
-// demo = { steps: ["1 · Rahmen: Stufen zählen", "2 · Fein: Halbtöne zählen"], frames: [Bild …] }
+// demo = { steps: ["1 · Grob: Stufen zählen", "2 · Fein: Halbtöne zählen"], frames: [Bild …] }
 // Bild = { step, body, text?, result?, tones? }
 //   step: 0 = Frage (noch kein Schritt), 1 bzw. 2 = Denkschritt, steps.length + 1 = Ergebnis
 //   body: HTML der Bühne (Notenzeile, Klaviatur, Tabelle …)
 //   text: kurzer Satz zum Bild (in der Farbe des Schritts); result: { title, chips: [{ step, text }] }
 //   tones: Noten, die beim Zeigen des Bilds nacheinander erklingen (audio.js, beachtet „Ton aus“)
 import { play } from "./audio.js";
+
+// Fester Satz zum Zählen (Welle 10, B6): in den Hilfen der Intervalle ab Stufe 3 und der parallelen
+// Molltonart sowie in deren Vorführungen beim Wechsel zu Schritt 2. Die Starttaste trägt dort „Start“.
+export const COUNT_RULE = "Stufen: Beide Noten zählen mit. Halbtöne: Die Starttaste zählt nicht, du zählst die Schritte.";
 
 // Abspielen: ein Bild pro Sekunde, am Ende hält die Vorführung an
 export const FRAME_MS = 1000;
