@@ -504,8 +504,9 @@ Noten lesen → Dreiklänge).
 - **Klaviatur**: `pianoSvg({ …, counts: [[midi, Zahl] …] })` färbt gezählte Tasten (Klasse `count`) und
   schreibt die Zahl darauf. `start: midi` (seit Welle 10, B6) beschriftet die Starttaste beim Halbtöne-Zählen
   mit „Start“ (`START_LABEL`, Klasse `kstart`, `data-start`); auf schwarzen Tasten und bei zwei Oktaven bis
-  380 px (Klasse `keys-wide`) steht „0“. Fester Satz dazu `COUNT_RULE` in `demo.js` („Stufen: Beide Noten zählen
-  mit. Halbtöne: Die Starttaste zählt nicht, du zählst die Schritte.“): Hilfen der Intervalle ab Stufe 3 und
+  380 px (Klasse `keys-wide`) steht „S“ (`START_SHORT`; seit der Abschlussprüfung Welle 10 keine Ziffer, eine
+  „0“ lud zum Mitzählen ein). Fester Satz dazu `COUNT_RULE` in `demo.js` („Stufen: Beide Noten zählen mit.
+  Halbtöne: Die Starttaste („Start“, kurz „S“) zählt nicht, du zählst die Schritte.“): Hilfen der Intervalle ab Stufe 3 und
   Tonleitern 12, Vorführungen beim Wechsel zu Schritt 2. Die Starttaste ist in allen Vorführungen beschriftet,
   die Halbtöne zählen: Intervall, Ganz-/Halbtonschritt (`stepDemo`), Dur-Tonleiter (`scaleDemo`, je Schritt die
   untere Note), Tonart aus Kreuzen (`keyDemo`, letztes Kreuz), parallele Molltonart (`minorDemo`, Dur-Grundton).
@@ -533,8 +534,11 @@ Pyramide (beim Punkt die Hälfte dazu); Takt füllen 1 = Zählen (was fehlt bis 
 Aufgaben: `display` = beide Schritte („Kopf schwarz · 1 Fähnchen → Achtelnote (½ Schlag)“), `reveal` =
 „Richtig wäre: …“, `partial` je Stufe; `ok`/`bad` von Schritt 1 nennen die Antwort von Schritt 2 nie. Reine
 Funktionen im Paket: `featureTable()` (Kopf | Hals | Fähnchen je Notenwert, ohne Notenbilder), `restTable()`
-(woran du die Pausen erkennst, ohne Zeichen; Form der ganzen und halben Pause `REST_SHAPE` = „Rechteck“),
-`pyramidSvg({ hit, hitBox, add, addBox, sum, dot })` (1/2/4/8/16 Kästchen, rechts die Schläge, ohne Namen; ein
+(woran du die Pausen erkennst; Form der ganzen und halben Pause `REST_SHAPE` = „Rechteck“; seit der
+Abschlussprüfung eine Spalte „Zeichen“ mit `data-after-answer hidden`, die erst nach der Antwort erscheint;
+die Rückmeldung zu Pausen nennt das Merkmal, `restFeature(e)`),
+`pyramidSvg({ hit, hitBox, add, addBox, sum, dot })` (1/2/4/8/16 Kästchen, rechts die Schläge, ohne Namen; in jedem Kästchen ein Zeichen, die
+Sechzehntel je Schlag zu vier gebalkt (`pyrBeamGroup`), Brüche ½ ¼ in der Grundschrift und größer (`.frac`); ein
 Kästchen grün, beim Punkt ein Kästchen der Zeile darunter direkt dahinter umrandet, `dotPyr(e)`; `sum` und `dot`
 als eigene Textzeilen unter der Pyramide; keine verkleinerte Fassung mehr), `countTable()` (Zählleiste
 `COUNT_SYLLABLES` „1 + 2 + 3 + 4 +“ als `figure` mit dem Satz „+ heißt ‚und‘“ im Bild; die Zählsilbe „+“ als
@@ -598,8 +602,11 @@ Reihe selbst.
 - „Noten lesen“ (B3): Frage „Wie heißt die Note?“ (`PROMPT`); Rückmeldung daneben `revealText(n, clef, state)`:
   Name, Lage aus `lageText(n, clef)` (aus `staffPos`, Lagen −2 bis 10, weiter außen mit der Zahl der
   Hilfslinien) und bei Linien/Zwischenräumen ohne Vorzeichen der gewählte Spruch (`spruchId`), z. B. „Das war
-  ein G (g') – 2. Linie von unten (Es Geht Hurtig Durch Fleiß).“; bei Vorzeichen „…, mit ♯“ ohne Spruch; große
-  Oktave „G (großes G)“ (`displayName`). `statKey`, Prüfung und adaptive Auswahl unverändert.
+  ein G (g') – 2. Linie von unten (Es Geht Hurtig Durch Fleiß).“; bei Vorzeichen „…, mit ♭: aus H wird B“
+  ohne Spruch; große Oktave „G (großes G)“ (`displayName`). Seit der Abschlussprüfung dazu `revealParts` (Teile
+  `{ t, mark }`, Wort zur Stelle aus `teileZu` in `sprueche.js`): Die Engine (`feedbackParts`, `setFeedback`)
+  setzt die Teile per `textContent`, das Wort des Spruchs zur Stelle der Note in `<b class="fb-mark">`
+  (unterstrichen); nie HTML aus dem Text des Kindes. `statKey`, Prüfung und adaptive Auswahl unverändert.
 
 ## Engine (`src/engine.js`)
 
@@ -617,9 +624,12 @@ Stufen-ID.
   Funktion `waitsAfter(level, ok, text)`: Stufe mit `helps` (`waitsForNext(level)`, Sonderfall, z. B. „Intervalle“
   1, 3, 5, 8, „Tonleitern“ 1, 2, 4, 6, 8, 10, 12, „Notenwerte“ 1, 2, 4, 6, 8) → warten; daneben (auch
   Teilerfolg) → **immer** warten; richtig in einer Stufe ohne Hilfen → nur von selbst weiter (nach
-  `answerDelay(q, muted)`), wenn der Rückmeldetext höchstens `AUTO_OK_MAX` = 45 Zeichen hat (Startwert),
-  sonst warten. Noten lesen 1–8 (richtige Rückmeldungen 14–20 Zeichen) laufen wie vorher weiter; in Tonleitern
-  10/11 und Akkorde 3, 5, 6 wechselt das Verhalten innerhalb einer Runde je nach Text (offen). Gewartet wird
+  `answerDelay(q, muted)`), wenn **keine** richtige Rückmeldung der Stufe länger als `AUTO_OK_MAX` = 45 Zeichen
+  sein kann (`okWaits(level)`, seit der Abschlussprüfung je Stufe statt je Text: Stichprobe von `OK_SAMPLE` =
+  1500 Aufgaben mit `okTextsMax`, je Stufe gemerkt und beim Start der Runde gerechnet; `level.autoNext`
+  true/false setzt es fest; ohne `level.question` gilt der Text). Es laufen weiter: Noten lesen 1–8, Notenwerte
+  5, 7, 9, Tonleitern 3, Intervalle 2, Dreiklänge 1, 2, 4; alle übrigen Stufen ohne Hilfen warten auch nach
+  „richtig“ (u. a. Tonleitern 11, Dreiklänge 3, 5, 6, Notenwerte 3, 10). Gewartet wird
   ohne Zeitgeber (`isWaiting()`), bis du „Nächste Aufgabe“ tippst
   (`#pNext`, ohne die Hilfen zu öffnen sichtbar, auch bei 320 × 640 ohne Scrollen) oder Enter bzw. die
   Leertaste drückst (`handleKey`; ein fokussierter Knopf der Vorführung oder `summary` behält seine Taste).
@@ -662,10 +672,15 @@ Stufen-ID.
   D-Dur im Bassschlüssel ab d), bei den Tonarten c'. Zu Beginn der Runde
   ist der Bereich zugeklappt; danach bleibt er so, wie du ihn gelassen hast (auf oder zu), der Inhalt wechselt
   mit jeder Aufgabe. Ob die Hilfe offen war, wird nicht gezählt. Stufen ohne `helps` zeigen keinen Bereich.
-  Aufbau: Satz und Knopf „Vorführen“ (nur mit `level.demo`) in einer Zeile, dann Klaviatur und Tabelle
+  Aufbau: Satz und Knopf „Vorführen“ (nur mit `level.demo`) ab 600 px in einer Zeile, darunter untereinander
+  (Text in voller Breite, Knopf darunter; Abschlussprüfung Welle 10), dann Klaviatur und Tabelle
   (`.help-grid`, ab 600 px nebeneinander, Tabelle in zwei Hälften). Ab dem Aufklappen scrollt `practice.js`
   so weit, dass die erste Reihe der Antwortknöpfe über der Tab-Leiste steht (`answersScroll`); kein Scrollen
-  innerhalb der Hilfen. Bis 380 px Breite stehen die Hilfen per CSS (`order`) unter den Antwortknöpfen.
+  innerhalb der Hilfen. Bis 599 px Breite (seit der Abschlussprüfung; vorher 380 px) stehen die Hilfen per CSS
+  (`order`) unter den Antwortknöpfen, damit Notenzeile, Rückmeldung und Knöpfe auf Handys zusammen sichtbar
+  bleiben. Teile der Hilfen mit `data-after-answer` (Pausen-Zeichen) zeigt `demoReady` erst nach der Antwort.
+  Antwortknöpfe: Rahmen immer 2 px (die Breite ändert sich nach der Antwort nicht), Auswahlknöpfe brechen nur
+  zwischen Wörtern (`overflow-wrap: normal`, `hyphens: manual`).
 - „Vorführen“ (seit 20.11.2026): zu Beginn jeder Aufgabe gesperrt (`disabled`, verriete die Antwort), frei nach
   der Antwort (nach dem letzten Schritt), auch während die Runde auf „Nächste Aufgabe“ wartet. Seit Welle 10
   (B11) steht daneben sichtbar „nach deiner Antwort“ (`DEMO_WAIT_SHORT`, `data-demo-wait`), `demoReady` nimmt

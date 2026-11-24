@@ -1910,12 +1910,39 @@ Liste oben hat Sandra am 24.11.2026 entschieden.
    unten“) – oder ihr Wort aus dem Unterricht.
 7. Stufen mit gemischtem Weiterlaufen: In Tonleitern 10/11 und Akkorde 3, 5, 6 gehen nur ein Teil der richtigen
    Antworten von selbst weiter (etwa 54 %, 59 %, 36 %, 85 %), weil die Grenze am Text hängt (`AUTO_OK_MAX` 45).
-   Nach dem Test mit Kindern: Grenze je Stufe statt je Text?
+   Nach dem Test mit Kindern: Grenze je Stufe statt je Text? – Nach der Abschlussprüfung je Stufe gebaut
+   (`okWaits`, siehe unten); bestätigen oder zurück.
 8. „Stufe n ist offen.“ steht auch nach einer schwachen Runde, wenn die Folgestufe schon offen ist (stimmt,
    kann aber überraschen).
 9. Benennung „Stufe“ (Stufe der App, Notenstufe, Stufe der Tonleiter): umbenennen („Lektion“, „Etappe“)? Nicht in
    dieser Welle.
 10. Gehaltene „+“ unter langen Noten: bisher nur Schlagzahlen („1 (2)“), nicht „1 (+) (2) (+)“.
+
+**Abschlussprüfung und Korrektur (24.11.2026).** Drei getrennte Prüfer (Lehrkraft, Jugendliche, Wissenschaft) mit
+den Bildschirmfotos aus Schritt 8 und dem Code, Stand 0ea360b: kein A-Befund; alle in Welle 10 behobenen Befunde
+bestätigt. Die B-Befunde (zusammen 23, viele doppelt) sind in einer Korrekturrunde behoben, je ein Commit
+„Korrektur nach Prüfung aus drei Perspektiven: …“:
+- Antwortknöpfe brechen nicht mehr mitten im Wort, Rahmen immer 2 px (kein Springen nach der Antwort);
+  „Vorführen“ auf Handys unter dem Hilfetext; Hilfen bis 599 px (vorher 380) unter den Antwortknöpfen (ded8393).
+- Noten lesen: Wort des Merkspruchs zur Stelle der Note hervorgehoben (`revealParts`, als Text), Vorzeichen-Noten
+  „mit ♭: aus H wird B“, Hinweis Stufe 7 mit -is, Dis, Es, As, Des und „aus H wird B“, Bass-Satz „Dieselbe Linie
+  wie im Violinschlüssel …“ (d0c9726).
+- Starttaste „S“ statt „0“, `COUNT_RULE` erklärt es (deee740).
+- Notenwerte: Sechzehntel-Zeile der Pyramide gebalkt je Schlag statt leer, Brüche größer, Pausen-Hilfe mit
+  Zeichen nach der Antwort, Pausen-Rückmeldung mit Merkmal, weiches Trennzeichen in der Lerntafel,
+  „Zählzeiten ohne neuen Ton“, Satz zur Takthälfte unter Balken, Startkarte Stufe 1 als Liste (e462864).
+- Tonleitern: Startkarte 10 kurz (Reihen und Sprüche in den Hilfen), 4 und 12 nummeriert, „dieselben
+  Buchstaben wie bei den Kreuzen, rückwärts: H E A D G C F (H mit ♭ heißt B)“, Stufe 1–3 daneben mit Grund
+  (c2f6c09).
+- Intervalle 3 und 5: Startkarten in kurzen Zeilen (56180be).
+- Dreiklänge: Umkehrung mit Knopfnamen und Ton („Unten liegt H, die Quinte des E-Dur-Dreiklangs“), Startkarte
+  Quintenzirkel mit Vorzeichnung (382fed6).
+- Weiterlaufen nach „richtig“ je Stufe statt je Text (`okWaits`; offener Punkt 7 damit nach Voreinstellung
+  „je Stufe“ gebaut, nach dem Kindertest prüfen; neu wartend auch Notenwerte 3 und 10) (7b41e03).
+Nicht geändert (Entscheidungen Sandra bzw. offen): Pausenlage-Wortlaut (Punkt 6), reine Prime mit zwei ♭
+(Punkt 5), Zählleiste „(+)“ (Punkt 10), Balken je Schlag. C-Befunde (Feinschliff, spätere Wellen) bleiben in
+den Berichten. `npm test` 374 grün, `docs/screens/ueberlauf.mjs` 0 Treffer bei 320 und 420 px. Cache bleibt
+`notenheld-v0.2.0-13` (noch nicht veröffentlicht).
 
 ## Welle 11: Wiederholen (Voraussetzungen, Grundlagen wiederholen, Wiederholung über Tage, Jahrgang als Lehrkraft-Einstellung)
 
