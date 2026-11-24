@@ -49,7 +49,11 @@ test("Teilerfolg: --part, --part-soft, --part-ink an allen drei Stellen, Schrift
     const onSoft = contrast(all["--part-ink"], all["--part-soft"]);
     assert.ok(onSoft >= 4.5, `${name}: --part-ink auf --part-soft ${onSoft.toFixed(2)}`);
     // der Punkt und der Rand (--part) heben sich von der Karte ab (Grafik, ≥ 3 : 1)
-    assert.ok(contrast(all["--part"], all["--surface"]) >= 3, `${name}: --part auf --surface`);
+    // (die Fortschrittspunkte stehen auf --bg, der Rand der Rückmeldung auf --part-soft)
+    for (const bg of ["--surface", "--bg", "--part-soft"]) {
+      const c = contrast(all["--part"], all[bg]);
+      assert.ok(c >= 3, `${name}: --part auf ${bg} ${c.toFixed(2)}`);
+    }
   }
 });
 
@@ -103,6 +107,8 @@ test("Nicht nur Rot/Grün: Zeichen ✓/✗ in Knöpfen, Punkten und Rückmeldung
   assert.match(plain, /\.dot\.part\s*\{[^}]*linear-gradient\(90deg, var\(--part\) 50%, transparent 50%\)/);
   assert.match(plain, /\.feedback\.ok::before\s*\{\s*content:\s*"✓ "/);
   assert.match(plain, /\.feedback\.bad::before\s*\{\s*content:\s*"✗ "/);
+  // Teilerfolg in der Rückmeldung: derselbe halbe Punkt, in der Schriftfarbe der Fläche (Prüfung Schritt 7)
+  assert.match(plain, /\.feedback\.part::before\s*\{[^}]*linear-gradient\(90deg, var\(--part-ink\) 50%, transparent 50%\)/);
 });
 
 test("Quintenzirkel-Kästchen: Kopfzeile auch über der zweiten Hälfte (keine versteckte thead)", () => {

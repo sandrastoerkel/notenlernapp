@@ -997,3 +997,15 @@ test("Prüfung Schritt 2, B6: Start-Beschriftung in allen Vorführungen, die Hal
   }
   assert.ok(!tonleitern.learn.some((b) => /wie bei den Intervallen/.test(b.render())), "Lerntafel ohne Verweis auf das spätere Paket");
 });
+
+// Prüfung Schritt 7 (B13): Der Ausschnitt der Hilfe-Klaviatur (fit) richtet sich nur nach den gegebenen Noten.
+// Er darf die Antwort weder abschneiden noch verraten: Die Taste des fehlenden Tons und beide Nachbar-Halbtöne
+// (die naheliegenden falschen Antworten) sind immer zu sehen, auch wenn die Lücke am Rand der Tonleiter liegt.
+test("Welcher Ton fehlt?: Hilfe-Klaviatur zeigt die Taste der Lücke und ihre beiden Nachbar-Halbtöne", () => {
+  for (const it of [...ITEMS_4, ...ITEMS_5]) {
+    const q = gapStepQuestion(it), html = helpsHtml(byId(4), q), m = midi(q.note);
+    for (const x of [m - 1, m, m + 1]) assert.ok(html.includes(`data-midi="${x}"`), `${it.key}: Taste ${x - m} zur Lücke fehlt`);
+    assert.equal((html.match(/class="[wb]key mark/g) || []).length, 7, `${it.key}: sieben gegebene Töne markiert`);
+    assert.ok(!new RegExp(`class="[wb]key mark[^"]*" data-midi="${m}"`).test(html), `${it.key}: die Lücke ist nicht markiert`);
+  }
+});

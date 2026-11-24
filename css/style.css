@@ -50,8 +50,9 @@
   --gold: #e0a416;
   --gold-soft: #fff1cc;
   /* Teilerfolg (nur der erste Schritt daneben, Welle 10): aus dem Gold abgeleitet. part = Rand/Punkt,
-     soft = Fläche, ink = Schrift auf soft (mindestens 4,5 : 1, nachgerechnet in test/css.test.js) */
-  --part: #c48a0a; --part-soft: #fff1cc; --part-ink: #6e4a00;
+     soft = Fläche, ink = Schrift auf soft (mindestens 4,5 : 1, nachgerechnet in test/css.test.js).
+     part hebt sich als Punkt von --bg und --surface ab (mindestens 3 : 1; die Fortschrittspunkte stehen auf --bg) */
+  --part: #b47e08; --part-soft: #fff1cc; --part-ink: #6e4a00;
   /* Klaviatur: Tasten sehen hell und dunkel gleich aus (weiß und schwarz wie am Instrument), daher ohne dunkle Variante */
   --key-white: #ffffff;
   --key-white-hover: #e8ecff;
@@ -225,6 +226,11 @@ section { display: grid; gap: 14px; }
 .feedback.ok::before { content: "✓ "; } .feedback.bad::before { content: "✗ "; }
 /* Teilerfolg: eigene Fläche statt Rot, damit er auf den ersten Blick von „daneben“ verschieden ist */
 .feedback.part { color: var(--part-ink); background: var(--part-soft); border-left: 4px solid var(--part); border-radius: 8px; padding: 4px 10px; }
+/* Zeichen des Teilerfolgs: derselbe halb gefüllte Punkt wie in den Fortschrittspunkten (gezeichnet, keine Schriftfrage) */
+.feedback.part::before {
+  content: ""; display: inline-block; width: 0.72em; height: 0.72em; margin-right: 0.4em; border-radius: 50%;
+  background: linear-gradient(90deg, var(--part-ink) 50%, transparent 50%); box-shadow: inset 0 0 0 2px var(--part-ink);
+}
 
 .dots { display: flex; gap: 5px; flex-wrap: wrap; }
 /* Fortschrittspunkte: richtig ✓, daneben ✗ (Zeichen in --on-mark), Teilerfolg halb gefüllt, jetzt in --accent */
