@@ -187,31 +187,30 @@ function numberQuestion(it) {
 /* ---------- Stufe 3 bis 7: zwei Schritte ---------- */
 
 // Schritt 1: Rahmenintervall (acht Knöpfe). Schritt 2: die zur richtigen Zahl passenden Intervalle aus
-// types, auch wenn Schritt 1 daneben lag (Sandra, 20.11.2026); die Aufgabe zählt dann als daneben.
+// types, auch wenn Schritt 1 daneben lag (Sandra, 20.11.2026); die Aufgabe zählt dann als daneben
+// (Teilerfolg, q.partial: nicht rot gezeigt).
 // Gibt es zur Zahl nur ein Intervall (Prime, Quarte, Quinte, Oktave in Stufe 3 und 4, sonst die Oktave),
-// bleibt der zweite Schritt als Bestätigung: Der Text nennt die Halbtonzahl zum Nachzählen, der eine Knopf
-// bestätigt. So bleibt der Ablauf „erst Rahmen, dann fein“ in jeder Aufgabe gleich. Ohne q.partial, weil
-// es im zweiten Schritt nichts zu entscheiden gab (nach falscher Zahl gilt q.reveal).
-export const finePrompt = (frame, numName, fine, semi) => (fine.length > 1
-  ? `${frame}. Welche ${numName}? Zähle die Halbtöne.`
-  : `${frame}. Die ${numName} ist hier rein: ${plural(semi, "Halbton", "Halbtöne")}. Zähle nach.`);
+// entfällt der zweite Schritt (Welle 10, Befund B10: ein Knopf ist keine Entscheidung): Die Aufgabe endet
+// nach Schritt 1, die Rückmeldung nennt die Halbtonzahl („4 Stufen → Quarte · hier rein: 5 Halbtöne“).
+export const finePrompt = (frame, numName) => `${frame}. Welche ${numName}? Zähle die Halbtöne.`;
+// Rückmeldung der Aufgaben mit nur einem Schritt: „c'–f': 4 Stufen → Quarte · hier rein: 5 Halbtöne“
+export const singleText = (frame, quality, semi) => `${frame} · hier ${quality}: ${plural(semi, "Halbton", "Halbtöne")}`;
 export function twoStepQuestion(it, types, down = false) {
   const [first, second] = down ? [it.high, it.low] : [it.low, it.high];
   const num = intervalNumber(it.low, it.high), numName = INTERVAL_NAMES[num - 1];
-  const answer = intervalName(it.low, it.high), frame = frameText(first, second), steps = stepsText(first, second);
-  const fine = qualityChoices(num, types);
+  const answer = intervalName(it.low, it.high), frame = frameText(first, second);
+  const fine = qualityChoices(num, types), single = fine.length < 2;
+  const steps = single ? singleText(frame, it.quality, intervalSemitones(it.low, it.high)) : stepsText(first, second);
+  const numberStep = { ...NUMBER_SET, choices: NUMBER_SET.choices.slice(), answer: numName, ok: `Richtig: ${frame}.`, bad: `Nicht ganz: ${frame}.` };
   return {
     svg: pairSvg(it.clef, first, second),
     prompt: down ? "Abwärts: Welches Rahmenintervall?" : "Welches Rahmenintervall?",
     answer,
     choices: fine,
-    steps: [
-      { ...NUMBER_SET, choices: NUMBER_SET.choices.slice(), answer: numName, ok: `Richtig: ${frame}.`, bad: `Nicht ganz: ${frame}.` },
-      { choices: fine, cols: fine.length, answer, prompt: finePrompt(frame, numName, fine, intervalSemitones(it.low, it.high)) },
-    ],
+    steps: single ? [numberStep] : [numberStep, { choices: fine, cols: fine.length, answer, prompt: finePrompt(frame, numName) }],
     display: steps,
     reveal: `Richtig wäre: ${answer} (${steps}).`,
-    ...(fine.length > 1 ? { partial: `Die Halbtöne stimmen, die Zahl nicht: ${steps}.` } : {}),
+    ...(single ? {} : { partial: `Die Halbtöne stimmen, die Zahl nicht: ${steps}.` }),
     play: [first, second],
     low: it.low, high: it.high, clef: it.clef, down, num, quality: it.quality,
     helpMarks: [it.low, it.high],
@@ -549,6 +548,7 @@ const levels = [
     hint: "Zwei Schritte: Erst das Rahmenintervall aus den Notenstufen, dann die Halbtöne. Prime, Quarte, Quinte und Oktave sind hier rein, Sekunde, Terz, Sexte und Septime klein oder groß.",
     items: POOL_3,
     example: intervalSvg(find(POOL_3, N("E", 4), N("G", 4))),
+    twoSteps: true,
     question(prev, ctx) { return twoStepQuestion(pickBy(POOL_3, prev, byType, pairKey, roundOf(ctx)), TYPES_RKG); },
     digits: true,
     ...withHelps("rkg"),
@@ -559,6 +559,7 @@ const levels = [
     hint: "Dasselbe ohne Hilfen, im Violin- und Bassschlüssel. Kleine Terz 3, große Terz 4, reine Quarte 5, reine Quinte 7, reine Oktave 12 Halbtöne.",
     items: POOL_4,
     example: intervalSvg(find(POOL_4, N("A", 2), N("C", 3))),
+    twoSteps: true,
     question(prev, ctx) { return twoStepQuestion(pickBy(POOL_4, prev, byType, pairKey, roundOf(ctx)), TYPES_RKG); },
     digits: true,
   },
@@ -568,6 +569,7 @@ const levels = [
     hint: "Ein Halbton weniger als rein oder klein heißt vermindert, einer mehr als rein oder groß übermäßig. f'–h' ist eine übermäßige Quarte, h'–f'' eine verminderte Quinte, beide 6 Halbtöne: Erst die Zahl sagt, welches es ist.",
     items: POOL_5,
     example: intervalSvg(find(POOL_5, N("F", 4), N("H", 4))),
+    twoSteps: true,
     question(prev, ctx) { return twoStepQuestion(pickBy(POOL_5, prev, byType, pairKey, roundOf(ctx)), TYPES_ALL); },
     digits: true,
     ...withHelps("all"),
@@ -578,6 +580,7 @@ const levels = [
     hint: "Dasselbe ohne Hilfen, im Violin- und Bassschlüssel. Die Zahl bestimmst du immer zuerst, sie kommt nur aus den Notenstufen.",
     items: POOL_6,
     example: intervalSvg(find(POOL_6, N("E", 3, -1), N("F", 3, 1))),
+    twoSteps: true,
     question(prev, ctx) { return twoStepQuestion(pickBy(POOL_6, prev, byType, pairKey, roundOf(ctx)), TYPES_ALL); },
     digits: true,
   },
@@ -587,6 +590,7 @@ const levels = [
     hint: "Die obere Note steht links und klingt zuerst. Gezählt wird genauso: erst die Notenstufen, dann die Halbtöne. g'–e' abwärts ist eine kleine Terz.",
     items: POOL_7,
     example: pairSvg("treble", N("G", 4), N("E", 4)),
+    twoSteps: true,
     question(prev, ctx) { return twoStepQuestion(pickBy(POOL_7, prev, byType, pairKey, roundOf(ctx)), TYPES_ALL, true); },
     digits: true,
   },

@@ -946,6 +946,7 @@ const levels = [
   },
   {
     title: "Welcher Ton fehlt?",
+    twoSteps: true,
     subtitle: `Violinschlüssel · bis 2 Vorzeichen · zwei Schritte · mit Hilfen · ${ITEMS_4.length} Aufgaben`,
     hint: "Zwei Schritte: Erst der Bauplan – zähle ab dem Grundton, welcher Schritt zur Lücke führt, Ganz oder Halb. Dann die Klaviatur – welcher Ton liegt so viele Halbtöne über der Note davor?",
     items: ITEMS_4,
@@ -1000,6 +1001,7 @@ const levels = [
   },
   {
     title: "Tonart aus den Vorzeichen",
+    twoSteps: true,
     subtitle: `Violinschlüssel · zwei Schritte · mit Hilfen · ${FIFTHS.length} Dur-Tonarten`,
     hint: "Zwei Schritte: Erst das entscheidende Vorzeichen – bei Kreuzen das letzte, bei Be das vorletzte. Dann die Tonart: einen Halbton über dem letzten Kreuz (Fis → G-Dur) bzw. das vorletzte Be selbst (B, Es → B-Dur). Ein einzelnes Be steht für F-Dur.",
     items: ITEMS_10,
@@ -1017,6 +1019,7 @@ const levels = [
   },
   {
     title: "Parallele Molltonart",
+    twoSteps: true,
     subtitle: `Violinschlüssel · zwei Schritte · mit Hilfen · ${FIFTHS.length} Molltonarten`,
     hint: "Zwei Schritte wie bei den Intervallen: Erst die Terz abwärts – drei Notenstufen, der Dur-Grundton zählt als 1 (Es, D, C). Dann drei Halbtöne abwärts, so bekommt der Stammton sein Vorzeichen. Moll wird klein geschrieben.",
     items: ITEMS_12,

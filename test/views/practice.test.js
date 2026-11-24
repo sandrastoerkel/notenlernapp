@@ -1,7 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { startLabel, keysHint, lettersLabel, resultInfo, answersScroll } from "../../src/views/practice.js";
+import { startLabel, keysHint, lettersLabel, resultInfo, answersScroll, startHint, TWO_STEPS_NOTE } from "../../src/views/practice.js";
+import { PACKS } from "../../src/packs/index.js";
 import { lockText } from "../../src/views/home.js";
 import { fresh } from "../../src/store.js";
 import intervalle from "../../src/packs/intervalle.js";
@@ -111,4 +112,20 @@ test("index.html: Hilfen zwischen Notenzeile und Runde; bis 380 px rücken sie p
   assert.ok(html.indexOf('id="pStaff"') < html.indexOf('id="pHelps"') && html.indexOf('id="pHelps"') < html.indexOf('id="pPlay"'));
   const css = readFileSync(new URL("../../css/style.css", import.meta.url), "utf8");
   assert.match(css, /@media \(max-width: 380px\) \{\s*#pHelps \{ order: 1; \}/);
+});
+
+test("Startkarte: zweischrittige Stufen sagen „Beide Schritte müssen stimmen.“", () => {
+  assert.equal(TWO_STEPS_NOTE, "Beide Schritte müssen stimmen.");
+  assert.equal(startHint({ hint: "H.", twoSteps: true }), "H. Beide Schritte müssen stimmen.");
+  assert.equal(startHint({ hint: "H." }), "H.");
+  const two = [];
+  for (const pack of PACKS) for (const level of pack.levels) {
+    if (level.twoSteps) { two.push(level.id); assert.ok(startHint(level).endsWith(TWO_STEPS_NOTE), level.id); }
+    else assert.equal(startHint(level), level.hint, level.id);
+  }
+  assert.deepEqual(two, ["notenwerte-1", "notenwerte-4", "notenwerte-6", "notenwerte-8", "tonleitern-4", "tonleitern-10", "tonleitern-12",
+    "intervall-3", "intervall-4", "intervall-5", "intervall-6", "intervall-7"]);
+  // die Startkarte nutzt startHint
+  const src = readFileSync(new URL("../../src/views/practice.js", import.meta.url), "utf8");
+  assert.match(src, /\$\("#pHint"\)\.textContent = startHint\(level\)/);
 });

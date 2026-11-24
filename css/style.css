@@ -46,6 +46,9 @@
   --bad-soft: #fbe1de;
   --gold: #e0a416;
   --gold-soft: #fff1cc;
+  /* Teilerfolg (nur der erste Schritt daneben, Welle 10): aus dem Gold abgeleitet. part = Rand/Punkt,
+     soft = Fläche, ink = Schrift auf soft (mindestens 4,5 : 1, nachgerechnet in test/css.test.js) */
+  --part: #c48a0a; --part-soft: #fff1cc; --part-ink: #6e4a00;
   /* Klaviatur: Tasten sehen hell und dunkel gleich aus (weiß und schwarz wie am Instrument), daher ohne dunkle Variante */
   --key-white: #ffffff;
   --key-white-hover: #e8ecff;
@@ -74,6 +77,7 @@
     --bg: #0f1222; --surface: #191d34; --surface-2: #20253f; --fg: #eceffc; --muted: #9ba3c6; --line: #2d3352;
     --ink: #f1f3ff; --accent: #8197ff; --accent-fg: #0f1222; --accent-soft: #273066;
     --ok: #41d094; --ok-soft: #163a2d; --bad: #ff8178; --bad-soft: #47221f; --gold: #f3c452; --gold-soft: #3f3214;
+    --part: #f3c452; --part-soft: #3f3214; --part-ink: #f8d98c;
     --step1: #a49cf6; --step1-ink: #cfcaff; --step1-soft: #2d2a5e;
     --step2: #44cf9f; --step2-ink: #a5ecd3; --step2-soft: #11392f;
     --step-on: #0f1222; --family: #242a47;
@@ -84,6 +88,7 @@
   --bg: #0f1222; --surface: #191d34; --surface-2: #20253f; --fg: #eceffc; --muted: #9ba3c6; --line: #2d3352;
   --ink: #f1f3ff; --accent: #8197ff; --accent-fg: #0f1222; --accent-soft: #273066;
   --ok: #41d094; --ok-soft: #163a2d; --bad: #ff8178; --bad-soft: #47221f; --gold: #f3c452; --gold-soft: #3f3214;
+  --part: #f3c452; --part-soft: #3f3214; --part-ink: #f8d98c;
   --step1: #a49cf6; --step1-ink: #cfcaff; --step1-soft: #2d2a5e;
   --step2: #44cf9f; --step2-ink: #a5ecd3; --step2-soft: #11392f;
   --step-on: #0f1222; --family: #242a47;
@@ -191,10 +196,13 @@ section { display: grid; gap: 14px; }
 /* Nunito statt Outfit: die Bruchzeichen ½ ¼ ¾ sind in Outfit sehr klein */
 .feedback { min-height: 1.6em; font-weight: 800; font-family: var(--body); font-size: 1.05rem; }
 .feedback.ok { color: var(--ok); } .feedback.bad { color: var(--bad); }
+/* Teilerfolg: eigene Fläche statt Rot, damit er auf den ersten Blick von „daneben“ verschieden ist */
+.feedback.part { color: var(--part-ink); background: var(--part-soft); border-left: 4px solid var(--part); border-radius: 8px; padding: 4px 10px; }
 
 .dots { display: flex; gap: 5px; flex-wrap: wrap; }
 .dot { width: 14px; height: 8px; border-radius: 4px; background: var(--line); }
 .dot.ok { background: var(--ok); } .dot.bad { background: var(--bad); } .dot.cur { background: var(--accent); }
+.dot.part { background: var(--part); }
 
 /* piano */
 .piano svg { width: 100%; height: auto; display: block; max-width: 100%; }
@@ -223,6 +231,9 @@ section { display: grid; gap: 14px; }
 .help-head { display: flex; gap: 10px; align-items: center; }
 .help-head .help-text { flex: 1; min-width: 0; }
 .help-head .btn { padding: 6px 10px; flex: none; font-size: .9rem; }
+/* „Vorführen“ mit dem sichtbaren Zusatz „nach deiner Antwort“ darunter (verschwindet nach der Antwort) */
+.demo-go { display: grid; justify-items: center; gap: 2px; flex: none; }
+.demo-wait { font-size: .75rem; line-height: 1.1; text-align: center; white-space: nowrap; }
 .help-table-wrap .tt-note { font-size: .72rem; }
 /* Klaviatur und Tabelle: untereinander, ab 600 px nebeneinander (keine Scrollleiste in den Hilfen) */
 .help-grid { display: grid; gap: 8px; align-items: start; }

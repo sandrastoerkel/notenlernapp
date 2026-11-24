@@ -198,32 +198,39 @@ test("Stufe 1 und 2: Intervall bestimmen, Stammtöne, acht Knöpfe in zwei Reihe
   assert.equal(frameText(N("C", 4), N("C", 4)), "c'–c': 1 Stufe → Prime");
 });
 
-test("Stufe 3 bis 7: zwei Schritte, erst die Zahl, dann die passenden Qualitäten", () => {
+test("Stufe 3 bis 7: zwei Schritte, erst die Zahl, dann die passenden Qualitäten; ein Schritt bei nur einem Intervall", () => {
   const typesOf = [TYPES_RKG, TYPES_RKG, TYPES_ALL, TYPES_ALL, TYPES_ALL];
   TWO_STEP.forEach((l, k) => {
     const qs = many(l, 1500), by = {};
+    assert.equal(l.twoSteps, true, l.id);
     for (const q of qs) {
-      const num = intervalNumber(q.low, q.high);
-      assert.equal(q.steps.length, 2, l.id);
+      const num = intervalNumber(q.low, q.high), fine = qualityChoices(num, typesOf[k]);
       const [s1, s2] = q.steps;
       assert.deepEqual(s1.choices, INTERVAL_NAMES);
       assert.equal(s1.cols, 4); assert.ok(s1.digits);
       assert.equal(s1.answer, INTERVAL_NAMES[num - 1]);
       assert.equal(q.answer, intervalName(q.low, q.high));
-      assert.equal(s2.answer, q.answer);
-      assert.deepEqual(s2.choices, qualityChoices(num, typesOf[k]));
-      assert.equal(s2.cols, s2.choices.length);
-      assert.ok(s2.choices.includes(q.answer) && s2.choices.every((c) => c.endsWith(INTERVAL_NAMES[num - 1])));
-      // Mehrere Intervalle zur Zahl: Frage; nur eines (z. B. reine Quinte in Stufe 3): Bestätigung mit Halbtonzahl
-      if (s2.choices.length > 1) assert.ok(s2.prompt.includes(`Welche ${INTERVAL_NAMES[num - 1]}?`) && q.partial);
-      else {
+      // jeder gezeigte Schritt hat mindestens zwei Knöpfe (Welle 10, B10)
+      q.steps.forEach((st) => assert.ok(st.choices.length >= 2, `${l.id} ${q.answer}`));
+      if (fine.length > 1) {
+        assert.equal(q.steps.length, 2, l.id);
+        assert.equal(s2.answer, q.answer);
+        assert.deepEqual(s2.choices, fine);
+        assert.equal(s2.cols, s2.choices.length);
+        assert.ok(s2.choices.includes(q.answer) && s2.choices.every((c) => c.endsWith(INTERVAL_NAMES[num - 1])));
+        assert.ok(s2.prompt.includes(`Welche ${INTERVAL_NAMES[num - 1]}?`) && q.partial);
+        assert.equal(q.display, stepsText(q.down ? q.high : q.low, q.down ? q.low : q.high));
+      } else {
+        // Nur ein Intervall zur Zahl (z. B. reine Quinte in Stufe 3): die Aufgabe endet nach Schritt 1,
+        // die Rückmeldung nennt Zahl und Halbtöne
         const semi = intervalSemitones(q.low, q.high);
-        assert.ok(s2.prompt.includes(`Die ${INTERVAL_NAMES[num - 1]} ist hier rein: ${semi} Halbt`), s2.prompt);
-        assert.ok(s2.prompt.endsWith("Zähle nach."));
+        assert.equal(q.steps.length, 1, l.id);
         assert.equal(q.quality, "rein"); assert.equal(q.partial, undefined);
+        assert.ok(q.display.includes(`${num} Stufe`) && q.display.endsWith(`· hier rein: ${semi} ${semi === 1 ? "Halbton" : "Halbtöne"}`), q.display);
+        assert.ok(stepsFeedback(q, [true]).includes(`hier rein: ${semi} Halbt`));
+        assert.ok(stepsFeedback(q, [false]).includes(`hier rein: ${semi} Halbt`));
       }
       assert.ok(s1.ok.startsWith("Richtig") && s1.bad && !FORBIDDEN.test(s1.bad));
-      assert.equal(q.display, stepsText(q.down ? q.high : q.low, q.down ? q.low : q.high));
       assert.ok(q.reveal.includes(q.answer), l.id);
       assert.equal(q.statKey, q.down ? `${q.answer} abwärts` : q.answer);
       assert.deepEqual(q.helpMarks, [q.low, q.high]);
@@ -252,22 +259,29 @@ test("Stufe 7: abwärts, obere Note links und zuerst gespielt, ohne Prime", () =
   }
 });
 
-test("twoStepQuestion: nur ein Intervall zur Zahl → zweiter Schritt als Bestätigung", () => {
+test("twoStepQuestion: nur ein Intervall zur Zahl → kein zweiter Schritt, Rückmeldung mit Halbtonzahl", () => {
   // Stufe 3 und 4: die Quinte gibt es nur rein
   const q = twoStepQuestion({ clef: "treble", low: N("C", 4), high: N("G", 4), num: 5, quality: "rein" }, TYPES_RKG);
-  assert.deepEqual(q.steps[1].choices, ["reine Quinte"]);
-  assert.equal(q.steps[1].prompt, "c'–g': 5 Stufen → Quinte. Die Quinte ist hier rein: 7 Halbtöne. Zähle nach.");
-  assert.equal(stepsFeedback(q, [true, true]), "Richtig! c'–g': 5 Stufen → Quinte · 7 Halbtöne → reine Quinte");
-  // Zahl daneben, dann bestätigt: keine Rückmeldung „Die Halbtöne stimmen“, sondern die Auflösung
-  assert.equal(stepsFeedback(q, [false, true]), "Richtig wäre: reine Quinte (c'–g': 5 Stufen → Quinte · 7 Halbtöne → reine Quinte).");
-  // Prime: Einzahl-/Mehrzahlform der Halbtöne
+  assert.equal(q.steps.length, 1);
+  assert.equal(q.steps[0].answer, "Quinte");
+  assert.equal(q.display, "c'–g': 5 Stufen → Quinte · hier rein: 7 Halbtöne");
+  assert.equal(stepsFeedback(q, [true]), "Richtig! c'–g': 5 Stufen → Quinte · hier rein: 7 Halbtöne");
+  assert.equal(stepsFeedback(q, [false]), "Richtig wäre: reine Quinte (c'–g': 5 Stufen → Quinte · hier rein: 7 Halbtöne).");
+  assert.equal(q.partial, undefined);
+  // Beispiel aus dem Plan: Quarte
+  const f = twoStepQuestion({ clef: "treble", low: N("C", 4), high: N("F", 4), num: 4, quality: "rein" }, TYPES_RKG);
+  assert.equal(f.display, "c'–f': 4 Stufen → Quarte · hier rein: 5 Halbtöne");
+  // Prime: Mehrzahlform bei 0 Halbtönen
   const p = twoStepQuestion({ clef: "treble", low: N("F", 4), high: N("F", 4), num: 1, quality: "rein" }, TYPES_RKG);
-  assert.equal(p.steps[1].prompt, "f'–f': 1 Stufe → Prime. Die Prime ist hier rein: 0 Halbtöne. Zähle nach.");
-  // Mit vermindert/übermäßig hat die Quinte drei Knöpfe, nur die Oktave bleibt Bestätigung
+  assert.equal(p.display, "f'–f': 1 Stufe → Prime · hier rein: 0 Halbtöne");
+  // Mit vermindert/übermäßig hat die Quinte drei Knöpfe, nur die Oktave endet nach Schritt 1
   assert.equal(twoStepQuestion({ clef: "treble", low: N("C", 4), high: N("G", 4), num: 5, quality: "rein" }, TYPES_ALL).steps[1].choices.length, 3);
   const o = twoStepQuestion({ clef: "treble", low: N("C", 4), high: N("C", 5), num: 8, quality: "rein" }, TYPES_ALL);
-  assert.deepEqual(o.steps[1].choices, ["reine Oktave"]);
-  assert.ok(o.steps[1].prompt.includes("Die Oktave ist hier rein: 12 Halbtöne."));
+  assert.equal(o.steps.length, 1);
+  assert.equal(o.display, "c'–c'': 8 Stufen → Oktave · hier rein: 12 Halbtöne");
+  // abwärts: die obere Note zuerst
+  const d = twoStepQuestion({ clef: "treble", low: N("C", 4), high: N("C", 5), num: 8, quality: "rein" }, TYPES_ALL, true);
+  assert.equal(d.display, "c''–c': 8 Stufen → Oktave · hier rein: 12 Halbtöne");
 });
 
 test("Lerntafel: mehr Abstand, wenn ein ♯ vor Prime oder Sekunde steht", () => {

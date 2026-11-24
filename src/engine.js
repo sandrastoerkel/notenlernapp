@@ -8,6 +8,9 @@
 // in einem eigenen Bereich zum Aufklappen (ui.helps), mit Klaviatur und Tabelle zur Aufgabe; hat die Stufe
 // level.demo(q), führt der Knopf „Vorführen“ die aktuelle Aufgabe vor – erst nach der Antwort, die Runde
 // wartet dann, bis du „Nächste Aufgabe“ tippst (oder die Hilfen zuklappst).
+// Seit Welle 10: Nach einer danebenliegenden Antwort wartet jede Stufe auf „Nächste Aufgabe“ (waitsAfter),
+// nach einem danebenliegenden ersten Schritt erscheint „Weiter zu Schritt 2“. Teilerfolg (nur Schritt 1
+// daneben, q.partial) bekommt die Klasse part statt bad und zählt weiter als daneben.
 // Oben stehen reine Hilfsfunktionen (getestet in test/engine.test.js), unten der DOM-Teil.
 import { LETTERS, NAME_ACCS, N, gName, parseNoteName, midi } from "./music.js";
 import { pianoSvg } from "./staff.js";
@@ -16,9 +19,15 @@ import { play, playChord, isMuted } from "./audio.js";
 import { mountDemo, stopDemos } from "./demo.js";
 
 export const ROUND_LENGTH = 10;
-export const DELAY_OK = 800, DELAY_BAD = 1600;
-// Pause zwischen erstem und zweitem Schritt (q.steps): richtig kurz, daneben länger zum Lesen
-export const DELAY_STEP_OK = 700, DELAY_STEP_BAD = 1600;
+// Pause nach einer richtigen Antwort, bevor die nächste Aufgabe von selbst erscheint (nur Stufen ohne Hilfen
+// und kurze Rückmeldung, siehe waitsAfter). Nach „daneben“ gibt es keinen Zeitgeber mehr (Welle 10).
+export const DELAY_OK = 800;
+// Pause zwischen erstem und zweitem Schritt (q.steps), nur wenn Schritt 1 richtig war; daneben wartet die
+// Runde auf „Weiter zu Schritt 2“
+export const DELAY_STEP_OK = 700;
+// Längster Rückmeldetext (Zeichen), nach dem eine richtige Antwort in einer Stufe ohne Hilfen von selbst
+// weitergeht; längere Texte bleiben stehen, bis du tippst. Startwert, nach dem Test mit Kindern anpassen.
+export const AUTO_OK_MAX = 45;
 // Abstand zwischen mehreren Tönen aus q.play
 export const PLAY_GAP = 500;
 // Rhythmus aus q.play: ein Schlag (Viertel) dauert 600 ms, also Tempo 100 Viertel pro Minute
@@ -80,8 +89,10 @@ export function resultMessage(stars) {
   return "Noch wackelig. Übe zuerst in „Lernen“ mit den Lerntafeln.";
 }
 
+// Fortschrittspunkte: results[i] ist true (richtig), false (daneben) oder "part" (Teilerfolg, zählt als daneben)
+const dotClass = (v) => (v === "part" ? "part" : v ? "ok" : "bad");
 export const dotsHtml = (results, idx, total) => Array.from({ length: total }, (_, i) =>
-  `<span class="dot ${i < idx ? (results[i] ? "ok" : "bad") : i === idx ? "cur" : ""}"></span>`).join("");
+  `<span class="dot ${i < idx ? dotClass(results[i]) : i === idx ? "cur" : ""}"></span>`).join("");
 
 export const lettersHtml = () => LETTERS.map((l) => `<button class="btn" data-letter="${l}">${l}</button>`).join("");
 
@@ -112,11 +123,16 @@ export const setClass = (set) => (set.cols ? "choices cols" : choicesClass(set.c
 
 // Zweischrittig: Rückmeldung nach dem letzten Schritt. oks = Ergebnis je Schritt. Alles richtig wie
 // bisher; nur der erste Schritt daneben und der letzte richtig: q.partial (falls gesetzt); sonst q.reveal.
+// Ein Satz Knöpfe genügt auch (steps.length === 1, z. B. Intervalle bei nur einem möglichen Intervall):
+// Die Aufgabe endet dann nach dem ersten Schritt.
+export const isPartial = (q, oks) => !!q.partial && oks.length > 1 && !oks[0] && !!oks[oks.length - 1];
 export function stepsFeedback(q, oks) {
   if (oks.every(Boolean)) return feedbackText(q, true);
-  if (q.partial && !oks[0] && oks[oks.length - 1]) return q.partial;
+  if (isPartial(q, oks)) return q.partial;
   return feedbackText(q, false);
 }
+// Klasse der Rückmeldung (und des Fortschrittspunkts): "ok", "part" (Teilerfolg) oder "bad"
+export const stepsResult = (q, oks) => (oks.every(Boolean) ? "ok" : isPartial(q, oks) ? "part" : "bad");
 
 // Ziffer 1 bis 9 als Auswahl in einem Knopfsatz mit digits (Prime … Oktave: 1 bis 8), sonst null
 export function digitAction(e, set) {
@@ -147,19 +163,24 @@ export function helpsTitle(level) {
   return parts.length ? `${HELPS_TITLE}: ${parts.join(" und ")}` : HELPS_TITLE;
 }
 // Aufbau: Satz und daneben der Knopf „Vorführen“ (nur mit level.demo, zu Beginn gesperrt: er verriete die
-// Antwort; der Hinweis steht im title), dann Klaviatur und Tabelle (.help-grid: nebeneinander, wo Platz ist),
+// Antwort; darunter sichtbar „nach deiner Antwort“, der Zusatz verschwindet mit demoReady), dann Klaviatur und Tabelle (.help-grid: nebeneinander, wo Platz ist),
 // Platz für die Vorführung (.help-demo). Alles knapp gehalten, damit die Antwortknöpfe sichtbar bleiben.
 export const DEMO_LABEL = "Vorführen", DEMO_WAIT = "Vorführen geht erst nach deiner Antwort", DEMO_READY = "Diese Aufgabe Schritt für Schritt";
+export const DEMO_WAIT_SHORT = "nach deiner Antwort";
 export const DEMO_NEXT = "Nächste Aufgabe";
+// Aufschrift von ui.next, wenn nach einem danebenliegenden ersten Schritt der zweite folgt
+export const NEXT_STEP = "Weiter zu Schritt 2";
 // Stufen mit Hilfen warten nach der letzten Antwort einer Aufgabe auf „Nächste Aufgabe“ (ui.next, Enter oder
-// Leertaste), damit du Auflösung, Hilfen und „Vorführen“ in Ruhe ansehen kannst. Ohne Hilfen geht es wie
-// bisher nach answerDelay von selbst weiter.
+// Leertaste), damit du Auflösung, Hilfen und „Vorführen“ in Ruhe ansehen kannst (Sonderfall von waitsAfter).
 export const waitsForNext = (level) => hasHelps(level);
+// Warten nach einer Aufgabe (rein): Stufe mit Hilfen → ja; daneben (auch Teilerfolg) → immer; richtig ohne
+// Hilfen → nur bei einem Rückmeldetext länger als AUTO_OK_MAX, sonst nach answerDelay von selbst weiter.
+export const waitsAfter = (level, ok, text) => waitsForNext(level) || !ok || String(text || "").length > AUTO_OK_MAX;
 export function helpsHtml(level, q) {
   if (!hasHelps(level)) return "";
   const text = level.helpText ? `<p class="small help-text">${level.helpText}</p>` : "";
   let out = level.demo
-    ? `<div class="help-head">${text}<button class="btn" data-demo-btn disabled title="${DEMO_WAIT}">${DEMO_LABEL}</button></div>`
+    ? `<div class="help-head">${text}<span class="demo-go"><button class="btn" data-demo-btn disabled title="${DEMO_WAIT}">${DEMO_LABEL}</button><span class="small muted demo-wait" data-demo-wait>${DEMO_WAIT_SHORT}</span></span></div>`
     : text;
   let grid = "";
   if (level.helps.includes("klaviatur")) {
@@ -232,10 +253,10 @@ export function playSchedule(q) {
 }
 // Ende des Rhythmus in ms (Ende des letzten Eintrags mit Dauer), 0 ohne Einträge mit Dauer
 export const rhythmEnd = (q) => playSchedule(q).reduce((m, s) => (s.dur === null ? m : Math.max(m, s.at + s.dur)), 0);
-// Wartezeit bis zur nächsten Aufgabe: wie bisher; klingt ein Rhythmus (und ist der Ton an), bis er
-// vorbei ist und noch RHYTHM_TAIL dazu
-export function answerDelay(q, ok, muted = false) {
-  const base = ok ? DELAY_OK : DELAY_BAD, end = muted ? 0 : rhythmEnd(q);
+// Wartezeit bis zur nächsten Aufgabe nach einer richtigen Antwort (nach „daneben“ wartet die Runde, siehe
+// waitsAfter): DELAY_OK; klingt ein Rhythmus (und ist der Ton an), bis er vorbei ist und noch RHYTHM_TAIL dazu
+export function answerDelay(q, muted = false) {
+  const base = DELAY_OK, end = muted ? 0 : rhythmEnd(q);
   return end ? Math.max(base, end + RHYTHM_TAIL) : base;
 }
 // Abspielart: "together" (alle Töne gleichzeitig, bei q.playTogether und mehr als einem Ton), sonst "sequence"
@@ -245,8 +266,9 @@ export const playMode = (q) => (q.playTogether && notesToPlay(q).length > 1 ? "t
 export const revealedSvg = (q) => q.revealSvg || q.svg;
 // Klasse am <svg> nach der Antwort: "ok" bzw. "bad" färbt die ganze Zeile. Mit q.keepRow (optional)
 // bleibt die Zeile schwarz (""), weil das Paket selbst nur einzelne Noten färbt (z. B. „Tonleitern“,
-// Stufe 3 bis 5: nur die eingesetzte bzw. berichtigte Note grün, mit Namen darunter).
-export const svgResultClass = (q, ok) => (q.keepRow ? "" : ok ? "ok" : "bad");
+// Stufe 3 bis 5: nur die eingesetzte bzw. berichtigte Note grün, mit Namen darunter). Bei einem Teilerfolg
+// (part) bleibt die Zeile ebenfalls schwarz: Der Ton stimmt, nicht rot färben.
+export const svgResultClass = (q, ok, part = false) => (q.keepRow || part ? "" : ok ? "ok" : "bad");
 
 /* ---------- Ablauf im DOM ---------- */
 
@@ -309,7 +331,7 @@ function applyInput(r) {
 export function startRound(level, ui, hooks) {
   stop();
   const r = {
-    level, ui, hooks, items: makeRound(level, ROUND_LENGTH, { notes: hooks.state.notes }), idx: 0, correct: 0, results: [], times: [],
+    level, ui, hooks, items: makeRound(level, ROUND_LENGTH, { notes: hooks.state.notes }), idx: 0, correct: 0, results: [], marks: [], times: [],
     locked: false, buf: "", t0: 0, timers: new Set(), tones: new Set(),
     input: effectiveInput(level.input, hooks.state.input, !!level.namesOnly),
   };
@@ -365,11 +387,11 @@ function showChoices(r) {
 
 function showQuestion(r) {
   const q = r.items[r.idx], { ui } = r;
-  r.step = 0; r.oks = [];
+  r.step = 0; r.oks = []; r.answered = false;
   ui.staff.innerHTML = q.svg;
   ui.feedback.textContent = q.prompt || ""; ui.feedback.className = "feedback";
   if (ui.count) ui.count.textContent = `${r.idx + 1} / ${r.items.length}`;
-  if (ui.dots) ui.dots.innerHTML = dotsHtml(r.results, r.idx, r.items.length);
+  if (ui.dots) ui.dots.innerHTML = dotsHtml(r.marks, r.idx, r.items.length);
   if (ui.helpsBody && hasHelps(r.level)) ui.helpsBody.innerHTML = helpsHtml(r.level, q);
   showChoices(r);
   all(ui.answers, ".btn").concat(all(ui.piano, "rect")).forEach((b) => b.classList.remove("ok", "bad"));
@@ -393,16 +415,22 @@ function answerStep(r, value, el) {
   r.oks.push(ok);
   if (el) el.classList.add(ok ? "ok" : "bad");
   if (!ok) markRight(r, q);
-  if (r.step === q.steps.length - 1) return finishQuestion(r, r.oks.every(Boolean), stepsFeedback(q, r.oks));
+  if (r.step === q.steps.length - 1) return finishQuestion(r, r.oks.every(Boolean), stepsFeedback(q, r.oks), stepsResult(q, r.oks) === "part");
   r.locked = true;
   ui.feedback.textContent = (ok ? set.ok : set.bad) || "";
   ui.feedback.className = "feedback " + (ok ? "ok" : "bad");
-  later(r, () => {
+  const toNextStep = () => {
     if (run !== r) return;
+    r.advance = null; r.waiting = false;
+    if (ui.next) ui.next.hidden = true;
     r.locked = false; r.step++;
     showChoices(r);
     ui.feedback.textContent = q.steps[r.step].prompt || ""; ui.feedback.className = "feedback";
-  }, ok ? DELAY_STEP_OK : DELAY_STEP_BAD);
+  };
+  // Schritt 1 richtig: kurz weiter. Daneben: kein Zeitgeber, „Weiter zu Schritt 2“ (Knopf, Enter, Leertaste)
+  if (ok) { later(r, toNextStep, DELAY_STEP_OK); return; }
+  r.advance = toNextStep; r.waiting = true;
+  if (ui.next) { ui.next.textContent = NEXT_STEP; ui.next.hidden = false; }
 }
 
 function answer(r, value, el) {
@@ -416,11 +444,12 @@ function answer(r, value, el) {
 }
 
 // Ergebnis der Aufgabe zählen (einmal je Aufgabe), Auflösung zeigen, Töne spielen, weiter
-function finishQuestion(r, ok, text) {
+// part: Teilerfolg (nur Schritt 1 daneben); zählt als daneben, wird aber nicht rot gezeigt
+function finishQuestion(r, ok, text, part = false) {
   const q = r.items[r.idx], { ui, hooks } = r;
-  r.locked = true;
+  r.locked = true; r.answered = true;
   const sec = (performance.now() - r.t0) / 1000;
-  r.results.push(ok); r.times.push(sec);
+  r.results.push(ok); r.marks.push(part ? "part" : ok); r.times.push(sec);
   if (ok) r.correct++;
   countAnswer(hooks.state, q, ok, sec);
   hooks.save();
@@ -430,10 +459,10 @@ function finishQuestion(r, ok, text) {
   // außer bei q.keepRow (svgResultClass): dann bleibt die Zeile schwarz.
   const shown = revealedSvg(q);
   if (shown !== q.svg) ui.staff.innerHTML = shown;
-  const svg = ui.staff.querySelector("svg"), rc = svgResultClass(q, ok);
+  const svg = ui.staff.querySelector("svg"), rc = svgResultClass(q, ok, part);
   if (svg && rc) svg.classList.add(rc);
   ui.feedback.textContent = text;
-  ui.feedback.className = "feedback " + (ok ? "ok" : "bad");
+  ui.feedback.className = "feedback " + (part ? "part" : ok ? "ok" : "bad");
   if (playMode(q) === "together") playChord(notesToPlay(q));
   else playSchedule(q).forEach(({ note, at, dur }) => {
     if (!note) return; // Pause
@@ -451,13 +480,14 @@ function finishQuestion(r, ok, text) {
     r.locked = false; r.idx++;
     if (r.idx >= r.items.length) finish(r); else showQuestion(r);
   };
-  // Stufen mit Hilfen: kein Zeitgeber, die Runde wartet auf „Nächste Aufgabe“ (auch nach der letzten Aufgabe)
-  if (waitsForNext(r.level)) {
+  // Stufen mit Hilfen, jede Antwort daneben und richtige Antworten mit langem Text: kein Zeitgeber, die Runde
+  // wartet auf „Nächste Aufgabe“ (auch nach der letzten Aufgabe)
+  if (waitsAfter(r.level, ok, text)) {
     r.waiting = true;
-    if (ui.next) ui.next.hidden = false;
+    if (ui.next) { ui.next.textContent = DEMO_NEXT; ui.next.hidden = false; }
     return;
   }
-  r.advanceId = later(r, () => r.advance && r.advance(), answerDelay(q, ok, isMuted()));
+  r.advanceId = later(r, () => r.advance && r.advance(), answerDelay(q, isMuted()));
 }
 
 // „Vorführen“ freigeben (nach der Antwort, nur bei Stufen mit level.demo)
@@ -466,13 +496,15 @@ function demoReady(r) {
   if (!body || !r.level.demo) return;
   const b = body.querySelector("[data-demo-btn]");
   if (b) { b.disabled = false; b.title = DEMO_READY; }
+  const w = body.querySelector("[data-demo-wait]");
+  if (w) w.hidden = true;
 }
 
 // Vorführung der aktuellen Aufgabe: die Runde wartet (ein Zeitgeber zur nächsten Aufgabe wird gelöscht),
 // Klaviatur und Tabelle weichen der Vorführung
 function openDemo(r) {
   const body = r.ui.helpsBody;
-  if (!r.advance || r.demo || !r.level.demo || !body) return;
+  if (!r.answered || !r.advance || r.demo || !r.level.demo || !body) return;
   if (r.advanceId) { clearTimeout(r.advanceId); r.timers.delete(r.advanceId); }
   silenceTones(r);
   r.waiting = true;

@@ -5,8 +5,8 @@ import {
   starsHtml, effectiveInput, makeRound, findLevel, nextLevel, countAnswer, feedbackText,
   resultMessage, dotsHtml, lettersHtml, namesHtml, usesNames, nameKey, typedText, NAME_MAX,
   choicesHtml, choicesClass, choiceCols, keyAction, blitzPoints, notesToPlay,
-  playMode, revealedSvg, svgResultClass, playSchedule, rhythmEnd, answerDelay, PLAY_GAP, BEAT_MS, RHYTHM_TAIL, DELAY_OK, DELAY_BAD,
-  choiceSet, setClass, stepsFeedback, digitAction, helpsHtml, hasHelps, HELP_FROM, helpFrom, helpsTitle, DELAY_STEP_OK, DELAY_STEP_BAD,
+  playMode, revealedSvg, svgResultClass, playSchedule, rhythmEnd, answerDelay, PLAY_GAP, BEAT_MS, RHYTHM_TAIL, DELAY_OK, AUTO_OK_MAX, waitsAfter, NEXT_STEP, DEMO_WAIT_SHORT, stepsResult,
+  choiceSet, setClass, stepsFeedback, digitAction, helpsHtml, hasHelps, HELP_FROM, helpFrom, helpsTitle, DELAY_STEP_OK,
   startRound, stop, handleKey, ROUND_LENGTH, isWaiting, DEMO_LABEL, DEMO_WAIT, DEMO_READY, DEMO_NEXT, waitsForNext, silenceTones,
 } from "../src/engine.js";
 import { mock } from "node:test";
@@ -115,6 +115,8 @@ test("Feedback- und Ergebnistexte", () => {
 test("dotsHtml", () => {
   const h = dotsHtml([true, false], 2, 4);
   assert.equal(h, `<span class="dot ok"></span><span class="dot bad"></span><span class="dot cur"></span><span class="dot "></span>`);
+  // Teilerfolg: eigene Klasse
+  assert.equal(dotsHtml([true, "part", false], 3, 3), `<span class="dot ok"></span><span class="dot part"></span><span class="dot bad"></span>`);
 });
 
 test("Antwortknöpfe", () => {
@@ -187,14 +189,16 @@ test("playSchedule: Rhythmus mit Dauern und Pausen", () => {
 
 test("answerDelay: wartet das Ende des Rhythmus ab", () => {
   const h = N("H", 4), bar = { play: [{ note: h, beats: 2 }, { note: h, beats: 2 }] };
-  assert.equal(answerDelay({}, true), DELAY_OK);
-  assert.equal(answerDelay({}, false), DELAY_BAD);
-  assert.equal(answerDelay({ play: [h, h, h] }, true), DELAY_OK);
-  assert.equal(answerDelay(bar, true), 2400 + RHYTHM_TAIL);
-  assert.equal(answerDelay(bar, false), 2400 + RHYTHM_TAIL);
-  assert.equal(answerDelay({ play: [{ note: h, beats: 0.5 }] }, false), DELAY_BAD);
+  // nur noch für richtige Antworten (nach „daneben“ wartet die Runde, siehe waitsAfter)
+  assert.equal(answerDelay({}), DELAY_OK);
+  assert.equal(answerDelay({ play: [h, h, h] }), DELAY_OK);
+  assert.equal(answerDelay(bar), 2400 + RHYTHM_TAIL);
+  assert.equal(answerDelay({ play: [{ note: h, beats: 0.5 }] }), DELAY_OK);
   // ohne Ton keine Wartezeit für den Rhythmus
-  assert.equal(answerDelay(bar, true, true), DELAY_OK);
+  assert.equal(answerDelay(bar, true), DELAY_OK);
+  // DELAY_BAD und DELAY_STEP_BAD gibt es nicht mehr
+  const src = readFileSync(new URL("../src/engine.js", import.meta.url), "utf8");
+  assert.ok(!/DELAY_BAD|DELAY_STEP_BAD/.test(src));
 });
 
 test("toneEnd: Ton etwas kürzer als notiert", () => {
@@ -217,6 +221,8 @@ test("svgResultClass: ganze Zeile ok/bad, mit keepRow keine Klasse", () => {
   assert.equal(svgResultClass({ keepRow: false }, false), "bad");
   assert.equal(svgResultClass({ keepRow: true }, true), "");
   assert.equal(svgResultClass({ keepRow: true }, false), "");
+  // Teilerfolg: Zeile nicht rot
+  assert.equal(svgResultClass({}, false, true), "");
 });
 
 test("keepRow: nur Tonleitern Stufe 4 bis 7 und Intervalle 8 und 9 (Bauen), alle anderen Stufen färben die ganze Zeile", () => {
@@ -233,7 +239,7 @@ test("keepRow: nur Tonleitern Stufe 4 bis 7 und Intervalle 8 und 9 (Bauen), alle
 test("keepRow: im Ablauf bekommt das <svg> keine Klasse ok/bad", () => {
   const src = readFileSync(new URL("../src/engine.js", import.meta.url), "utf8");
   // Der DOM-Teil setzt die Klasse nur über svgResultClass
-  assert.match(src, /rc = svgResultClass\(q, ok\)/);
+  assert.match(src, /rc = svgResultClass\(q, ok, part\)/);
   assert.ok(!/svg\.classList\.add\(ok \?/.test(src));
 });
 
@@ -336,6 +342,46 @@ test("stepsFeedback: richtig, nur Zahl daneben (partial), sonst reveal", () => {
   assert.equal(stepsFeedback(q, [true, false]), "R.");
   assert.equal(stepsFeedback(q, [false, false]), "R.");
   assert.equal(stepsFeedback({ display: "D", reveal: "R." }, [false, true]), "R.");
+  // ein einziger Schritt (steps.length === 1): richtig oder reveal, nie partial
+  assert.equal(stepsFeedback(q, [true]), "Richtig! D");
+  assert.equal(stepsFeedback(q, [false]), "R.");
+});
+
+test("stepsResult: Klasse je Fall (ok, part, bad)", () => {
+  const q = { display: "D", reveal: "R.", partial: "P." };
+  assert.equal(stepsResult(q, [true, true]), "ok");
+  assert.equal(stepsResult(q, [false, true]), "part");
+  assert.equal(stepsResult(q, [true, false]), "bad");
+  assert.equal(stepsResult(q, [false, false]), "bad");
+  assert.equal(stepsResult({ display: "D", reveal: "R." }, [false, true]), "bad", "ohne q.partial kein Teilerfolg");
+  assert.equal(stepsResult(q, [true]), "ok");
+  assert.equal(stepsResult(q, [false]), "bad");
+});
+
+test("waitsAfter: Hilfen, daneben, richtig mit kurzem oder langem Text", () => {
+  const helps = { helps: ["klaviatur"] }, plain = {};
+  const short = "x".repeat(AUTO_OK_MAX), long = "x".repeat(AUTO_OK_MAX + 1);
+  assert.equal(AUTO_OK_MAX, 45);
+  // Stufe mit Hilfen: immer warten
+  assert.equal(waitsAfter(helps, true, "kurz"), true);
+  assert.equal(waitsAfter(helps, false, "kurz"), true);
+  // daneben: immer warten
+  assert.equal(waitsAfter(plain, false, ""), true);
+  assert.equal(waitsAfter(plain, false, short), true);
+  // richtig ohne Hilfen: Grenze AUTO_OK_MAX
+  assert.equal(waitsAfter(plain, true, short), false);
+  assert.equal(waitsAfter(plain, true, long), true);
+  assert.equal(waitsAfter(plain, true, undefined), false);
+  // waitsForNext bleibt der Sonderfall „Stufe mit Hilfen“
+  assert.equal(waitsForNext(helps), true); assert.equal(waitsForNext(plain), false);
+  // Noten lesen: alle richtigen Rückmeldungen sind kurz, die Runde läuft weiter wie bisher
+  for (const level of noten.levels) {
+    let prev = null;
+    for (let i = 0; i < 60; i++) {
+      prev = level.question(prev, { notes: {}, round: [] });
+      assert.equal(waitsAfter(level, true, feedbackText(prev, true)), false, `${level.id}: ${feedbackText(prev, true)}`);
+    }
+  }
 });
 
 test("digitAction: Ziffern nur bei digits, innerhalb der Knöpfe, ohne Strg/Alt/Cmd", () => {
@@ -365,7 +411,10 @@ test("helpsHtml: nur mit level.helps, Klaviatur ab c' bzw. C", () => {
   // ohne level.demo kein Knopf „Vorführen“; mit demo gesperrt (verriete die Antwort)
   assert.ok(!h.includes("data-demo"));
   const d = helpsHtml({ ...level, demo: () => null }, { clef: "treble" });
-  assert.ok(d.startsWith(`<div class="help-head"><p class="small help-text">T</p><button class="btn" data-demo-btn disabled title="${DEMO_WAIT}">${DEMO_LABEL}</button></div>`));
+  assert.ok(d.startsWith(`<div class="help-head"><p class="small help-text">T</p><span class="demo-go"><button class="btn" data-demo-btn disabled title="${DEMO_WAIT}">${DEMO_LABEL}</button><span class="small muted demo-wait" data-demo-wait>${DEMO_WAIT_SHORT}</span></span></div>`));
+  // der sichtbare Zusatz nur bei level.demo
+  assert.equal(DEMO_WAIT_SHORT, "nach deiner Antwort");
+  assert.ok(!h.includes(DEMO_WAIT_SHORT));
   assert.ok(d.indexOf("data-demo-btn") < d.indexOf("help-grid"), "Knopf über Klaviatur und Tabelle");
 });
 
@@ -496,13 +545,22 @@ test("Ablauf zweischrittig: richtig/richtig, Zahl daneben/dann Qualität, einmal
     r.ui.helps.open = true;
     r.click("Quarte");
     assert.equal(r.ui.feedback.textContent, "Nicht ganz: e'–g': 3 Stufen → Terz.");
-    mock.timers.tick(DELAY_STEP_BAD);
+    // Schritt 1 daneben: kein Zeitgeber, „Weiter zu Schritt 2“
+    mock.timers.tick(100000);
+    assert.equal(r.buttons().length, 8, "noch die Knöpfe von Schritt 1");
+    assert.equal(isWaiting(), true); assert.equal(r.ui.next.hidden, false); assert.equal(r.ui.next.textContent, NEXT_STEP);
+    r.next();
+    assert.equal(r.ui.next.hidden, true); assert.equal(isWaiting(), false);
     assert.deepEqual(r.buttons(), ["kleine Terz", "große Terz"]);
     r.click("kleine Terz");
     assert.equal(r.state.answered, 2); assert.equal(r.state.correct, 1);
     assert.equal(r.ui.feedback.textContent, item.partial);
+    // Teilerfolg: eigene Klasse, Zeile nicht rot, eigener Fortschrittspunkt; zählt als daneben
+    assert.equal(r.ui.feedback.className, "feedback part");
     assert.deepEqual(r.state.notes["kleine Terz"].hist, "10");
-    mock.timers.tick(DELAY_BAD); r.next();
+    assert.equal(r.ui.next.textContent, DEMO_NEXT, "danach wieder „Nächste Aufgabe“");
+    r.next();
+    assert.ok(r.ui.dots.innerHTML.startsWith('<span class="dot ok"></span><span class="dot part"></span><span class="dot cur">'));
     assert.equal(r.ui.helps.open, true, "Hilfen bleiben offen, wenn du sie geöffnet hast");
     // 3. Aufgabe: Zahl richtig per Ziffer, Qualität daneben
     const e = { key: "3", preventDefault() {} };
@@ -512,7 +570,8 @@ test("Ablauf zweischrittig: richtig/richtig, Zahl daneben/dann Qualität, einmal
     r.click("große Terz");
     assert.equal(r.state.answered, 3); assert.equal(r.state.correct, 1);
     assert.equal(r.ui.feedback.textContent, item.reveal);
-    mock.timers.tick(DELAY_BAD); r.next();
+    assert.equal(r.ui.feedback.className, "feedback bad");
+    r.next();
     // Rest der Runde richtig
     for (let i = 3; i < ROUND_LENGTH; i++) {
       r.click("Terz"); mock.timers.tick(DELAY_STEP_OK); r.click("kleine Terz"); mock.timers.tick(DELAY_OK); r.next();
@@ -520,7 +579,7 @@ test("Ablauf zweischrittig: richtig/richtig, Zahl daneben/dann Qualität, einmal
     const res = r.done();
     assert.ok(res);
     assert.equal(res.correct, 8); assert.equal(res.total, 10);
-    assert.deepEqual(res.results.slice(0, 3), [true, false, false]);
+    assert.deepEqual(res.results.slice(0, 3), [true, false, false], "Teilerfolg zählt als daneben");
     assert.equal(r.state.answered, 10);
     assert.deepEqual(r.state.levels["intervall-5"], { stars: 2, best: 8, played: 1 });
   } finally { stop(); mock.timers.reset(); }
@@ -575,12 +634,14 @@ test("Ablauf: „Vorführen“ erst nach der Antwort, die Runde wartet, „Näch
       const b = ui.answers.querySelectorAll(".btn[data-choice]").find((x) => ui.answers.innerHTML.match(new RegExp(`data-choice="${x.dataset.choice}">([^<]+)<`))[1] === text);
       ui.answers.onclick({ target: b });
     };
+    assert.equal(ui.helpsBody.querySelector("[data-demo-wait]").hidden, false, "vor der Antwort sichtbar: „nach deiner Antwort“");
     click("Terz");
     assert.equal(btn.disabled, true, "nach dem ersten Schritt noch gesperrt");
     mock.timers.tick(DELAY_STEP_OK);
     click("kleine Terz");
     assert.equal(btn.disabled, false, "nach der Antwort frei");
     assert.equal(btn.title, DEMO_READY);
+    assert.equal(ui.helpsBody.querySelector("[data-demo-wait]").hidden, true, "„nach deiner Antwort“ ist weg");
     assert.equal(isWaiting(), true, "Stufe mit Hilfen wartet schon ohne Vorführen");
     // Zuklappen der Hilfen ohne Vorführung geht nicht weiter
     ui.helps.open = false; ui.helps.ontoggle();
@@ -624,7 +685,7 @@ test("Ablauf: Stufe mit Hilfen wartet beliebig lange auf „Nächste Aufgabe“ 
     assert.equal(r.ui.next.hidden, true, "vor der Antwort kein Knopf");
     assert.equal(key("Enter"), false, "Enter vor der Antwort bewirkt nichts");
     assert.equal(key(digit), true);
-    mock.timers.tick(DELAY_BAD * 100);
+    mock.timers.tick(DELAY_OK * 100);
     assert.equal(r.ui.count.textContent, "1 / 10"); assert.equal(isWaiting(), true); assert.equal(r.ui.next.hidden, false);
     assert.equal(key(digit), false, "während des Wartens keine Antwort");
     assert.equal(key("x"), false);
@@ -632,12 +693,12 @@ test("Ablauf: Stufe mit Hilfen wartet beliebig lange auf „Nächste Aufgabe“ 
     assert.equal(key("Enter", { closest: (s) => (s.includes("[data-act]") ? {} : null) }), false);
     assert.equal(key("Enter"), true);
     assert.equal(r.ui.count.textContent, "2 / 10"); assert.equal(isWaiting(), false); assert.equal(r.ui.next.hidden, true);
-    key(digit); mock.timers.tick(DELAY_BAD * 100);
+    key(digit); mock.timers.tick(DELAY_OK * 100);
     assert.equal(key(" "), true, "Leertaste geht ebenfalls weiter");
     for (let i = 2; i < ROUND_LENGTH - 1; i++) { key(digit); r.next(); }
     assert.equal(r.done(), null, "nach der letzten Antwort noch nicht beendet");
     assert.equal(r.ui.next.hidden, true);
-    key(digit); mock.timers.tick(DELAY_BAD * 100);
+    key(digit); mock.timers.tick(DELAY_OK * 100);
     assert.equal(r.done(), null); assert.equal(isWaiting(), true);
     r.next();
     assert.ok(r.done()); assert.equal(r.done().correct, ROUND_LENGTH);
@@ -714,5 +775,108 @@ test("Ablauf Notenwerte Stufe 8: sofort „Nächste Aufgabe“ – der Rest des 
   } finally {
     stop(); mock.timers.reset(); setMuted(true);
     if (hadWindow) globalThis.window = oldWindow; else delete globalThis.window;
+  }
+});
+
+/* ---------- Welle 10: Warten nach „daneben“, Weiter zu Schritt 2, Ein-Schritt-Aufgaben ---------- */
+
+test("Ablauf: Stufe ohne Hilfen wartet nach „daneben“ (kein Zeitgeber, ui.next sichtbar), kurze richtige Antwort läuft weiter", () => {
+  setMuted(true);
+  mock.timers.enable({ apis: ["setTimeout"] });
+  try {
+    const l2 = intervalle.levels[1]; // intervall-2, ohne Hilfen, einschrittig mit Ziffern
+    const q = l2.question(null);
+    const r = runLevel(l2, [q]);
+    const names = ["Prime", "Sekunde", "Terz", "Quarte", "Quinte", "Sexte", "Septime", "Oktave"];
+    const right = names.indexOf(q.answer), wrong = (right + 1) % 8;
+    assert.equal(handleKey({ key: String(wrong + 1), preventDefault() {} }), true);
+    assert.equal(r.ui.feedback.className, "feedback bad");
+    mock.timers.tick(100000);
+    assert.equal(r.ui.count.textContent, "1 / 10", "die Auflösung bleibt stehen");
+    assert.equal(isWaiting(), true); assert.equal(r.ui.next.hidden, false); assert.equal(r.ui.next.textContent, DEMO_NEXT);
+    assert.equal(handleKey({ key: " ", preventDefault() {} }), true);
+    assert.equal(r.ui.count.textContent, "2 / 10"); assert.equal(r.ui.next.hidden, true);
+    // richtig mit kurzem Text: von selbst weiter
+    assert.ok(feedbackText(q, true).length <= AUTO_OK_MAX);
+    handleKey({ key: String(right + 1), preventDefault() {} });
+    assert.equal(isWaiting(), false); assert.equal(r.ui.next.hidden, true);
+    mock.timers.tick(DELAY_OK);
+    assert.equal(r.ui.count.textContent, "3 / 10");
+  } finally { stop(); mock.timers.reset(); }
+});
+
+test("Ablauf: Stufe ohne Hilfen, richtig mit langem Text wartet ebenfalls", () => {
+  setMuted(true);
+  mock.timers.enable({ apis: ["setTimeout"] });
+  try {
+    const l4 = intervalle.levels[3]; // intervall-4, ohne Hilfen, zwei Schritte
+    const it = l4.items.find((x) => x.num === 3 && x.quality === "klein");
+    const item = intervalleMod.twoStepQuestion(it, intervalleMod.TYPES_RKG);
+    const r = runLevel(l4, [item]);
+    r.click("Terz"); mock.timers.tick(DELAY_STEP_OK); r.click("kleine Terz");
+    assert.ok(r.ui.feedback.textContent.length > AUTO_OK_MAX);
+    assert.equal(r.ui.feedback.className, "feedback ok");
+    mock.timers.tick(100000);
+    assert.equal(r.ui.count.textContent, "1 / 10"); assert.equal(isWaiting(), true); assert.equal(r.ui.next.hidden, false);
+    r.next();
+    assert.equal(r.ui.count.textContent, "2 / 10");
+  } finally { stop(); mock.timers.reset(); }
+});
+
+test("Ablauf: Schritt 1 daneben → „Weiter zu Schritt 2“ per Enter und Leertaste, auch ohne Hilfen", () => {
+  setMuted(true);
+  mock.timers.enable({ apis: ["setTimeout"] });
+  try {
+    const l4 = intervalle.levels[3];
+    const it = l4.items.find((x) => x.num === 3 && x.quality === "groß");
+    const item = intervalleMod.twoStepQuestion(it, intervalleMod.TYPES_RKG);
+    const r = runLevel(l4, [item]);
+    const key = (k) => handleKey({ key: k, preventDefault() {} });
+    for (const k of ["Enter", " "]) {
+      assert.equal(key("4"), true, "Quarte statt Terz");
+      assert.equal(r.ui.feedback.className, "feedback bad");
+      mock.timers.tick(100000);
+      assert.equal(r.ui.next.hidden, false); assert.equal(r.ui.next.textContent, NEXT_STEP);
+      assert.equal(key("3"), false, "während des Wartens keine Antwort");
+      assert.equal(key(k), true);
+      assert.equal(r.ui.next.hidden, true);
+      assert.deepEqual(r.buttons(), ["kleine Terz", "große Terz"]);
+      assert.equal(r.state.answered, k === "Enter" ? 0 : 1, "Schritt 1 zählt noch nicht");
+      r.click("große Terz");
+      assert.equal(r.ui.feedback.className, "feedback part");
+      assert.equal(r.ui.next.textContent, DEMO_NEXT);
+      r.next();
+    }
+    assert.equal(r.state.answered, 2); assert.equal(r.state.correct, 0);
+  } finally { stop(); mock.timers.reset(); }
+});
+
+test("Ablauf: Ein-Schritt-Aufgabe (Intervalle 3, Quinte) endet nach Schritt 1", () => {
+  setMuted(true);
+  mock.timers.enable({ apis: ["setTimeout"] });
+  try {
+    const l3 = intervalle.levels[2];
+    const it = l3.items.find((x) => x.num === 5 && x.low.letter === "C" && x.low.acc === 0);
+    const item = intervalleMod.twoStepQuestion(it, intervalleMod.TYPES_RKG);
+    assert.equal(item.steps.length, 1);
+    const r = runLevel(l3, [item]);
+    r.click("Quinte");
+    assert.equal(r.state.answered, 1); assert.equal(r.state.correct, 1);
+    assert.equal(r.ui.feedback.textContent, `Richtig! ${item.display}`);
+    assert.match(r.ui.feedback.textContent, /5 Stufen → Quinte · hier rein: 7 Halbtöne$/);
+    assert.equal(isWaiting(), true, "Stufe mit Hilfen wartet");
+    r.next();
+    r.click("Quarte");
+    assert.equal(r.state.answered, 2); assert.equal(r.state.correct, 1);
+    assert.equal(r.ui.feedback.textContent, item.reveal);
+    assert.equal(r.ui.feedback.className, "feedback bad");
+  } finally { stop(); mock.timers.reset(); }
+});
+
+test("level.twoSteps passt zu den Aufgaben (q.steps mit zwei Schritten)", () => {
+  for (const pack of PACKS) for (const level of pack.levels) {
+    let seen = false;
+    for (let k = 0; k < 8 && !seen; k++) seen = makeRound(level, ROUND_LENGTH, { notes: {} }).some((q) => q.steps && q.steps.length > 1);
+    assert.equal(!!level.twoSteps, seen, level.id);
   }
 });

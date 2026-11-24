@@ -10,6 +10,11 @@ const current = () => engine.findLevel(ctx.packs, ctx.state.current);
 // Beschriftung des Startknopfs (rein, getestet): in allen Paketen „10 Aufgaben“
 export const startLabel = () => `Runde starten · ${engine.ROUND_LENGTH} Aufgaben`;
 
+// Hinweis auf der Startkarte (rein, getestet): bei zweischrittigen Stufen (level.twoSteps) mit dem Zusatz,
+// dass ein Teilerfolg (nur der erste Schritt daneben) nicht als richtig zählt
+export const TWO_STEPS_NOTE = "Beide Schritte müssen stimmen.";
+export const startHint = (level) => (level.twoSteps ? `${level.hint} ${TWO_STEPS_NOTE}` : level.hint);
+
 // Tastatur-Hinweis auf der Startkarte (rein, getestet): ohne Vorzeichen Buchstaben, mit Namensraster
 // der ganze Name und Enter
 const kbd = (t) => `<span class="kbd">${t}</span>`;
@@ -83,7 +88,7 @@ export function render() {
   const { level } = current();
   $("#pLevelNo").textContent = "Stufe " + level.no;
   $("#pLevelTitle").textContent = level.title;
-  $("#pHint").textContent = level.hint;
+  $("#pHint").textContent = startHint(level);
   $("#pIntro").hidden = false; $("#pPlay").hidden = true; $("#pResult").hidden = true;
   $("#pStaff").innerHTML = level.example || "";
   // Die Wahl Buchstaben/Klaviatur und der Tastatur-Hinweis gelten nur für Stufen mit Buchstaben-Eingabe;
