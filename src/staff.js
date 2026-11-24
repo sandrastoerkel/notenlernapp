@@ -176,11 +176,11 @@ const REST_BASE = {
   // Sechzehntelpause: Mitte 2,625 (Bravura 2,63, Leipzig 2,62); vorher auf die Mittellinie zentriert, 0,62 zu hoch
   16: TOP + 2.625 * S + 499.5 * REST_UNIT,
 };
-// Ganze und halbe Pause als Balken: 1,17 breit und 0,54 hoch (Bravura 1,13 × 0,55, Leipzig 1,19 × 0,50).
+// Ganze und halbe Pause als Rechteck: 1,17 breit und 0,54 hoch (Bravura 1,13 × 0,55, Leipzig 1,19 × 0,50).
 // Die Glyphen aus Noto Music sind 1,45 breit und tragen ein Stück Notenlinie mit sich, daher ein Rechteck.
 // Die ganze Pause hängt an der vierten Linie von unten (Referenz 0,95..1,50), die halbe sitzt auf der
 // Mittellinie (Referenz 1,41..1,98); der Linienstrich wird zur Hälfte mit überdeckt.
-// Mitte des Balkens wie vorher bei der Glyphe 18,8 rechts von x (Noto Music: Balken 210..573 bei 48px).
+// Mitte des Rechtecks wie vorher bei der Glyphe 18,8 rechts von x (Noto Music: Rechteck 210..573 bei 48px).
 const BAR_REST = { w: 14, h: 6.5, cx: 18.8, y: { 1: TOP + S - 0.5, 2: TOP + 2 * S - 6.5 } };
 
 // Pause (1, 2, 4, 8, 16) an Position x

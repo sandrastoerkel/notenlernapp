@@ -52,7 +52,7 @@ export const barlineSvg = (x = X1) => `<line class="staff-line barline" x1="${x}
 export const beatsOf = (el) => beats(el.v, el.dot);
 export const nameOf = (el) => valueName(el.v, el.rest, el.dot);
 
-// Ink-Mitte der Pausen relativ zu x in restSvg (Noto Music bei 48 px bzw. Balken)
+// Ink-Mitte der Pausen relativ zu x in restSvg (Noto Music bei 48 px bzw. Rechteck)
 const REST_CX = { 1: 18.8, 2: 18.8, 4: 8.6, 8: 8.9, 16: 10.3 };
 // Linke Kante der Pause relativ zu x in restSvg
 const REST_LEFT = { 1: 11.8, 2: 11.8, 4: 2.4, 8: 2.4, 16: 2.4 };
@@ -146,6 +146,57 @@ export function needsStub(els, group) {
 export function barBeams(els, gap = -1, filled = false) {
   return beamGroups(els).filter((g) => filled || !g.includes(gap));
 }
+
+/* --- Zählzeiten unter den Noten (Welle 10, Schritt 6, Top 2; Regel nach Sandra, 24.11.2026) ---
+   Gezählt wird in Achteln: „1 + 2 + 3 + 4 +“ (COUNT_SYLLABLES, Silbe i beginnt bei i Achteln).
+   Regel je Zeichen (Einsatz a, Ende b, in Achteln):
+   1. Einsatzsilbe: Beginnt das Zeichen genau auf einer Silbe (a ganzzahlig), steht diese Silbe darunter –
+      bei einer Note ohne Klammer, bei einer Pause in Klammern. Eine Sechzehntel, die zwischen zwei Silben
+      beginnt (a = ½, 1½ …), bekommt keine Silbe.
+   2. Gehaltene Schläge: Jede Schlagzahl (1, 2, 3, 4), die nach dem Einsatz, aber vor dem Ende liegt
+      (a < Schlag < b), steht in Klammern dahinter. Gehaltene „+“ werden unter den Noten nicht gezeigt (sonst
+      stünde unter einer ganzen Note „1 (+) (2) (+) …“); in der Zählleiste darunter stehen sie, siehe countLabels.
+   Damit steht jede Schlagzahl des Takts genau einmal unter den Noten, ein „+“ nur dort, wo etwas beginnt.
+   Beispiele: halbe Note auf 1 → „1 (2)“, punktierte Viertel auf 1 → „1 (2)“, Viertelpause auf 3 → „(3)“,
+   Achtelpause auf „+“ → „(+)“, halbe Pause auf 3 → „(3) (4)“, ganze Note → „1 (2) (3) (4)“. */
+export const COUNT_SYLLABLES = ["1", "+", "2", "+", "3", "+", "4", "+"];
+const isBeatSyllable = (i) => i % 2 === 0;
+// Silben je Zeichen: [[{ text, hold }] …]; hold = in Klammern (gehaltener Schlag oder Pause)
+export function countSyllables(els) {
+  const on = onsetsOf(els);
+  return els.map((e, i) => {
+    const a = on[i] * 2, b = a + beatsOf(e) * 2, out = [];
+    if (Math.abs(a - Math.round(a)) < 1e-9) out.push({ text: COUNT_SYLLABLES[Math.round(a)], hold: e.rest });
+    for (let j = Math.floor(a) + 1; j < b - 1e-9; j++) if (isBeatSyllable(j)) out.push({ text: COUNT_SYLLABLES[j], hold: true });
+    return out;
+  });
+}
+// Als Text je Zeichen: „1 (2)“, „(3)“, „+“, „“ (Sechzehntel zwischen zwei Silben)
+export const countLabelText = (els) => countSyllables(els).map((ss) => ss.map((s) => (s.hold ? `(${s.text})` : s.text)).join(" "));
+
+// Lage der Zählzeiten in der Notenzeile: Grundlinie COUNT_Y; die erste Silbe mittig unter dem Zeichen
+// (Kopfmitte bzw. Mitte der Pause), weitere Silben im Abstand COUNT_STEP rechts daneben.
+// Halsende (Hals nach unten) und Balken liegen bei y = 100; Ziffern 14 hoch (Oberkante der Ziffern etwa 106).
+export const COUNT_FONT = { num: 14, und: 12.3 }; // = .nw-cnt (14px) und .nw-und (.88em) in css/style.css
+export const COUNT_Y = 116, COUNT_STEP = 22;
+// Ungefähre Breite einer Silbe (für den Abstandstest; im Browser nachgemessen, siehe Commit)
+export const syllableWidth = (s) => (s.text === "+" ? 0.62 * COUNT_FONT.und : 0.6 * COUNT_FONT.num) + (s.hold ? 0.7 * COUNT_FONT.num : 0);
+// Mitte des gezeichneten Zeichens, dessen linke Kante bei left liegt
+export const elementCenter = (e, left) => r2(e.rest ? left - REST_LEFT[e.v] + REST_CX[e.v] : left + HEAD_HALF[e.v]);
+// Ein Zählzeichen „+“ (Silbe „und“): kleiner und grau, damit es nicht wie das Rechen-Plus aussieht
+const undSvg = '<tspan class="nw-und">+</tspan>';
+const syllableSvg = (s) => {
+  const inner = s.text === "+" ? undSvg : s.text;
+  return s.hold ? `(${inner})` : inner;
+};
+// Positionen [{ x, s }] aller Silben eines Takts (für Zeichnung und Test)
+export function countMarks(els, gap = -1) {
+  const xs = layoutBar(els, gap);
+  return countSyllables(els).flatMap((ss, i) => ss.map((s, k) => ({ i, x: r2(elementCenter(els[i], xs[i]) + k * COUNT_STEP), s })));
+}
+const countsSvg = (els, gap) => `<g class="nw-counts">${countMarks(els, gap).map(({ x, s }) => `<text class="nw-cnt${s.hold ? " hold" : ""}" x="${x}" y="${COUNT_Y}" text-anchor="middle">${syllableSvg(s)}</text>`).join("")}</g>`;
+
+// opts.counts (nur nach der Antwort und im Ergebnis der Vorführung): Zählzeiten unter den Zeichen
 export function barSvg(els, gap = -1, filled = false, opts = {}) {
   const xs = layoutBar(els, gap), groups = barBeams(els, gap, filled);
   const beamed = new Set(groups.flat());
@@ -155,7 +206,7 @@ export function barSvg(els, gap = -1, filled = false, opts = {}) {
   const draw = (el, i) => (i !== gap ? one(el, i) : filled ? `<g class="filled">${one(el, i)}</g>` : gapSvg(xs[i]));
   const at = (el, i) => (i === opts.mark ? `<g class="nw-s1">${draw(el, i)}</g>` : draw(el, i));
   const beams = groups.map((g) => beamSvg(g.map((i) => r2(xs[i] + HEAD_HALF[els[i].v])), MID, false, secondaryBeams(els, g))).join("");
-  const inner = timeSigSvg() + els.map(at).join("") + beams + barlineSvg();
+  const inner = timeSigSvg() + els.map(at).join("") + beams + barlineSvg() + (opts.counts ? countsSvg(els, gap) : "");
   return staffSvg(CLEF, inner);
 }
 
@@ -173,10 +224,12 @@ const RESTS = VALUES.map((v) => el(v, false, true));
 // Zahl und „Schlag“ bleiben in einer Zeile (geschütztes Leerzeichen)
 const beatsNb = (e) => beatsLabel(beatsOf(e)).replace(" ", "\u00a0");
 // Nach „Richtig!“ beginnt ein neuer Satz, daher groß: „Richtig! Ganze Note (4 Schläge)“.
-const withBeats = (e) => `${nameOf(e)} (${beatsNb(e)})`;
-export const displayOf = (e) => { const t = withBeats(e); return t[0].toUpperCase() + t.slice(1); };
-// Stufen 2, 3 und 7 (Name gefragt): „Das war eine Viertelnote (1 Schlag).“
-export const revealName = (e) => `Das war eine ${withBeats(e)}.`;
+// In den Stufen 1–3 sind Schläge noch nicht eingeführt: dort „(1 Schlag im 4/4-Takt)“ (meter = true).
+export const METER = "im 4/4-Takt";
+const withBeats = (e, meter = false) => `${nameOf(e)} (${beatsNb(e)}${meter ? " " + METER : ""})`;
+export const displayOf = (e, meter = false) => { const t = withBeats(e, meter); return t[0].toUpperCase() + t.slice(1); };
+// Stufen 2, 3 und 7 (Name gefragt): „Das war eine Viertelnote (1 Schlag).“ (Stufen 2, 3: „… im 4/4-Takt).“)
+export const revealName = (e, meter = false) => `Das war eine ${withBeats(e, meter)}.`;
 // Stufen 5 und 7 (Dauer gefragt): „Richtig wäre: 1½ Schläge, denn das ist eine punktierte Viertelnote.“
 export const revealBeats = (e) => `Richtig wäre: ${beatsNb(e)}, denn das ist eine ${nameOf(e)}.`;
 // Stufe 9: „Richtig wäre eine Viertelnote, denn es fehlt noch 1 Schlag.“ / „… es fehlen noch 2 Schläge.“
@@ -215,8 +268,8 @@ const FEATURE = { 1: "ohne Hals", 2: "mit Hals", 4: "kein Fähnchen", 8: "1 Fäh
 export const featureOf = (e) => FEATURE[e.v];
 // Werte je Kopfform (Schritt 2 der Stufe 1 bietet nur diese an)
 export const VALUES_BY_HEAD = { [HEAD_OPEN]: NOTES.filter((e) => headOf(e) === HEAD_OPEN), [HEAD_BLACK]: NOTES.filter((e) => headOf(e) === HEAD_BLACK) };
-// „Kopf schwarz · 1 Fähnchen → Achtelnote (½ Schlag)“
-export const valueWay = (e) => `Kopf ${headOf(e)} · ${featureOf(e)} → ${nameOf(e)} (${nbBeats(beatsOf(e))})`;
+// „Kopf schwarz · 1 Fähnchen → Achtelnote (½ Schlag im 4/4-Takt)“
+export const valueWay = (e) => `Kopf ${headOf(e)} · ${featureOf(e)} → ${nameOf(e)} (${nbBeats(beatsOf(e))} ${METER})`;
 
 // Stufe 1: Notenwerte erkennen, zwei Schritte (Kopf, dann Hals und Fähnchen)
 export const ITEMS_1 = NOTES.map((e) => ({ key: "k:" + keyOf(e), el: e, make: () => {
@@ -233,12 +286,12 @@ export const ITEMS_1 = NOTES.map((e) => ({ key: "k:" + keyOf(e), el: e, make: ()
 
 // Stufe 2: Pausen erkennen (ein Schritt wie bisher)
 export const ITEMS_2 = RESTS.map((e) => ({ key: "2:" + keyOf(e), make: () => ({
-  svg: singleSvg(e, false), prompt: "Welche Pause ist das?", answer: nameOf(e), display: displayOf(e), reveal: revealName(e), choices: REST_NAMES, el: e,
+  svg: singleSvg(e, false), prompt: "Welche Pause ist das?", answer: nameOf(e), display: displayOf(e, true), reveal: revealName(e, true), choices: REST_NAMES, el: e,
 }) }));
 
 // Stufe 3: Noten und Pausen erkennen ohne Hilfen (bisher Stufe 1 und 2 getrennt; die Schlüssel bleiben)
 const NAME_ITEMS = NOTES.map((e) => ({ key: "1:" + keyOf(e), make: () => ({
-  svg: singleSvg(e, false), prompt: "Welcher Notenwert ist das?", answer: nameOf(e), display: displayOf(e), reveal: revealName(e), choices: NOTE_NAMES, el: e,
+  svg: singleSvg(e, false), prompt: "Welcher Notenwert ist das?", answer: nameOf(e), display: displayOf(e, true), reveal: revealName(e, true), choices: NOTE_NAMES, el: e,
 }) }));
 export const ITEMS_3 = [...NAME_ITEMS, ...ITEMS_2];
 
@@ -271,20 +324,25 @@ const NAME_CHOICES_4 = DOTTED_EL.map(nameOf); // punktierte halbe, halbe, punkti
 const BASE_NAMES = DOTTABLE.map((v) => nameOf(el(v)));
 // Notenwert ohne den Punkt
 export const baseOf = (e) => el(e.v, false, e.rest);
-// „Viertelnote = 1 Schlag · Punkt: + ½ → 1½ Schläge“ bzw. „Viertelnote = 1 Schlag · kein Punkt → 1 Schlag“
+// Rechnung immer mit „=“ (Welle 10, Top 4: das Rechen-Plus nur in Rechnungen):
+// „Viertelnote = 1 Schlag · Punkt: 1 + ½ = 1½ Schläge“ bzw. „Viertelnote = 1 Schlag · kein Punkt → 1 Schlag“
+export const dotSum = (bb) => `${beatsText(bb)} + ${beatsText(bb / 2)} = ${beatsText(bb * 1.5)}`;
 export function dotWay(e) {
   const b = baseOf(e), bb = beatsOf(b), head = `${nameOf(b)} = ${nbBeats(bb)}`;
-  return e.dot ? `${head} · Punkt: + ${beatsText(bb / 2)} → ${nbBeats(beatsOf(e))}` : `${head} · kein Punkt → ${nbBeats(bb)}`;
+  return e.dot ? `${head} · Punkt: ${beatsText(bb)} + ${beatsText(bb / 2)} = ${nbBeats(beatsOf(e))}` : `${head} · kein Punkt → ${nbBeats(bb)}`;
 }
 
-// Stufe 6: Punktierungen in zwei Schritten (Notenwert ohne den Punkt, dann Schläge); punktierte doppelt im Vorrat
+// Stufe 6: Punktierungen in zwei Schritten (Notenwert ohne den Punkt, dann Schläge); punktierte doppelt im Vorrat.
+// Frage und Texte nach Schritt 1 sind für punktierte und nicht punktierte Noten gleich (Welle 10, Top 5):
+// Sie verraten den Punkt nicht; ihn nennt erst die Rückmeldung am Ende (dotWay).
+export const PROMPT_6 = "Welcher Notenwert steckt in dieser Note? Einen Punkt lässt du zuerst weg.";
 export const ITEMS_6 = DOTTED_EL.map((e) => ({ key: "p:" + keyOf(e), dot: e.dot, el: e, make: () => {
   const base = nameOf(baseOf(e));
   return twoStep({
-    svg: singleSvg(e, true), prompt: e.dot ? "Welcher Notenwert ist das ohne den Punkt?" : "Welcher Notenwert ist das?",
+    svg: singleSvg(e, true), prompt: PROMPT_6,
     answer: beatsText(beatsOf(e)), choices: BEAT_CHOICES_4,
     steps: [
-      { choices: BASE_NAMES, answer: base, ...stepTexts(e.dot ? `Ohne den Punkt ist das eine ${base}.` : `Das ist eine ${base}.`) },
+      { choices: BASE_NAMES, answer: base, ...stepTexts(`Der Notenwert ist die ${base}.`) },
       { choices: BEAT_CHOICES_4, answer: beatsText(beatsOf(e)), prompt: "Wie viele Schläge dauert die Note?" },
     ],
     el: e,
@@ -340,11 +398,12 @@ export function countWay(missing) {
 export const fillWay = (ans) => `${countWay(beatsOf(ans))} → ${nameOf(ans)}`;
 
 const barItems = (prefix, make) => BARS.flatMap((bar, b) => parseBar(bar).map((ans, gap) => ({ key: `${prefix}:${b}:${gap}`, bar, gap, make: () => make(parseBar(bar), gap, ans) })));
-// Gemeinsam für Stufe 8 und 9: Takt mit Lücke, nach der Antwort gefüllt, Rhythmus des ganzen Takts
+// Gemeinsam für Stufe 8 und 9: Takt mit Lücke, nach der Antwort gefüllt und mit den Zählzeiten unter den
+// Zeichen (vorher nicht: hinter der Lücke verrieten sie den fehlenden Wert), Rhythmus des ganzen Takts
 const barBase = (els, gap) => ({
   svg: barSvg(els, gap),
   // nach der Antwort: derselbe Takt, die Lücke mit dem richtigen Wert gefüllt
-  revealSvg: barSvg(els, gap, true),
+  revealSvg: barSvg(els, gap, true, { counts: true }),
   play: rhythmOf(els),
   bar: els, gap,
 });
@@ -390,13 +449,19 @@ export function featureTable() {
     label: nameOf(e),
     cells: [{ text: headOf(e) }, e.v === 1 ? null : { text: "ja" }, e.v >= 8 ? { text: e.v === 8 ? "1" : "2" } : null],
   }));
-  return `<div class="tt-wrap">${tileTable({ head: ["Notenwert", "Kopf", "Hals", "Fähnchen"], rows, cls: "tt-wide nw-features" })}</div>`;
+  return `<div class="tt-wrap">${tileTable({ head: ["Notenwert", "Kopf", "Hals", "Fähnchen"], rows, cls: "tt-wide nw-features", blank: "–" })}</div>`;
 }
 
 // Stufe 2 „Pausen“: woran du sie erkennst (Wortlaut aus dem bisherigen Hinweis), ohne Spalte mit dem Zeichen
+// Form der ganzen und halben Pause (Sandra, 24.11.2026): „Rechteck“ – „Balken“ heißt nur der Balken der
+// Achtel und Sechzehntel. Die ganze Pause hängt unter der 2. Linie von oben (= 4. von unten, BAR_REST in
+// staff.js: Oberkante auf TOP + S), die halbe sitzt auf der Mittellinie (Unterkante auf TOP + 2 S).
+export const REST_SHAPE = "Rechteck";
+export const WHOLE_REST_PLACE = "hängt unter der zweiten Linie von oben (das ist die vierte Linie von unten)";
+export const HALF_REST_PLACE = "sitzt auf der Mittellinie";
 export const REST_FEATURES = [
-  ["ganze Pause", "Balken, hängt an der vierten Linie von unten"],
-  ["halbe Pause", "Balken, sitzt auf der Mittellinie"],
+  ["ganze Pause", `${REST_SHAPE}, ${WHOLE_REST_PLACE}`],
+  ["halbe Pause", `${REST_SHAPE}, ${HALF_REST_PLACE}`],
   ["Viertelpause", "Zickzack"],
   ["Achtelpause", "ein Haken"],
   ["Sechzehntelpause", "zwei Haken"],
@@ -407,50 +472,60 @@ export function restTable() {
 }
 
 // Notenwert-Pyramide: fünf Zeilen gleich breit (1 ganze, 2 halbe, 4 Viertel, 8 Achtel, 16 Sechzehntel),
-// Kästchen mit kleinem Zeichen (die Sechzehntel-Zeile nur Kästchen), rechts die Schläge. Ohne Namen (der
-// Name ist Schritt 1) und ohne Pausen. opts (nur Vorführung): hit – Zeile grün (Schritt 2), add – Zeile
-// grün umrandet (beim Punkt: die Hälfte dazu); small – kleiner (Hilfen der Stufe 8).
-export const PYR = { w: 250, rh: 24, gap: 5, top: 16, numW: 40, scale: 0.4 };
+// Kästchen mit Zeichen (die Sechzehntel-Zeile nur Kästchen), rechts die Schläge. Ohne Namen (der Name ist
+// Schritt 1) und ohne Pausen. opts (nur Vorführung): hit – Zeile, in der EIN Kästchen grün ist (hitBox,
+// Schritt 2: so lang dauert der Wert); add – Zeile, in der EIN Kästchen grün umrandet ist (addBox, beim Punkt:
+// die Hälfte dazu, direkt hinter dem grünen Kästchen, damit die Länge 1½ zu sehen ist); sum – Rechnung als
+// eigene Zeile unter der Pyramide („1 + ½ = 1½“); dot – Zeile „Punkt: + die Hälfte“ (Hilfen Stufe 6).
+// Welle 10 (Top 6, Top 10): nicht mehr ganze Zeilen hervorgehoben, Zeichen größer (bei 320 px mindestens so
+// hoch wie die Beschriftung der Notenzeile), ganze Note größer, keine verkleinerte Fassung mehr.
+export const PYR = { w: 250, rh: 36, gap: 5, top: 16, numW: 40, scale: 0.66, wholeScale: 1.1, line: 24 };
 const PYR_SYMBOL_ROWS = 4;
 // Zeichen in einem Kästchen: g' (Hals nach oben), so passt es in die Höhe des Kästchens
 const SYM_PITCH = N("G", 4);
 const SYM_BOX = { 1: [64, 76], other: [28, 76] };
 function pyrSymbol(v, cx, top) {
-  const s = PYR.scale, [y0, y1] = SYM_BOX[v] || SYM_BOX.other;
+  const s = v === 1 ? PYR.wholeScale : PYR.scale, [y0, y1] = SYM_BOX[v] || SYM_BOX.other;
   const ty = r2(top + (PYR.rh - (y1 - y0) * s) / 2 - y0 * s), tx = r2(cx - (v >= 8 ? 3 : 0) * s);
   return `<g transform="translate(${tx} ${ty}) scale(${s})">${noteSvg(SYM_PITCH, CLEF, 0, "", { value: v })}</g>`;
 }
-export function pyramidSvg({ hit = null, add = null, small = false } = {}) {
-  const width = PYR.w + PYR.numW, height = PYR.top + VALUES.length * (PYR.rh + PYR.gap);
-  let s = `<svg class="nw-pyr${small ? " small" : ""}" viewBox="0 0 ${width} ${height}" role="img" aria-label="Notenwert-Pyramide">`;
+export function pyramidSvg({ hit = null, hitBox = 0, add = null, addBox = 0, sum = "", dot = false } = {}) {
+  const lines = [dot ? { cls: "nw-pyr-dot", text: PYR_DOT_NOTE } : null, sum ? { cls: "nw-pyr-sum", text: sum } : null].filter(Boolean);
+  const width = PYR.w + PYR.numW, rowsEnd = PYR.top + VALUES.length * (PYR.rh + PYR.gap), height = rowsEnd + lines.length * PYR.line;
+  let s = `<svg class="nw-pyr" viewBox="0 0 ${width} ${height}" role="img" aria-label="Notenwert-Pyramide">`;
   s += `<text class="nw-pyr-head" x="${PYR.w + PYR.numW / 2}" y="11" text-anchor="middle">Schläge</text>`;
   VALUES.forEach((v, k) => {
     const n = 2 ** k, bw = PYR.w / n, top = PYR.top + k * (PYR.rh + PYR.gap);
     const cls = k === hit ? " hit" : k === add ? " add" : "";
+    const mark = k === hit ? hitBox : k === add ? addBox : -1;
     s += `<g class="nw-pyr-row${cls}" data-row="${k}">`;
     for (let i = 0; i < n; i++) {
-      const x = r2(i * bw);
-      s += `<rect class="nw-pyr-box" x="${r2(x + 1)}" y="${top}" width="${r2(bw - 2)}" height="${PYR.rh}" rx="3"/>`;
+      const x = r2(i * bw), on = i === mark ? (k === hit ? " hit" : " add") : "";
+      s += `<rect class="nw-pyr-box${on}" x="${r2(x + 1)}" y="${top}" width="${r2(bw - 2)}" height="${PYR.rh}" rx="3"/>`;
       if (k < PYR_SYMBOL_ROWS) s += pyrSymbol(v, r2(x + bw / 2), top);
     }
     s += `<text class="nw-pyr-num" x="${PYR.w + PYR.numW / 2}" y="${top + PYR.rh / 2 + 5}" text-anchor="middle">${beatsText(beats(v))}</text></g>`;
   });
+  lines.forEach((l, i) => { s += `<text class="${l.cls}" x="${PYR.w / 2}" y="${rowsEnd + i * PYR.line + 15}" text-anchor="middle">${l.text}</text>`; });
   return s + "</svg>";
 }
 export const PYR_DOT_NOTE = "Punkt: + die Hälfte";
-const pyramidBlock = (opts = {}) => `<div class="tt-wrap nw-pyr-wrap">${pyramidSvg(opts)}${opts.dot ? `<p class="tt-note small">${PYR_DOT_NOTE}</p>` : ""}</div>`;
+const pyramidBlock = (opts = {}) => `<div class="tt-wrap nw-pyr-wrap">${pyramidSvg(opts)}</div>`;
 
 // Zählleiste in Achteln: „1 + 2 + 3 + 4 +“ („+“ gesprochen „und“), die Schlag-Felder grau hinterlegt.
-// [OFFEN Sandra] Schreibweise „+“ (daneben „1 u 2 u“, „1 und 2 und“): nur diese Konstante ändern.
-export const COUNT_SYLLABLES = ["1", "+", "2", "+", "3", "+", "4", "+"];
-export const COUNT_NOTE = "+ heißt „und“: eins und zwei und drei und vier und";
+// [OFFEN Sandra] Schreibweise „+“ (daneben „1 u 2 u“, „1 und 2 und“): nur COUNT_SYLLABLES ändern.
+// Die Zählsilbe „+“ steht kleiner und grau (.nw-und), damit sie nicht wie das Rechen-Plus aussieht; der Satz
+// „+ heißt ‚und‘“ steht im Bild der Zählleiste selbst (Welle 10, Top 4).
+export const UND_HTML = '<span class="nw-und">+</span>';
+export const syllableHtml = (t) => (t === "+" ? UND_HTML : t);
+export const COUNT_NOTE = `${UND_HTML} heißt „und“: eins und zwei und drei und vier und`;
 export function countTable() {
-  const table = tileTable({ head: [], rows: [{ label: "Zählen", cells: COUNT_SYLLABLES.map((t) => ({ text: t })) }], family: [0, 2, 4, 6], cls: "nw-count" });
-  return `<div class="tt-wrap">${table}<p class="tt-note small">${COUNT_NOTE}</p></div>`;
+  const table = tileTable({ head: [], rows: [{ label: "Zählen", cells: COUNT_SYLLABLES.map((t) => ({ text: syllableHtml(t) })) }], family: [0, 2, 4, 6], cls: "nw-count" });
+  return `<figure class="nw-count-fig">${table}<figcaption class="nw-count-cap">${COUNT_NOTE}</figcaption></figure>`;
 }
 
 export const HELP_TEXT_VALUE = "Erst den Kopf ansehen, dann Hals und Fähnchen.";
-export const HELP_TEXT_REST = "Achte auf die Form und bei den Balken auf die Lage.";
+export const HELP_TEXT_REST = `Achte auf die Form und beim ${REST_SHAPE} auf die Lage.`;
 export const HELP_TEXT_BEATS = "Eine Pause dauert so lang wie die Note mit demselben Wert.";
 export const HELP_TEXT_DOT = "Der Punkt verlängert eine Note um die Hälfte ihres Wertes.";
 export const HELP_TEXT_BEAM = "Achtel und Sechzehntel in einem Schlag hängen an einem Balken.";
@@ -462,7 +537,7 @@ export const HELPS = {
   2: tableHelps("Hilfen: Pausen", HELP_TEXT_REST, restTable()),
   4: tableHelps("Hilfen: Notenwert-Pyramide", HELP_TEXT_BEATS, pyramidBlock()),
   6: tableHelps("Hilfen: Notenwert-Pyramide", HELP_TEXT_DOT, pyramidBlock({ dot: true })),
-  8: tableHelps("Hilfen: Zählleiste und Pyramide", HELP_TEXT_BAR, `<div class="nw-help-stack">${countTable()}${pyramidBlock({ small: true })}</div>`),
+  8: tableHelps("Hilfen: Zählleiste und Pyramide", HELP_TEXT_BAR, `<div class="nw-help-stack">${countTable()}${pyramidBlock()}</div>`),
 };
 
 /* ---------- Vorführungen (src/demo.js; die Bilder baut das Paket, rein und in node testbar) ---------- */
@@ -492,7 +567,7 @@ export function valueDemo(e) {
     { step: 2, text: `${upperFirst(feat)} → ${nameOf(e)}`, body: say(staff(headRing(e, 1) + stemRing(e, 2))) },
     {
       step: 3, tones: [PITCH],
-      result: { title: `${upperFirst(nameOf(e))} · ${nbBeats(beatsOf(e))}`, chips: [{ step: 1, text: `Kopf ${head}` }, { step: 2, text: feat }] },
+      result: { title: `${upperFirst(nameOf(e))} · ${nbBeats(beatsOf(e))} ${METER}`, chips: [{ step: 1, text: `Kopf ${head}` }, { step: 2, text: feat }] },
       body: say(staff(headRing(e, 1) + stemRing(e, 2))),
     },
   ];
@@ -512,6 +587,9 @@ const beatsStaff = (e, step, dot = 0) => {
   return staffSvg(CLEF, timeSigSvg() + (!step ? note : e.dot ? dotTinted(note, step, dot) : tinted(note, step)));
 };
 
+// Pyramide in der Vorführung: ein Kästchen des Notenwerts grün; beim Punkt dazu ein Kästchen der nächsten
+// Zeile umrandet, direkt hinter dem grünen (Index 2 in der Zeile darunter), daneben die Rechnung.
+export const dotPyr = (e) => ({ hit: rowOf(e), hitBox: 0, add: rowOf(e) + 1, addBox: 2, sum: dotSum(beatsOf(baseOf(e))) });
 export function beatsDemo(e) {
   const base = baseOf(e), bb = beatsOf(base), name = nameOf(e), baseName = nameOf(base);
   const pyr = (opts) => pyramidSvg(opts);
@@ -524,49 +602,83 @@ export function beatsDemo(e) {
       body: say(beatsStaff(e, 1), pyr({ hit: rowOf(e) })),
     },
   ];
-  if (e.dot) frames.push({ step: 2, text: `Punkt: die Hälfte dazu → ${beatsText(bb)} + ${beatsText(bb / 2)}`, body: say(beatsStaff(e, 1, 2), pyr({ hit: rowOf(e), add: rowOf(e) + 1 })) });
+  if (e.dot) frames.push({ step: 2, text: `Punkt: die Hälfte dazu · ${dotSum(bb)}`, body: say(beatsStaff(e, 1, 2), pyr(dotPyr(e))) });
   frames.push({
     step: 3, tones: e.rest ? [] : [PITCH],
     result: {
       title: `${upperFirst(name)} = ${nbBeats(beatsOf(e))}`,
       chips: [{ step: 1, text: e.dot ? `ohne Punkt: ${baseName}` : name }, { step: 2, text: e.dot ? `${beatsText(bb)} + ${beatsText(bb / 2)} = ${nbBeats(beatsOf(e))}` : nbBeats(bb) }],
     },
-    body: say(beatsStaff(e, 0), pyr({ hit: rowOf(e), add: e.dot ? rowOf(e) + 1 : null })),
+    body: say(beatsStaff(e, 0), pyr(e.dot ? dotPyr(e) : { hit: rowOf(e) })),
   });
   return { steps: DEMO_STEPS_BEATS.slice(), frames };
 }
 
 /* --- 3. „So zählst du einen Takt“ --- */
 
-// Summenleiste: acht Achtel-Felder; segs füllen Felder (Einheiten in Achteln, eine Sechzehntel = ½ Feld),
-// out umrandet einen Bereich, labels beschriften die Felder (nur im Ergebnis: die echten Zählzeiten).
-export const SUM = { f: 34, x0: 4, y: 4, h: 26 };
-export function sumBarSvg({ segs = [], out = null, labels = null } = {}) {
-  const w = 8 * SUM.f + 2 * SUM.x0, h = SUM.h + 2 * SUM.y, X = (u) => r2(SUM.x0 + u * SUM.f);
-  let s = `<svg class="nw-sum" viewBox="0 0 ${w} ${h}" role="img" aria-label="Summenleiste">`;
-  for (let i = 0; i < 8; i++) s += `<rect class="nw-sum-field${i % 2 ? "" : " beat"}" x="${X(i)}" y="${SUM.y}" width="${SUM.f}" height="${SUM.h}"/>`;
-  for (const g of segs) s += `<rect class="nw-seg s${g.step}" data-from="${g.from}" data-to="${g.to}" x="${r2(X(g.from) + 2)}" y="${SUM.y + 2}" width="${r2((g.to - g.from) * SUM.f - 4)}" height="${SUM.h - 4}" rx="3"/>`;
-  if (out) s += `<rect class="nw-sum-out s${out.step}" x="${r2(X(out.from) + 1)}" y="${SUM.y + 1}" width="${r2((out.to - out.from) * SUM.f - 2)}" height="${SUM.h - 2}" rx="4"/>`;
-  if (labels) labels.forEach((t, i) => { s += `<text class="nw-sum-label" x="${r2(X(i) + SUM.f / 2)}" y="${SUM.y + SUM.h / 2 + 5}" text-anchor="middle">${t}</text>`; });
+// Summenleiste (Schritt 1 und 2): eine Menge, keine Zeitachse (Welle 10, Top 3). Darum anders gezeichnet als
+// die Zählleiste: eine leere Leiste ohne Schlag-Felder, Überschrift „Summe“, darunter die Marken 0 bis 4.
+// segs füllen die Leiste von links (Einheiten in Achteln, eine Sechzehntel = ½), out umrandet den Rest bis 4.
+export const SUM = { f: 34, x0: 10, y: 18, h: 26, tick: 5 };
+const sumX = (u) => r2(SUM.x0 + u * SUM.f);
+const segSvg = (g, y, h) => `<rect class="nw-seg s${g.step}" data-from="${g.from}" data-to="${g.to}" x="${r2(sumX(g.from) + 2)}" y="${y}" width="${r2((g.to - g.from) * SUM.f - 4)}" height="${h}" rx="3"/>`;
+export function sumBarSvg({ segs = [], out = null } = {}) {
+  const w = 8 * SUM.f + 2 * SUM.x0, yb = SUM.y + SUM.h, h = yb + SUM.tick + 16;
+  let s = `<svg class="nw-sum" viewBox="0 0 ${w} ${h}" role="img" aria-label="Summe der Schläge">`;
+  s += `<text class="nw-sum-head" x="${SUM.x0}" y="${SUM.y - 6}">Summe</text>`;
+  s += `<rect class="nw-sum-track" x="${sumX(0)}" y="${SUM.y}" width="${8 * SUM.f}" height="${SUM.h}" rx="4"/>`;
+  for (const g of segs) s += segSvg(g, SUM.y + 2, SUM.h - 4);
+  if (out) s += `<rect class="nw-sum-out s${out.step}" x="${r2(sumX(out.from) + 1)}" y="${SUM.y + 1}" width="${r2((out.to - out.from) * SUM.f - 2)}" height="${SUM.h - 2}" rx="4"/>`;
+  for (let b = 0; b <= 4; b++) {
+    const x = sumX(2 * b);
+    s += `<line class="nw-sum-tick" x1="${x}" x2="${x}" y1="${yb}" y2="${yb + SUM.tick}"/>`;
+    s += `<text class="nw-sum-mark" data-mark="${b}" x="${x}" y="${yb + SUM.tick + 13}" text-anchor="middle">${b}</text>`;
+  }
   return s + "</svg>";
 }
-// [OFFEN Sandra] Zählzeiten von Pausen in Klammern („(1) 2 + (3) 4“); nur im Ergebnisbild der Vorführung 3
-export const REST_COUNTS_IN_PARENS = true;
+
+// Zählzeiten der Zählleiste (Ergebnis der Vorführung 3): alle acht Silben; eine Silbe steht ohne Klammern
+// nur, wenn genau dort eine Note beginnt, sonst in Klammern (gehaltene Note oder Pause; Sandra, 24.11.2026:
+// Schläge ohne neuen Einsatz in Klammern, je Silbe eine Klammer).
+export function countLabels(els) {
+  const on = onsetsOf(els);
+  return COUNT_SYLLABLES.map((c, i) => (els.some((e, k) => !e.rest && Math.abs(on[k] * 2 - i) < 1e-9) ? c : `(${c})`));
+}
+// Zählleiste im Ergebnis: acht Felder (Schlag-Felder grau) mit den Zählzeiten; die Zeit des eingesetzten
+// Werts als grüner Streifen UNTER den Feldern (so bleibt auch über einer Sechzehntel die Silbe lesbar –
+// vorher lag ein halbes Feld grün über der „1“ bzw. dem „+“, Prüfung Schritt 5).
+export function countBarSvg({ mark = null, labels = COUNT_SYLLABLES } = {}) {
+  const w = 8 * SUM.f + 2 * SUM.x0, yb = SUM.y + SUM.h, h = yb + 12;
+  let s = `<svg class="nw-sum nw-countbar" viewBox="0 0 ${w} ${h}" role="img" aria-label="Zählleiste">`;
+  s += `<text class="nw-sum-head" x="${SUM.x0}" y="${SUM.y - 6}">Zählen</text>`;
+  for (let i = 0; i < 8; i++) s += `<rect class="nw-sum-field${i % 2 ? "" : " beat"}" x="${sumX(i)}" y="${SUM.y}" width="${SUM.f}" height="${SUM.h}"/>`;
+  labels.forEach((t, i) => {
+    const inner = t.replace("+", '<tspan class="nw-und">+</tspan>');
+    s += `<text class="nw-sum-label${t.startsWith("(") ? " hold" : ""}" x="${r2(sumX(i) + SUM.f / 2)}" y="${SUM.y + SUM.h / 2 + 5}" text-anchor="middle">${inner}</text>`;
+  });
+  if (mark) s += segSvg(mark, yb + 3, 7);
+  return s + "</svg>";
+}
+export const COUNT_EXPLAIN = `${UND_HTML} heißt „und“. In Klammern: Schläge ohne neuen Ton – die Note klingt weiter, oder es ist Pause.`;
+const countFigure = (svg) => `<figure class="nw-count-fig">${svg}<figcaption class="nw-count-cap">${COUNT_EXPLAIN}</figcaption></figure>`;
+
+// Zählzeit, auf der die Lücke beginnt, als Wort: „3“, „2 +“; eine Sechzehntel zwischen zwei Silben:
+// „zwischen „1“ und „1 +““. a = Einsatz in Achteln.
+const syllableName = (i) => (isBeatSyllable(i) ? `${i / 2 + 1}` : `${(i - 1) / 2 + 1} ${UND_HTML}`);
+export function gapPlace(a) {
+  if (Math.abs(a - Math.round(a)) < 1e-9) return `auf „${syllableName(Math.round(a))}“`;
+  return `zwischen „${syllableName(Math.floor(a))}“ und „${syllableName(Math.ceil(a))}“`;
+}
+// „Die Lücke steht auf „2 +“, dort steht jetzt die Achtelnote.“ (aus den Einsatzzeiten gerechnet)
+export const gapSentence = (els, gap) => `Die Lücke steht ${gapPlace(onsetsOf(els)[gap] * 2)}, dort steht jetzt die ${nameOf(els[gap])}.`;
+
 // Achtel-Einheiten eines Elements (Viertel = 2, Sechzehntel = ½)
 const eighths = (e) => beatsOf(e) * 2;
-// Zählzeiten im Ergebnis: ein Feld, an dessen Anfang eine Pause klingt, steht in Klammern
-export function countLabels(els) {
-  let t = 0;
-  const spans = els.map((e) => { const a = t; t += eighths(e); return { a, b: t, rest: e.rest }; });
-  return COUNT_SYLLABLES.map((c, i) => {
-    const sp = spans.find((x) => x.a <= i && i < x.b);
-    return REST_COUNTS_IN_PARENS && sp && sp.rest ? `(${c})` : c;
-  });
-}
 
 export function barDemo(els, gap) {
   const ans = els[gap], missing = beatsOf(ans), have = 4 - missing;
-  const filledBar = barSvg(els, gap, true).replace('<g class="filled">', '<g class="filled nw-s2">');
+  const tintFilled = (svg) => svg.replace('<g class="filled">', '<g class="filled nw-s2">');
+  const filledBar = tintFilled(barSvg(els, gap, true));
   const segs = [];
   let sum = 0;
   const frames = [{ step: 0, text: "Wie viele Schläge fehlen? Erst zählen, dann den Wert wählen.", body: say(barSvg(els, gap), sumBarSvg()) }];
@@ -596,8 +708,9 @@ export function barDemo(els, gap) {
     result: {
       title: `${upperFirst(nameOf(ans))} (${nbBeats(missing)})`,
       chips: [{ step: 1, text: `${nbBeats(have)} da · ${beatsText(missing)} ${missing > 1 ? "fehlen" : "fehlt"}` }, { step: 2, text: nameOf(ans) }],
+      note: gapSentence(els, gap),
     },
-    body: say(filledBar, sumBarSvg({ segs: [{ step: 2, from: start, to: start + eighths(ans) }], labels: countLabels(els) })),
+    body: say(tintFilled(barSvg(els, gap, true, { counts: true })), countFigure(countBarSvg({ mark: { step: 2, from: start, to: start + eighths(ans) }, labels: countLabels(els) }))),
   });
   return { steps: DEMO_STEPS_BAR.slice(), frames };
 }
@@ -615,7 +728,7 @@ const RAW = [
   { twoSteps: true, title: "Notenwerte erkennen", subtitle: "5 Notenwerte · zwei Schritte · mit Hilfen", items: ITEMS_1, example: singleSvg(el(2), false),
     hint: "Zwei Schritte: Erst der Kopf – hohl oder schwarz? Dann Hals und Fähnchen. Hohl ohne Hals: ganze Note, hohl mit Hals: halbe Note. Schwarz ohne Fähnchen: Viertelnote, ein Fähnchen: Achtelnote, zwei Fähnchen: Sechzehntelnote." },
   { title: "Pausen erkennen", subtitle: "5 Pausenwerte · mit Hilfen", items: ITEMS_2, example: singleSvg(el(4, false, true), false),
-    hint: "Die ganze Pause hängt an der vierten Linie von unten, die halbe Pause sitzt auf der Mittellinie. Die Achtelpause hat einen Haken, die Sechzehntelpause zwei." },
+    hint: `Ganze und halbe Pause sind ein ${REST_SHAPE}: Die ganze Pause ${WHOLE_REST_PLACE}, die halbe Pause ${HALF_REST_PLACE}. Die Achtelpause hat einen Haken, die Sechzehntelpause zwei.` },
   { title: "Noten und Pausen erkennen ohne Hilfen", subtitle: "5 Notenwerte und 5 Pausen", items: ITEMS_3, example: singleSvg(el(8, false, true), false),
     hint: "Noten und Pausen gemischt, ohne Hilfen. Bei Noten erst der Kopf, dann Hals und Fähnchen; bei Pausen Form und Lage." },
   { twoSteps: true, title: "Wie viele Schläge?", subtitle: "4/4-Takt · Noten und Pausen · zwei Schritte · mit Hilfen", items: ITEMS_4, example: singleSvg(el(8), true),
@@ -731,7 +844,7 @@ export const BOARDS = {
   bar: {
     examples: BOARD_BARS.map(([bar, gap, label]) => ({ label, make: () => barDemo(parseBar(bar), gap) })),
     intro: "Erst zählen: die Werte im Takt der Reihe nach zusammenzählen, die Lücke überspringen. Dann: Was fehlt bis 4? Diesen Wert wählst du.",
-    after: "Im Ergebnis steht die Zählleiste „1 + 2 + 3 + 4 +“ (+ heißt „und“) unter dem Takt; Zählzeiten von Pausen stehen in Klammern.",
+    after: `Im Ergebnis stehen die Zählzeiten unter den Noten, darunter die Zählleiste; ${UND_HTML} heißt „und“, Schläge ohne neuen Ton stehen in Klammern.`,
   },
 };
 

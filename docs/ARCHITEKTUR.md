@@ -505,11 +505,29 @@ Pyramide (beim Punkt die Hälfte dazu); Takt füllen 1 = Zählen (was fehlt bis 
 Aufgaben: `display` = beide Schritte („Kopf schwarz · 1 Fähnchen → Achtelnote (½ Schlag)“), `reveal` =
 „Richtig wäre: …“, `partial` je Stufe; `ok`/`bad` von Schritt 1 nennen die Antwort von Schritt 2 nie. Reine
 Funktionen im Paket: `featureTable()` (Kopf | Hals | Fähnchen je Notenwert, ohne Notenbilder), `restTable()`
-(woran du die Pausen erkennst, ohne Zeichen), `pyramidSvg({ hit, add, small })` (1/2/4/8/16 Kästchen, rechts die
-Schläge, ohne Namen), `countTable()` (Zählleiste `COUNT_SYLLABLES` „1 + 2 + 3 + 4 +“, Schlag-Felder als
-`family`), `valueDemo(e)` (4 Bilder), `beatsDemo(e)` (4, mit Punkt 5), `barDemo(els, gap)` (n + 4 Bilder,
-Summenleiste `sumBarSvg`, im Ergebnis `countLabels(els)` mit Pausen-Zählzeiten in Klammern, abschaltbar über
-`REST_COUNTS_IN_PARENS`). `barSvg(els, gap, filled, { mark })` färbt ein Zeichen violett.
+(woran du die Pausen erkennst, ohne Zeichen; Form der ganzen und halben Pause `REST_SHAPE` = „Rechteck“),
+`pyramidSvg({ hit, hitBox, add, addBox, sum, dot })` (1/2/4/8/16 Kästchen, rechts die Schläge, ohne Namen; ein
+Kästchen grün, beim Punkt ein Kästchen der Zeile darunter direkt dahinter umrandet, `dotPyr(e)`; `sum` und `dot`
+als eigene Textzeilen unter der Pyramide; keine verkleinerte Fassung mehr), `countTable()` (Zählleiste
+`COUNT_SYLLABLES` „1 + 2 + 3 + 4 +“ als `figure` mit dem Satz „+ heißt ‚und‘“ im Bild; die Zählsilbe „+“ als
+`.nw-und`, kleiner und grau, nie in einer Zeile mit einer Rechnung – das Rechen-Plus steht nur in Rechnungen mit
+„=“), `valueDemo(e)` (4 Bilder), `beatsDemo(e)` (4, mit Punkt 5), `barDemo(els, gap)` (n + 4 Bilder; Schritt 1
+und 2 mit der Summenleiste `sumBarSvg` als Menge – leere Leiste, Überschrift „Summe“, Marken 0–4; im Ergebnis die
+Zählzeiten unter den Noten, die Zählleiste `countBarSvg` mit `countLabels(els)` und die Zeit des eingesetzten
+Werts als grüner Streifen unter den Feldern, die Erklärung `COUNT_EXPLAIN` im Bild und der Satz
+`gapSentence(els, gap)` als `result.note` der Ergebniskarte). `barSvg(els, gap, filled, { mark, counts })` färbt
+ein Zeichen violett bzw. setzt die Zählzeiten unter die Zeichen.
+Zählzeiten (Welle 10, Sandra 24.11.2026; `countSyllables`, `countLabelText`, `countMarks`): gezählt in Achteln
+„1 + 2 + 3 + 4 +“. Je Zeichen (Einsatz a, Ende b in Achteln): (1) beginnt es genau auf einer Silbe, steht diese
+darunter – bei einer Note ohne, bei einer Pause mit Klammern; eine Sechzehntel zwischen zwei Silben bekommt keine;
+(2) jede Schlagzahl mit a < Schlag < b folgt in Klammern (gehaltene „+“ nicht). Halbe auf 1 „1 (2)“, punktierte
+Viertel „1 (2)“, Viertelpause auf 3 „(3)“, Achtelpause auf „+“ „(+)“, ganze Note „1 (2) (3) (4)“; jede Schlagzahl
+steht genau einmal im Takt. Die erste Silbe mittig unter Kopf bzw. Pause, weitere im Abstand `COUNT_STEP` (22)
+rechts; Grundlinie `COUNT_Y` = 116 (Halsende und Balken bei 100, gemessen: Abstand der Schriftbox ≥ 2, der
+Ziffern etwa 6; Zeilenhöhe bleibt 122). Nur nach der Antwort (`revealSvg` der Stufen 8/9) und im Ergebnis der
+Vorführung 3, nie im Fragebild. Die Zählleiste im Ergebnis setzt alle acht Silben, ohne Klammern nur dort, wo eine
+Note beginnt. In den Stufen 1–3 nennen Rückmeldungen und Vorführung 1 die Schläge mit „im 4/4-Takt“ (`METER`).
+Stufe 6: Frage `PROMPT_6` und Texte nach Schritt 1 gleich mit und ohne Punkt; den Punkt nennt erst `dotWay`.
 Balken (Welle 10): `beamGroups(els)` rechnet aus den Einsatzzeiten (`onsetsOf`) die Gruppen – nur Achtel und
 Sechzehntel, die im selben Schlag aufeinander folgen (`BEAM_UNIT` = 1 Schlag, Sandra: je Schlag 2 + 2 auch in
 „2 8 8 8 8“), nie über eine Pause oder Schlaggrenze; eine einzelne Achtel behält das Fähnchen.
@@ -519,7 +537,8 @@ fehlt die Gruppe mit der Lücke (dort Fähnchen, der Balken verriete den Wert), 
 der Vorführung stehen alle Gruppen. Die Abstände bleiben gleich. Die Lerntafel „Notenwerte und Pausen“ zeigt
 `beamPictureSvg` („mit Fähnchen = mit Balken“, `BEAM_PICTURES`), die Hilfen der Stufe 8 den Satz `HELP_TEXT_BEAM`. Lerntafeln mit
 Vorführung tragen `data-nw-board="value|beats|bar"`. Klassen: `.nw-ring` (Rahmen über der Note), `.nw-s1`/`.nw-s2`
-(Zeichen in der Farbe des Schritts), `.nw-pyr*`, `.nw-sum*`, `.nw-seg`, `.nw-rests`.
+(Zeichen in der Farbe des Schritts), `.nw-pyr*`, `.nw-sum*`, `.nw-seg`, `.nw-rests`, `.nw-und`, `.nw-cnt`,
+`.nw-count-fig`, `.demo-result-note`; `tileTable({ blank })` setzt ein Zeichen in leere Felder („–“ in Stufe 1).
 
 ## Engine (`src/engine.js`)
 

@@ -3,8 +3,10 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import notenwerte, {
   BARS, parseBar, beatsOf, nameOf, fillChoices, barSvg, dotSvg, timeSigSvg, layoutBar, GAP_FLAG_ADVANCE, learnHtml, PITCH, DOT, TIME, rhythmOf,
-  MISSING_CHOICES, BEAT_CHOICES_4, ITEMS_8, ITEMS_1, ITEMS_4, ITEMS_6, BOARDS, valueDemo, beatsDemo, barDemo, countLabels, REST_COUNTS_IN_PARENS,
+  MISSING_CHOICES, BEAT_CHOICES_4, ITEMS_8, ITEMS_1, ITEMS_4, ITEMS_6, BOARDS, valueDemo, beatsDemo, barDemo, countLabels,
   DEMO_STEPS_VALUE, DEMO_STEPS_BEATS, DEMO_STEPS_BAR, pyramidSvg, featureTable, restTable, countTable, COUNT_SYLLABLES, REST_FEATURES,
+  REST_SHAPE, HELP_TEXT_REST, countSyllables, countLabelText, countMarks, syllableWidth, COUNT_Y, COUNT_FONT, gapSentence, gapPlace, PYR,
+  sumBarSvg, countBarSvg, COUNT_EXPLAIN, dotPyr, PYR_DOT_NOTE,
   beamGroups, secondaryBeams, needsStub, onsetsOf, barBeams, BEAM_UNIT, HELP_TEXT_BEAM, BEAM_PICTURES, beamPictureSvg,
 } from "../../src/packs/notenwerte.js";
 import { N, beatsLabel } from "../../src/music.js";
@@ -12,6 +14,18 @@ import { helpsHtml, helpsTitle, waitsForNext, hasHelps } from "../../src/engine.
 import { TOP, S, BOTTOM, X1, BEAM, beamSvg, stemX } from "../../src/staff.js";
 
 const MID = TOP + 2 * S;
+const r2t = (v) => Math.round(v * 100) / 100;
+const hitBoxes = (body) => boxIdx(body, "hit");
+const addBoxes = (body) => boxIdx(body, "add");
+// "Zeile:Index" der Kästchen mit der Klasse cls
+function boxIdx(body, cls) {
+  const out = [];
+  const svg = body.match(/<svg class="nw-pyr"[\s\S]*?<\/svg>/)[0];
+  for (const m of svg.matchAll(/<g class="nw-pyr-row[^"]*" data-row="(\d)">([\s\S]*?)<text class="nw-pyr-num"/g)) {
+    [...m[2].matchAll(/<rect class="nw-pyr-box([^"]*)"/g)].forEach((b, i) => { if (b[1].trim() === cls) out.push(`${m[1]}:${i}`); });
+  }
+  return out.join(",");
+}
 const sum = (els) => els.reduce((a, e) => a + beatsOf(e), 0);
 const count = (s, re) => (s.match(re) || []).length;
 const L = notenwerte.levels;
@@ -109,11 +123,14 @@ test("Feedback ohne Hilfen: ganze Sätze mit „eine“, Dauer im richtigen Nume
   for (const l of L) for (const it of l.items) { const q = it.make(); assert.ok(/\d Schl|[¼½¾] Schl/.test(q.reveal), q.reveal); }
   const all = (l) => l.items.map((it) => sp(it.make()));
   const q2 = all(L[1]), q3 = all(L[2]), q5 = all(L[4]);
-  assert.equal(q3[2].display, "Viertelnote (1 Schlag)");
-  assert.equal(q3[2].reveal, "Das war eine Viertelnote (1 Schlag).");
-  assert.equal(q3[0].reveal, "Das war eine ganze Note (4 Schläge).");
-  assert.equal(q3[0].display, "Ganze Note (4 Schläge)");
-  assert.equal(q2[3].reveal, "Das war eine Achtelpause (½ Schlag).");
+  // Stufen 1–3: Schläge mit „im 4/4-Takt“ (dort noch nicht eingeführt, Welle 10)
+  assert.equal(q3[2].display, "Viertelnote (1 Schlag im 4/4-Takt)");
+  assert.equal(q3[2].reveal, "Das war eine Viertelnote (1 Schlag im 4/4-Takt).");
+  assert.equal(q3[0].reveal, "Das war eine ganze Note (4 Schläge im 4/4-Takt).");
+  assert.equal(q3[0].display, "Ganze Note (4 Schläge im 4/4-Takt)");
+  assert.equal(q2[3].reveal, "Das war eine Achtelpause (½ Schlag im 4/4-Takt).");
+  for (const q of [...q2, ...q3, ...all(L[0])]) assert.ok(q.display.includes("im 4/4-Takt") && q.reveal.includes("im 4/4-Takt"), q.display);
+  for (const q of [...q5, ...all(L[6]), ...all(L[8])]) assert.ok(!q.display.includes("im 4/4-Takt"), q.display);
   assert.equal(q5[1].reveal, "Richtig wäre: 2 Schläge, denn das ist eine halbe Note.");
   assert.equal(q5[9].reveal, "Richtig wäre: ¼ Schlag, denn das ist eine Sechzehntelpause.");
   const q7 = Object.fromEntries(L[6].items.map((it) => [it.key, sp(it.make())]));
@@ -181,12 +198,12 @@ test("Stufe 1: Kopf (hohl | schwarz), dann nur die Werte dieser Kopfform", () =>
   assert.equal(qs[0].steps[0].ok, "Richtig: Der Kopf ist hohl.");
   assert.equal(qs[3].steps[0].bad, "Nicht ganz: Der Kopf ist schwarz.");
   assert.deepEqual(qs.map((q) => nb(q.display)), [
-    "Kopf hohl · ohne Hals → ganze Note (4 Schläge)", "Kopf hohl · mit Hals → halbe Note (2 Schläge)",
-    "Kopf schwarz · kein Fähnchen → Viertelnote (1 Schlag)", "Kopf schwarz · 1 Fähnchen → Achtelnote (½ Schlag)",
-    "Kopf schwarz · 2 Fähnchen → Sechzehntelnote (¼ Schlag)",
+    "Kopf hohl · ohne Hals → ganze Note (4 Schläge im 4/4-Takt)", "Kopf hohl · mit Hals → halbe Note (2 Schläge im 4/4-Takt)",
+    "Kopf schwarz · kein Fähnchen → Viertelnote (1 Schlag im 4/4-Takt)", "Kopf schwarz · 1 Fähnchen → Achtelnote (½ Schlag im 4/4-Takt)",
+    "Kopf schwarz · 2 Fähnchen → Sechzehntelnote (¼ Schlag im 4/4-Takt)",
   ]);
-  assert.equal(nb(qs[1].partial), "Der Notenwert stimmt, der Kopf nicht: Kopf hohl · mit Hals → halbe Note (2 Schläge).");
-  assert.equal(nb(qs[3].reveal), "Richtig wäre: Kopf schwarz · 1 Fähnchen → Achtelnote (½ Schlag).");
+  assert.equal(nb(qs[1].partial), "Der Notenwert stimmt, der Kopf nicht: Kopf hohl · mit Hals → halbe Note (2 Schläge im 4/4-Takt).");
+  assert.equal(nb(qs[3].reveal), "Richtig wäre: Kopf schwarz · 1 Fähnchen → Achtelnote (½ Schlag im 4/4-Takt).");
   // Kopfform am Bild: hohl bei ganzer und halber Note
   qs.forEach((q, i) => assert.equal(q.svg.includes("notehead open"), i < 2));
 });
@@ -209,7 +226,8 @@ test("Stufe 6: Notenwert ohne den Punkt, dann Schläge (3 | 2 | 1½ | 1 | ¾ | �
   assert.deepEqual(Object.keys(qs), ["p:n2.", "p:n2", "p:n4.", "p:n4", "p:n8.", "p:n8"]);
   for (const q of Object.values(qs)) {
     const dot = q.key.endsWith(".");
-    assert.equal(q.prompt, dot ? "Welcher Notenwert ist das ohne den Punkt?" : "Welcher Notenwert ist das?");
+    // Frage und Texte nach Schritt 1 verraten den Punkt nicht (Welle 10, Top 5)
+    assert.equal(q.prompt, "Welcher Notenwert steckt in dieser Note? Einen Punkt lässt du zuerst weg.");
     assert.deepEqual(q.steps[0].choices, ["halbe Note", "Viertelnote", "Achtelnote"]);
     assert.deepEqual(q.steps[1].choices, BEAT_CHOICES_4);
     assert.equal(q.steps[1].prompt, "Wie viele Schläge dauert die Note?");
@@ -218,12 +236,19 @@ test("Stufe 6: Notenwert ohne den Punkt, dann Schläge (3 | 2 | 1½ | 1 | ¾ | �
   assert.deepEqual(Object.values(qs).map((q) => [q.steps[0].answer, q.answer]), [
     ["halbe Note", "3"], ["halbe Note", "2"], ["Viertelnote", "1½"], ["Viertelnote", "1"], ["Achtelnote", "¾"], ["Achtelnote", "½"],
   ]);
-  assert.equal(qs["p:n4."].steps[0].ok, "Richtig: Ohne den Punkt ist das eine Viertelnote.");
-  assert.equal(qs["p:n4"].steps[0].bad, "Nicht ganz: Das ist eine Viertelnote.");
-  assert.equal(nb(qs["p:n4."].display), "Viertelnote = 1 Schlag · Punkt: + ½ → 1½ Schläge");
+  assert.equal(qs["p:n4."].steps[0].ok, "Richtig: Der Notenwert ist die Viertelnote.");
+  assert.equal(qs["p:n4"].steps[0].bad, "Nicht ganz: Der Notenwert ist die Viertelnote.");
+  // je Paar (mit und ohne Punkt): Frage, Frage von Schritt 2 und beide Texte nach Schritt 1 gleich
+  for (const v of [2, 4, 8]) {
+    const [a, b] = [qs[`p:n${v}.`], qs[`p:n${v}`]];
+    assert.deepEqual([a.prompt, a.steps[0].ok, a.steps[0].bad, a.steps[1].prompt, a.steps[0].choices], [b.prompt, b.steps[0].ok, b.steps[0].bad, b.steps[1].prompt, b.steps[0].choices], String(v));
+    for (const t of [a.prompt, a.steps[0].ok, a.steps[0].bad, a.steps[1].prompt]) assert.ok(!/Punkt|punktiert/.test(t.replace("Einen Punkt lässt du zuerst weg.", "")), t);
+  }
+  // den Punkt nennt erst die Rückmeldung am Ende; Rechnung mit „=“
+  assert.equal(nb(qs["p:n4."].display), "Viertelnote = 1 Schlag · Punkt: 1 + ½ = 1½ Schläge");
   assert.equal(nb(qs["p:n4"].display), "Viertelnote = 1 Schlag · kein Punkt → 1 Schlag");
-  assert.equal(nb(qs["p:n2."].display), "Halbe Note = 2 Schläge · Punkt: + 1 → 3 Schläge");
-  assert.equal(nb(qs["p:n8."].display), "Achtelnote = ½ Schlag · Punkt: + ¼ → ¾ Schlag");
+  assert.equal(nb(qs["p:n2."].display), "Halbe Note = 2 Schläge · Punkt: 2 + 1 = 3 Schläge");
+  assert.equal(nb(qs["p:n8."].display), "Achtelnote = ½ Schlag · Punkt: ½ + ¼ = ¾ Schlag");
   // gezogen wird aus 9 (punktierte doppelt): in vielen Runden kommen punktierte etwa doppelt so oft
   let dots = 0, n = 0, prev = null;
   for (let i = 0; i < 3000; i++) { prev = L[5].question(prev); n++; if (prev.key.endsWith(".")) dots++; }
@@ -308,7 +333,11 @@ test("Takt füllen: revealSvg zeigt den Takt mit dem richtigen Wert in der Lück
     // Liegt die Lücke in keiner Balkengruppe, ist alles andere unverändert (elementFrom an der Stelle der Lücke);
     // sonst kommt in der Auflösung der Balken dieser Gruppe dazu (Test „Balken“ unten)
     const inBeam = beamGroups(q.bar).some((g) => g.includes(q.gap));
-    if (!inBeam) assert.equal(r, q.svg.replace(/<g class="gap">.*?<\/g>/, `<g class="filled">${filled}</g>`), it.key);
+    // (dazu nach der Antwort die Zählzeiten unter den Zeichen, im Fragebild nicht)
+    const noCounts = r.replace(/<g class="nw-counts">.*?<\/g><\/svg>$/, "</svg>");
+    assert.ok(!q.svg.includes("nw-counts") && !q.svg.includes("nw-cnt"), it.key);
+    assert.ok(r.includes('<g class="nw-counts">'), it.key);
+    if (!inBeam) assert.equal(noCounts, q.svg.replace(/<g class="gap">.*?<\/g>/, `<g class="filled">${filled}</g>`), it.key);
     if (ans.rest) assert.equal(count(filled, /class="rest"/g), 1, it.key);
     else {
       assert.equal(count(filled, /<g class="note /g), 1, it.key);
@@ -510,7 +539,25 @@ test("Hilfen Stufe 2 (Pausen): woran du sie erkennst, ohne Zeichen", () => {
   const t = restTable();
   assert.ok(!t.includes("<svg") && !/class="rest"/.test(t));
   assert.deepEqual(REST_FEATURES.map((r) => r[0]), NAMES_ALL.slice(5));
-  assert.ok(t.includes("hängt an der vierten Linie von unten") && t.includes("sitzt auf der Mittellinie") && t.includes("zwei Haken"));
+  // Form „Rechteck“ (Sandra, 24.11.2026); die ganze Pause hängt UNTER der 2. Linie von oben (= 4. von unten),
+  // die halbe SITZT AUF der Mittellinie – nachgeprüft an den Rechtecken im Bild
+  assert.equal(REST_SHAPE, "Rechteck");
+  assert.deepEqual(REST_FEATURES.slice(0, 2), [
+    ["ganze Pause", "Rechteck, hängt unter der zweiten Linie von oben (das ist die vierte Linie von unten)"],
+    ["halbe Pause", "Rechteck, sitzt auf der Mittellinie"],
+  ]);
+  assert.ok(t.includes("zwei Haken") && t.includes("Zickzack"));
+  const rect = (q) => q.svg.match(/<rect class="rest" data-value="\d+" x="[\d.]+" y="([\d.]+)" width="[\d.]+" height="([\d.]+)"/).slice(1).map(Number);
+  const [whole, half] = ALL(L[1]);
+  // Oberkante der ganzen Pause an der 2. Linie von oben (TOP + S, die Linie überdeckt zur Hälfte), darunter hängend
+  assert.ok(Math.abs(rect(whole)[0] - (TOP + S)) <= 0.5);
+  // Unterkante der halben Pause auf der Mittellinie (TOP + 2 S), darauf sitzend
+  assert.equal(r2t(rect(half)[0] + rect(half)[1]), TOP + 2 * S);
+  // kein „Balken“ in Texten zu Pausen
+  const restTexts = [restTable(), HELP_TEXT_REST, L[1].hint, L[2].hint, L[1].helpText, ...ALL(L[1]).flatMap((q) => [q.prompt, q.display, q.reveal]),
+    ...ALL(L[3]).filter((q) => q.key.startsWith("d:r")).flatMap((q) => [q.display, q.reveal, q.partial, q.steps[0].ok])];
+  for (const x of restTexts) assert.ok(!/Balken/.test(x), x);
+  assert.ok(L[1].hint.includes("Rechteck") && L[1].hint.includes("zweiten Linie von oben") && L[1].hint.includes("vierte Linie von unten"));
 });
 
 test("Notenwert-Pyramide: 1 + 2 + 4 + 8 + 16 Kästchen, Schläge 4 · 2 · 1 · ½ · ¼, ohne Namen und Pausen", () => {
@@ -536,12 +583,22 @@ test("Notenwert-Pyramide: 1 + 2 + 4 + 8 + 16 Kästchen, Schläge 4 · 2 · 1 · 
   assert.equal(L[3].helpText, "Eine Pause dauert so lang wie die Note mit demselben Wert.");
 });
 
-test("Hilfen Stufe 8: Zählleiste 1 + 2 + 3 + 4 + (Schläge grau), darunter die Pyramide klein", () => {
+test("Hilfen Stufe 8: Zählleiste 1 + 2 + 3 + 4 + (Schläge grau) mit „+ heißt „und““ im Bild, darunter die Pyramide in voller Größe", () => {
   assert.deepEqual(COUNT_SYLLABLES, ["1", "+", "2", "+", "3", "+", "4", "+"]);
   const t = countTable();
-  assert.deepEqual([...t.matchAll(/tt-box">([^<]+)</g)].map((m) => m[1]), COUNT_SYLLABLES);
+  // „+“ als Zählsilbe abgesetzt (.nw-und), nicht als Rechenzeichen
+  assert.deepEqual([...t.matchAll(/tt-box">(<span class="nw-und">\+<\/span>|[^<]+)</g)].map((m) => m[1].replace(/<[^>]+>/g, "")), COUNT_SYLLABLES);
+  assert.equal(count(t, /<span class="nw-und">\+<\/span>/g), 4 + 1);
   assert.deepEqual([...t.matchAll(/<td class="tt-cell( fam)?">/g)].map((m) => !!m[1]), [true, false, true, false, true, false, true, false]);
-  assert.ok(L[7].helpTable.includes(t) && L[7].helpTable.includes('class="nw-pyr small"'));
+  // der Satz steht im Bild der Zählleiste selbst (eine figure), keine Rechnung darin
+  assert.match(t, /^<figure class="nw-count-fig">.*<figcaption class="nw-count-cap"><span class="nw-und">\+<\/span> heißt „und“/);
+  assert.ok(!t.replace(/<[^>]+>/g, "").includes("="));
+  assert.ok(L[7].helpTable.includes(t) && L[7].helpTable.includes('class="nw-pyr"') && !L[7].helpTable.includes("small"));
+  // untereinander: Zählleiste, dann Pyramide
+  assert.ok(L[7].helpTable.indexOf(t) < L[7].helpTable.indexOf("nw-pyr"));
+  const css = readFileSync(new URL("../../css/style.css", import.meta.url), "utf8");
+  assert.match(css, /\.nw-und \{[^}]*color: var\(--muted\)[^}]*font-size: [^;]*em/);
+  assert.match(css, /\.nw-help-stack \{[^}]*grid/);
 });
 
 /* ---------- Vorführungen (Schritt 2) ---------- */
@@ -579,7 +636,7 @@ test("Vorführung „So erkennst du einen Notenwert“: 4 Bilder, Kopf violett, 
     const note = (b) => b.match(/<g class="note ">.*?<\/g>/)[0];
     d.frames.forEach((f) => assert.equal(note(f.body), note(d.frames[0].body)));
   });
-  assert.equal(nb(valueDemo(ITEMS_1[3].el).frames[3].result.title), "Achtelnote · ½ Schlag");
+  assert.equal(nb(valueDemo(ITEMS_1[3].el).frames[3].result.title), "Achtelnote · ½ Schlag im 4/4-Takt");
 });
 
 test("Vorführung „So bestimmst du die Dauer“: 4 Bilder, mit Punkt 5, die grüne Zeile der Pyramide passt", () => {
@@ -591,20 +648,37 @@ test("Vorführung „So bestimmst du die Dauer“: 4 Bilder, mit Punkt 5, die gr
     const row = [1, 2, 4, 8, 16].indexOf(e.v);
     assert.ok(!/nw-pyr-row (hit|add)/.test(d.frames[0].body + d.frames[1].body), it.key);
     assert.ok(d.frames[2].body.includes(`class="nw-pyr-row hit" data-row="${row}"`), it.key);
+    // nicht die ganze Zeile: genau EIN Kästchen grün, das erste der Zeile (Welle 10, Top 6)
+    assert.equal(count(d.frames[2].body, /nw-pyr-box hit/g), 1, it.key);
+    assert.equal(hitBoxes(d.frames[2].body), `${row}:0`, it.key);
     // Schritt 1 nennt keine Schläge
     assert.ok(!/Schl|[¼½¾]|\d/.test(d.frames[1].text), d.frames[1].text);
     assert.match(d.frames[1].body, /class="nw-s1( nw-dot0)?"/);
     if (e.dot) {
-      assert.ok(d.frames[3].body.includes(`class="nw-pyr-row add" data-row="${row + 1}"`), it.key);
+      const f = d.frames[3];
+      assert.ok(f.body.includes(`class="nw-pyr-row add" data-row="${row + 1}"`), it.key);
+      // ein Kästchen grün, darunter EIN Kästchen der nächsten Zeile umrandet – direkt hinter dem grünen
+      // (Index 2 der Zeile darunter): zusammen reicht es bis 1½ Kästchen des Notenwerts
+      assert.equal(count(f.body, /nw-pyr-box hit/g), 1, it.key);
+      assert.equal(count(f.body, /nw-pyr-box add/g), 1, it.key);
+      assert.equal(hitBoxes(f.body), `${row}:0`, it.key);
+      assert.equal(addBoxes(f.body), `${row + 1}:2`, it.key);
+      const bb = beatsOf({ ...e, dot: false }), sumText = f.body.match(/class="nw-pyr-sum"[^>]*>([^<]+)</)[1];
+      assert.equal(sumText, `${beatsLabel(bb).split(" ")[0]} + ${beatsLabel(bb / 2).split(" ")[0]} = ${beatsLabel(beatsOf(e)).split(" ")[0]}`, it.key);
+      // Kästchen in Pyramiden-Breiten: grünes [0, w/n], umrandetes beginnt dort, wo das grüne endet
+      const box = (cls) => f.body.match(new RegExp(`nw-pyr-box ${cls}" x="([\\d.]+)" y="[\\d.]+" width="([\\d.]+)"`)).slice(1).map(Number);
+      const [gx, gw] = box("hit"), [ax, aw] = box("add");
+      assert.ok(Math.abs(gx + gw + 2 - ax) < 0.05 && Math.abs(aw * 2 + 2 - gw) < 0.05, it.key);
       assert.ok(d.frames[1].text.startsWith("Ohne den Punkt: "));
-    }
+      assert.ok(d.frames[d.frames.length - 1].body.includes("nw-pyr-box add"), it.key);
+    } else assert.ok(!d.frames.some((x) => x.body.includes("nw-pyr-box add")), it.key);
     const r = d.frames[d.frames.length - 1];
     assert.equal(nb(r.result.title), `${nameOf(e)[0].toUpperCase()}${nameOf(e).slice(1)} = ${nb(beatsLabel(beatsOf(e)))}`, it.key);
     assert.deepEqual(r.tones, e.rest ? [] : [PITCH]);
   }
   assert.deepEqual(beatsDemo(parseBar("4.")[0]).frames.map((f) => nb(f.text || f.result.title)), [
     "Wie lange dauert das? Erst der Notenwert, dann die Schläge.", "Ohne den Punkt: Viertelnote", "Viertelnote = 1 Schlag",
-    "Punkt: die Hälfte dazu → 1 + ½", "Punktierte Viertelnote = 1½ Schläge",
+    "Punkt: die Hälfte dazu · 1 + ½ = 1½", "Punktierte Viertelnote = 1½ Schläge",
   ]);
   assert.equal(nb(beatsDemo(parseBar("r8")[0]).frames[2].text), "Achtelpause = ½ Schlag, so lang wie die Achtelnote");
   // Punktierte Note: in Schritt 1 („ohne den Punkt“) bleibt der Punkt schwarz, im Bild „die Hälfte dazu“ ist er grün
@@ -652,16 +726,35 @@ test("Vorführung „So zählst du einen Takt“: n + 4 Bilder, Summenleiste fü
     // Ergebnis: Zählleiste in der echten Reihenfolge, die Felder des eingesetzten Werts grün
     const start = els.slice(0, gap).reduce((a, e) => a + beatsOf(e) * 2, 0);
     assert.deepEqual(segsOf(res.body), [[2, start, start + missing * 2]]);
-    const labels = [...res.body.matchAll(/class="nw-sum-label"[^>]*>([^<]+)</g)].map((m) => m[1]);
+    const labels = [...res.body.matchAll(/class="nw-sum-label[^"]*"[^>]*>(.*?)<\/text>/g)].map((m) => m[1].replace(/<[^>]+>/g, ""));
     assert.deepEqual(labels, countLabels(els));
     assert.equal(res.result.chips[1].text, nameOf(ans));
     assert.ok(res.body.includes('<g class="filled nw-s2">'));
+    // Ergebnis: Zählzeiten unter den Noten (wie nach der Antwort in Stufe 8/9), in den Bildern davor nicht
+    assert.ok(res.body.includes('<g class="nw-counts">'), it.key);
+    d.frames.slice(0, -1).forEach((f, i) => assert.ok(!f.body.includes("nw-counts"), `${it.key} Bild ${i}`));
+    // Satz zur Lücke aus den Einsatzzeiten; Klammern und „+ heißt „und““ im Ergebnisbild erklärt
+    assert.equal(res.result.note, gapSentence(els, gap));
+    assert.ok(res.body.includes(COUNT_EXPLAIN) && COUNT_EXPLAIN.includes("In Klammern"), it.key);
+    // Schritt 1 und 2: Summenleiste als Menge (keine Schlag-Felder, Überschrift „Summe“, Marken 0–4);
+    // die Zählleiste mit den Feldern nur im Ergebnis
+    d.frames.slice(0, -1).forEach((f, i) => {
+      assert.ok(f.body.includes(">Summe<") && !f.body.includes("nw-sum-field") && !f.body.includes("nw-countbar"), `${it.key} Bild ${i}`);
+      assert.deepEqual([...f.body.matchAll(/data-mark="(\d)"/g)].map((m) => +m[1]), [0, 1, 2, 3, 4]);
+    });
+    assert.ok(!res.body.includes(">Summe<") && count(res.body, /nw-sum-field/g) === 8 && res.body.includes(">Zählen<"), it.key);
   }
-  // Klammern nur bei Pausen (an deren Anfang bzw. während sie klingen), sonst die Zählzeiten
-  assert.equal(REST_COUNTS_IN_PARENS, true);
-  assert.deepEqual(countLabels(parseBar("8 r8 4 2")), ["1", "(+)", "2", "+", "3", "+", "4", "+"]);
-  assert.deepEqual(countLabels(parseBar("r2 2")), ["(1)", "(+)", "(2)", "(+)", "3", "+", "4", "+"]);
-  assert.deepEqual(countLabels(parseBar("16 16 8 4 2")), ["1", "+", "2", "+", "3", "+", "4", "+"]);
+  // Zählleiste: alle acht Silben; ohne Klammern nur dort, wo eine Note beginnt (gehaltene Note oder Pause in Klammern)
+  assert.deepEqual(countLabels(parseBar("8 r8 4 2")), ["1", "(+)", "2", "(+)", "3", "(+)", "(4)", "(+)"]);
+  assert.deepEqual(countLabels(parseBar("r2 2")), ["(1)", "(+)", "(2)", "(+)", "3", "(+)", "(4)", "(+)"]);
+  assert.deepEqual(countLabels(parseBar("16 16 8 4 2")), ["1", "+", "2", "(+)", "3", "(+)", "(4)", "(+)"]);
+  assert.deepEqual(countLabels(parseBar("8 16 16 4 2")), ["1", "+", "2", "(+)", "3", "(+)", "(4)", "(+)"]);
+  assert.deepEqual(countLabels(parseBar("4 4 4 4")), ["1", "(+)", "2", "(+)", "3", "(+)", "4", "(+)"]);
+  // Zeit des eingesetzten Werts als Streifen UNTER den Feldern (verdeckt keine Silbe, auch bei Sechzehnteln)
+  const r16 = barDemo(parseBar("16 16 8 4 2"), 1).frames.at(-1).body;
+  const strip = r16.match(/<rect class="nw-seg s2" data-from="0.5" data-to="1" x="[\d.]+" y="([\d.]+)"/);
+  const field = r16.match(/<rect class="nw-sum-field beat" x="[\d.]+" y="([\d.]+)" width="[\d.]+" height="([\d.]+)"/);
+  assert.ok(strip && +strip[1] > +field[1] + +field[2], "Streifen unter den Feldern");
   // eine Sechzehntel füllt ein halbes Feld
   const d = barDemo(parseBar("16 16 8 4 2"), 4);
   assert.deepEqual(segsOf(d.frames[1].body), [[1, 0, 0.5]]);
@@ -820,4 +913,135 @@ test("Balken: Lerntafel „mit Fähnchen = mit Balken“, Satz in den Hilfen der
   assert.ok(html.includes(HELP_TEXT_BEAM));
   // Stufen 1–7: einzelne Zeichen, nie ein Balken
   for (const l of L.slice(0, 7)) for (const it of l.items) assert.ok(!it.make().svg.includes("beam"), it.key);
+});
+
+/* ---------- Zählzeiten, Wortlaut, Vorführungen, Pyramide (Welle 10, Schritt 6) ---------- */
+
+// Zählzeiten unter den Zeichen, ausgeschrieben für alle 25 Takte. Regel (Sandra, 24.11.2026): Einsatzsilbe
+// ohne Klammer (Pause: in Klammern), danach jede gehaltene Schlagzahl in Klammern; gehaltene „+“ nicht;
+// eine Sechzehntel zwischen zwei Silben ohne Silbe.
+const EXPECTED_COUNTS = {
+  "4 4 4 4": ["1", "2", "3", "4"], "2 4 4": ["1 (2)", "3", "4"], "4 4 2": ["1", "2", "3 (4)"], "2 2": ["1 (2)", "3 (4)"],
+  "2. 4": ["1 (2) (3)", "4"], "4. 8 4 4": ["1 (2)", "+", "3", "4"], "4 4 4. 8": ["1", "2", "3 (4)", "+"],
+  "4. 8 2": ["1 (2)", "+", "3 (4)"], "8 8 4 4 4": ["1", "+", "2", "3", "4"], "4 8 8 2": ["1", "2", "+", "3 (4)"],
+  "4 4 8 8 4": ["1", "2", "3", "+", "4"], "2 8 8 8 8": ["1 (2)", "3", "+", "4", "+"], "r4 4 4 4": ["(1)", "2", "3", "4"],
+  "4 4 r2": ["1", "2", "(3) (4)"], "2 r4 4": ["1 (2)", "(3)", "4"], "4 r4 2": ["1", "(2)", "3 (4)"],
+  "8 r8 4 2": ["1", "(+)", "2", "3 (4)"], "r2 2": ["(1) (2)", "3 (4)"], "4 4 4 r4": ["1", "2", "3", "(4)"],
+  "16 16 8 4 2": ["1", "", "+", "2", "3 (4)"], "2. r4": ["1 (2) (3)", "(4)"], "4 r8 8 2": ["1", "(2)", "+", "3 (4)"],
+  "4. 8 r4 4": ["1 (2)", "+", "(3)", "4"], "2 4 r8 8": ["1 (2)", "3", "(4)", "+"], "8 16 16 4 2": ["1", "+", "", "2", "3 (4)"],
+};
+
+test("Zählzeiten unter den Zeichen: alle 25 Takte ausgeschrieben, jede Schlagzahl genau einmal", () => {
+  assert.deepEqual(Object.keys(EXPECTED_COUNTS).sort(), BARS.slice().sort());
+  for (const bar of BARS) {
+    const els = parseBar(bar), txt = countLabelText(els);
+    assert.deepEqual(txt, EXPECTED_COUNTS[bar], bar);
+    // jede Schlagzahl 1–4 kommt genau einmal vor; ein „+“ nur, wo ein Zeichen beginnt
+    const syl = countSyllables(els).flat();
+    assert.deepEqual(syl.filter((x) => x.text !== "+").map((x) => x.text), ["1", "2", "3", "4"], bar);
+    const on = onsetsOf(els);
+    els.forEach((e, i) => {
+      const first = countSyllables(els)[i][0];
+      // Pausen ganz in Klammern; bei Noten die erste Silbe ohne Klammer (falls die Note auf einer Silbe beginnt)
+      if (e.rest) assert.ok(countSyllables(els)[i].every((x) => x.hold), bar);
+      else if (Number.isInteger(on[i] * 2)) assert.equal(first.hold, false, bar);
+      else assert.equal(countSyllables(els)[i].length, 0, bar);
+    });
+  }
+  // allgemein (auch ohne Takt in BARS): ganze Note, ganze Pause, punktierte halbe auf 2
+  assert.deepEqual(countLabelText(parseBar("1")), ["1 (2) (3) (4)"]);
+  assert.deepEqual(countLabelText(parseBar("r1")), ["(1) (2) (3) (4)"]);
+  assert.deepEqual(countLabelText(parseBar("4 2.")), ["1", "2 (3) (4)"]);
+});
+
+test("Zählzeiten: genau unter dem Zeichen, nichts berührt Hals, Balken oder die nächste Silbe; nicht im Fragebild", () => {
+  for (const it of ITEMS_8) {
+    const els = parseBar(it.bar), xs = layoutBar(els, it.gap), marks = countMarks(els, it.gap);
+    const q = it.make();
+    assert.ok(!q.svg.includes("nw-cnt"), it.key);
+    const texts = [...q.revealSvg.matchAll(/<text class="nw-cnt[^"]*" x="([\d.]+)" y="([\d.]+)"/g)].map((m) => [+m[1], +m[2]]);
+    assert.equal(texts.length, marks.length, it.key);
+    // erste Silbe jedes Zeichens mittig unter dem Kopf (Note) bzw. unter der Pause
+    // Kopfmitte = Hals (nach unten, links am Kopf) + 6,2 (stemX in staff.js)
+    const heads = [...barSvg(els, it.gap, true).matchAll(/<line class="stem" x1="([\d.]+)"/g)].map((m) => +m[1] + 6.2);
+    els.forEach((e, i) => {
+      const m = marks.find((x) => x.i === i);
+      if (!m) return;
+      assert.ok(m.x > xs[i] - 1 && (i === els.length - 1 || m.x < xs[i + 1]), `${it.key}: Zeichen ${i}`);
+      if (!e.rest) assert.ok(heads.some((h) => Math.abs(h - m.x) < 0.02), `${it.key}: Kopf ${i}`);
+    });
+    // Abstand: Silben überlappen nicht (geschätzte Breite, im Browser nachgemessen), alle vor dem Taktstrich
+    for (let k = 1; k < marks.length; k++) {
+      const a = marks[k - 1], b = marks[k];
+      assert.ok(a.x + syllableWidth(a.s) / 2 + 2 < b.x - syllableWidth(b.s) / 2, `${it.key}: ${a.s.text} ${b.s.text}`);
+    }
+    const last = marks[marks.length - 1];
+    assert.ok(last.x + syllableWidth(last.s) / 2 < X1 - 2, it.key);
+    // Oberkante der Ziffern (etwa 0,75 der Schriftgröße über der Grundlinie, Klammern etwas höher) unter
+    // Halsende und Balken (y = 100) mit Abstand; Unterkante der Klammern in der Zeile (Höhe 122)
+    for (const [, y] of texts) {
+      assert.equal(y, COUNT_Y);
+      assert.ok(y - 0.82 * COUNT_FONT.num > MID + 3.5 * S + 3, it.key);
+      assert.ok(y + 0.25 * COUNT_FONT.num < 122, it.key);
+    }
+  }
+  // „+“ unter den Noten als Zählsilbe abgesetzt
+  const r = ITEMS_8.find((it) => it.bar === "8 r8 4 2").make().revealSvg;
+  assert.ok(r.includes('<text class="nw-cnt hold" x="') && r.includes('(<tspan class="nw-und">+</tspan>)'));
+});
+
+test("Vorführung 3: Satz zur Lücke aus den Einsatzzeiten (alle 91 Aufgaben)", () => {
+  const U = '<span class="nw-und">+</span>';
+  assert.equal(gapSentence(parseBar("4. 8 4 4"), 1), `Die Lücke steht auf „2 ${U}“, dort steht jetzt die Achtelnote.`);
+  assert.equal(gapSentence(parseBar("4 4 r2"), 2), "Die Lücke steht auf „3“, dort steht jetzt die halbe Pause.");
+  assert.equal(gapSentence(parseBar("16 16 8 4 2"), 1), `Die Lücke steht zwischen „1“ und „1 ${U}“, dort steht jetzt die Sechzehntelnote.`);
+  assert.equal(gapSentence(parseBar("8 16 16 4 2"), 2), `Die Lücke steht zwischen „1 ${U}“ und „2“, dort steht jetzt die Sechzehntelnote.`);
+  for (const it of ITEMS_8) {
+    const els = parseBar(it.bar), a = onsetsOf(els)[it.gap] * 2, t = gapSentence(els, it.gap);
+    assert.ok(t.endsWith(`, dort steht jetzt die ${nameOf(els[it.gap])}.`), it.key);
+    // die genannte Zählzeit ist die, auf der die Lücke beginnt
+    if (Number.isInteger(a)) {
+      const want = a % 2 === 0 ? `${a / 2 + 1}` : `${(a - 1) / 2 + 1} ${U}`;
+      assert.equal(gapPlace(a), `auf „${want}“`, it.key);
+    } else assert.ok(gapPlace(a).startsWith("zwischen"), it.key);
+    const d = barDemo(els, it.gap);
+    assert.equal(d.frames.length, els.length + 4);
+    assert.equal(d.frames.at(-1).result.note, t);
+  }
+});
+
+test("Pyramide: lesbar, ganze Note größer, „Punkt: + die Hälfte“ als eigene Zeile, keine verkleinerte Fassung", () => {
+  assert.ok(PYR.scale >= 0.6 && PYR.wholeScale > PYR.scale && PYR.rh >= 34);
+  const p = pyramidSvg();
+  assert.ok(!p.includes("small") && !p.includes("nw-pyr-dot"));
+  // Zeichen in der Viertel-Zeile: Höhe (Hals bis Kopf, 48 Einheiten) passt ins Kästchen
+  assert.ok(48 * PYR.scale <= PYR.rh);
+  const d = pyramidSvg({ dot: true });
+  assert.ok(new RegExp('<text class="nw-pyr-dot"[^>]*>Punkt: \\+ die Hälfte</text>').test(d) && PYR_DOT_NOTE === "Punkt: + die Hälfte");
+  // die Zeile liegt unter den Kästchen, die Höhe der Grafik wächst mit
+  const h = (svg) => +svg.match(/viewBox="0 0 [\d.]+ ([\d.]+)"/)[1];
+  assert.ok(h(d) > h(p));
+  assert.ok(L[5].helpTable.includes("nw-pyr-dot") && !L[3].helpTable.includes("nw-pyr-dot") && !L[7].helpTable.includes("nw-pyr-dot"));
+  // Hilfen Stufe 1: leere Zellen „–“ statt „·“
+  const t = featureTable();
+  assert.equal(count(t, /<span class="tt-dot tt-blank">–<\/span>/g), 4);
+  assert.ok(!t.includes(">·<"));
+  // Vorführung 2: Rechnung als eigene Zeile, Kästchen wie in dotPyr
+  assert.deepEqual(dotPyr(parseBar("2.")[0]), { hit: 1, hitBox: 0, add: 2, addBox: 2, sum: "2 + 1 = 3" });
+  assert.deepEqual(dotPyr(parseBar("8.")[0]), { hit: 3, hitBox: 0, add: 4, addBox: 2, sum: "½ + ¼ = ¾" });
+});
+
+test("Rechen-Plus nur in Rechnungen mit „=“, Zählsilbe nie in derselben Zeile wie eine Rechnung", () => {
+  const texts = [];
+  for (const l of L) for (const it of l.items) {
+    const q = it.make();
+    texts.push(q.prompt, q.display, q.reveal, q.partial || "", ...(q.steps || []).flatMap((s) => [s.ok || "", s.bad || "", s.prompt || ""]));
+  }
+  for (const id of ["value", "beats", "bar"]) for (const ex of BOARDS[id].examples) for (const f of ex.make().frames) texts.push(f.text || "", f.result ? f.result.title : "", ...(f.result ? f.result.chips.map((c) => c.text) : []));
+  for (const t of texts) {
+    const plain = t.replace(/<span class="nw-und">\+<\/span>/g, "");
+    // ein „+“ außerhalb der Zählsilbe steht immer in einer Rechnung mit „=“
+    if (plain.includes("+")) assert.ok(plain.includes("="), t);
+    if (t.includes("nw-und")) assert.ok(!t.includes("="), t);
+  }
 });

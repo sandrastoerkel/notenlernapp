@@ -37,3 +37,9 @@ test("demoHtml: Knöpfe Zurück/Abspielen/Weiter › (aria-label „Nächster Sc
   assert.deepEqual([playLabel(false), playLabel(true)], ["Abspielen", "Pause"]);
   assert.equal(FRAME_MS, 1000);
 });
+
+test("Ergebniskarte: optionaler Satz (note) unter den Marken", () => {
+  const r = { title: "T", chips: [{ step: 1, text: "a" }], note: "Die Lücke steht auf „3“." };
+  assert.ok(resultHtml(r).endsWith('</p><p class="demo-result-note">Die Lücke steht auf „3“.</p></div>'));
+  assert.ok(!resultHtml({ title: "T", chips: [] }).includes("demo-result-note"));
+});

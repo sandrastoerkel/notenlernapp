@@ -28,9 +28,11 @@ export const marksHtml = (demo, i) => demo.steps
   .map((t, k) => { const st = markState(demo.frames[i], k + 1); return `<span class="demo-mark s${k + 1}${st ? " " + st : ""}">${t}</span>`; })
   .join("");
 
-// Ergebniskarte: groß der Titel, darunter die Marken je Schritt in dessen Farbe
+// Ergebniskarte: groß der Titel, darunter die Marken je Schritt in dessen Farbe; note (optional, seit Welle 10):
+// ein ganzer Satz darunter (Notenwerte: „Die Lücke steht auf „2 +“, dort steht jetzt die Achtelnote.“)
 export const resultHtml = (r) => `<div class="demo-result"><p class="demo-result-title">${r.title}</p>`
-  + `<p class="demo-chips">${(r.chips || []).map((c) => `<span class="demo-chip s${c.step}">${c.text}</span>`).join("")}</p></div>`;
+  + `<p class="demo-chips">${(r.chips || []).map((c) => `<span class="demo-chip s${c.step}">${c.text}</span>`).join("")}</p>`
+  + `${r.note ? `<p class="demo-result-note">${r.note}</p>` : ""}</div>`;
 
 // Satz bzw. Ergebniskarte zum Bild
 export const sayHtml = (frame) => (frame.result ? resultHtml(frame.result) : `<p class="demo-text s${frame.step}">${frame.text || ""}</p>`);
