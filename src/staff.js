@@ -51,7 +51,10 @@ const FLAG_SIZE = 48, FLAG_TOP = r2((1009 / 1000) * FLAG_SIZE);
 // Vorzeichen vor der Note: rechte Kante 0,25 Linienabstände vor dem Kopf (Referenz 0,23–0,25; vorher 0,54–0,62).
 // Noto Music: ♯ reicht bis 275/1000 em, ♭ bis 249/1000 em (bei 44px: 12,1 bzw. 11,0).
 // Die Werte gelten für den schwarzen Kopf (halbe Breite 7,13 = 0,59 LA) und ebenso für die halbe Note.
-const ACC_X = { sharp: -22, flat: -21 };
+// Auflösungszeichen ♮ (Welle 10, A3): Noto Music reicht bis 226/1000 em (bei NAT_SIZE 46px: 10,4).
+// Verovio 6.4.1/Bravura setzt ♮ wie ♯ und ♭ mit 0,245 LA Abstand zum Kopf (Leipzig 0,25; gemessen an
+// d', e', h', c'', e'' und c' als ganze, halbe und Viertelnote): rechte Kante bei −7,13 − 2,94 → x −20,5.
+const ACC_X = { sharp: -22, flat: -21, natural: -20.5 };
 // Die ganze Note ist breiter (halbe Breite 10,28 = 0,86 LA statt 7,13): Vorzeichen rücken um die
 // Differenz 3,15 weiter nach links, damit der Abstand zum Kopf gleich bleibt (Verovio 6.4.1/Bravura
 // und Leipzig: 0,23–0,25 LA bei jedem Notenwert; nachgemessen an ♯/♭ vor f', g', h', es'' und f).
@@ -77,7 +80,8 @@ function ellipsePath(cx, cy, rx, ry, deg) {
 }
 
 // Note mit Hals, Hilfslinien und Vorzeichen.
-// cls: "", "ok", "bad", "warn" (langsam, Notenkarte), "new" (neu, Notenkarte) oder "ghost"; opts.value: 1, 2, 4, 8, 16 (Standard 4); opts.stemless: ohne Hals.
+// cls: "", "ok", "bad", "warn" (langsam, Notenkarte), "new" (neu, Notenkarte) oder "ghost"; opts.value: 1, 2, 4, 8, 16 (Standard 4); opts.stemless: ohne Hals;
+// opts.natural: Auflösungszeichen ♮ vor der Note (nur wenn sie selbst kein Vorzeichen hat).
 export function noteSvg(n, clef, x, cls, opts = {}) {
   const value = opts.value || 4;
   const p = staffPos(n, clef), cy = yOf(p);
@@ -86,10 +90,11 @@ export function noteSvg(n, clef, x, cls, opts = {}) {
   const ledger = (q) => `<line class="ledger" x1="${r2(x - lh)}" x2="${r2(x + lh)}" y1="${yOf(q)}" y2="${yOf(q)}"/>`;
   for (let q = -2; q >= p; q -= 2) s += ledger(q);
   for (let q = 10; q <= p; q += 2) s += ledger(q);
-  if (n.acc) {
-    const k = n.acc > 0 ? "sharp" : "flat";
+  // opts.natural: Auflösungszeichen ♮ vor einer Note ohne Vorzeichen (z. B. d' nach des' an derselben Stelle)
+  const k = opts.natural && !n.acc ? "natural" : n.acc > 0 ? "sharp" : n.acc < 0 ? "flat" : null;
+  if (k) {
     const shift = (ACC_SHIFT[value] || 0) + (p <= -2 || p >= 10 ? ACC_LEDGER_SHIFT : 0);
-    s += `<text class="acc" x="${r2(x + ACC_X[k] - shift)}" y="${cy + ACC_DY[k]}">${n.acc > 0 ? "♯" : "♭"}</text>`;
+    s += `<text class="${k === "natural" ? "acc nat" : "acc"}" x="${r2(x + ACC_X[k] - shift)}" y="${cy + ACC_DY[k]}">${ACC_CHAR[k]}</text>`;
   }
   // Hals nach oben unterhalb der Mittellinie, ab der Mittellinie nach unten
   const up = p < 4;
@@ -178,7 +183,13 @@ export const ACC_SIZE = 44;
 // ♭ – Bauch und Loch liegen wie bei Bravura (Bauch-Mitte 0,13 über, Loch-Mitte 0,03 unter der Linie).
 export const KEYSIG_DY = { sharp: 6, flat: 5.5 };
 // Vorzeichen vor einzelnen Noten haben dieselbe Schriftgröße und damit denselben Versatz.
-export const ACC_DY = KEYSIG_DY;
+// Auflösungszeichen ♮ (Welle 10, A3): Bravura accidentalNatural ist 2,70 LA hoch (Leipzig 2,81) und reicht
+// 1,36 LA über und 1,34 LA unter die Linie (Verovio 6.4.1, Mitte 0,01 LA über der Linie). Die Glyphe aus
+// Noto Music ist 707/1000 em hoch (y −221…486): bei NAT_SIZE 46px 32,5 = 2,71 LA (bei 44px nur 2,59).
+// Grundlinie 6 unter der Linie: Oberkante −16,4 (−1,36 LA), Unterkante +16,2 (+1,35 LA).
+export const NAT_SIZE = 46;
+export const ACC_DY = { ...KEYSIG_DY, natural: 6 };
+const ACC_CHAR = { sharp: "♯", flat: "♭", natural: "♮" };
 
 // Lage der Vorzeichen einer Vorzeichnung: [{ x, y, line, sharp }] mit x links, y Grundlinie der Glyphe,
 // line Höhe der Linie bzw. des Zwischenraums. step (optional, Standard KEYSIG_STEP) und x0 (optional)

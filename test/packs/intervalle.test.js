@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import intervalle, {
   POOL_1, POOL_2, POOL_3, POOL_4, POOL_5, POOL_6, POOL_7, POOL_8, POOL_9, POOL_10, BUILD_UP, BUILD_DOWN,
   X_LOW, X_HIGH, NOTE_VALUE, LEARN_ROWS, TYPES_RKG, TYPES_ALL, TYPES_NO_PRIME, ALLOWED_NAMES, QUALITY_ORDER,
-  SIZE_ORDER, SIZE_NAMES, CHECK_NAMES, stepsText, frameText, qualityChoices, twoStepQuestion, intervalTable, TABLE_COLS,
+  needsNatural, naturalText, SIZE_ORDER, SIZE_NAMES, CHECK_NAMES, stepsText, frameText, qualityChoices, twoStepQuestion, intervalTable, TABLE_COLS,
   TABLE_NOTE_LESS, TABLE_NOTE_MORE, baseQuality, intervalDemo, fineText, demoXs, DEMO_EXAMPLES, DEMO_STEPS, DEMO_STEP_ONLY, demoBoard,
   HELP_TEXT, HELP_TEXT_1, VERDICTS, VERDICT_OK, VERDICT_NUM, VERDICT_MORE, VERDICT_LESS,
   buildSvg, buildRevealSvg, buildHeight, checkBuild, usualNote, upperNote, pairExtra, intervalSvg, describe,
@@ -219,7 +219,8 @@ test("Stufe 3 bis 7: zwei Schritte, erst die Zahl, dann die passenden Qualitäte
         assert.equal(s2.cols, s2.choices.length);
         assert.ok(s2.choices.includes(q.answer) && s2.choices.every((c) => c.endsWith(INTERVAL_NAMES[num - 1])));
         assert.ok(s2.prompt.includes(`Welche ${INTERVAL_NAMES[num - 1]}?`) && q.partial);
-        assert.equal(q.display, stepsText(q.down ? q.high : q.low, q.down ? q.low : q.high));
+        const [a, b] = q.down ? [q.high, q.low] : [q.low, q.high];
+        assert.equal(q.display, needsNatural(a, b) ? `${stepsText(a, b)}. ${naturalText(a, b)}` : stepsText(a, b));
       } else {
         // Nur ein Intervall zur Zahl (z. B. reine Quinte in Stufe 3): die Aufgabe endet nach Schritt 1,
         // die Rückmeldung nennt Zahl und Halbtöne
@@ -555,7 +556,8 @@ test("Vorführung: Bilder = 1 Frage + Stufen + Halbtöne + 1 Ergebnis, Nummern 1
       assert.ok(f.tones.length >= 1);
     });
     const name = intervalName(it.low, it.high), last = d.frames[d.frames.length - 1];
-    assert.equal(d.frames[0].text, `Welches Intervall ist ${tag}? Erst die Stufen zählen, beide Noten mit.`);
+    const nat = needsNatural(it.low, it.high) ? ` ${naturalText(it.low, it.high)}` : "";
+    assert.equal(d.frames[0].text, `Welches Intervall ist ${tag}?${nat} Erst die Stufen zählen, beide Noten mit.`);
     assert.equal(d.frames[num].text, `${num} ${num === 1 ? "Stufe" : "Stufen"} = ${INTERVAL_NAMES[num - 1]}. Jetzt die Halbtöne auf der Klaviatur.`);
     assert.equal(d.frames[d.frames.length - 2].text, semi === 0 ? `0 Halbtöne, dieselbe Taste → ${name}` : fineText(it.low, it.high));
     assert.deepEqual(last.result, { title: `${tag} = ${name}`, chips: [{ step: 1, text: `${num} ${num === 1 ? "Stufe" : "Stufen"}` }, { step: 2, text: `${semi} ${semi === 1 ? "Halbton" : "Halbtöne"}` }] });
@@ -634,4 +636,40 @@ test("Prime selten: höchstens einmal pro Runde, über viele Runden seltener als
     }
     assert.ok(primes / all < 0.05, `${level.id}: Primen-Anteil ${(primes / all).toFixed(3)}`);
   }
+});
+
+/* ---------- Welle 10, A3: Auflösungszeichen ♮ ---------- */
+
+test("needsNatural: gleiche Notenstufe, erste Note mit Vorzeichen, zweite ohne", () => {
+  assert.equal(needsNatural(N("D", 4, -1), N("D", 4)), true); // des'–d'
+  assert.equal(needsNatural(N("C", 4), N("C", 4, 1)), false); // c'–cis'
+  assert.equal(needsNatural(N("D", 4, -1), N("D", 4, -1)), false); // des'–des' (reine Prime, beide ♭)
+  assert.equal(needsNatural(N("D", 4), N("D", 5)), false); // d'–d''
+  assert.equal(needsNatural(N("D", 4, -1), N("D", 5)), false); // des'–d'' (andere Stelle der Zeile)
+  assert.equal(naturalText(N("D", 4, -1), N("D", 4)), "Das ♮ hebt das ♭ auf: d'.");
+});
+
+test("Aufgaben mit ♮: 9 in Stufe 5, 18 in Stufe 6, alle übermäßige Primen vom ♭-Ton", () => {
+  const nat = (pool) => pool.filter((it) => needsNatural(it.low, it.high));
+  assert.equal(nat(POOL_5).length, 9);
+  assert.equal(nat(POOL_6).length, 18);
+  for (const it of nat(POOL_6)) {
+    assert.equal(it.num, 1); assert.equal(it.quality, "übermäßig"); assert.equal(it.low.acc, -1);
+    const q = twoStepQuestion(it, TYPES_ALL);
+    assert.equal((q.svg.match(/class="acc nat"[^>]*>♮</g) || []).length, 1, helm(it.low));
+    for (const t of [q.display, q.reveal, q.partial]) assert.ok(t.endsWith(`Das ♮ hebt das ♭ auf: ${helm(it.high)}.`), t);
+    const d = intervalDemo(it.low, it.high, { clef: it.clef });
+    for (const f of d.frames) assert.ok(f.body.includes("♮"), helm(it.low));
+  }
+  // keine andere Aufgabe der Stufen 3 bis 10 bekommt ein ♮ (gleiche Stelle mit Vorzeichen kommt sonst nicht vor)
+  for (const pool of [POOL_3, POOL_4, POOL_7]) for (const it of pool) if (!needsNatural(it.low, it.high)) {
+    assert.ok(!twoStepQuestion(it, TYPES_ALL).svg.includes("♮"));
+  }
+  // reine Prime des'–des': beide ♭, kein ♮ (Voreinstellung, offen für Sandra)
+  const des = POOL_5.find((it) => it.num === 1 && it.quality === "rein" && it.low.letter === "D" && it.low.acc === -1);
+  const svg = twoStepQuestion(des, TYPES_ALL).svg;
+  assert.equal((svg.match(/>♭</g) || []).length, 2);
+  assert.ok(!svg.includes("♮"));
+  // Hinweis der Stufe 5 erklärt das Zeichen
+  assert.ok(L[4].hint.includes("♮") && L[4].hint.includes("des'–d'"));
 });

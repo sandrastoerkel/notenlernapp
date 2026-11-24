@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { N, range, staffPos } from "../src/music.js";
-import { noteSvg, noteheadSvg, staffSvg, pianoSvg, restSvg, glyphSvg, keySigSvg, KEYSIG_DY, ACC_DY, ACC_SIZE, HEAD, GLYPHS, BASS_CLEF_PATH } from "../src/staff.js";
+import { noteSvg, noteheadSvg, staffSvg, pianoSvg, restSvg, glyphSvg, keySigSvg, KEYSIG_DY, ACC_DY, ACC_SIZE, NAT_SIZE, HEAD, GLYPHS, BASS_CLEF_PATH } from "../src/staff.js";
 
 const count = (s, re) => (s.match(re) || []).length;
 
@@ -311,4 +311,38 @@ test("pianoSvg: gezählte Tasten (counts) mit Zahl, auch schwarze", () => {
   // ohne counts wie bisher
   assert.ok(!pianoSvg({ from: 60, octaves: 1, interactive: false }).includes("count"));
   assert.ok(!pianoSvg().includes("count"));
+});
+
+// Welle 10, A3: Auflösungszeichen ♮ (Noto Music U+266E bei NAT_SIZE 46px). Gemessen gegen Verovio 6.4.1/Bravura:
+// 2,70 LA hoch, 1,36 LA über und 1,34 LA unter der Linie, 0,245 LA vor dem Kopf (mit Hilfslinie 0,39).
+test("noteSvg mit natural: ♮ an der Stelle der Vorzeichen, Lage und Größe wie Bravura", () => {
+  const NAT = { right: 226, top: 486, bottom: -221 }; // Tinte der Glyphe in 1/1000 em (fontTools)
+  assert.equal(NAT_SIZE, 46);
+  assert.equal(ACC_DY.natural, 6);
+  assert.equal(ACC_DY.sharp, KEYSIG_DY.sharp);
+  assert.equal(ACC_DY.flat, KEYSIG_DY.flat);
+  const em = NAT_SIZE / 1000;
+  // Höhe 2,70 LA ± 0,05
+  assert.ok(Math.abs(((NAT.top - NAT.bottom) * em) / S - 2.70) < 0.05);
+  for (const value of [1, 2, 4]) {
+    const half = value === 1 ? 10.28 : 7.13;
+    for (const [n, clef] of [[N("D", 4), "treble"], [N("E", 4), "treble"], [N("H", 4), "treble"], [N("E", 5), "treble"], [N("G", 2), "bass"], [N("C", 4), "treble"], [N("E", 2), "bass"]]) {
+      const svg = noteSvg(n, clef, 170, "", { value, natural: true });
+      const m = svg.match(/<text class="acc nat" x="([\d.-]+)" y="([\d.-]+)">♮<\/text>/);
+      assert.ok(m, svg);
+      const x = +m[1], y = +m[2], line = BOTTOM - staffPos(n, clef) * (S / 2);
+      const led = svg.includes('class="ledger"');
+      const gap = (170 - half - (x + NAT.right * em)) / S;
+      assert.ok(led ? gap > 0.36 && gap < 0.44 : gap > 0.22 && gap < 0.27, `${value} ${n.letter}${n.octave} ${gap}`);
+      // Oberkante 1,36 und Unterkante 1,34 LA um die Linie (± 0,05)
+      assert.ok(Math.abs((line - (y - NAT.top * em)) / S - 1.364) < 0.05);
+      assert.ok(Math.abs((y - NAT.bottom * em - line) / S - 1.340) < 0.05);
+    }
+  }
+  // ohne natural unverändert; eine Note mit eigenem Vorzeichen behält es
+  assert.ok(!noteSvg(N("D", 4), "treble", 170).includes("acc"));
+  const fis = noteSvg(N("F", 4, 1), "treble", 170, "", { natural: true });
+  assert.ok(fis.includes(">♯<") && !fis.includes("♮"));
+  // ♮ wird mit der Note gefärbt (Klasse acc, CSS .note.ok .acc / svg.bad .acc)
+  assert.ok(noteSvg(N("D", 4), "treble", 170, "ok", { natural: true }).startsWith('<g class="note ok">'));
 });

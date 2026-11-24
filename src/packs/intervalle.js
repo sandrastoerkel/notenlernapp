@@ -45,9 +45,18 @@ export function pickItem(items, prev) {
   return list[Math.floor(Math.random() * list.length)];
 }
 
-export const intervalSvg = (it, cls) => staffSvg(it.clef, noteSvg(it.low, it.clef, X_LOW, "", { value: NOTE_VALUE }) + noteSvg(it.high, it.clef, X_HIGH, "", { value: NOTE_VALUE }), cls);
-// Zwei Noten an beliebigen Stellen (abwärts: links die obere, rechts die untere)
-const pairSvg = (clef, left, right, opts) => staffSvg(clef, noteSvg(left, clef, X_LOW, "", { value: NOTE_VALUE }) + noteSvg(right, clef, X_HIGH, "", { value: NOTE_VALUE }), opts);
+// Auflösungszeichen (Welle 10, A3): Ein Vorzeichen gilt bis zum Taktstrich für alle folgenden Noten an
+// derselben Stelle der Zeile. Steht nach des' ein d', braucht d' ein ♮. Das betrifft nur die übermäßige
+// Prime vom ♭-Ton zum Stammton. Die reine Prime des'–des' zeigt das ♭ an beiden Noten (eindeutig; im
+// strengen Notensatz stünde das zweite ♭ nicht noch einmal – so belassen, offen für Sandra).
+export const needsNatural = (first, second) => dia(first) === dia(second) && first.acc !== 0 && second.acc === 0;
+// Satz zum ♮ in Rückmeldung und Vorführung: „Das ♮ hebt das ♭ auf: d'.“
+export const naturalText = (first, second) => `Das ♮ hebt das ${first.acc > 0 ? "♯" : "♭"} auf: ${helm(second)}.`;
+// Zwei Noten an beliebigen Stellen (abwärts: links die obere, rechts die untere); die rechte bekommt bei
+// Bedarf das ♮
+const pairSvg = (clef, left, right, opts) => staffSvg(clef, noteSvg(left, clef, X_LOW, "", { value: NOTE_VALUE })
+  + noteSvg(right, clef, X_HIGH, "", { value: NOTE_VALUE, natural: needsNatural(left, right) }), opts);
+export const intervalSvg = (it, cls) => pairSvg(it.clef, it.low, it.high, cls);
 const pairText = (a, b) => `${helm(a)}–${helm(b)}`;
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 
@@ -201,6 +210,7 @@ export function twoStepQuestion(it, types, down = false) {
   const answer = intervalName(it.low, it.high), frame = frameText(first, second);
   const fine = qualityChoices(num, types), single = fine.length < 2;
   const steps = single ? singleText(frame, it.quality, intervalSemitones(it.low, it.high)) : stepsText(first, second);
+  const nat = needsNatural(first, second) ? ` ${naturalText(first, second)}` : "";
   const numberStep = { ...NUMBER_SET, choices: NUMBER_SET.choices.slice(), answer: numName, ok: `Richtig: ${frame}.`, bad: `Nicht ganz: ${frame}.` };
   return {
     svg: pairSvg(it.clef, first, second),
@@ -208,9 +218,9 @@ export function twoStepQuestion(it, types, down = false) {
     answer,
     choices: fine,
     steps: single ? [numberStep] : [numberStep, { choices: fine, cols: fine.length, answer, prompt: finePrompt(frame, numName) }],
-    display: steps,
-    reveal: `Richtig wäre: ${answer} (${steps}).`,
-    ...(single ? {} : { partial: `Die Halbtöne stimmen, die Zahl nicht: ${steps}.` }),
+    display: nat ? `${steps}.${nat}` : steps,
+    reveal: `Richtig wäre: ${answer} (${steps}).${nat}`,
+    ...(single ? {} : { partial: `Die Halbtöne stimmen, die Zahl nicht: ${steps}.${nat}` }),
     play: [first, second],
     low: it.low, high: it.high, clef: it.clef, down, num, quality: it.quality,
     helpMarks: [it.low, it.high],
@@ -438,7 +448,7 @@ const numSvg = (x, y, k) => `<g class="dm-num"><circle cx="${x}" cy="${y}" r="${
 // Notenzeile mit k gezählten Stufen (Zwischenstufen als hohle violette Köpfe, Kreise 1 … k), bracket: Klammer
 export function demoStaffSvg(low, high, clef, k, bracket) {
   const num = intervalNumber(low, high), xs = demoXs(num, high), y = numY(low, high, clef);
-  let inner = noteSvg(low, clef, xs[0], "", { value: NOTE_VALUE }) + noteSvg(high, clef, xs[xs.length - 1], "", { value: NOTE_VALUE });
+  let inner = noteSvg(low, clef, xs[0], "", { value: NOTE_VALUE }) + noteSvg(high, clef, xs[xs.length - 1], "", { value: NOTE_VALUE, natural: needsNatural(low, high) });
   for (let s = 2; s <= Math.min(k, num - 1); s++) inner += noteSvg(stepNote(low, high, s, num), clef, xs[s - 1], "step1", { value: NOTE_VALUE });
   if (num <= 1) { if (k >= 1) inner += numSvg((xs[0] + xs[1]) / 2, y, 1); } else for (let s = 1; s <= k; s++) inner += numSvg(xs[s - 1], y, s);
   if (bracket) {
@@ -482,7 +492,7 @@ export function intervalDemo(low, high, { clef = "treble", table = "all", fine =
     + `<div class="demo-pair">${fine ? demoKeysSvg(low, high, j, keys) : ""}<div class="demo-table">${intervalTable(table, { row: bracket ? num : null, hit })}</div></div>`;
   const frames = [{
     step: 0, kind: "frage", n: 0, tones: [low, high], body: body(0, false, 0, false, null),
-    text: `Welches Intervall ist ${pair}? Erst die Stufen zählen, beide Noten mit.`,
+    text: `Welches Intervall ist ${pair}?${needsNatural(low, high) ? ` ${naturalText(low, high)}` : ""} Erst die Stufen zählen, beide Noten mit.`,
   }];
   for (let k = 1; k <= num; k++) {
     const lastStep = k === num, n = stepNote(low, high, k, num);
@@ -566,7 +576,7 @@ const levels = [
   {
     title: "Vermindert und übermäßig",
     subtitle: `Violinschlüssel · zwei Schritte · mit Hilfen · ${POOL_5.length} Aufgaben`,
-    hint: "Ein Halbton weniger als rein oder klein heißt vermindert, einer mehr als rein oder groß übermäßig. f'–h' ist eine übermäßige Quarte, h'–f'' eine verminderte Quinte, beide 6 Halbtöne: Erst die Zahl sagt, welches es ist.",
+    hint: "Ein Halbton weniger als rein oder klein heißt vermindert, einer mehr als rein oder groß übermäßig. f'–h' ist eine übermäßige Quarte, h'–f'' eine verminderte Quinte, beide 6 Halbtöne: Erst die Zahl sagt, welches es ist. Steht nach des' ein d' an derselben Stelle, hebt das Auflösungszeichen ♮ das ♭ auf: des'–d' ist eine übermäßige Prime.",
     items: POOL_5,
     example: intervalSvg(find(POOL_5, N("F", 4), N("H", 4))),
     twoSteps: true,

@@ -77,9 +77,11 @@ export const HEAT_NOTES = { treble: RAW[2].items, bass: RAW[5].items, acc: RAW[6
 // Alle Schlüssel von „Noten lesen“ (für den Hinweis auf der Startseite)
 export const NOTE_KEYS = [...new Set(RAW.flatMap((r) => r.items.map(itemKey)))];
 
-const LEGEND = {
-  treble: [["Linien (unten → oben)", "E G H D F"], ["Merkspruch", "Es Geht Hurtig Durch Fleiß"], ["Zwischenräume", "F A C E"], ["Merkspruch", "Fritz Aß Citronen-Eis"], ["Hilfslinie unten", "c' (eingestrichenes C)"], ["Schlüssel-Kringel", "umschließt die G-Linie"]],
-  bass: [["Linien (unten → oben)", "G H D F A"], ["Zwischenräume", "A C E G"], ["Die zwei Punkte", "umschließen die F-Linie"], ["Hilfslinie oben", "c' (eingestrichenes C)"], ["Unterste Note ohne Hilfslinie", "G (große Oktave)"]],
+// Zeilen der Lerntafeln: [Beschriftung, Wert, Note (optional)]. Zeilen mit Note nennen eine Stelle der
+// Zeile; der Test prüft sie gegen staffPos (Welle 10, A2: unterste Linie im Bass ist G, darunter F).
+export const LEGEND = {
+  treble: [["Linien (unten → oben)", "E G H D F"], ["Merkspruch", "Es Geht Hurtig Durch Fleiß"], ["Zwischenräume", "F A C E"], ["Merkspruch", "Fritz Aß Citronen-Eis"], ["Unter der Zeile, ohne Hilfslinie", "d'", N("D", 4)], ["Hilfslinie unten", "c' (eingestrichenes C)", N("C", 4)], ["Schlüssel-Kringel", "umschließt die G-Linie"]],
+  bass: [["Linien (unten → oben)", "G H D F A"], ["Zwischenräume", "A C E G"], ["Die zwei Punkte", "umschließen die F-Linie"], ["Hilfslinie oben", "c' (eingestrichenes C)", N("C", 4)], ["Unterste Linie", "G (große Oktave)", N("G", 2)], ["Unter der Zeile, ohne Hilfslinie", "F", N("F", 2)]],
 };
 const legendHtml = (clef) => LEGEND[clef].map(([k, v]) => `<div><span class="muted">${k}</span><b>${v}</b></div>`).join("");
 

@@ -154,6 +154,7 @@ section { display: grid; gap: 14px; }
 .notehead { fill: var(--ink); }
 .stem { stroke: var(--ink); stroke-width: 1.8; }
 .acc { font-family: var(--music); fill: var(--ink); font-size: 44px; } /* = ACC_SIZE in staff.js */
+.acc.nat { font-size: 46px; } /* Auflösungszeichen ♮, = NAT_SIZE in staff.js (gemessen gegen Bravura) */
 .note.ok .notehead, .note.ok .acc { fill: var(--ok); } .note.ok .stem { stroke: var(--ok); }
 .note.bad .notehead, .note.bad .acc { fill: var(--bad); } .note.bad .stem { stroke: var(--bad); }
 .note.warn .notehead, .note.warn .acc { fill: var(--gold); } .note.warn .stem { stroke: var(--gold); }

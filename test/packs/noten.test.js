@@ -1,8 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import noten, { BLITZ_POOL, statKey, checkNote, HEAT_NOTES, NOTE_KEYS } from "../../src/packs/noten.js";
+import noten, { LEGEND, BLITZ_POOL, statKey, checkNote, HEAT_NOTES, NOTE_KEYS } from "../../src/packs/noten.js";
 import { PACKS } from "../../src/packs/index.js";
-import { N, same } from "../../src/music.js";
+import { N, same, staffPos, helm, gName } from "../../src/music.js";
 import { staffSvg, noteSvg } from "../../src/staff.js";
 
 test("Registry enthält nur fertige Pakete", () => {
@@ -156,4 +156,25 @@ test("HEAT_NOTES und NOTE_KEYS", () => {
   // eindeutig, und jede Aufgabe aus allen acht Stufen hat einen Schlüssel
   assert.equal(new Set(NOTE_KEYS).size, NOTE_KEYS.length);
   for (const l of noten.levels) for (const it of l.items) assert.ok(NOTE_KEYS.includes(statKey(it.n, it.clef)));
+});
+
+// Welle 10, A2: Die unterste Linie im Bassschlüssel ist G (große Oktave), darunter ohne Hilfslinie F;
+// im Violinschlüssel steht d' unter der Zeile. Geprüft gegen staffPos, nicht nur als Text.
+test("Lerntafeln: Zeilen zu Stellen der Zeile stimmen mit staffPos", () => {
+  const row = (clef, label) => LEGEND[clef].find(([k]) => k === label);
+  const g = row("bass", "Unterste Linie"), f = row("bass", "Unter der Zeile, ohne Hilfslinie"), d = row("treble", "Unter der Zeile, ohne Hilfslinie");
+  assert.equal(g[1], "G (große Oktave)"); assert.equal(staffPos(g[2], "bass"), 0);
+  assert.equal(f[1], "F"); assert.equal(staffPos(f[2], "bass"), -1);
+  assert.equal(d[1], "d'"); assert.equal(staffPos(d[2], "treble"), -1);
+  assert.ok(!LEGEND.bass.some(([k]) => k === "Unterste Note ohne Hilfslinie"));
+  // jede Zeile mit Note: Name passt zur Note, Lage passt zur Beschriftung
+  const expect = { "Unterste Linie": 0, "Unter der Zeile, ohne Hilfslinie": -1, "Hilfslinie unten": -2 };
+  for (const clef of ["treble", "bass"]) for (const [k, v, n] of LEGEND[clef]) {
+    if (!n) continue;
+    assert.ok(v.startsWith(helm(n)) || v.startsWith(gName(n)), `${clef} ${k}`);
+    if (k in expect) assert.equal(staffPos(n, clef), expect[k], `${clef} ${k}`);
+    if (k === "Hilfslinie oben") assert.equal(staffPos(n, clef), 10);
+  }
+  const html = noten.learn[1].render();
+  assert.ok(html.includes("Unterste Linie") && html.includes("Unter der Zeile, ohne Hilfslinie"));
 });

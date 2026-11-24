@@ -2,10 +2,10 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import akkorde, {
   accClash, accTouchesLedger, placeAccidentals, keyAcc, chordSvg, placeLow, triadLabel, CIRCLE_ITEMS, neighbour, keyBySig,
-  sigLabel, DEGREE_ITEMS, DEGREE_TYPES, circleRing,
+  sigLabel, DEGREE_ITEMS, DEGREE_TYPES, circleRing, INVERSION_LABELS, keyAccidentals, sigText,
 } from "../../src/packs/akkorde.js";
 import { PACKS } from "../../src/packs/index.js";
-import { N, helm, gName, staffPos, triadTypeOf, inversionOf, triadRoot, MAJOR_KEYS, ROMAN, INVERSIONS } from "../../src/music.js";
+import { N, helm, gName, staffPos, triadTypeOf, inversionOf, triadRoot, MAJOR_KEYS, ROMAN, INVERSIONS, majorScale } from "../../src/music.js";
 import { staffSvg } from "../../src/staff.js";
 
 const names = (ns) => ns.map(helm).join("-");
@@ -71,7 +71,7 @@ test("Anzahl der Antwortknöpfe je Stufe", () => {
   for (const [no, n] of Object.entries(counts)) assert.equal(L[no].question(null).choices.length, n, "Stufe " + no);
   assert.deepEqual(L[1].question(null).choices, ["Dur", "Moll"]);
   assert.deepEqual(L[2].question(null).choices, ["Dur", "Moll", "vermindert", "übermäßig"]);
-  assert.deepEqual(L[4].question(null).choices, INVERSIONS);
+  assert.deepEqual(L[4].question(null).choices, INVERSION_LABELS);
   assert.deepEqual(L[6].question(null).choices, ROMAN);
 });
 
@@ -137,7 +137,7 @@ test("Stufe 4: Umkehrungen in enger Lage", () => {
   }
   const s = find(l, (q) => q.display === "Sextakkord von C-Dur" && q.clef === "bass");
   assert.equal(names(s.play), "E-G-c");
-  assert.equal(s.answer, "Sextakkord");
+  assert.equal(s.answer, "Sextakkord (1. Umkehrung)");
   const qs = find(l, (q) => q.display === "Quartsextakkord von C-Dur" && q.clef === "bass");
   assert.equal(names(qs.play), "G-c-e");
   const t = find(l, (q) => q.display === "Sextakkord von C-Dur" && q.clef === "treble");
@@ -314,10 +314,11 @@ test("Satz nach falscher Antwort (reveal) ist grammatisch, ohne „Das war ein�
     assert.ok(!/Das war ein (\d|keine|[A-H][a-z]*-Dur[,.]|[A-H][a-z]*-Dur$)/.test(q.reveal), q.reveal);
   }
   const es = find(L[5], (q) => q.prompt === "Wie viele Vorzeichen hat Es-Dur?");
-  assert.equal(es.display, "Es-Dur hat 3 ♭");
-  assert.equal(es.reveal, "Richtig wäre: 3 ♭. So viele Vorzeichen hat Es-Dur.");
+  assert.equal(es.display, "Es-Dur: 3 ♭ (B, Es, As)");
+  assert.equal(es.reveal, "Richtig wäre: Es-Dur hat 3 ♭ (B, Es, As).");
   const c = find(L[5], (q) => q.prompt === "Wie viele Vorzeichen hat C-Dur?");
-  assert.equal(c.display, "C-Dur hat keine Vorzeichen");
+  assert.equal(c.display, "C-Dur: keine Vorzeichen");
+  assert.equal(c.reveal, "Richtig wäre: C-Dur hat keine Vorzeichen.");
   const up = find(L[5], (q) => q.prompt === "G-Dur: Welche Dur-Tonart liegt im Quintenzirkel eine Quinte höher?");
   assert.equal(up.reveal, "Richtig wäre: D-Dur, eine Quinte höher als G-Dur.");
   const vii = find(L[6], (q) => q.prompt === "Welche Stufe in G-Dur?" && q.answer === "VII");
@@ -347,4 +348,56 @@ test("Vorzeichen halten Abstand zur Hilfslinie des Akkords (wie staff.js, Verovi
   assert.equal(first(chordSvg([N("C", 4), N("E", 4, -1), N("G", 4)], "treble", 170)), flatBase);
   // ohne Hilfslinie wie bisher
   assert.equal(first(chordSvg([N("D", 4), N("F", 4, 1), N("A", 4)], "treble", 170)), base);
+});
+
+/* ---------- Welle 10, A4 und B1 ---------- */
+
+test("Stufe 4: „Welche Stellung?“ mit „(1. Umkehrung)“ und „(2. Umkehrung)“", () => {
+  assert.deepEqual(INVERSION_LABELS, ["Grundstellung", "Sextakkord (1. Umkehrung)", "Quartsextakkord (2. Umkehrung)"]);
+  const l = L[4];
+  for (let i = 0; i < 100; i++) {
+    const q = l.question(null);
+    assert.equal(q.prompt, "Welche Stellung?");
+    assert.deepEqual(q.choices, INVERSION_LABELS);
+    assert.equal(q.cols, 1); // untereinander, passt bei 320 px
+    assert.ok(l.check(q, q.answer));
+    for (const c of INVERSION_LABELS) if (c !== q.answer) assert.ok(!l.check(q, c));
+  }
+  const s6 = find(l, (q) => q.display === "Sextakkord von C-Dur");
+  assert.equal(s6.answer, "Sextakkord (1. Umkehrung)");
+  assert.ok(l.check(s6, "Sextakkord (1. Umkehrung)"));
+  const q6 = find(l, (q) => q.display === "Quartsextakkord von C-Dur");
+  assert.ok(l.check(q6, "Quartsextakkord (2. Umkehrung)"));
+  // kein „Lage“ in den Texten der Akkord-Stufen
+  for (const lv of akkorde.levels) for (let i = 0; i < 100; i++) {
+    const q = lv.question(null);
+    assert.ok(!/Lage/.test([lv.title, lv.subtitle, lv.hint, q.prompt, q.display, q.reveal, ...(q.choices || [])].join(" ")), lv.id);
+  }
+});
+
+test("Stufe 5: Anzahl der Vorzeichen – leere Zeile, Vorzeichnung erst in der Auflösung (alle 15 Tonarten)", () => {
+  const counts = CIRCLE_ITEMS.filter((it) => it.kind === "count");
+  assert.equal(counts.length, 15);
+  for (const k of MAJOR_KEYS) {
+    const q = find(L[5], (x) => x.prompt === `Wie viele Vorzeichen hat ${k.name}?`);
+    assert.ok(q.svg.includes('class="clef"'), k.name);
+    assert.ok(!q.svg.includes("notehead") && !q.svg.includes("keysig"), k.name);
+    assert.equal((q.revealSvg.match(/class="keysig"/g) || []).length, Math.abs(k.sig), k.name);
+    assert.ok(!q.revealSvg.includes("notehead"), k.name);
+    // Namen der Vorzeichen: genau die alterierten Töne der Tonleiter (aus music.js) …
+    const names = keyAccidentals(k.sig);
+    const scaleAcc = majorScale(k.tonic).filter((n) => n.acc !== 0).map((n) => gName(n));
+    assert.deepEqual([...names].sort(), [...scaleAcc].sort(), k.name);
+    for (const n of majorScale(k.tonic)) if (n.acc) assert.equal(Math.sign(n.acc), Math.sign(k.sig), k.name);
+    // … in der Reihenfolge der Vorzeichnung: die Tonart mit einem Vorzeichen weniger hat genau die ersten
+    if (k.sig) assert.deepEqual(names.slice(0, -1), keyAccidentals(k.sig - Math.sign(k.sig)), k.name);
+    assert.equal(q.display, sigText(k));
+    assert.equal(q.display, k.sig ? `${k.name}: ${sigLabel(k.sig)} (${names.join(", ")})` : `${k.name}: keine Vorzeichen`);
+  }
+  assert.equal(find(L[5], (q) => q.prompt === "Wie viele Vorzeichen hat D-Dur?").display, "D-Dur: 2 ♯ (Fis, Cis)");
+  assert.deepEqual(keyAccidentals(7), ["Fis", "Cis", "Gis", "Dis", "Ais", "Eis", "His"]);
+  assert.deepEqual(keyAccidentals(-7), ["B", "Es", "As", "Des", "Ges", "Ces", "Fes"]);
+  // die Fragen „eine Quinte höher/tiefer“ zeigen weiter Dreiklang und Vorzeichnung
+  const up = find(L[5], (q) => q.prompt === "D-Dur: Welche Dur-Tonart liegt im Quintenzirkel eine Quinte höher?");
+  assert.ok(up.svg.includes("notehead") && up.svg.includes("keysig") && !up.revealSvg);
 });

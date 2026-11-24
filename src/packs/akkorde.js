@@ -1,7 +1,7 @@
 // Paket „Dreiklänge und Quintenzirkel“: sechs Stufen und zwei Lerntafeln (Klasse 9 bis 12)
 import {
   N, dia, midi, pc, gName, helm, staffPos, triad, invert, INVERSIONS, TRIAD_TYPES,
-  MAJOR_KEYS, relativeMinorOf, fifthUp, fifthDown, degreeTriad, ROMAN, triadName,
+  MAJOR_KEYS, relativeMinorOf, fifthUp, fifthDown, degreeTriad, ROMAN, triadName, majorScale, majorTonic,
 } from "../music.js";
 import { staffSvg, noteSvg, BOTTOM, S, ACC_DY } from "../staff.js";
 
@@ -217,21 +217,25 @@ function rootLevel() {
 }
 
 /* Stufe 4: Umkehrungen */
+// Aufschriften der Knöpfe (Welle 10, A4): „Stellung“ ist der Fachbegriff für die Umkehrung, „Lage“ meint
+// beim Akkord den Abstand der Oberstimme (enge/weite Lage). Die Rückmeldungen nutzen die kurzen Namen
+// aus INVERSIONS (music.js).
+export const INVERSION_LABELS = ["Grundstellung", "Sextakkord (1. Umkehrung)", "Quartsextakkord (2. Umkehrung)"];
 function inversionLevel() {
   const clefs = ["treble", "bass"];
   const items = triadPool(["dur", "moll"], clefs, [0, 1, 2]);
   const make = (it) => ({
     ...chordQuestion(it),
-    prompt: "Welche Lage?",
-    answer: INVERSIONS[it.inv],
+    prompt: "Welche Stellung?",
+    answer: INVERSION_LABELS[it.inv],
     display: it.inv === 0 ? `${triadLabel(it.root, it.type)} in Grundstellung` : `${INVERSIONS[it.inv]} von ${triadName(it.root, it.type)}`,
-    choices: INVERSIONS,
+    choices: INVERSION_LABELS.slice(), cols: 1,
     reveal: `Richtig wäre: ${INVERSIONS[it.inv]}. Unten liegt ${["der Grundton", "die Terz", "die Quinte"][it.inv]} von ${triadName(it.root, it.type)}.`,
   });
   return {
     id: "akkorde-4", no: 4, title: "Umkehrungen",
     subtitle: `${clefLabel(clefs)} · ${items.length} Akkorde`,
-    hint: "Grundstellung: Grundton unten. Sextakkord: Terz unten (vom Bass zum Grundton eine Sexte). Quartsextakkord: Quinte unten (Quarte und Sexte über dem Bass).",
+    hint: "Welche Stellung hat der Akkord? Grundstellung: Grundton unten. Sextakkord (1. Umkehrung): Terz unten (vom Bass zum Grundton eine Sexte). Quartsextakkord (2. Umkehrung): Quinte unten (Quarte und Sexte über dem Bass).",
     input: "choices", items,
     example: make(items[0]).svg,
     question(prev) { return make(pick(items, prev)); },
@@ -282,15 +286,27 @@ const tonicItem = (k) => {
   return { clef: "treble", notes: triad(r, "dur") };
 };
 
+// Namen der Vorzeichen einer Dur-Tonart in der Reihenfolge der Vorzeichnung, aus music.js abgeleitet:
+// Das i-te ♯ ist die 7. Stufe der Tonart mit i ♯ (Fis in G-Dur, Cis in D-Dur …), das i-te ♭ die 4. Stufe
+// der Tonart mit i ♭ (B in F-Dur, Es in B-Dur …).
+export const keyAccidentals = (sig) => Array.from({ length: Math.abs(sig) }, (_, i) =>
+  gName(sig > 0 ? majorScale(majorTonic(i + 1))[6] : majorScale(majorTonic(-(i + 1)))[3]));
+// „2 ♯ (Fis, Cis)“ bzw. „keine Vorzeichen“; sigText: „D-Dur: 2 ♯ (Fis, Cis)“, „C-Dur: keine Vorzeichen“
+const sigDetail = (sig) => `${sigLabel(sig)}${sig ? ` (${keyAccidentals(sig).join(", ")})` : ""}`;
+export const sigText = (k) => `${k.name}: ${sigDetail(k.sig)}`;
+
 function circleQuestion(it) {
   const { k } = it;
   if (it.kind === "count") {
+    // Welle 10, B1: Die Frage zeigt nur die leere Zeile (ein Dreiklang lenkt ab und verrät nichts über
+    // die Vorzeichnung); nach der Antwort erscheint die Vorzeichnung.
     return {
-      svg: staffSvg("treble", chordSvg(tonicItem(k).notes, "treble", CHORD_X)),
+      svg: staffSvg("treble", ""),
+      revealSvg: staffSvg("treble", "", { keySig: k.sig }),
       prompt: `Wie viele Vorzeichen hat ${k.name}?`,
       answer: sigLabel(k.sig),
-      display: `${k.name} hat ${sigLabel(k.sig)}`,
-      reveal: `Richtig wäre: ${sigLabel(k.sig)}. So viele Vorzeichen hat ${k.name}.`,
+      display: sigText(k),
+      reveal: `Richtig wäre: ${k.name} hat ${sigDetail(k.sig)}.`,
       choices: sigChoices(k.sig),
       key: it.key,
     };
