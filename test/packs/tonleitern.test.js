@@ -6,12 +6,12 @@ import tonleitern, { oddQuestion, fitsKey, lowestY, LABEL_DESC,
   scaleNotes, scaleSvg, scaleX, sigList, sigChoices, fifthsOf, pickStep, usualNote, keyName,
   STEP_WHOLE, STEP_HALF, HALF_P, GAP_HALF_P, SCALE_W, SHARP_ORDER, FLAT_ORDER, SHARPS_7, FLATS_7,
   FIFTHS, keyChoices, keyChoicesFixed, minorChoices, sigText, sigSentence, nameChoices, gapStepQuestion,
-  signStep, decisiveSign, keyWay, planTable, scaleDemo, stepDemo, keyDemo, minorDemo, buildSteps, stemNotes, sigDemoSvg,
+  signStep, majorSinglePrompt, decisiveSign, keyWay, planTable, scaleDemo, stepDemo, keyDemo, minorDemo, buildSteps, stemNotes, sigDemoSvg,
   DEMO_STEPS_SCALE, DEMO_STEPS_KEY, DEMO_STEP_KEY_ONLY, DEMO_STEPS_MINOR, BOARDS, circleTable, HELP_TEXT_PLAN, PLAN_COLS, MINOR_VARIANTS, stemChoices, minorTonicOf, majorTonicOf, minorWay, PLAN, NO_SIGNS,
 } from "../../src/packs/tonleitern.js";
 import { PACKS } from "../../src/packs/index.js";
 import { N, dia, midi, pc, SEMI, LETTERS, gName, helm, majorScale, majorName, minorName, majorKeyFromKeySig, relativeMinor } from "../../src/music.js";
-import { feedbackText, makeRound, choicesClass, svgResultClass, choiceSet, stepsFeedback, helpsHtml, hasHelps, waitsForNext, helpFrom, HELP_OCTAVES } from "../../src/engine.js";
+import { feedbackText, makeRound, choicesClass, svgResultClass, choiceSet, stepsFeedback, stepsResult, helpsHtml, hasHelps, waitsForNext, helpFrom, HELP_OCTAVES } from "../../src/engine.js";
 import { staffSvg } from "../../src/staff.js";
 import { demoHtml } from "../../src/demo.js";
 
@@ -461,7 +461,7 @@ test("Stufe 10: zwei Schritte – entscheidendes Vorzeichen, dann die Dur-Tonart
       assert.equal(pc(midi(n) + 1), majorPc(f), String(f));
     }
     if (f < -1) assert.equal(s1.answer + "-Dur", majorName(f));
-    // Ein-Knopf-Fälle: C, G, F; der Knopf nennt die Tonart nicht
+    // Ein-Knopf-Fälle: C, G, F (dort entfällt der Schritt in der Aufgabe); kein Knopf nennt die Tonart
     assert.equal(s1.choices.length === 1, [0, 1, -1].includes(f), String(f));
     assert.ok(s1.choices.every((c) => !c.includes("Dur")));
     const second = keyChoicesFixed(f);
@@ -479,15 +479,32 @@ test("Stufe 10: zwei Schritte – entscheidendes Vorzeichen, dann die Dur-Tonart
   assert.equal(keyWay(6), "Letztes Kreuz Eis · einen Halbton höher → Fis-Dur");
   assert.equal(keyWay(7), "Letztes Kreuz His · einen Halbton höher → Cis-Dur");
   assert.equal(keyWay(-7), "Vorletztes Be Ces → Ces-Dur");
+  assert.equal(majorSinglePrompt(0), "Hier steht kein Vorzeichen: welche Dur-Tonart?");
+  assert.equal(majorSinglePrompt(-1), "Hier steht nur ein Be, das ist die Ausnahme: welche Dur-Tonart?");
+  assert.equal(majorSinglePrompt(1), "Fis ist das einzige Kreuz, also das letzte. Einen Halbton über Fis: welche Dur-Tonart?");
   for (const q of many(byId(10), 300)) {
-    assert.equal(q.steps.length, 2);
-    assert.deepEqual(q.steps[0].choices, signStep(q.fifths).choices);
-    assert.deepEqual(q.choices, q.steps[1].choices);
+    // C-Dur, G-Dur, F-Dur: Der erste Schritt hätte nur einen Knopf und entfällt (Welle 10, B10)
+    const single = [0, 1, -1].includes(q.fifths);
+    assert.equal(q.steps.length, single ? 1 : 2, String(q.fifths));
+    q.steps.forEach((st) => assert.ok(st.choices.length >= 2, String(q.fifths)));
+    const last = q.steps[q.steps.length - 1];
+    assert.deepEqual(q.choices, last.choices);
+    assert.equal(last.answer, q.answer);
     assert.equal(q.answer, majorName(q.fifths));
     assert.equal(q.display, keyWay(q.fifths));
-    assert.equal(!!q.partial, ![0, 1, -1].includes(q.fifths));
-    assert.equal(stepsFeedback(q, [true, true]), `Richtig! ${keyWay(q.fifths)}`);
-    assert.equal(q.prompt, "Welches Vorzeichen ist entscheidend?");
+    assert.equal(!!q.partial, !single);
+    if (single) {
+      assert.equal(q.prompt, majorSinglePrompt(q.fifths));
+      assert.ok(q.prompt.endsWith("welche Dur-Tonart?") && !q.prompt.includes(q.answer), q.prompt);
+      assert.equal(stepsFeedback(q, [true]), `Richtig! ${keyWay(q.fifths)}`);
+      assert.equal(stepsFeedback(q, [false]), q.reveal);
+      assert.equal(stepsResult(q, [false]), "bad");
+    } else {
+      assert.deepEqual(q.steps[0].choices, signStep(q.fifths).choices);
+      assert.equal(q.prompt, "Welches Vorzeichen ist entscheidend?");
+      assert.equal(stepsFeedback(q, [true, true]), `Richtig! ${keyWay(q.fifths)}`);
+      assert.equal(stepsResult(q, [false, true]), "part");
+    }
     assert.equal(q.clef, "treble");
   }
 });

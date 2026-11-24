@@ -462,8 +462,9 @@ export function keyWay(fifths) {
   return fifths > 0 ? `Letztes Kreuz ${d} · einen Halbton höher → ${name}` : `Vorletztes Be ${d} → ${name}`;
 }
 
-// Stufe 10, Schritt 1: Knöpfe = die Vorzeichen der Vorzeichnung in ihrer Reihenfolge (C-Dur: ein Knopf
-// „keine Vorzeichen“, G-Dur „Fis“, F-Dur „B“ als Bestätigung; der Knopf nennt die Tonart nicht)
+// Stufe 10, Schritt 1: Knöpfe = die Vorzeichen der Vorzeichnung in ihrer Reihenfolge. Bei C-Dur („keine
+// Vorzeichen“), G-Dur („Fis“) und F-Dur („B“) gäbe es nur einen Knopf: Dort entfällt der Schritt in der
+// Aufgabe (majorStepQuestion, Welle 10, Befund B10: ein Knopf ist keine Entscheidung).
 export const NO_SIGNS = "keine Vorzeichen";
 export function signStep(fifths) {
   const n = Math.abs(fifths), list = (fifths > 0 ? SHARPS_7 : FLATS_7).slice(0, n);
@@ -475,21 +476,27 @@ export function signStep(fifths) {
 }
 const majorStepPrompt = (fifths) => (fifths > 0 ? `Einen Halbton über ${decisiveSign(fifths)}: welche Dur-Tonart?`
   : fifths < -1 ? "Das vorletzte Be ist der Grundton: welche Dur-Tonart?" : "Welche Dur-Tonart?");
+// Frage der Aufgaben mit nur einem Schritt (C-Dur, G-Dur, F-Dur): nennt, was in der Vorzeichnung steht
+export const majorSinglePrompt = (fifths) => (fifths === 0 ? "Hier steht kein Vorzeichen: welche Dur-Tonart?"
+  : fifths === -1 ? "Hier steht nur ein Be, das ist die Ausnahme: welche Dur-Tonart?"
+    : "Fis ist das einzige Kreuz, also das letzte. Einen Halbton über Fis: welche Dur-Tonart?");
 
-// Stufe 10: zwei Schritte (Vorzeichen, dann Tonart)
+// Stufe 10: zwei Schritte (Vorzeichen, dann Tonart). Hätte der erste Schritt nur einen Knopf (C-Dur, G-Dur,
+// F-Dur), entfällt er: Die Aufgabe hat dann nur den Schritt „Tonart“ (steps.length === 1, wie bei den
+// Intervallen), die Rückmeldung nennt den Weg wie sonst (keyWay).
 export function majorStepQuestion(it) {
   const answer = majorName(it.fifths), way = keyWay(it.fifths), first = signStep(it.fifths);
-  const second = keyChoicesFixed(it.fifths);
+  const second = keyChoicesFixed(it.fifths), single = first.choices.length < 2;
   return {
     key: it.key,
     svg: keySvg(it),
-    prompt: "Welches Vorzeichen ist entscheidend?",
+    prompt: single ? majorSinglePrompt(it.fifths) : "Welches Vorzeichen ist entscheidend?",
     answer,
     choices: second,
-    steps: [first, { choices: second, answer, prompt: majorStepPrompt(it.fifths) }],
+    steps: single ? [{ choices: second, answer }] : [first, { choices: second, answer, prompt: majorStepPrompt(it.fifths) }],
     display: way,
     reveal: `Richtig wäre: ${answer} (${way}).`,
-    ...(first.choices.length > 1 ? { partial: `Die Tonart stimmt, das Vorzeichen nicht: ${way}.` } : {}),
+    ...(single ? {} : { partial: `Die Tonart stimmt, das Vorzeichen nicht: ${way}.` }),
     clef: it.clef, fifths: it.fifths,
     helpMarks: [], helpFrom: 60,
     statKey: `Dur zu ${keyStat(it)}`,

@@ -873,6 +873,15 @@ test("Ablauf: Ein-Schritt-Aufgabe (Intervalle 3, Quinte) endet nach Schritt 1", 
   } finally { stop(); mock.timers.reset(); }
 });
 
+test("Kein Antwortsatz mit nur einem Knopf: alle Pakete, alle Stufen, jeder Schritt (Welle 10, B10)", () => {
+  for (const pack of PACKS) for (const level of pack.levels) {
+    if (level.input !== "choices") continue;
+    for (let k = 0; k < 30; k++) for (const q of makeRound(level, ROUND_LENGTH, { notes: {} })) {
+      for (const set of q.steps || [q]) assert.ok(set.choices.length >= 2, `${level.id}: ${set.choices.join(" | ")}`);
+    }
+  }
+});
+
 test("level.twoSteps passt zu den Aufgaben (q.steps mit zwei Schritten)", () => {
   for (const pack of PACKS) for (const level of pack.levels) {
     let seen = false;
