@@ -229,7 +229,9 @@ export const METER = "im 4/4-Takt";
 const withBeats = (e, meter = false) => `${nameOf(e)} (${beatsNb(e)}${meter ? " " + METER : ""})`;
 export const displayOf = (e, meter = false) => { const t = withBeats(e, meter); return t[0].toUpperCase() + t.slice(1); };
 // Stufen 2, 3 und 7 (Name gefragt): „Das war eine Viertelnote (1 Schlag).“ (Stufen 2, 3: „… im 4/4-Takt).“)
-export const revealName = (e, meter = false) => `Das war eine ${withBeats(e, meter)}.`;
+// Pausen (Abschlussprüfung Welle 10): mit dem Merkmal, z. B. „Das war eine halbe Pause (2 Schläge im 4/4-Takt) –
+// das Rechteck sitzt auf der Mittellinie.“ (restFeature steht weiter unten, wird erst beim Aufruf gebraucht)
+export const revealName = (e, meter = false) => `Das war eine ${withBeats(e, meter)}${e.rest ? ` – ${restFeature(e)}` : ""}.`;
 // Stufen 5 und 7 (Dauer gefragt): „Richtig wäre: 1½ Schläge, denn das ist eine punktierte Viertelnote.“
 export const revealBeats = (e) => `Richtig wäre: ${beatsNb(e)}, denn das ist eine ${nameOf(e)}.`;
 // Stufe 9: „Richtig wäre eine Viertelnote, denn es fehlt noch 1 Schlag.“ / „… es fehlen noch 2 Schläge.“
@@ -466,13 +468,22 @@ export const REST_FEATURES = [
   ["Achtelpause", "ein Haken"],
   ["Sechzehntelpause", "zwei Haken"],
 ];
+// Spalte „Zeichen“ (Abschlussprüfung Welle 10): erst nach der Antwort sichtbar (data-after-answer, die Engine
+// nimmt hidden weg), sonst verriete die Hilfe die Antwort. Jede Pause in einem Stück Notenzeile, damit auch
+// „hängt“ und „sitzt“ zu sehen sind.
 export function restTable() {
-  const rows = REST_FEATURES.map(([n, t]) => `<tr><td class="tt-label">${n}</td><td class="nw-rest-text">${t}</td></tr>`).join("");
-  return `<table class="tt nw-rests"><thead><tr><th class="tt-head">Pause</th><th class="tt-head">woran du sie erkennst</th></tr></thead><tbody>${rows}</tbody></table>`;
+  const after = `data-after-answer hidden`;
+  const sym = (e) => `<td class="nw-rest-sym" ${after}>${miniSvg(elementAt(e, 30))}</td>`;
+  const rows = REST_FEATURES.map(([n, t], i) => `<tr><td class="tt-label">${softName(RESTS[i])}</td><td class="nw-rest-text">${t}</td>${sym(RESTS[i])}</tr>`).join("");
+  return `<table class="tt nw-rests"><thead><tr><th class="tt-head">Pause</th><th class="tt-head">woran du sie erkennst</th><th class="tt-head" ${after}>Zeichen</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
+// Merkmal einer Pause als Satzteil für die Rückmeldung (Stufen 2 und 3): „das Rechteck sitzt auf der
+// Mittellinie“, „Zickzack“ → „ein Zickzack“
+const REST_FEATURE_SENTENCE = { 1: `das ${REST_SHAPE} ${WHOLE_REST_PLACE}`, 2: `das ${REST_SHAPE} ${HALF_REST_PLACE}`, 4: "ein Zickzack", 8: "ein Haken", 16: "zwei Haken" };
+export const restFeature = (e) => REST_FEATURE_SENTENCE[e.v];
 
 // Notenwert-Pyramide: fünf Zeilen gleich breit (1 ganze, 2 halbe, 4 Viertel, 8 Achtel, 16 Sechzehntel),
-// Kästchen mit Zeichen (die Sechzehntel-Zeile nur Kästchen), rechts die Schläge. Ohne Namen (der Name ist
+// Kästchen mit Zeichen (die Sechzehntel-Zeile gebalkt, je Schlag vier), rechts die Schläge. Ohne Namen (der Name ist
 // Schritt 1) und ohne Pausen. opts (nur Vorführung): hit – Zeile, in der EIN Kästchen grün ist (hitBox,
 // Schritt 2: so lang dauert der Wert); add – Zeile, in der EIN Kästchen grün umrandet ist (addBox, beim Punkt:
 // die Hälfte dazu, direkt hinter dem grünen Kästchen, damit die Länge 1½ zu sehen ist); sum – Rechnung als
@@ -484,10 +495,22 @@ const PYR_SYMBOL_ROWS = 4;
 // Zeichen in einem Kästchen: g' (Hals nach oben), so passt es in die Höhe des Kästchens
 const SYM_PITCH = N("G", 4);
 const SYM_BOX = { 1: [64, 76], other: [28, 76] };
+// Höhe des Notenkopfs von g' in der Notenzeile (für die Balken der Sechzehntel-Zeile)
+const SYM_Y = BOTTOM - S;
 function pyrSymbol(v, cx, top) {
   const s = v === 1 ? PYR.wholeScale : PYR.scale, [y0, y1] = SYM_BOX[v] || SYM_BOX.other;
   const ty = r2(top + (PYR.rh - (y1 - y0) * s) / 2 - y0 * s), tx = r2(cx - (v >= 8 ? 3 : 0) * s);
   return `<g transform="translate(${tx} ${ty}) scale(${s})">${noteSvg(SYM_PITCH, CLEF, 0, "", { value: v })}</g>`;
+}
+// Sechzehntel-Zeile (Abschlussprüfung Welle 10): in jedem Kästchen eine Sechzehntelnote, je vier (ein Schlag)
+// an einem Balken mit zweitem Balken – Fähnchen passen nicht in die schmalen Kästchen, und Balken je Schlag ist
+// die Regel der App (Sandra, 24.11.2026). cxs: Mitten der vier Kästchen eines Schlags.
+function pyrBeamGroup(cxs, top) {
+  const s = PYR.scale, [y0, y1] = SYM_BOX.other;
+  const ty = r2(top + (PYR.rh - (y1 - y0) * s) / 2 - y0 * s), tx = r2(cxs[0]);
+  const xs = cxs.map((x) => r2((x - cxs[0]) / s));
+  const notes = xs.map((x) => noteSvg(SYM_PITCH, CLEF, x, "", { value: 16, flagless: true })).join("");
+  return `<g transform="translate(${tx} ${ty}) scale(${s})">${notes}${beamSvg(xs, SYM_Y, true, [[0, xs.length - 1]])}</g>`;
 }
 export function pyramidSvg({ hit = null, hitBox = 0, add = null, addBox = 0, sum = "", dot = false } = {}) {
   const lines = [dot ? { cls: "nw-pyr-dot", text: PYR_DOT_NOTE } : null, sum ? { cls: "nw-pyr-sum", text: sum } : null].filter(Boolean);
@@ -499,12 +522,18 @@ export function pyramidSvg({ hit = null, hitBox = 0, add = null, addBox = 0, sum
     const cls = k === hit ? " hit" : k === add ? " add" : "";
     const mark = k === hit ? hitBox : k === add ? addBox : -1;
     s += `<g class="nw-pyr-row${cls}" data-row="${k}">`;
+    // erst alle Kästchen, dann die Zeichen (der Balken der Sechzehntel reicht über vier Kästchen)
     for (let i = 0; i < n; i++) {
       const x = r2(i * bw), on = i === mark ? (k === hit ? " hit" : " add") : "";
       s += `<rect class="nw-pyr-box${on}" x="${r2(x + 1)}" y="${top}" width="${r2(bw - 2)}" height="${PYR.rh}" rx="3"/>`;
-      if (k < PYR_SYMBOL_ROWS) s += pyrSymbol(v, r2(x + bw / 2), top);
     }
-    s += `<text class="nw-pyr-num" x="${PYR.w + PYR.numW / 2}" y="${top + PYR.rh / 2 + 5}" text-anchor="middle">${beatsText(beats(v))}</text></g>`;
+    for (let i = 0; i < n; i++) {
+      if (k < PYR_SYMBOL_ROWS) s += pyrSymbol(v, r2(i * bw + bw / 2), top);
+      else if (i % 4 === 0) s += pyrBeamGroup([0, 1, 2, 3].map((j) => r2((i + j) * bw + bw / 2)), top);
+    }
+    // Brüche (½, ¼) in der Grundschrift und größer: In Outfit sind die Bruchzeichen winzig (Prüfung Welle 10)
+    const b = beats(v), frac = b < 1 ? " frac" : "";
+    s += `<text class="nw-pyr-num${frac}" x="${PYR.w + PYR.numW / 2}" y="${top + PYR.rh / 2 + (frac ? 7 : 5)}" text-anchor="middle">${beatsText(b)}</text></g>`;
   });
   lines.forEach((l, i) => { s += `<text class="${l.cls}" x="${PYR.w / 2}" y="${rowsEnd + i * PYR.line + 15}" text-anchor="middle">${l.text}</text>`; });
   return s + "</svg>";
@@ -529,6 +558,9 @@ export const HELP_TEXT_REST = `Achte auf die Form und beim ${REST_SHAPE} auf die
 export const HELP_TEXT_BEATS = "Eine Pause dauert so lang wie die Note mit demselben Wert.";
 export const HELP_TEXT_DOT = "Der Punkt verlängert eine Note um die Hälfte ihres Wertes.";
 export const HELP_TEXT_BEAM = "Achtel und Sechzehntel in einem Schlag hängen an einem Balken.";
+// Notensatz (PLAN Welle 10, Schritt 5; Abschlussprüfung): Die App balkt je Schlag (Sandra), in Noten steht oft
+// auch eine Takthälfte unter einem Balken – damit die Regel nicht als „immer so“ gelernt wird
+export const BEAM_HALF_BAR = "In Noten stehen im 4/4-Takt oft auch vier Achtel einer Takthälfte (Schlag 1–2 oder 3–4) an einem Balken; über die Taktmitte geht kein Balken. Beides ist richtig, hier steht der Balken je Schlag.";
 export const HELP_TEXT_BAR = `Zähle die Werte im Takt zusammen und überspringe die Lücke. Was fehlt bis 4? ${HELP_TEXT_BEAM}`;
 
 const tableHelps = (helpsTitle, helpText, helpTable) => ({ helps: ["tabelle"], helpsTitle, helpText, helpTable });
@@ -659,7 +691,9 @@ export function countBarSvg({ mark = null, labels = COUNT_SYLLABLES } = {}) {
   if (mark) s += segSvg(mark, yb + 3, 7);
   return s + "</svg>";
 }
-export const COUNT_EXPLAIN = `${UND_HTML} heißt „und“. In Klammern: Schläge ohne neuen Ton – die Note klingt weiter, oder es ist Pause.`;
+export const COUNT_EXPLAIN = `${UND_HTML} heißt „und“. In Klammern: Zählzeiten ohne neuen Ton – die Note klingt weiter, oder es ist Pause.`;
+// „Zählzeiten“, nicht „Schläge“: In der Zählleiste stehen auch „(+)“ in Klammern, und „+“ ist kein Schlag
+// (Abschlussprüfung Welle 10)
 const countFigure = (svg) => `<figure class="nw-count-fig">${svg}<figcaption class="nw-count-cap">${COUNT_EXPLAIN}</figcaption></figure>`;
 
 // Zählzeit, auf der die Lücke beginnt, als Wort: „3“, „2 +“; eine Sechzehntel zwischen zwei Silben:
@@ -727,7 +761,7 @@ function ask(it) { return Object.assign(it.make(), { key: it.key }); }
 
 const RAW = [
   { twoSteps: true, title: "Notenwerte erkennen", subtitle: "5 Notenwerte · zwei Schritte · mit Hilfen", items: ITEMS_1, example: singleSvg(el(2), false),
-    hint: "Zwei Schritte: Erst der Kopf – hohl oder schwarz? Dann Hals und Fähnchen. Hohl ohne Hals: ganze Note, hohl mit Hals: halbe Note. Schwarz ohne Fähnchen: Viertelnote, ein Fähnchen: Achtelnote, zwei Fähnchen: Sechzehntelnote." },
+    hint: "Zwei Schritte: 1. der Kopf – hohl oder schwarz? 2. Hals und Fähnchen.\nHohl ohne Hals: ganze Note\nHohl mit Hals: halbe Note\nSchwarz ohne Fähnchen: Viertelnote\nSchwarz, 1 Fähnchen: Achtelnote\nSchwarz, 2 Fähnchen: Sechzehntelnote" },
   { title: "Pausen erkennen", subtitle: "5 Pausenwerte · mit Hilfen", items: ITEMS_2, example: singleSvg(el(4, false, true), false),
     hint: `Ganze und halbe Pause sind ein ${REST_SHAPE}: Die ganze Pause ${WHOLE_REST_PLACE}, die halbe Pause ${HALF_REST_PLACE}. Die Achtelpause hat einen Haken, die Sechzehntelpause zwei.` },
   { title: "Noten und Pausen erkennen ohne Hilfen", subtitle: "5 Notenwerte und 5 Pausen", items: ITEMS_3, example: singleSvg(el(8, false, true), false),
@@ -782,7 +816,10 @@ function miniSvg(inner, w = 60) {
 }
 const cellSvg = (e) => miniSvg(elementAt(e, e.dot ? 24 : 30));
 const TD = `style="padding:6px;border-bottom:1px solid var(--line);vertical-align:middle"`;
-const cell = (e) => `<td ${TD}><span style="display:flex;flex-direction:column;align-items:flex-start;gap:2px">${cellSvg(e)}<span class="small">${nameOf(e)}</span></span></td>`;
+// Name mit weichem Trennzeichen vor „note“/„pause“ („Sechzehntel-note“): Bei 320 px liefen „Sechzehntelnote“
+// und „Sechzehntelpause“ sonst ineinander (Abschlussprüfung Welle 10)
+function softName(e) { return nameOf(e).replace(/(tel)(note|pause)$/, "$1\u00ad$2"); }
+const cell = (e) => `<td ${TD}><span style="display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0;max-width:100%">${cellSvg(e)}<span class="small" style="hyphens:manual;overflow-wrap:break-word;max-width:100%">${softName(e)}</span></span></td>`;
 const TABLE = `style="width:100%;border-collapse:collapse;table-layout:fixed"`;
 const COLS = `<colgroup><col style="width:40%"><col style="width:36%"><col style="width:24%"></colgroup>`;
 
@@ -822,6 +859,7 @@ export function learnHtml() {
     + `<p class="eyebrow" style="margin:14px 0 4px">Balken</p>`
     + BEAM_PICTURES.map((b) => `<figure class="nw-beam-fig" style="margin:6px 0;display:grid;justify-items:start;gap:2px">${beamPictureSvg(b.bar, b.text)}<figcaption class="small">${b.text}</figcaption></figure>`).join("")
     + `<p class="small muted" style="margin:8px 0 0">${HELP_TEXT_BEAM} Ein Balken steht für ein Fähnchen (Achtel), zwei Balken für zwei Fähnchen (Sechzehntel). Eine einzelne Achtel in ihrem Schlag behält ihr Fähnchen.</p>`
+    + `<p class="small muted" style="margin:8px 0 0">${BEAM_HALF_BAR}</p>`
     + `<p class="eyebrow" style="margin:14px 0 4px">Notenwert-Pyramide</p>`
     + `<figure style="margin:0;display:grid;justify-items:center">${pyramidSvg()}</figure>`
     + `<p class="small muted" style="margin:8px 0 0">Jede Zeile dauert gleich lang, zusammen ein 4/4-Takt: 1 ganze = 2 halbe = 4 Viertel = 8 Achtel = 16 Sechzehntel.</p>`
@@ -845,7 +883,7 @@ export const BOARDS = {
   bar: {
     examples: BOARD_BARS.map(([bar, gap, label]) => ({ label, make: () => barDemo(parseBar(bar), gap) })),
     intro: "Erst zählen: die Werte im Takt der Reihe nach zusammenzählen, die Lücke überspringen. Dann: Was fehlt bis 4? Diesen Wert wählst du.",
-    after: `Im Ergebnis stehen die Zählzeiten unter den Noten, darunter die Zählleiste; ${UND_HTML} heißt „und“, Schläge ohne neuen Ton stehen in Klammern.`,
+    after: `Im Ergebnis stehen die Zählzeiten unter den Noten, darunter die Zählleiste; ${UND_HTML} heißt „und“, Zählzeiten ohne neuen Ton stehen in Klammern.`,
   },
 };
 

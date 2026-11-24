@@ -21,7 +21,7 @@ const addBoxes = (body) => boxIdx(body, "add");
 function boxIdx(body, cls) {
   const out = [];
   const svg = body.match(/<svg class="nw-pyr"[\s\S]*?<\/svg>/)[0];
-  for (const m of svg.matchAll(/<g class="nw-pyr-row[^"]*" data-row="(\d)">([\s\S]*?)<text class="nw-pyr-num"/g)) {
+  for (const m of svg.matchAll(/<g class="nw-pyr-row[^"]*" data-row="(\d)">([\s\S]*?)<text class="nw-pyr-num/g)) {
     [...m[2].matchAll(/<rect class="nw-pyr-box([^"]*)"/g)].forEach((b, i) => { if (b[1].trim() === cls) out.push(`${m[1]}:${i}`); });
   }
   return out.join(",");
@@ -128,7 +128,13 @@ test("Feedback ohne Hilfen: ganze Sätze mit „eine“, Dauer im richtigen Nume
   assert.equal(q3[2].reveal, "Das war eine Viertelnote (1 Schlag im 4/4-Takt).");
   assert.equal(q3[0].reveal, "Das war eine ganze Note (4 Schläge im 4/4-Takt).");
   assert.equal(q3[0].display, "Ganze Note (4 Schläge im 4/4-Takt)");
-  assert.equal(q2[3].reveal, "Das war eine Achtelpause (½ Schlag im 4/4-Takt).");
+  // Pausen mit Merkmal (Abschlussprüfung Welle 10)
+  assert.equal(q2[3].reveal, "Das war eine Achtelpause (½ Schlag im 4/4-Takt) – ein Haken.");
+  assert.equal(q2[0].reveal, "Das war eine ganze Pause (4 Schläge im 4/4-Takt) – das Rechteck hängt unter der zweiten Linie von oben (das ist die vierte Linie von unten).");
+  assert.equal(q2[1].reveal, "Das war eine halbe Pause (2 Schläge im 4/4-Takt) – das Rechteck sitzt auf der Mittellinie.");
+  assert.equal(q2[2].reveal, "Das war eine Viertelpause (1 Schlag im 4/4-Takt) – ein Zickzack.");
+  assert.equal(q2[4].reveal, "Das war eine Sechzehntelpause (¼ Schlag im 4/4-Takt) – zwei Haken.");
+  assert.equal(q3[2].reveal.includes(" – "), false);
   for (const q of [...q2, ...q3, ...all(L[0])]) assert.ok(q.display.includes("im 4/4-Takt") && q.reveal.includes("im 4/4-Takt"), q.display);
   for (const q of [...q5, ...all(L[6]), ...all(L[8])]) assert.ok(!q.display.includes("im 4/4-Takt"), q.display);
   assert.equal(q5[1].reveal, "Richtig wäre: 2 Schläge, denn das ist eine halbe Note.");
@@ -467,7 +473,9 @@ test("Lerntafeln: Reihenfolge, Tabelle mit Pyramide, drei Vorführungen mit eige
   // 13 Zeichen, Pyramide, zwei Bilder „mit Fähnchen = mit Balken“
   assert.equal(count(html, /<svg/g), 16);
   assert.ok(html.includes(pyramidSvg()));
-  for (const t of ["ganze Note", "ganze Pause", "Sechzehntelpause", "punktierte halbe Note", "punktierte Viertelnote", "punktierte Achtelnote", "Schläge im 4/4", "1½", "¾", "Notenwert-Pyramide"]) assert.ok(html.includes(t), t);
+  // weiches Trennzeichen vor „note“/„pause“ (bei 320 px liefen die Namen ineinander)
+  assert.ok(html.includes("Sechzehntel\u00adnote") && html.includes("Achtel\u00adpause") && html.includes("Viertel\u00adnote"));
+  for (const t of ["ganze Note", "ganze Pause", "Sechzehntel\u00adpause", "punktierte halbe Note", "punktierte Viertel\u00adnote", "punktierte Achtel\u00adnote", "Schläge im 4/4", "1½", "¾", "Notenwert-Pyramide"]) assert.ok(html.includes(t), t);
   // keine <div>: .legend div hat eigene Styles
   assert.ok(!html.includes("<div"));
   for (const [i, id] of [[0, "value"], [2, "beats"], [3, "bar"]]) {
@@ -535,9 +543,12 @@ test("Hilfen Stufe 1 (Merkmale): Kopf, Hals, Fähnchen je Notenwert, keine Noten
   assert.equal(L[0].helpText, "Erst den Kopf ansehen, dann Hals und Fähnchen.");
 });
 
-test("Hilfen Stufe 2 (Pausen): woran du sie erkennst, ohne Zeichen", () => {
+test("Hilfen Stufe 2 (Pausen): woran du sie erkennst, Zeichen erst nach der Antwort", () => {
   const t = restTable();
-  assert.ok(!t.includes("<svg") && !/class="rest"/.test(t));
+  // Zeichen-Spalte (Abschlussprüfung Welle 10): fünf Bilder, Kopf und Zellen mit data-after-answer hidden
+  assert.equal(count(t, /<svg/g), 5);
+  assert.equal(count(t, /data-after-answer hidden/g), 6);
+  for (const svg of t.match(/<svg[\s\S]*?<\/svg>/g)) assert.ok(/class="rest"/.test(svg));
   assert.deepEqual(REST_FEATURES.map((r) => r[0]), NAMES_ALL.slice(5));
   // Form „Rechteck“ (Sandra, 24.11.2026); die ganze Pause hängt UNTER der 2. Linie von oben (= 4. von unten),
   // die halbe SITZT AUF der Mittellinie – nachgeprüft an den Rechtecken im Bild
@@ -563,11 +574,19 @@ test("Hilfen Stufe 2 (Pausen): woran du sie erkennst, ohne Zeichen", () => {
 test("Notenwert-Pyramide: 1 + 2 + 4 + 8 + 16 Kästchen, Schläge 4 · 2 · 1 · ½ · ¼, ohne Namen und Pausen", () => {
   const p = pyramidSvg();
   assert.equal(count(p, /class="nw-pyr-box"/g), 31);
-  assert.deepEqual([...p.matchAll(/class="nw-pyr-num"[^>]*>([^<]+)</g)].map((m) => m[1]), ["4", "2", "1", "½", "¼"]);
-  // Zeichen in den Zeilen 1–4 (1 + 2 + 4 + 8), die Sechzehntel-Zeile nur Kästchen
-  assert.equal(count(p, /<g class="note /g), 15);
+  assert.deepEqual([...p.matchAll(/class="nw-pyr-num[^"]*"[^>]*>([^<]+)</g)].map((m) => m[1]), ["4", "2", "1", "½", "¼"]);
+  // Brüche in eigener Klasse (größer, Grundschrift)
+  assert.deepEqual([...p.matchAll(/class="nw-pyr-num frac"[^>]*>([^<]+)</g)].map((m) => m[1]), ["½", "¼"]);
+  // Zeichen in allen Zeilen (1 + 2 + 4 + 8 + 16); die Sechzehntel gebalkt, je Schlag vier mit zwei Balken
+  // (Abschlussprüfung Welle 10: vorher 16 leere Kästchen)
+  assert.equal(count(p, /<g class="note /g), 31);
   assert.equal(count(p, /notehead open/g), 3);
   assert.equal(count(p, /class="flag"/g), 8);
+  assert.equal(count(p, /class="beam-group/g), 4);
+  assert.equal(count(p, /class="beam"/g), 8);
+  const row4 = p.match(/data-row="4">([\s\S]*?)<text class="nw-pyr-num/)[1];
+  assert.equal(count(row4, /<g class="note /g), 16);
+  assert.equal(count(row4, /class="flag"/g), 0);
   for (const n of NAMES_ALL) assert.ok(!p.includes(n), n);
   assert.ok(!/\b(Note|Pause)\b/.test(p));
   assert.ok(!/class="rest"/.test(p));
@@ -735,7 +754,8 @@ test("Vorführung „So zählst du einen Takt“: n + 4 Bilder, Summenleiste fü
     d.frames.slice(0, -1).forEach((f, i) => assert.ok(!f.body.includes("nw-counts"), `${it.key} Bild ${i}`));
     // Satz zur Lücke aus den Einsatzzeiten; Klammern und „+ heißt „und““ im Ergebnisbild erklärt
     assert.equal(res.result.note, gapSentence(els, gap));
-    assert.ok(res.body.includes(COUNT_EXPLAIN) && COUNT_EXPLAIN.includes("In Klammern"), it.key);
+    assert.ok(res.body.includes(COUNT_EXPLAIN) && COUNT_EXPLAIN.includes("In Klammern: Zählzeiten ohne neuen Ton"), it.key);
+    assert.ok(!COUNT_EXPLAIN.includes("Schläge ohne"));
     // Schritt 1 und 2: Summenleiste als Menge (keine Schlag-Felder, Überschrift „Summe“, Marken 0–4);
     // die Zählleiste mit den Feldern nur im Ergebnis
     d.frames.slice(0, -1).forEach((f, i) => {
@@ -911,6 +931,8 @@ test("Balken: Lerntafel „mit Fähnchen = mit Balken“, Satz in den Hilfen der
     assert.equal(count(svg, /class="beam"/g), b.bar.includes("16") ? 2 : 1);
   }
   assert.ok(html.includes(HELP_TEXT_BEAM));
+  // Abschlussprüfung Welle 10: Satz zur Takthälfte (Plan Schritt 5), die App bleibt bei „je Schlag“
+  assert.ok(html.includes("vier Achtel einer Takthälfte") && html.includes("über die Taktmitte geht kein Balken") && html.includes("je Schlag"));
   // Stufen 1–7: einzelne Zeichen, nie ein Balken
   for (const l of L.slice(0, 7)) for (const it of l.items) assert.ok(!it.make().svg.includes("beam"), it.key);
 });

@@ -409,6 +409,13 @@ section { display: grid; gap: 14px; }
 /* Paket „Notenwerte“ (Welle 9): Hilfen (Pausen-Tabelle, Notenwert-Pyramide, Zählleiste) */
 .nw-rests { font-size: .8rem; }
 .nw-rests .nw-rest-text { padding-left: 6px; text-align: left; }
+/* Zeichen-Spalte (nach der Antwort): Namen dürfen am weichen Trennzeichen umbrechen, damit die Tabelle bei
+   320 px in die Hilfen passt */
+.nw-rests { width: 100%; }
+.nw-rests .tt-label { white-space: normal; hyphens: manual; }
+.nw-rests td, .nw-rests th { padding-left: 2px; padding-right: 2px; }
+.nw-rests .nw-rest-sym { width: 34px; padding: 0 0 0 4px; }
+.nw-rests .nw-rest-sym svg { width: 30px; height: auto; display: block; }
 .nw-features .tt-head, .nw-rests .tt-head { text-align: left; }
 /* Pyramide (Welle 10, Top 10): nie verkleinert; bei 320 px so breit wie der Platz erlaubt */
 .nw-pyr { width: 320px; max-width: 100%; height: auto; display: block; }
@@ -419,6 +426,9 @@ section { display: grid; gap: 14px; }
 .nw-pyr-dot, .nw-pyr-sum { font-family: var(--display); font-weight: 800; font-size: 15px; fill: var(--fg); }
 .nw-pyr-sum { fill: var(--step2-ink); }
 .nw-pyr-num { font-family: var(--display); font-weight: 800; font-size: 15px; fill: var(--fg); }
+/* ½ und ¼: Nunito und größer, in Outfit sind die Bruchzeichen winzig (Abschlussprüfung Welle 10) */
+.nw-pyr-num.frac { font-family: var(--body); font-size: 21px; }
+.nw-pyr .beam { fill: var(--ink); }
 .nw-pyr-row.hit .nw-pyr-num, .nw-pyr-row.add .nw-pyr-num { fill: var(--step2-ink); }
 .nw-pyr-head { font-family: var(--body); font-weight: 800; font-size: 10.5px; fill: var(--muted); }
 .nw-pyr .flag { font-family: var(--music); fill: var(--ink); }

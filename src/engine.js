@@ -539,9 +539,11 @@ function finishQuestion(r, ok, text, part = false) {
   r.advanceId = later(r, () => r.advance && r.advance(), answerDelay(q, isMuted()));
 }
 
-// „Vorführen“ freigeben (nach der Antwort, nur bei Stufen mit level.demo)
+// „Vorführen“ freigeben (nach der Antwort, nur bei Stufen mit level.demo). Außerdem: Teile der Hilfen mit
+// data-after-answer (z. B. die Zeichen-Spalte der Pausen-Tabelle) erscheinen erst jetzt.
 function demoReady(r) {
   const body = r.ui.helpsBody;
+  if (body) body.querySelectorAll("[data-after-answer]").forEach((e) => { e.hidden = false; });
   if (!body || !r.level.demo) return;
   const b = body.querySelector("[data-demo-btn]");
   if (b) { b.disabled = false; b.title = DEMO_READY; }
