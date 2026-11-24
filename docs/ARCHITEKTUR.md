@@ -123,7 +123,8 @@ Höhe `H = 122`. Eine halbe Stufe sind 6 Einheiten.
 | Funktion | Bedeutung |
 | -------- | --------- |
 | `staffSvg(clef, inner, opts)` | komplette Zeile mit Schlüssel; `inner` wird eingesetzt. Das dritte Argument ist entweder ein String (zusätzliche Klasse am `<svg>`, wie in der ersten Fassung) oder ein Objekt `{ cls, height, keySig, width }`: `height` darf die Höhe erhöhen, `width` ändert die Breite (Standard 320, Ausgabe dann unverändert; die Linien enden 18 vor dem rechten Rand, nur `scaleSvg` nutzt 368), `keySig` (Anzahl ♯ als positive, ♭ als negative Zahl, höchstens 7) zeichnet Vorzeichen hinter dem Schlüssel |
-| `noteSvg(n, clef, x, cls, opts)` | Note mit Hals, Hilfslinien und Vorzeichen; `cls` ist `""`, `"ok"`, `"bad"`, `"warn"` (langsam, Notenkarte, Token `--gold`), `"new"` (neu, Notenkarte, Token `--muted`) oder `"ghost"` (Lernen, Token `--accent`); `opts.value` ist `1`, `2`, `4`, `8`, `16` (ganze bis sechzehntel, Standard 4), `opts.stemless` lässt den Hals weg |
+| `noteSvg(n, clef, x, cls, opts)` | Note mit Hals, Hilfslinien und Vorzeichen; `cls` ist `""`, `"ok"`, `"bad"`, `"warn"` (langsam, Notenkarte, Token `--gold`), `"new"` (neu, Notenkarte, Token `--muted`) oder `"ghost"` (Lernen, Token `--accent`); `opts.value` ist `1`, `2`, `4`, `8`, `16` (ganze bis sechzehntel, Standard 4), `opts.stemless` lässt den Hals weg, `opts.flagless` (Balken) lässt das Fähnchen weg, der Hals endet dann im Balken (`beamStemEnd`) |
+| `beamSvg(xs, cy, up, levels, cls)` | waagrechte Balken einer Gruppe (Kopfmitten `xs` auf gleicher Höhe `cy`): erster Balken über alle Hälse, `levels` = `[[i, j], …]` Bereiche des zweiten Balkens (Sechzehntel); `<g class="beam-group">` mit `<rect class="beam">` |
 | `noteheadSvg(x, y, value)` | nur der Notenkopf mit Mitte (x, y), so wie ihn `noteSvg` zeichnet (ohne Hals, Hilfslinien, Vorzeichen); `value` 4, 8, 16 schwarz, 2 und 1 hohl, Standard 4. Nutzt die Ansicht „Lernen“ für „Alle Namen zeigen“ |
 | `restSvg(value, x)` | Pause (1, 2, 4, 8, 16); ganze und halbe als `<rect class="rest">`, die übrigen als Glyphe (`<text class="rest">`) |
 | `glyphSvg(char, x, y, size)` | ein Zeichen aus der Musikschrift |
@@ -184,6 +185,21 @@ Kommentar in `staff.js`. Angaben in Linienabständen (LA):
   (vier LA), Glyphenmitte 2,0 / 2,13 / 2,625 LA unter der obersten Linie.
   Ganze und halbe Pause sind Rechtecke (14 × 6,5): die ganze hängt an der
   vierten Linie von unten, die halbe sitzt auf der Mittellinie.
+- Balken (Welle 10, Schritt 5; `BEAM` in `staff.js`): gemessen an Verovio 6.4.1
+  mit Bravura (Leipzig identisch) an h' mit Hals nach unten in „8 8“, „16 16 8“
+  und „8 16 16“. Balkendicke 0,50 LA (`BEAM.thick` = 6), Abstand der beiden
+  Balken 0,25 LA (`BEAM.gap` = 3) – das sind die SMuFL-engravingDefaults
+  beamThickness/beamSpacing von Bravura, die Verovio umsetzt. Der Balken liegt
+  waagrecht, seine Außenkante bei Verovio 3,25 LA unter der Kopfmitte, 0,08 LA
+  vor dem Halsende einer einzelnen Viertel/Achtel (3,33). Weil unsere Hälse
+  3,5 LA lang sind (siehe Hals), liegt die Außenkante 1 Einheit vor unserem
+  Halsende (`BEAM.outer` = 41 = 3,42 LA); so stehen gebalkte und einzelne Hälse
+  zueinander wie bei Verovio. Mit zwei Balken wird der Hals nicht länger: der
+  erste Balken bleibt außen, der zweite liegt innen. Die Hälse enden 0,10 LA
+  vor der Außenkante, also im Balken (`BEAM.stemIn`). Der Balken reicht von
+  der Außenkante des ersten bis zur Außenkante des letzten Halses; der zweite
+  Balken endet am Gruppenende an der Halskante, innen in der Halsmitte.
+  Farbe: `.beam` wie der Notenkopf (Fläche), `svg.ok`/`svg.bad`, `.nw-s1`/`.nw-s2`.
 
 **Tonleitern.** `src/packs/tonleitern.js` setzt acht Noten in eine Zeile mit
 `scaleSvg(notes, clef, opts)`: schwarze Köpfe ohne Hals (`noteSvg(…, { stemless: true })`),
@@ -486,7 +502,15 @@ Funktionen im Paket: `featureTable()` (Kopf | Hals | Fähnchen je Notenwert, ohn
 Schläge, ohne Namen), `countTable()` (Zählleiste `COUNT_SYLLABLES` „1 + 2 + 3 + 4 +“, Schlag-Felder als
 `family`), `valueDemo(e)` (4 Bilder), `beatsDemo(e)` (4, mit Punkt 5), `barDemo(els, gap)` (n + 4 Bilder,
 Summenleiste `sumBarSvg`, im Ergebnis `countLabels(els)` mit Pausen-Zählzeiten in Klammern, abschaltbar über
-`REST_COUNTS_IN_PARENS`). `barSvg(els, gap, filled, { mark })` färbt ein Zeichen violett. Lerntafeln mit
+`REST_COUNTS_IN_PARENS`). `barSvg(els, gap, filled, { mark })` färbt ein Zeichen violett.
+Balken (Welle 10): `beamGroups(els)` rechnet aus den Einsatzzeiten (`onsetsOf`) die Gruppen – nur Achtel und
+Sechzehntel, die im selben Schlag aufeinander folgen (`BEAM_UNIT` = 1 Schlag, Sandra: je Schlag 2 + 2 auch in
+„2 8 8 8 8“), nie über eine Pause oder Schlaggrenze; eine einzelne Achtel behält das Fähnchen.
+`secondaryBeams(els, group)` gibt die Sechzehntel-Bereiche für den zweiten Balken, `needsStub` erkennt Gruppen,
+die einen Teilbalken bräuchten (kommt in `BARS` nicht vor, Test). `barBeams(els, gap, filled)`: In der Aufgabe
+fehlt die Gruppe mit der Lücke (dort Fähnchen, der Balken verriete den Wert), in der Auflösung und im Ergebnis
+der Vorführung stehen alle Gruppen. Die Abstände bleiben gleich. Die Lerntafel „Notenwerte und Pausen“ zeigt
+`beamPictureSvg` („mit Fähnchen = mit Balken“, `BEAM_PICTURES`), die Hilfen der Stufe 8 den Satz `HELP_TEXT_BEAM`. Lerntafeln mit
 Vorführung tragen `data-nw-board="value|beats|bar"`. Klassen: `.nw-ring` (Rahmen über der Note), `.nw-s1`/`.nw-s2`
 (Zeichen in der Farbe des Schritts), `.nw-pyr*`, `.nw-sum*`, `.nw-seg`, `.nw-rests`.
 

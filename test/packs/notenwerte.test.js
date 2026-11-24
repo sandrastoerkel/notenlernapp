@@ -5,10 +5,11 @@ import notenwerte, {
   BARS, parseBar, beatsOf, nameOf, fillChoices, barSvg, dotSvg, timeSigSvg, layoutBar, learnHtml, PITCH, DOT, TIME, rhythmOf,
   MISSING_CHOICES, BEAT_CHOICES_4, ITEMS_8, ITEMS_1, ITEMS_4, ITEMS_6, BOARDS, valueDemo, beatsDemo, barDemo, countLabels, REST_COUNTS_IN_PARENS,
   DEMO_STEPS_VALUE, DEMO_STEPS_BEATS, DEMO_STEPS_BAR, pyramidSvg, featureTable, restTable, countTable, COUNT_SYLLABLES, REST_FEATURES,
+  beamGroups, secondaryBeams, needsStub, onsetsOf, barBeams, BEAM_UNIT, HELP_TEXT_BEAM, BEAM_PICTURES, beamPictureSvg,
 } from "../../src/packs/notenwerte.js";
 import { N, beatsLabel } from "../../src/music.js";
 import { helpsHtml, helpsTitle, waitsForNext, hasHelps } from "../../src/engine.js";
-import { TOP, S, BOTTOM, X1 } from "../../src/staff.js";
+import { TOP, S, BOTTOM, X1, BEAM, beamSvg, stemX } from "../../src/staff.js";
 
 const MID = TOP + 2 * S;
 const sum = (els) => els.reduce((a, e) => a + beatsOf(e), 0);
@@ -303,15 +304,18 @@ test("Takt füllen: revealSvg zeigt den Takt mit dem richtigen Wert in der Lück
     // kein Kasten mehr, dafür genau ein gefülltes Element, und zwar die Antwort
     assert.equal(count(r, /class="gap"/g), 0, it.key);
     assert.equal(count(r, /class="filled"/g), 1, it.key);
-    const filled = r.match(/<g class="filled">(.*?)<\/g><(?:g class="note|text class="rest|rect class="rest|line class="staff-line barline)/)[1];
-    // dasselbe Zeichen wie die anderen Elemente des Takts (elementFrom an der Stelle der Lücke)
-    assert.equal(r, q.svg.replace(/<g class="gap">.*?<\/g>/, `<g class="filled">${filled}</g>`), it.key);
+    const filled = r.match(/<g class="filled">(.*?)<\/g><(?:g class="note|g class="beam-group|text class="rest|rect class="rest|line class="staff-line barline)/)[1];
+    // Liegt die Lücke in keiner Balkengruppe, ist alles andere unverändert (elementFrom an der Stelle der Lücke);
+    // sonst kommt in der Auflösung der Balken dieser Gruppe dazu (Test „Balken“ unten)
+    const inBeam = beamGroups(q.bar).some((g) => g.includes(q.gap));
+    if (!inBeam) assert.equal(r, q.svg.replace(/<g class="gap">.*?<\/g>/, `<g class="filled">${filled}</g>`), it.key);
     if (ans.rest) assert.equal(count(filled, /class="rest"/g), 1, it.key);
     else {
       assert.equal(count(filled, /<g class="note /g), 1, it.key);
       // ganze und halbe Note: hohler Kopf; Achtel/Sechzehntel: Fähnchen; Punkt nur bei punktierten
       assert.equal(filled.includes("notehead open"), ans.v <= 2, it.key);
-      assert.equal(filled.includes(`class="flag"`), ans.v >= 8, it.key);
+      // (gebalkt ohne Fähnchen)
+      assert.equal(filled.includes(`class="flag"`), ans.v >= 8 && !inBeam, it.key);
     }
     assert.equal(filled.includes("notehead aug"), ans.dot, it.key);
     // vollständiger Takt: alle Noten, Pausen und Punkte gezeichnet
@@ -406,7 +410,8 @@ test("Lerntafeln: Reihenfolge, Tabelle mit Pyramide, drei Vorführungen mit eige
   const c = notenwerte.learn[1];
   const html = c.render();
   assert.equal(html, learnHtml());
-  assert.equal(count(html, /<svg/g), 14);
+  // 13 Zeichen, Pyramide, zwei Bilder „mit Fähnchen = mit Balken“
+  assert.equal(count(html, /<svg/g), 16);
   assert.ok(html.includes(pyramidSvg()));
   for (const t of ["ganze Note", "ganze Pause", "Sechzehntelpause", "punktierte halbe Note", "punktierte Viertelnote", "punktierte Achtelnote", "Schläge im 4/4", "1½", "¾", "Notenwert-Pyramide"]) assert.ok(html.includes(t), t);
   // keine <div>: .legend div hat eigene Styles
@@ -645,4 +650,149 @@ test("„Vorführen“ in den Hilfen: jede Aufgabe der Stufen 1, 4, 6, 8 lässt 
     for (const it of l.items) { const d = l.demo(Object.assign(it.make(), { key: it.key })); frameOk(d); }
     assert.ok(helpsHtml(l, l.question(null)).includes("data-demo-btn disabled"));
   }
+});
+
+/* ---------- Balken (Welle 10, Schritt 5) ---------- */
+
+// Erwartete Balkengruppen je Takt (Indizes der Elemente), ausgeschrieben
+const EXPECTED_BEAMS = {
+  "4 4 4 4": [], "2 4 4": [], "4 4 2": [], "2 2": [], "2. 4": [], "4. 8 4 4": [], "4 4 4. 8": [], "4. 8 2": [],
+  "8 8 4 4 4": [[0, 1]], "4 8 8 2": [[1, 2]], "4 4 8 8 4": [[2, 3]], "2 8 8 8 8": [[1, 2], [3, 4]],
+  "r4 4 4 4": [], "4 4 r2": [], "2 r4 4": [], "4 r4 2": [], "8 r8 4 2": [], "r2 2": [], "4 4 4 r4": [],
+  "16 16 8 4 2": [[0, 1, 2]], "2. r4": [], "4 r8 8 2": [], "4. 8 r4 4": [], "2 4 r8 8": [], "8 16 16 4 2": [[0, 1, 2]],
+};
+// Zweiter Balken (Positionen in der Gruppe)
+const EXPECTED_SECOND = { "16 16 8 4 2": [[[0, 1]]], "8 16 16 4 2": [[[1, 2]]] };
+const flagCount = (svg) => count(svg, /class="flag"/g);
+const beamGroupsIn = (svg) => svg.match(/<g class="beam-group[^"]*">.*?<\/g>/g) || [];
+const flaggedNotes = (els, beamed) => els.filter((e, i) => !e.rest && e.v >= 8 && !beamed.has(i)).length;
+
+test("Balken: beamGroups für alle 25 Takte, je Schlag (auch „2 8 8 8 8“: 2 + 2)", () => {
+  assert.equal(BARS.length, 25);
+  assert.deepEqual(Object.keys(EXPECTED_BEAMS).sort(), BARS.slice().sort());
+  assert.equal(BEAM_UNIT, 1);
+  for (const bar of BARS) {
+    const els = parseBar(bar), groups = beamGroups(els);
+    assert.deepEqual(groups, EXPECTED_BEAMS[bar], bar);
+    // Summe der Schläge weiter 4
+    assert.equal(sum(els), 4, bar);
+    const on = onsetsOf(els);
+    for (const g of groups) {
+      // nur Achtel und Sechzehntel, keine Pause, alles im selben Schlag
+      assert.ok(g.every((i) => !els[i].rest && els[i].v >= 8), bar);
+      const beat = Math.floor(on[g[0]]);
+      assert.ok(g.every((i) => Math.floor(on[i]) === beat && on[i] + beatsOf(els[i]) <= beat + 1), bar);
+      for (let k = 1; k < g.length; k++) assert.equal(g[k], g[k - 1] + 1, bar);
+      assert.deepEqual(secondaryBeams(els, g), EXPECTED_SECOND[bar]?.[groups.indexOf(g)] ?? [], bar);
+    }
+  }
+  // einzelne Achtel behalten das Fähnchen, kein Balken über Pause oder Schlaggrenze
+  for (const bar of ["4. 8 4 4", "8 r8 4 2", "4 r8 8 2", "4. 8 r4 4", "2 4 r8 8"]) assert.deepEqual(beamGroups(parseBar(bar)), [], bar);
+  assert.deepEqual(beamGroups(parseBar("4 8 8 8 8 4")), [[1, 2], [3, 4]]);
+  assert.deepEqual(beamGroups(parseBar("8 4 8 2")), []);
+});
+
+test("Balken: kein Takt braucht einen Teilbalken (neuer Takt fällt auf)", () => {
+  for (const bar of BARS) {
+    const els = parseBar(bar);
+    for (const g of beamGroups(els)) assert.equal(needsStub(els, g), false, bar);
+  }
+  // Gruppen mit Stummel werden erkannt
+  const a = parseBar("16 8 16 4 4 4"), b = parseBar("8. 16 4 4 4");
+  assert.equal(needsStub(a, beamGroups(a)[0]), true);
+  assert.equal(needsStub(b, beamGroups(b)[0]), true);
+});
+
+test("Balken: Maße nach Verovio/Bravura (Dicke 0,5 LA, Abstand 0,25 LA, Außenkante vor dem Halsende)", () => {
+  assert.equal(BEAM.thick, 0.5 * S);
+  assert.equal(BEAM.gap, 0.25 * S);
+  // Außenkante 1 Einheit (0,08 LA) vor dem Ende eines einzelnen Halses (3,5 LA), Hals endet 0,1 LA im Balken
+  assert.equal(BEAM.outer, 3.5 * S - 1);
+  const xs = [100, 130, 160], svg = beamSvg(xs, MID, false, [[0, 1]]);
+  const rects = [...svg.matchAll(/<rect class="beam" x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)"/g)].map((m) => m.slice(1).map(Number));
+  assert.equal(rects.length, 2);
+  const [p, q] = rects;
+  // erster Balken: von der Außenkante des ersten bis zur Außenkante des letzten Halses
+  assert.ok(Math.abs(p[0] - (stemX(100) - 0.9)) < 0.01 && Math.abs(p[0] + p[2] - (stemX(160) + 0.9)) < 0.01);
+  assert.ok(Math.abs(p[1] + p[3] - (MID + BEAM.outer)) < 0.01);
+  // zweiter Balken: 0,25 LA weiter innen, endet innen in der Halsmitte
+  assert.ok(Math.abs(q[1] + q[3] - (p[1] - BEAM.gap)) < 0.01);
+  assert.ok(Math.abs(q[0] + q[2] - stemX(130)) < 0.01);
+});
+
+test("Balken im Takt: Aufgabe ohne Balken an der Lücke, Auflösung mit allen Gruppen, nie Fähnchen und Balken", () => {
+  let checked = 0, inGroup = 0;
+  for (const it of L[7].items) {
+    const q = Object.assign(it.make(), { key: it.key });
+    const els = q.bar, full = beamGroups(els);
+    // Fragebild: keine Gruppe enthält die Lücke
+    const shown = barBeams(els, q.gap, false);
+    assert.ok(shown.every((g) => !g.includes(q.gap)), it.key);
+    assert.deepEqual(shown, full.filter((g) => !g.includes(q.gap)), it.key);
+    assert.equal(beamGroupsIn(q.svg).length, shown.length, it.key);
+    const shownSet = new Set(shown.flat()), elsNoGap = els.map((e, i) => (i === q.gap ? { ...e, rest: true } : e));
+    assert.equal(flagCount(q.svg), flaggedNotes(elsNoGap, shownSet), it.key);
+    // Auflösung: die Gruppen des vollen Takts, gebalkte Noten ohne Fähnchen
+    assert.deepEqual(barBeams(els, q.gap, true), full, it.key);
+    assert.equal(beamGroupsIn(q.revealSvg).length, full.length, it.key);
+    assert.equal(flagCount(q.revealSvg), flaggedNotes(els, new Set(full.flat())), it.key);
+    // zweiter Balken nur bei den Sechzehnteln
+    const second = full.reduce((a, g) => a + secondaryBeams(els, g).length, 0);
+    assert.equal(count(q.revealSvg, /class="beam"/g), full.length + second, it.key);
+    // die Abstände ändern sich nicht: dieselben Kopfmitten in Aufgabe und Auflösung (außer an der Lücke)
+    const heads = (svg) => [...svg.matchAll(/<ellipse class="notehead" cx="([\d.]+)"/g)].map((m) => m[1]);
+    const qh = heads(q.svg), rh = heads(q.revealSvg);
+    assert.ok(qh.every((x) => rh.includes(x)), it.key);
+    if (full.some((g) => g.includes(q.gap))) inGroup++;
+    checked++;
+  }
+  assert.equal(checked, 91);
+  // Lücken in einer Balkengruppe: 8 8 (4 Takte, 2 + 2 + 2 + 4 Lücken) und je 3 in den Sechzehntel-Takten
+  assert.equal(inGroup, 16);
+});
+
+test("Balken: gebalkte Hälse enden im Balken, gleiche Höhe für alle Noten der Gruppe", () => {
+  const svg = barSvg(parseBar("16 16 8 4 2"), -1, true);
+  const stems = [...svg.matchAll(/<line class="stem" x1="([\d.]+)" x2="[\d.]+" y1="[\d.]+" y2="([\d.]+)"/g)].map((m) => [Number(m[1]), Number(m[2])]);
+  const beamRect = [...svg.matchAll(/<rect class="beam" x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)"/g)].map((m) => m.slice(1).map(Number));
+  const [p] = beamRect;
+  // drei gebalkte Hälse: Ende 0,1 LA vor der Außenkante, also im Balken
+  for (const [x, y2] of stems.slice(0, 3)) {
+    assert.ok(Math.abs(y2 - (p[1] + p[3] - 0.1 * S)) < 0.01);
+    assert.ok(x >= p[0] && x <= p[0] + p[2]);
+  }
+  // Viertel und halbe Note behalten ihre Halslänge 3,5 LA
+  for (const [, y2] of stems.slice(3)) assert.equal(y2, MID + 3.5 * S);
+  assert.equal(flagCount(svg), 0);
+});
+
+test("Balken in der Vorführung: Lücke mit Fähnchen, Ergebnis mit Balken; Farben in CSS", () => {
+  const els = parseBar("8 16 16 4 2"), d = barDemo(els, 1);
+  const first = d.frames[0].body, last = d.frames[d.frames.length - 1].body;
+  assert.equal(beamGroupsIn(first).length, 0);
+  assert.equal(flagCount(first), 2);
+  assert.equal(beamGroupsIn(last).length, 1);
+  assert.equal(flagCount(last), 0);
+  assert.ok(last.includes('<g class="filled nw-s2">'));
+  const css = readFileSync(new URL("../../css/style.css", import.meta.url), "utf8");
+  for (const r of [/\.beam \{ fill: var\(--ink\)/, /svg\.ok \.beam \{ fill: var\(--ok\)/, /svg\.bad \.beam \{ fill: var\(--bad\)/, /\.nw-s1 \.beam \{ fill: var\(--step1\)/, /\.nw-s2 \.beam \{ fill: var\(--step2\)/]) assert.match(css, r);
+});
+
+test("Balken: Lerntafel „mit Fähnchen = mit Balken“, Satz in den Hilfen der Stufe 8, Stufen 1–7 unverändert", () => {
+  assert.equal(HELP_TEXT_BEAM, "Achtel und Sechzehntel in einem Schlag hängen an einem Balken.");
+  assert.ok(L[7].helpText.endsWith(HELP_TEXT_BEAM));
+  const html = learnHtml();
+  assert.deepEqual(BEAM_PICTURES.map((b) => b.bar), ["8 8", "8 16 16"]);
+  for (const b of BEAM_PICTURES) {
+    assert.ok(html.includes(b.text));
+    const svg = beamPictureSvg(b.bar, b.text), n = b.bar.split(" ").length;
+    // links mit Fähnchen, rechts mit Balken
+    assert.equal(count(svg, /<g class="note /g), 2 * n);
+    assert.equal(flagCount(svg), n);
+    assert.equal(beamGroupsIn(svg).length, 1);
+    assert.equal(count(svg, /class="beam"/g), b.bar.includes("16") ? 2 : 1);
+  }
+  assert.ok(html.includes(HELP_TEXT_BEAM));
+  // Stufen 1–7: einzelne Zeichen, nie ein Balken
+  for (const l of L.slice(0, 7)) for (const it of l.items) assert.ok(!it.make().svg.includes("beam"), it.key);
 });

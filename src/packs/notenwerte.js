@@ -3,7 +3,7 @@
 // dann Hals und Fähnchen; Dauer = Notenwert, dann Schläge; Takt füllen = Zählen, dann Wert wählen.
 // Alle Noten stehen auf dem h' im Violinschlüssel (Mittellinie, Hals nach unten), damit nur der Wert zählt.
 import { N, VALUES, beats, beatsText, beatsLabel, valueName, staffPos } from "../music.js";
-import { staffSvg, noteSvg, restSvg, glyphSvg, S, TOP, BOTTOM, X1 } from "../staff.js";
+import { staffSvg, noteSvg, restSvg, glyphSvg, beamSvg, S, TOP, BOTTOM, X1 } from "../staff.js";
 import { tileTable } from "../grid.js";
 import { demoHtml, mountDemo } from "../demo.js";
 
@@ -85,15 +85,69 @@ export function layoutBar(els, gap = -1) {
   return w.map((wi) => { const l = r2(left); left += c * wi; return l; });
 }
 
+/* --- Balken (Welle 10, Schritt 5) ---
+   Gebalkt werden nur Achtel und Sechzehntel, die innerhalb desselben Schlags aufeinander folgen. Kein Balken
+   über eine Pause oder eine Schlaggrenze; eine einzelne Achtel in ihrem Schlag behält das Fähnchen.
+   Sandra (24.11.2026): je Schlag (2 + 2), auch in „2 8 8 8 8“ – nicht vier Achtel einer Takthälfte unter
+   einem Balken. Als Konstante: Länge einer Balkeneinheit in Schlägen. */
+export const BEAM_UNIT = 1;
+const beamable = (e) => !e.rest && e.v >= 8;
+// Einsatzzeiten (in Schlägen) der Elemente eines Takts
+export const onsetsOf = (els) => { let t = 0; return els.map((e) => { const a = t; t += beatsOf(e); return a; }); };
+// Balkengruppen: Listen von Indizes (je mindestens zwei Noten), aus den Einsatzzeiten gerechnet
+export function beamGroups(els) {
+  const on = onsetsOf(els), groups = [];
+  let cur = [];
+  const close = () => { if (cur.length > 1) groups.push(cur); cur = []; };
+  els.forEach((e, i) => {
+    const unit = Math.floor(on[i] / BEAM_UNIT + 1e-9), end = on[i] + beatsOf(e);
+    // die Note muss ganz im Schlag liegen, in dem sie beginnt
+    const fits = end <= (unit + 1) * BEAM_UNIT + 1e-9;
+    if (!beamable(e) || !fits) { close(); return; }
+    if (cur.length && Math.floor(on[cur[0]] / BEAM_UNIT + 1e-9) !== unit) close();
+    cur.push(i);
+  });
+  close();
+  return groups;
+}
+// Zweiter Balken in einer Gruppe: zusammenhängende Sechzehntel als [von, bis] (Positionen in der Gruppe)
+export function secondaryBeams(els, group) {
+  const runs = [];
+  let start = -1;
+  group.forEach((idx, k) => {
+    const sixteenth = els[idx].v === 16 && !els[idx].dot;
+    if (sixteenth && start < 0) start = k;
+    if (!sixteenth && start >= 0) { runs.push([start, k - 1]); start = -1; }
+  });
+  if (start >= 0) runs.push([start, group.length - 1]);
+  return runs;
+}
+// Bräuchte die Gruppe einen Teilbalken (Stummel)? Eine einzelne Sechzehntel im Balken oder eine punktierte
+// Note darin (z. B. „16 8 16“, „8. 16“). Solche Gruppen zeichnet beamSvg nicht; in BARS kommen sie nicht vor.
+export function needsStub(els, group) {
+  if (group.some((i) => els[i].dot)) return true;
+  return secondaryBeams(els, group).some(([a, b]) => a === b);
+}
+
 // Ganzer 4/4-Takt mit Taktangabe und Taktstrich; gap = Index der Lücke (oder -1).
 // filled = true zeichnet statt des Kastens den fehlenden Wert in die Lücke (Auflösung nach der Antwort);
 // die Abstände bleiben wie in der Aufgabe, damit nichts verrutscht.
+// Balken: In der Aufgabe steht eine Gruppe, in der die Lücke liegt, ganz mit Fähnchen (ein Balken zu den
+// Nachbarn verriete den fehlenden Wert); in der Auflösung stehen alle Gruppen des vollen Takts mit Balken.
 // opts.mark (nur Vorführung): Index eines Zeichens, das violett erscheint (Klasse nw-s1, Schritt 1 „Zählen“)
+export function barBeams(els, gap = -1, filled = false) {
+  return beamGroups(els).filter((g) => filled || !g.includes(gap));
+}
 export function barSvg(els, gap = -1, filled = false, opts = {}) {
-  const xs = layoutBar(els, gap);
-  const draw = (el, i) => (i !== gap ? elementFrom(el, xs[i]) : filled ? `<g class="filled">${elementFrom(el, xs[i])}</g>` : gapSvg(xs[i]));
+  const xs = layoutBar(els, gap), groups = barBeams(els, gap, filled);
+  const beamed = new Set(groups.flat());
+  const one = (el, i) => (beamed.has(i)
+    ? noteSvg(PITCH, CLEF, r2(xs[i] + HEAD_HALF[el.v]), "", { value: el.v, flagless: true })
+    : elementFrom(el, xs[i]));
+  const draw = (el, i) => (i !== gap ? one(el, i) : filled ? `<g class="filled">${one(el, i)}</g>` : gapSvg(xs[i]));
   const at = (el, i) => (i === opts.mark ? `<g class="nw-s1">${draw(el, i)}</g>` : draw(el, i));
-  const inner = timeSigSvg() + els.map(at).join("") + barlineSvg();
+  const beams = groups.map((g) => beamSvg(g.map((i) => r2(xs[i] + HEAD_HALF[els[i].v])), MID, false, secondaryBeams(els, g))).join("");
+  const inner = timeSigSvg() + els.map(at).join("") + beams + barlineSvg();
   return staffSvg(CLEF, inner);
 }
 
@@ -391,7 +445,8 @@ export const HELP_TEXT_VALUE = "Erst den Kopf ansehen, dann Hals und Fähnchen."
 export const HELP_TEXT_REST = "Achte auf die Form und bei den Balken auf die Lage.";
 export const HELP_TEXT_BEATS = "Eine Pause dauert so lang wie die Note mit demselben Wert.";
 export const HELP_TEXT_DOT = "Der Punkt verlängert eine Note um die Hälfte ihres Wertes.";
-export const HELP_TEXT_BAR = "Zähle die Werte im Takt zusammen und überspringe die Lücke. Was fehlt bis 4?";
+export const HELP_TEXT_BEAM = "Achtel und Sechzehntel in einem Schlag hängen an einem Balken.";
+export const HELP_TEXT_BAR = `Zähle die Werte im Takt zusammen und überspringe die Lücke. Was fehlt bis 4? ${HELP_TEXT_BEAM}`;
 
 const tableHelps = (helpsTitle, helpText, helpTable) => ({ helps: ["tabelle"], helpsTitle, helpText, helpTable });
 export const HELPS = {
@@ -609,6 +664,30 @@ const cell = (e) => `<td ${TD}><span style="display:flex;flex-direction:column;a
 const TABLE = `style="width:100%;border-collapse:collapse;table-layout:fixed"`;
 const COLS = `<colgroup><col style="width:40%"><col style="width:36%"><col style="width:24%"></colgroup>`;
 
+// Bild „mit Fähnchen = mit Balken“ (Welle 10, Schritt 5): dieselbe Gruppe links mit Fähnchen, rechts mit Balken.
+// Ausschnitt der Notenzeile ohne Schlüssel, alle Noten auf h' mit Hals nach unten wie im Takt.
+export const BEAM_PICTURES = [
+  { bar: "8 8", text: "zwei Achtel mit Fähnchen = zwei Achtel mit Balken" },
+  { bar: "8 16 16", text: "Achtel und zwei Sechzehntel: mit Fähnchen = mit Balken" },
+];
+const BP = { x0: 16, step: 26, eq: 32 };
+export function beamPictureSvg(bar, label = "Balken") {
+  const els = parseBar(bar), n = els.length;
+  const left = els.map((_, i) => BP.x0 + i * BP.step);
+  const eqX = left[n - 1] + BP.eq, right = left.map((x) => r2(x + (eqX - BP.x0) + BP.eq - 4));
+  const w = right[n - 1] + BP.x0;
+  let s = `<svg class="nw-beam-pic" viewBox="0 18 ${w} 100" width="${w}" height="100" role="img" aria-label="${label}">`;
+  // zwei Stücke Notenzeile, dazwischen frei für das Gleichheitszeichen
+  for (let i = 0; i < 5; i++) {
+    for (const [a, b] of [[0, eqX - 14], [eqX + 14, w]]) s += `<line class="staff-line" x1="${a}" x2="${b}" y1="${TOP + i * S}" y2="${TOP + i * S}"/>`;
+  }
+  s += els.map((e, i) => noteSvg(PITCH, CLEF, left[i], "", { value: e.v })).join("");
+  s += `<text class="nw-eq" x="${eqX}" y="${MID + 8}" text-anchor="middle">=</text>`;
+  s += els.map((e, i) => noteSvg(PITCH, CLEF, right[i], "", { value: e.v, flagless: true })).join("");
+  const g = els.map((_, i) => i);
+  return s + beamSvg(right, MID, false, secondaryBeams(els, g)) + "</svg>";
+}
+
 export function learnHtml() {
   const rows = VALUES.map((v) => `<tr>${cell(el(v))}${cell(el(v, false, true))}<td ${TD}><b>${beatsText(beats(v))}</b></td></tr>`).join("");
   const dotted = DOTTABLE.map((v) => `<tr>${cell(el(v, true))}<td ${TD} class="small muted">${beatsText(beats(v))} + ${beatsText(beats(v) / 2)}</td><td ${TD}><b>${beatsText(beats(v, true))}</b></td></tr>`).join("");
@@ -618,6 +697,9 @@ export function learnHtml() {
     + `<p class="eyebrow" style="margin:14px 0 4px">Punktierte Noten</p>`
     + `<table ${TABLE}>${COLS}<thead><tr>${th("Note")}${th("Rechnung")}${th("Schläge im 4/4")}</tr></thead><tbody>${dotted}</tbody></table>`
     + `<p class="small muted" style="margin:8px 0 0">Der Punkt verlängert eine Note um die Hälfte ihres Wertes. Im 4/4-Takt hat jeder Takt vier Schläge, ein Schlag ist eine Viertelnote.</p>`
+    + `<p class="eyebrow" style="margin:14px 0 4px">Balken</p>`
+    + BEAM_PICTURES.map((b) => `<figure class="nw-beam-fig" style="margin:6px 0;display:grid;justify-items:start;gap:2px">${beamPictureSvg(b.bar, b.text)}<figcaption class="small">${b.text}</figcaption></figure>`).join("")
+    + `<p class="small muted" style="margin:8px 0 0">${HELP_TEXT_BEAM} Ein Balken steht für ein Fähnchen (Achtel), zwei Balken für zwei Fähnchen (Sechzehntel). Eine einzelne Achtel in ihrem Schlag behält ihr Fähnchen.</p>`
     + `<p class="eyebrow" style="margin:14px 0 4px">Notenwert-Pyramide</p>`
     + `<figure style="margin:0;display:grid;justify-items:center">${pyramidSvg()}</figure>`
     + `<p class="small muted" style="margin:8px 0 0">Jede Zeile dauert gleich lang, zusammen ein 4/4-Takt: 1 ganze = 2 halbe = 4 Viertel = 8 Achtel = 16 Sechzehntel.</p>`

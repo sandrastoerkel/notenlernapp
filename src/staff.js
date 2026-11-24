@@ -79,9 +79,45 @@ function ellipsePath(cx, cy, rx, ry, deg) {
   return `M${a}A${rx} ${ry} ${deg} 1 0 ${b}A${rx} ${ry} ${deg} 1 0 ${a}Z`;
 }
 
+/* Balken (Welle 10, Schritt 5). Gemessen an Verovio 6.4.1 mit Bravura (Leipzig gleich) an h' mit Hals nach
+   unten in den Gruppen „8 8“, „16 16 8“ und „8 16 16“ (Referenz bei 180 Einheiten pro LA):
+   - Balkendicke 0,50 LA, Abstand zwischen den beiden Balken 0,25 LA (Verovio setzt damit die SMuFL-
+     engravingDefaults beamThickness 0,5 und beamSpacing 0,25 von Bravura um).
+   - Der Balken liegt waagrecht; seine Außenkante 3,25 LA unter der Kopfmitte, 0,08 LA näher am Kopf als
+     das Halsende einer einzelnen Viertel oder Achtel (3,33). Mit zwei Balken wird der Hals nicht länger:
+     der erste Balken bleibt außen, der zweite liegt 0,25 LA weiter innen.
+   - Die Hälse enden 0,10 LA vor der Außenkante, also im Balken.
+   - Der Balken reicht von der Außenkante des ersten bis zur Außenkante des letzten Halses. Der zweite
+     Balken endet am Gruppenende ebenso an der Halskante, innen in der Gruppe in der Halsmitte.
+   Unsere Hälse sind 3,5 LA lang (bewusste Abweichung, ARCHITEKTUR); damit gebalkte und einzelne Hälse
+   zueinander stehen wie bei Verovio, liegt die Außenkante 0,08 LA (1 Einheit) vor unserem Halsende. */
+export const BEAM = { thick: 0.5 * S, gap: 0.25 * S, outer: STEM_LEN - 1, stemIn: 0.1 * S };
+
+// Halsmitte (x) einer Note mit Kopfmitte x; up = Hals nach oben
+export const stemX = (x, up) => r2(up ? x + STEM_DX : x - STEM_DX);
+
+// Waagrechte Balken unter (Hals nach unten) bzw. über (Hals nach oben) einer Gruppe.
+// xs: Kopfmitten der Noten, cy: Höhe der Köpfe (alle gleich), up: Halsrichtung,
+// levels: [[i, j], …] Bereiche (Indizes in xs) für den zweiten Balken (Sechzehntel); cls: Klasse am <g>.
+export function beamSvg(xs, cy, up = false, levels = [], cls = "") {
+  const sx = xs.map((x) => stemX(x, up)), last = xs.length - 1, half = STEM_W / 2;
+  const dir = up ? -1 : 1, outer = cy + dir * BEAM.outer;
+  const rect = (x1, x2, edge) => {
+    const y = up ? edge : edge - BEAM.thick;
+    return `<rect class="beam" x="${r2(x1)}" y="${r2(y)}" width="${r2(x2 - x1)}" height="${BEAM.thick}"/>`;
+  };
+  let s = `<g class="beam-group${cls ? " " + cls : ""}">` + rect(sx[0] - half, sx[last] + half, outer);
+  const edge2 = outer - dir * (BEAM.thick + BEAM.gap);
+  for (const [i, j] of levels) s += rect(i === 0 ? sx[0] - half : sx[i], j === last ? sx[last] + half : sx[j], edge2);
+  return s + "</g>";
+}
+// y des Halsendes einer gebalkten Note (endet im Balken)
+export const beamStemEnd = (cy, up = false) => r2(cy + (up ? -1 : 1) * (BEAM.outer - BEAM.stemIn));
+
 // Note mit Hals, Hilfslinien und Vorzeichen.
 // cls: "", "ok", "bad", "warn" (langsam, Notenkarte), "new" (neu, Notenkarte) oder "ghost"; opts.value: 1, 2, 4, 8, 16 (Standard 4); opts.stemless: ohne Hals;
 // opts.natural: Auflösungszeichen ♮ vor der Note (nur wenn sie selbst kein Vorzeichen hat).
+// opts.flagless (Balken, Welle 10): ohne Fähnchen, der Hals endet im Balken (beamStemEnd) statt nach STEM_LEN.
 export function noteSvg(n, clef, x, cls, opts = {}) {
   const value = opts.value || 4;
   const p = staffPos(n, clef), cy = yOf(p);
@@ -102,10 +138,11 @@ export function noteSvg(n, clef, x, cls, opts = {}) {
   if (value !== 1 && !opts.stemless) {
     const flagged = value === 8 || value === 16;
     const len = Math.max(STEM_LEN, Math.abs(cy - MID) + (flagged ? S / 2 : 0));
-    const sx = r2(up ? x + STEM_DX : x - STEM_DX), y1 = up ? cy - STEM_DY : cy + STEM_DY, y2 = r2(up ? cy - len : cy + len);
+    const sx = stemX(x, up), y1 = up ? cy - STEM_DY : cy + STEM_DY;
+    const y2 = opts.flagless ? beamStemEnd(cy, up) : r2(up ? cy - len : cy + len);
     s += `<line class="stem" x1="${sx}" x2="${sx}" y1="${y1}" y2="${y2}"/>`;
     // Fähnchen: immer rechts vom Hals
-    if (flagged) {
+    if (flagged && !opts.flagless) {
       const fx = r2(sx - STEM_W / 2), g = GLYPHS.flags[value];
       s += up
         ? `<text class="flag" x="${fx}" y="${r2(y2 + FLAG_TOP)}" font-size="${FLAG_SIZE}">${g}</text>`

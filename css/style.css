@@ -510,6 +510,12 @@ svg.bad .notehead, svg.bad .acc, svg.bad .flag { fill: var(--bad); } svg.bad .st
 .rest, .glyph, .keysig { font-family: var(--music); fill: var(--ink); }
 .keysig { font-size: 44px; } /* = ACC_SIZE in staff.js */
 svg.ok .rest { fill: var(--ok); } svg.bad .rest { fill: var(--bad); }
+/* Balken (Achtel und Sechzehntel in einem Schlag): Fläche wie der Notenkopf, gefärbt wie die Noten */
+.beam { fill: var(--ink); }
+svg.ok .beam { fill: var(--ok); } svg.bad .beam { fill: var(--bad); }
+.nw-s1 .beam { fill: var(--step1); } .nw-s2 .beam { fill: var(--step2); }
+.nw-eq { font-family: var(--display); font-weight: 700; font-size: 24px; fill: var(--fg); }
+.nw-beam-pic { max-width: 100%; height: auto; }
 
 /* Hinweis „Neue Version verfügbar“ über der Tab-Leiste (src/app.js, Service-Worker-Update) */
 .update-bar {
