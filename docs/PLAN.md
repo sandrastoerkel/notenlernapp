@@ -1811,6 +1811,8 @@ und wird nicht neu gespeichert.
 - Tonleitern 10 teilen (erst bis 4, dann 5–7 Vorzeichen; B7, Rest).
 - Notenwerte: eigene Aufgaben zu Balken, Silben für Sechzehntel, Einstiegstest zum Überspringen.
 
+**Entscheidungen Sandra (24.11.2026, nach dem Plan).** Zählsilbe „+“ (vom Rechen-Plus optisch abgesetzt); Zählzeiten: jeder Schlag wird gezeigt; Schläge ohne neuen Einsatz stehen in Klammern, also gehaltene Schläge langer Noten und Pausen (Halbe auf 1: „1 (2)“, Viertelpause auf 3: „(3)“; je Silbe eine Klammer); Balken je Schlag (2 + 2) auch in „2 8 8 8 8“; ganze und halbe Pause: „Rechteck“. Übrige offene Punkte (Merksprüche: Wortlaut „Geh Du Alter Esel Hole Fische“, Ces/Fes ohne Spruch, Voreinstellung Kreuz-Spruch, eigener Spruch bleibt beim Zurücksetzen; reine Prime mit zwei Vorzeichen) nach Voreinstellung des Plans bauen und Sandra im Bericht nennen.
+
 ## Welle 11: Wiederholen (Voraussetzungen, Grundlagen wiederholen, Wiederholung über Tage, Jahrgang als Lehrkraft-Einstellung)
 
 Grundlage: KONZEPT-gehirngerecht, „Wiederholen ist der Kern“ und „Jahrgang“ (Sandra, 24.11.2026), Mängelliste B9
