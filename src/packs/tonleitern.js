@@ -7,10 +7,11 @@
 // 2 = Halbton höher bzw. ablesen; bei Moll: 1 = Terz abwärts (Stammton), 2 = drei Halbtöne abwärts.
 // In den Tonleitern nur Dur, keine Doppelvorzeichen, keine Eis/His/Ces/Fes (in den Vorzeichnungen bis 7
 // kommen Eis, His, Ces und Fes vor). Moll-Tonleitern folgen später als tonleitern-14 ff.
-import { N, LETTERS, dia, midi, pc, SEMI, gName, helm, majorScale, staffPos, majorKeyFromKeySig, relativeMinor, majorName, minorName, parseNoteName } from "../music.js";
+import { N, LETTERS, dia, midi, pc, SEMI, gName, helm, majorScale, majorTonic, staffPos, majorKeyFromKeySig, relativeMinor, majorName, minorName, parseNoteName } from "../music.js";
 import { staffSvg, noteSvg, pianoSvg, keySigPos, TOP, S } from "../staff.js";
 import { tileTable } from "../grid.js";
 import { demoHtml, mountDemo, COUNT_RULE } from "../demo.js";
+import { spruch, wahlHtml, showHtml, esc } from "../sprueche.js";
 
 const CLEF_SHORT = { treble: "Violin", bass: "Bass" };
 
@@ -39,6 +40,24 @@ export const fifthsOf = (tonic) => majorScale(tonic).reduce((s, n) => s + n.acc,
 // Vorzeichen in der Reihenfolge der Vorzeichnung (bis 4)
 export const SHARP_ORDER = ["Fis", "Cis", "Gis", "Dis"];
 export const FLAT_ORDER = ["B", "Es", "As", "Des"];
+// Ganze Reihenfolge bis 7 Vorzeichen, aus music.js abgeleitet (das Vorzeichen, das mit jeder Tonart dazukommt):
+// Fis Cis Gis Dis Ais Eis His bzw. B Es As Des Ges Ces Fes. Die Be-Reihe ist die Kreuz-Reihe rückwärts.
+const accNames = (f) => majorScale(majorTonic(f)).filter((n) => n.acc !== 0).map(gName);
+const addedAcc = (f) => { const before = accNames(f - Math.sign(f)); return accNames(f).find((x) => !before.includes(x)); };
+export const SHARPS_ALL = [1, 2, 3, 4, 5, 6, 7].map(addedAcc);
+export const FLATS_ALL = [-1, -2, -3, -4, -5, -6, -7].map(addedAcc);
+
+// Merksprüche (sprueche.js, Welle 10, Schritt 4): gewählter Spruch aus ctx.state. Für Hinweise (Text, per
+// textContent) roh, für Hilfetexte (HTML) mit esc.
+const sp = (ctx, id) => spruch(ctx && ctx.state, id);
+export const orderHint = (ctx) => `Merksprüche: ♯ „${sp(ctx, "kreuze")}“, ♭ „${sp(ctx, "bes")}“.`;
+// Tonleitern 10 (Startkarte): die ganze Reihenfolge und die Sprüche für Reihe und Tonarten. Die Sprüche
+// decken die siebte Tonart (Cis-Dur, Ces-Dur) und das sechste und siebte Be (Ces, Fes) nicht ab; dort steht
+// nur die Reihe.
+export const fullOrderHint = (ctx) => `Kreuze: ${SHARPS_ALL.join(" ")} („${sp(ctx, "kreuze")}“)
+Be: ${FLATS_ALL.join(" ")} – die Kreuz-Reihe rückwärts („${sp(ctx, "bes")}“ für die ersten fünf)
+Tonarten ♯: G D A E H Fis („${sp(ctx, "kreuz-tonarten")}“), ♭: F B Es As Des Ges („${sp(ctx, "be-tonarten")}“)`;
+
 export function sigList(fifths) {
   if (fifths === 0) return "keine";
   return (fifths > 0 ? SHARP_ORDER : FLAT_ORDER).slice(0, Math.abs(fifths)).join(", ");
@@ -649,7 +668,7 @@ const HELPS_BOTH = ["klaviatur", "tabelle"];
 const STEP_DEMO = (q) => stepDemo(q.notes, q.i, q.clef);
 const SCALE_DEMO = (q) => scaleDemo(q.notes[0], q.clef);
 const planHelps = (demo) => ({ helps: HELPS_BOTH, helpText: HELP_TEXT_PLAN, helpTable: planTable(), demo });
-const keyHelps = () => ({ helps: HELPS_BOTH, helpText: HELP_TEXT_KEY, helpTable: circleTable({ split: true }), demo: (q) => keyDemo(q.fifths, q.clef) });
+const keyHelps = () => ({ helps: HELPS_BOTH, helpText: (ctx) => `${HELP_TEXT_KEY} ♯-Tonarten: „${esc(sp(ctx, "kreuz-tonarten"))}“, ♭-Tonarten: „${esc(sp(ctx, "be-tonarten"))}“.`, helpTable: circleTable({ split: true }), demo: (q) => keyDemo(q.fifths, q.clef) });
 // Stufe 12: nur Klaviatur und Satz. Eine Spalte „parallel Moll“ gäbe beide Schritte durch bloßes Ablesen vor.
 const minorHelps = () => ({ helps: ["klaviatur"], helpText: HELP_TEXT_MINOR, demo: (q) => minorDemo(q.fifths) });
 
@@ -1003,11 +1022,12 @@ const levels = [
   {
     title: "Tonleiter und Vorzeichen",
     subtitle: `Violinschlüssel · mit Hilfen · ${KEYS_4.length} Tonarten`,
-    hint: "Die Vorzeichen einer Tonart stehen vorne hinter dem Schlüssel, in fester Reihenfolge:\n♯: Fis – Cis – Gis – Dis\n♭: B – Es – As – Des\nDer Grundton steht zweimal da, sein Vorzeichen zählt nur einmal.",
+    hint: (ctx) => `Die Vorzeichen einer Tonart stehen vorne hinter dem Schlüssel, in fester Reihenfolge:\n♯: Fis – Cis – Gis – Dis\n♭: B – Es – As – Des\n${orderHint(ctx)}\nDer Grundton steht zweimal da, sein Vorzeichen zählt nur einmal.`,
     items: ITEMS_8,
     example: sigQuestion(find(ITEMS_8, "treble:D")).svg,
     question(prev) { return sigQuestion(pickItem(ITEMS_8, prev)); },
     ...planHelps(SCALE_DEMO),
+    helpText: (ctx) => `${HELP_TEXT_PLAN} Reihenfolge der Vorzeichen: ♯ Fis – Cis – Gis – Dis („${esc(sp(ctx, "kreuze"))}“), ♭ B – Es – As – Des („${esc(sp(ctx, "bes"))}“).`,
   },
   {
     title: "Tonleiter und Vorzeichen ohne Hilfen",
@@ -1021,7 +1041,7 @@ const levels = [
     title: "Tonart aus den Vorzeichen",
     twoSteps: true,
     subtitle: `Violinschlüssel · zwei Schritte · mit Hilfen · ${FIFTHS.length} Dur-Tonarten`,
-    hint: "Zwei Schritte: Erst das entscheidende Vorzeichen – bei Kreuzen das letzte, bei Be das vorletzte. Dann die Tonart: einen Halbton über dem letzten Kreuz (Fis → G-Dur) bzw. das vorletzte Be selbst (B, Es → B-Dur). Ein einzelnes Be steht für F-Dur.",
+    hint: (ctx) => `Zwei Schritte: Erst das entscheidende Vorzeichen – bei Kreuzen das letzte, bei Be das vorletzte. Dann die Tonart: einen Halbton über dem letzten Kreuz (Fis → G-Dur) bzw. das vorletzte Be selbst (B, Es → B-Dur). Ein einzelnes Be steht für F-Dur.\n${fullOrderHint(ctx)}`,
     items: ITEMS_10,
     example: keySvg({ clef: "treble", fifths: 4 }),
     question(prev) { return majorStepQuestion(pickKey(ITEMS_10, prev)); },
@@ -1030,7 +1050,7 @@ const levels = [
   {
     title: "Tonart aus den Vorzeichen ohne Hilfen",
     subtitle: `Violin- und Bassschlüssel · ${FIFTHS.length} Dur-Tonarten`,
-    hint: "Bei Kreuzen liegt der Grundton einen Halbton über dem letzten Kreuz (Fis → G-Dur). Bei Be-Vorzeichen ist das vorletzte Be der Grundton (B, Es → B-Dur); ein einzelnes Be steht für F-Dur.",
+    hint: (ctx) => `Bei Kreuzen liegt der Grundton einen Halbton über dem letzten Kreuz (Fis → G-Dur). Bei Be-Vorzeichen ist das vorletzte Be der Grundton (B, Es → B-Dur); ein einzelnes Be steht für F-Dur.\nTonarten ♯: „${sp(ctx, "kreuz-tonarten")}“, ♭: „${sp(ctx, "be-tonarten")}“.`,
     items: ITEMS_11,
     example: keySvg({ clef: "treble", fifths: 3 }),
     question(prev) { return majorQuestion(pickKey(ITEMS_11, prev)); },
@@ -1070,12 +1090,19 @@ function planBoard(clef) {
     <p class="small muted" style="grid-column: 1 / -1">Die Klammern zeigen die Halbtonschritte: ${names[2]}–${names[3]} und ${names[6]}–${names[7]}, also zwischen der 3. und 4. und der 7. und 8. Stufe der Tonleiter. Die Tonleiter teilt sich in zwei gleich gebaute Vierergruppen (Tetrachorde), je Ganz – Ganz – Halb: ${names.slice(0, 4).join(" ")} und ${names.slice(4).join(" ")}. Dazwischen liegt ein Ganztonschritt. Ein Tetrachord sind vier stufenweise aufeinanderfolgende Töne im Umfang einer Quarte – trotz des Namens kein Akkord.</p>`;
 }
 
-function circleBoard() {
+// Merkhilfen, die die Tafel „Quintenzirkel“ zur Wahl stellt (bes folgt aus be-tonarten)
+export const CIRCLE_WAHL = ["kreuze", "kreuz-tonarten", "be-tonarten"];
+const P = (html, cls = "small muted") => `<p class="${cls}" style="grid-column: 1 / -1; margin: 0">${html}</p>`;
+export function circleBoard(state) {
   const order = [0, 1, 2, 3, 4, 5, 6, 7, -1, -2, -3, -4, -5, -6, -7];
   const rows = order.map((f) => `<tr><td>${sigText(f)}</td><td><b>${majorName(f)}</b></td><td><b>${minorName(f)}</b></td></tr>`).join("");
   return `<p class="small muted" style="grid-column: 1 / -1">Vorzeichen, Dur-Tonart und parallele Molltonart. Jedes weitere ♯ führt eine Quinte höher, jedes weitere ♭ eine Quinte tiefer.</p>
     ${TABLE_OPEN}<thead><tr><th>Vorzeichen</th><th>Dur</th><th>parallele Molltonart</th></tr></thead><tbody>${rows}</tbody></table>
-    ${FIG(circleTable())}`;
+    ${FIG(circleTable())}
+    ${P(`Kreuze: <b>${SHARPS_ALL.join(" ")}</b> – „${showHtml(state, "kreuze")}“`, "small")}
+    ${P(`Be: <b>${FLATS_ALL.join(" ")}</b> – die Kreuz-Reihe rückwärts. „${showHtml(state, "bes")}“ (dein ♭-Tonarten-Spruch ohne das erste Wort) reicht bis Ges.`, "small")}
+    ${P(`Dur-Tonarten ♯: <b>G D A E H Fis</b> – „${showHtml(state, "kreuz-tonarten")}“ · ♭: <b>F B Es As Des Ges</b> – „${showHtml(state, "be-tonarten")}“. Cis-Dur und Ces-Dur (7 Vorzeichen) haben keinen Spruch.`, "small")}
+    <div class="spruch-board"><p class="small muted">Wähle deine Merksprüche oder schreib eigene. Die Anfangsbuchstaben müssen passen.</p>${CIRCLE_WAHL.map((id) => wahlHtml(state, id)).join("")}</div>`;
 }
 
 function keysBoard() {
@@ -1144,7 +1171,7 @@ export default {
     { title: "Bauplan Dur", clef: "bass", render() { return planBoard("bass"); } },
     { title: "Dur-Tonleitern bis 4 Vorzeichen", render() { return keysBoard(); } },
     { title: "So findest du die Tonart", render() { return boardHtml("key"); }, mount: mountBoard("key") },
-    { title: "Quintenzirkel", render() { return circleBoard(); } },
+    { title: "Quintenzirkel", render(ctx) { return circleBoard(ctx && ctx.state); } },
     { title: "So findest du die parallele Molltonart", render() { return boardHtml("minor"); }, mount: mountBoard("minor") },
   ],
   blitz: null,

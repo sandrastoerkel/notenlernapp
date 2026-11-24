@@ -466,6 +466,19 @@ section { display: grid; gap: 14px; }
 .legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 6px 14px; }
 .legend > div { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px dashed var(--line); padding: 3px 0; }
 .legend-title { grid-column: 1 / -1; font-size: 1.05rem; margin-top: 10px; }
+/* Merkspruch-Wahl (sprueche.js, Lerntafeln „Merkhilfen“ und „Quintenzirkel“): Vorschläge als Optionsfelder,
+   der geltende Spruch hervorgehoben (.on), darunter das Feld „Eigener Spruch“ mit Meldung */
+.legend > .spruch-board { display: grid; gap: 10px; grid-column: 1 / -1; border: 0; padding: 0; min-width: 0; }
+.spruch-board > p { margin: 0; }
+.spruch-wahl { display: grid; gap: 6px; margin: 0; padding: 10px 12px 8px; border: 1px solid var(--line); border-radius: 12px; min-width: 0; }
+.spruch-wahl legend { padding: 0 4px; font-size: .9rem; font-weight: 700; }
+.spruch-wahl legend b { white-space: nowrap; }
+.spruch-opt { display: flex; align-items: flex-start; gap: 8px; padding: 6px 8px; border: 1px solid transparent; border-radius: 10px; cursor: pointer; overflow-wrap: anywhere; }
+.spruch-opt input { margin: 3px 0 0; flex: none; accent-color: var(--accent); }
+.spruch-opt.on { border-color: var(--accent); background: var(--accent-soft); font-weight: 700; }
+.spruch-eigen { width: 100%; box-sizing: border-box; font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--fg); }
+.spruch-msg { margin: 0; min-height: 1.2em; }
+.spruch-msg:empty { min-height: 0; }
 .legend-title:first-child { margin-top: 0; }
 .combo { font-family: var(--display); font-weight: 700; color: var(--gold); }
 @media (max-width: 420px) {

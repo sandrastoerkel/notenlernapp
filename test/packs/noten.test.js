@@ -181,7 +181,9 @@ test("Lerntafeln: Zeilen zu Stellen der Zeile stimmen mit staffPos", () => {
 
 test("Welle 10, B15: Hinweise Stufe 3 und 4 (Namen statt Tonhöhe, „liegt auf“)", async () => {
   const noten = (await import("../../src/packs/noten.js")).default;
-  const [, , l3, l4] = noten.levels;
+  const { textOf } = await import("../../src/engine.js");
+  const [, , l3, L4] = noten.levels;
+  const l4 = { hint: textOf(L4.hint) };
   assert.ok(l3.hint.includes("Das c' liegt auf einer Hilfslinie unter der Zeile.") && !l3.hint.includes("hängt"), l3.hint);
   assert.ok(l4.hint.startsWith("Dieselbe Stelle heißt im Bassschlüssel anders: zwei Notennamen weiter. Aus E wird G, aus G wird H."), l4.hint);
   assert.ok(!l4.hint.includes("zwei Stufen tiefer"));

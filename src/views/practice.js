@@ -17,7 +17,13 @@ export const TWO_STEPS_NOTE = "Beide Schritte müssen stimmen.";
 // sonst „pro Aufgabe“ – Welle 10, B15)
 export const avgText = (avg) => avg.toFixed(1).replace(".", ",");
 export const resultLine = (pack, gained, avg) => `+${gained} XP · Ø ${avgText(avg)} s pro ${pack && pack.id === "noten" ? "Note" : "Aufgabe"}`;
-export const startHint = (level) => (level.twoSteps ? `${level.hint} ${TWO_STEPS_NOTE}` : level.hint);
+// level.hint darf eine Funktion (ctx) => Text sein (Merksprüche, Welle 10, Schritt 4); ctx: { state }.
+// Eingesetzt wird der Hinweis per textContent (eigene Sprüche bleiben Text).
+export const startHint = (level, ctx) => {
+  const hint = engine.textOf(level.hint, ctx);
+  // mehrzeilige Hinweise (Tonleitern 10: Reihenfolge und Sprüche) bekommen den Zusatz in eine eigene Zeile
+  return level.twoSteps ? `${hint}${hint.includes("\n") ? "\n" : " "}${TWO_STEPS_NOTE}` : hint;
+};
 
 // Tastatur-Hinweis auf der Startkarte (rein, getestet): ohne Vorzeichen Buchstaben, mit Namensraster
 // der ganze Name und Enter
@@ -104,7 +110,7 @@ export function render() {
   const { level } = current();
   $("#pLevelNo").textContent = "Stufe " + level.no;
   $("#pLevelTitle").textContent = level.title;
-  $("#pHint").textContent = startHint(level);
+  $("#pHint").textContent = startHint(level, { state: ctx.state });
   $("#pIntro").hidden = false; $("#pPlay").hidden = true; $("#pResult").hidden = true;
   $("#pStaff").innerHTML = level.example || "";
   // Die Wahl Buchstaben/Klaviatur und der Tastatur-Hinweis gelten nur für Stufen mit Buchstaben-Eingabe;

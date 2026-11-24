@@ -12,7 +12,7 @@ import tonleitern, { oddQuestion, fitsKey, lowestY, LABEL_DESC,
 } from "../../src/packs/tonleitern.js";
 import { PACKS } from "../../src/packs/index.js";
 import { N, dia, midi, pc, SEMI, LETTERS, gName, helm, majorScale, majorName, minorName, majorKeyFromKeySig, relativeMinor } from "../../src/music.js";
-import { feedbackText, makeRound, choicesClass, svgResultClass, choiceSet, stepsFeedback, stepsResult, helpsHtml, hasHelps, waitsForNext, helpFrom, HELP_OCTAVES } from "../../src/engine.js";
+import { textOf, feedbackText, makeRound, choicesClass, svgResultClass, choiceSet, stepsFeedback, stepsResult, helpsHtml, hasHelps, waitsForNext, helpFrom, HELP_OCTAVES } from "../../src/engine.js";
 import { staffSvg } from "../../src/staff.js";
 import { demoHtml } from "../../src/demo.js";
 
@@ -40,7 +40,7 @@ test("13 Stufen mit eindeutigen IDs, der Reihe nach frei, Eingabearten", () => {
   assert.ok(L.every((l) => l.requires === undefined));
   L.forEach((l, i) => {
     assert.equal(l.no, i + 1);
-    assert.ok(l.title && l.hint && l.subtitle, l.id);
+    assert.ok(l.title && textOf(l.hint) && l.subtitle, l.id);
     assert.ok(l.example.startsWith("<svg"), l.id);
   });
   assert.deepEqual(L.map((l) => l.input), ["choices", "choices", "choices", "choices", "letters", "choices", "choices", "choices", "choices", "choices", "choices", "choices", "choices"]);
@@ -394,7 +394,7 @@ test("staffSvg: Breite optional, ohne Angabe unverändert", () => {
 });
 
 test("Texte: keine verbotenen Wörter, Anrede du", () => {
-  const texts = L.flatMap((l) => [l.title, l.subtitle, l.hint]).concat(tonleitern.learn.map((c) => c.render()));
+  const texts = L.flatMap((l) => [l.title, l.subtitle, textOf(l.hint)]).concat(tonleitern.learn.map((c) => c.render()));
   for (const l of L) for (const q of many(l, 50)) {
     texts.push(q.prompt, q.display, q.reveal, ...(q.choices || []));
     if (q.partial) texts.push(q.partial);
@@ -403,8 +403,8 @@ test("Texte: keine verbotenen Wörter, Anrede du", () => {
   for (const t of texts) assert.ok(!/Fehler!|falsch|mühelos|Held|Champion|\bSie\b/.test(t), t);
   const levelTexts = texts.filter((t) => !tonleitern.learn.some((c) => c.render() === t));
   assert.ok(levelTexts.every((t) => !/Tetrachord/.test(t)));
-  assert.ok(byId(8).hint.includes("Der Grundton steht zweimal da, sein Vorzeichen zählt nur einmal."));
-  assert.ok(byId(9).hint.includes("Der Grundton steht zweimal da, sein Vorzeichen zählt nur einmal."));
+  assert.ok(textOf(byId(8).hint).includes("Der Grundton steht zweimal da, sein Vorzeichen zählt nur einmal."));
+  assert.ok(textOf(byId(9).hint).includes("Der Grundton steht zweimal da, sein Vorzeichen zählt nur einmal."));
 });
 
 test("Stufen 4–7: Frage und Auflösung gleich hoch (Karte springt nicht)", () => {
@@ -677,7 +677,9 @@ test("Hilfen: nur die Stufen 1, 2, 4, 6, 8, 10, 12, sie warten auf „Nächste A
   }
   for (const no of [1, 2, 4, 6, 8]) {
     assert.deepEqual(byId(no).helps, ["klaviatur", "tabelle"]);
-    assert.equal(byId(no).helpText, HELP_TEXT_PLAN);
+    // Stufe 8: dazu die Reihenfolge der Vorzeichen mit den gewählten Merksprüchen (Welle 10, Schritt 4)
+    if (no === 8) assert.ok(textOf(byId(no).helpText).startsWith(`${HELP_TEXT_PLAN} Reihenfolge der Vorzeichen: ♯ Fis – Cis – Gis – Dis („Fünf Cowboys`));
+    else assert.equal(byId(no).helpText, HELP_TEXT_PLAN);
     assert.equal(byId(no).helpTable, planTable());
   }
   assert.deepEqual(byId(10).helps, ["klaviatur", "tabelle"]);
@@ -939,15 +941,15 @@ test("Welle 10, A6: Bauplan 1 / ½, in Sätzen ausgeschrieben (sigWay alle neun 
     }
   }
   // Lerntafeln, Hilfen und Hinweise: kein G/H als Kürzel für einen Tonschritt
-  const texts = [planTable(), ...tonleitern.levels.map((l) => l.hint + (l.helpText || "")), ...tonleitern.learn.map((b) => b.render())];
+  const texts = [planTable(), ...tonleitern.levels.map((l) => textOf(l.hint) + (textOf(l.helpText) || "")), ...tonleitern.learn.map((b) => b.render())];
   for (const t of texts) assert.ok(!/G G H|G = Ganz|H = Halb/.test(t), t.slice(0, 80));
 });
 
 test("Welle 10, B5: Fachwörter beim ersten Auftreten erklärt (Tonleitern 4, 10, 12)", () => {
-  assert.ok(byId(4).hint.includes("Stammton = Note ohne Vorzeichen"));
-  assert.ok(byId(12).hint.includes("Stammton = Note ohne Vorzeichen"));
-  assert.ok(byId(12).hint.includes("kleine Terz abwärts") && !byId(12).hint.includes("wie bei den Intervallen"));
-  assert.ok(byId(10).hint.includes("bei Kreuzen das letzte, bei Be das vorletzte"));
+  assert.ok(textOf(byId(4).hint).includes("Stammton = Note ohne Vorzeichen"));
+  assert.ok(textOf(byId(12).hint).includes("Stammton = Note ohne Vorzeichen"));
+  assert.ok(textOf(byId(12).hint).includes("kleine Terz abwärts") && !textOf(byId(12).hint).includes("wie bei den Intervallen"));
+  assert.ok(textOf(byId(10).hint).includes("bei Kreuzen das letzte, bei Be das vorletzte"));
   assert.ok(DECISIVE_PROMPT.includes("Entscheidendes Vorzeichen = bei Kreuzen das letzte, bei Be das vorletzte"));
   // „Tetrachord“ nur in der Lerntafel (dort erklärt), in keiner Frage
   for (const l of tonleitern.levels) for (const q of makeRound(l, 20)) assert.ok(!/Tetrachord/.test(q.prompt + JSON.stringify(q.steps || [])), l.id);
@@ -965,8 +967,8 @@ test("Welle 10, B6/B15: Tonleitern 12 mit Start-Beschriftung an der oberen Note,
     });
     assert.ok(d.frames[3].text.endsWith("Halbtöne: Die Starttaste zählt nicht, du zählst die Schritte."), String(f));
   }
-  assert.ok(byId(8).hint.includes("\n♯: Fis – Cis – Gis – Dis\n♭: B – Es – As – Des\n"), byId(8).hint);
-  assert.ok(tonleitern.levels.filter((l) => /\d\. Stufe(?! der Tonleiter)/.test(l.hint)).length === 0, "Stufe der Tonleiter ausgeschrieben");
+  assert.ok(textOf(byId(8).hint).includes("\n♯: Fis – Cis – Gis – Dis\n♭: B – Es – As – Des\n"), textOf(byId(8).hint));
+  assert.ok(tonleitern.levels.filter((l) => /\d\. Stufe(?! der Tonleiter)/.test(textOf(l.hint))).length === 0, "Stufe der Tonleiter ausgeschrieben");
 });
 
 // Prüfung Schritt 2 (B6): Die Starttaste trägt in jeder Vorführung, die Halbtöne zählt, ihre Aufschrift –

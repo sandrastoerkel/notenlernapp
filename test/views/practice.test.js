@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { startLabel, keysHint, lettersLabel, resultInfo, missingText, answersScroll, startHint, TWO_STEPS_NOTE, resultLine, avgText } from "../../src/views/practice.js";
-import { keepStufe } from "../../src/engine.js";
+import { keepStufe, textOf } from "../../src/engine.js";
 import { PACKS } from "../../src/packs/index.js";
 import { lockText } from "../../src/views/home.js";
 import { fresh, recordRound, isUnlocked, unlocks } from "../../src/store.js";
@@ -157,13 +157,13 @@ test("Startkarte: zweischrittige Stufen sagen „Beide Schritte müssen stimmen.
   const two = [];
   for (const pack of PACKS) for (const level of pack.levels) {
     if (level.twoSteps) { two.push(level.id); assert.ok(startHint(level).endsWith(TWO_STEPS_NOTE), level.id); }
-    else assert.equal(startHint(level), level.hint, level.id);
+    else assert.equal(startHint(level), textOf(level.hint), level.id);
   }
   assert.deepEqual(two, ["notenwerte-1", "notenwerte-4", "notenwerte-6", "notenwerte-8", "tonleitern-4", "tonleitern-10", "tonleitern-12",
     "intervall-3", "intervall-4", "intervall-5", "intervall-6", "intervall-7"]);
   // die Startkarte nutzt startHint
   const src = readFileSync(new URL("../../src/views/practice.js", import.meta.url), "utf8");
-  assert.match(src, /\$\("#pHint"\)\.textContent = startHint\(level\)/);
+  assert.match(src, /\$\("#pHint"\)\.textContent = startHint\(level, \{ state: ctx\.state \}\)/);
 });
 
 test("Welle 10, B5/B15: Tastaturhinweis ohne Klammerzusatz, Ergebniskarte mit Komma und „pro Aufgabe“", () => {

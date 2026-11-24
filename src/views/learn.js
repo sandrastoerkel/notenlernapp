@@ -3,6 +3,7 @@ import { fromDia, same, gName, helm, staffPos } from "../music.js";
 import { staffSvg, noteSvg, noteheadSvg, BOTTOM, S } from "../staff.js";
 import { play } from "../audio.js";
 import { stopDemos } from "../demo.js";
+import { MERKHILFEN, waehle, setzeEigen, checkSpruch, meldung, aktiv, spruch } from "../sprueche.js";
 
 const $ = (s) => document.querySelector(s);
 let ctx = null;
@@ -15,6 +16,8 @@ export function init(c) {
   $("#lPlay").addEventListener("click", () => { if (lSel) play(lSel); });
   $("#lShowAll").addEventListener("click", () => { lAll = !lAll; render(false); });
   // Klick auf eine Linie oder einen Zwischenraum (Delegation)
+  // Merkspruch-Wahl (Delegation am Bereich der Lerntafeln; ctx.state wird beim Zurücksetzen ersetzt)
+  wireSprueche($("#lLegend"), { get state() { return ctx.state; }, save: () => ctx.save() });
   $("#lStaff").addEventListener("click", (e) => {
     const r = e.target.closest(".hit[data-d]");
     if (!r) return;
@@ -26,11 +29,54 @@ const esc = (t) => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replac
 
 // Lerntafeln aller Pakete (rein, getestet): Tafeln mit Schlüssel nur für den gewählten, Tafeln ohne
 // Schlüssel immer. Der Titel einer Tafel steht als Überschrift über ihrem Inhalt (ganze Breite des Rasters).
-export const learnCardsHtml = (packs, clef) => packs.flatMap((p) => p.learn || [])
+// c (optional): { state } geht an card.render (gewählte Merksprüche, Welle 10, Schritt 4).
+export const learnCardsHtml = (packs, clef, c) => packs.flatMap((p) => p.learn || [])
   .filter((card) => !card.clef || card.clef === clef)
-  .map((card) => (card.title ? `<h3 class="legend-title">${esc(card.title)}</h3>` : "") + card.render())
+  .map((card) => (card.title ? `<h3 class="legend-title">${esc(card.title)}</h3>` : "") + card.render(c))
   .join("");
-const legendHtml = () => learnCardsHtml(ctx.packs, lClef);
+const legendHtml = () => learnCardsHtml(ctx.packs, lClef, { state: ctx.state });
+
+// Merkspruch-Wahl in den Lerntafeln (sprueche.wahlHtml): Vorschlag antippen → gespeichert; „Eigener Spruch“
+// wird beim Tippen geprüft und nur gespeichert, wenn die Anfangsbuchstaben passen. Danach zeigen alle
+// Stellen mit data-spruch-show den geltenden Spruch (textContent: der eigene Text bleibt Text).
+export function refreshSprueche(root, state) {
+  root.querySelectorAll("[data-spruch-show]").forEach((el) => { el.textContent = spruch(state, el.dataset.spruchShow); });
+  root.querySelectorAll("[data-spruch-wahl]").forEach((fs) => {
+    const a = aktiv(state, fs.dataset.spruchWahl);
+    fs.querySelectorAll("input[type=radio]").forEach((r) => {
+      const on = String(a) === r.value;
+      r.checked = on;
+      r.closest(".spruch-opt").classList.toggle("on", on);
+    });
+  });
+}
+
+export function wireSprueche(root, c) {
+  const msg = (fs, text) => { const p = fs.querySelector(".spruch-msg"); if (p) p.textContent = text; };
+  root.addEventListener("change", (e) => {
+    const r = e.target.closest("input[type=radio]"), fs = r && r.closest("[data-spruch-wahl]");
+    if (!fs) return;
+    const id = fs.dataset.spruchWahl, field = fs.querySelector(".spruch-eigen");
+    if (r.value === "eigen") {
+      const res = setzeEigen(c.state, id, field.value);
+      if (res.ok) c.save(); else field.focus();
+      msg(fs, meldung(res));
+    } else if (waehle(c.state, id, +r.value)) {
+      c.save(); msg(fs, "");
+    }
+    refreshSprueche(root, c.state);
+  });
+  root.addEventListener("input", (e) => {
+    const field = e.target.closest(".spruch-eigen"), fs = field && field.closest("[data-spruch-wahl]");
+    if (!fs) return;
+    const id = fs.dataset.spruchWahl;
+    if (!MERKHILFEN[id]) return;
+    const res = field.value.trim() ? setzeEigen(c.state, id, field.value) : checkSpruch(id, "");
+    if (res.ok) c.save();
+    msg(fs, meldung(res));
+    refreshSprueche(root, c.state);
+  });
+}
 // Tafeln mit mount (z. B. die Vorführung bei „Intervalle“) verdrahten ihre Knöpfe nach dem Einsetzen
 export const mountCards = (packs, clef, root) => packs.flatMap((p) => p.learn || [])
   .filter((card) => (!card.clef || card.clef === clef) && card.mount)

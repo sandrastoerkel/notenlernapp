@@ -49,7 +49,8 @@ export const starsHtml = (k) => `<span class="stars">${"★".repeat(k)}<span cla
 export const effectiveInput = (levelInput, pref, namesOnly = false) => ((levelInput || "letters") === "letters" && pref === "keys" && !namesOnly ? "keys" : levelInput || "letters");
 
 // Zehn Aufgaben nacheinander erzeugen, jede verschieden von der vorherigen.
-// ctx (optional, z. B. { notes: state.notes }) geht als zweiter Parameter an question;
+// ctx (optional, z. B. { notes: state.notes, state }) geht als zweiter Parameter an question (state: der
+// Spielstand, z. B. für den gewählten Merkspruch in der Rückmeldung; Pakete lesen ihn nur über sprueche.js);
 // Pakete ohne zweiten Parameter laufen unverändert.
 // ctx.round enthält die bisher erzeugten Aufgaben dieser Runde (z. B. „Prime höchstens einmal pro Runde“).
 export function makeRound(level, count = ROUND_LENGTH, ctx) {
@@ -180,9 +181,15 @@ export const waitsForNext = (level) => hasHelps(level);
 // Warten nach einer Aufgabe (rein): Stufe mit Hilfen → ja; daneben (auch Teilerfolg) → immer; richtig ohne
 // Hilfen → nur bei einem Rückmeldetext länger als AUTO_OK_MAX, sonst nach answerDelay von selbst weiter.
 export const waitsAfter = (level, ok, text) => waitsForNext(level) || !ok || String(text || "").length > AUTO_OK_MAX;
-export function helpsHtml(level, q) {
+// Hinweis- und Hilfetexte dürfen Funktionen sein, (ctx) => Text, z. B. mit dem gewählten Merkspruch aus
+// ctx.state (Welle 10, Schritt 4); sonst der Text selbst. Rein, getestet.
+export const textOf = (v, ctx) => (typeof v === "function" ? v(ctx || {}) : v);
+// ctx (optional): { state } für Hilfetexte als Funktion. Ein Hilfetext ist HTML; Pakete setzen eigene Texte
+// des Kindes darin mit esc ein.
+export function helpsHtml(level, q, ctx) {
   if (!hasHelps(level)) return "";
-  const text = level.helpText ? `<p class="small help-text">${level.helpText}</p>` : "";
+  const ht = textOf(level.helpText, ctx);
+  const text = ht ? `<p class="small help-text">${ht}</p>` : "";
   let out = level.demo
     ? `<div class="help-head">${text}<span class="demo-go"><button class="btn" data-demo-btn disabled title="${DEMO_WAIT}">${DEMO_LABEL}</button><span class="small muted demo-wait" data-demo-wait>${DEMO_WAIT_SHORT}</span></span></div>`
     : text;
@@ -335,7 +342,7 @@ function applyInput(r) {
 export function startRound(level, ui, hooks) {
   stop();
   const r = {
-    level, ui, hooks, items: makeRound(level, ROUND_LENGTH, { notes: hooks.state.notes }), idx: 0, correct: 0, results: [], marks: [], times: [],
+    level, ui, hooks, items: makeRound(level, ROUND_LENGTH, { notes: hooks.state.notes, state: hooks.state }), idx: 0, correct: 0, results: [], marks: [], times: [],
     locked: false, buf: "", t0: 0, timers: new Set(), tones: new Set(),
     input: effectiveInput(level.input, hooks.state.input, !!level.namesOnly),
   };
@@ -396,7 +403,7 @@ function showQuestion(r) {
   ui.feedback.textContent = q.prompt || ""; ui.feedback.className = "feedback";
   if (ui.count) ui.count.textContent = `${r.idx + 1} / ${r.items.length}`;
   if (ui.dots) ui.dots.innerHTML = dotsHtml(r.marks, r.idx, r.items.length);
-  if (ui.helpsBody && hasHelps(r.level)) ui.helpsBody.innerHTML = helpsHtml(r.level, q);
+  if (ui.helpsBody && hasHelps(r.level)) ui.helpsBody.innerHTML = helpsHtml(r.level, q, { state: r.hooks.state });
   showChoices(r);
   all(ui.answers, ".btn").concat(all(ui.piano, "rect")).forEach((b) => b.classList.remove("ok", "bad"));
   r.buf = ""; showTyped(r, "");

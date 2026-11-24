@@ -16,6 +16,9 @@ export const fresh = () => ({
   xp: 0, dayStreak: 0, lastDay: null, levels: {}, notes: {}, answered: 0, correct: 0,
   bestCombo: 0, blitzRecord: 0, unlockAll: false, muted: false, input: "letters", current: "noten-1",
   migrated: [MIGRATION_INTERVALLE, MIGRATION_TONLEITERN, MIGRATION_NOTENWERTE],
+  // Gewählte Merksprüche (Welle 10, Schritt 4): je Kennung { wahl: n } oder { eigen: "…" }, siehe sprueche.js.
+  // Ältere Stände ohne das Feld bekommen beim Laden {} aus fresh() und werden deshalb nicht neu gespeichert.
+  sprueche: {},
 });
 
 // Alte Daten (Stufen 1 bis 8 als Zahl) in das Format mit Stufen-IDs übernehmen
@@ -236,8 +239,8 @@ export function recordBlitz(s, score, bestCombo, now = new Date()) {
   return { record, gained };
 }
 
-// Zurücksetzen: nur Ton und Eingabeart bleiben erhalten
-export const reset = (s) => Object.assign(fresh(), { muted: s.muted, input: s.input });
+// Zurücksetzen: Ton, Eingabeart und Merksprüche bleiben erhalten (Einstellungen, kein Fortschritt)
+export const reset = (s) => Object.assign(fresh(), { muted: s.muted, input: s.input, sprueche: s.sprueche && typeof s.sprueche === "object" ? s.sprueche : {} });
 
 // Trefferquote in Prozent oder null, wenn noch nichts beantwortet wurde
 export const accuracy = (s) => (s.answered ? Math.round((100 * s.correct) / s.answered) : null);
