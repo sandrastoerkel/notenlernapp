@@ -231,7 +231,9 @@ function inversionLevel() {
     answer: INVERSION_LABELS[it.inv],
     display: it.inv === 0 ? `${triadLabel(it.root, it.type)} in Grundstellung` : `${INVERSIONS[it.inv]} von ${triadName(it.root, it.type)}`,
     choices: INVERSION_LABELS.slice(), cols: 1,
-    reveal: `Richtig wäre: ${INVERSIONS[it.inv]}. Unten liegt ${["der Grundton", "die Terz", "die Quinte"][it.inv]} von ${triadName(it.root, it.type)}.`,
+    // Abschlussprüfung Welle 10: Name wie auf dem Knopf (mit „(2. Umkehrung)“) und der Ton, der unten liegt:
+    // „Richtig wäre: Quartsextakkord (2. Umkehrung). Unten liegt H, die Quinte des E-Dur-Dreiklangs.“
+    reveal: `Richtig wäre: ${INVERSION_LABELS[it.inv]}. Unten liegt ${gName(it.notes[0])}, ${["der Grundton", "die Terz", "die Quinte"][it.inv]} des ${triadLabel(it.root, it.type)}s.`,
   });
   return {
     id: "akkorde-4", no: 4, title: "Umkehrungen",
@@ -331,7 +333,9 @@ function circleLevel() {
     subtitle: `Dur-Tonarten bis 7 Vorzeichen · ${CIRCLE_ITEMS.length} Aufgaben`,
     hint: "Im Uhrzeigersinn geht es eine Quinte aufwärts, jedes Mal kommt ein ♯ dazu (C, G, D, A, E, H, Fis, Cis). Gegen den Uhrzeigersinn kommt je ein ♭ dazu (F, B, Es, As, Des, Ges, Ces).",
     input: "choices", items: CIRCLE_ITEMS,
-    example: circleQuestion(CIRCLE_ITEMS[7]).svg,
+    // Startkarte (Abschlussprüfung Welle 10): eine Vorzeichnung (2 ♯, D-Dur) statt eines Dreiklangs, der mit
+    // der Stufe nichts zu tun hat
+    example: staffSvg("treble", "", { keySig: 2 }),
     question(prev) { return circleQuestion(pick(CIRCLE_ITEMS, prev)); },
     check: checkChoice,
   };

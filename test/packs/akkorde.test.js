@@ -324,7 +324,16 @@ test("Satz nach falscher Antwort (reveal) ist grammatisch, ohne „Das war ein�
   const vii = find(L[6], (q) => q.prompt === "Welche Stufe in G-Dur?" && q.answer === "VII");
   assert.equal(vii.reveal, "Richtig wäre: VII. Der Grundton Fis ist die VII. Stufe von G-Dur (fis vermindert).");
   const s6 = find(L[4], (q) => q.display === "Sextakkord von C-Dur");
-  assert.equal(s6.reveal, "Richtig wäre: Sextakkord. Unten liegt die Terz von C-Dur.");
+  // Abschlussprüfung Welle 10: Name wie auf dem Knopf und der Ton unten
+  assert.equal(s6.reveal, "Richtig wäre: Sextakkord (1. Umkehrung). Unten liegt E, die Terz des C-Dur-Dreiklangs.");
+  const q6 = find(L[4], (q) => q.display === "Quartsextakkord von E-Dur");
+  assert.equal(q6.reveal, "Richtig wäre: Quartsextakkord (2. Umkehrung). Unten liegt H, die Quinte des E-Dur-Dreiklangs.");
+  const g = find(L[4], (q) => q.display === "e-Moll-Dreiklang in Grundstellung");
+  assert.equal(g.reveal, "Richtig wäre: Grundstellung. Unten liegt E, der Grundton des e-Moll-Dreiklangs.");
+  // jede Aufgabe: der genannte Ton ist wirklich der unterste, Knopfname steht in der Rückmeldung
+  for (let i = 0; i < 300; i++) { const q = L[4].question(null); assert.ok(q.reveal.startsWith(`Richtig wäre: ${q.answer}. Unten liegt `), q.reveal); }
+  // Startkarte Quintenzirkel: Vorzeichnung, kein Dreiklang
+  assert.ok(L[5].example.includes("keysig") && !/notehead/.test(L[5].example), L[5].example.slice(0, 200));
   const h = find(L[2], (q) => q.display === "verminderter Dreiklang auf h");
   assert.equal(h.reveal, "Richtig wäre: vermindert. Das war ein verminderter Dreiklang auf h.");
 });
