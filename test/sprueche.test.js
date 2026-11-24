@@ -333,18 +333,30 @@ test("Tonleitern: ganze Reihenfolge (aus music.js) und Sprüche in Stufe 8, 10, 
   assert.deepEqual(FLATS_ALL.map((x) => x[0]), [...SHARPS_ALL].reverse().map((x) => (x[0] === "H" ? "B" : x[0])));
   const s = fresh();
   const by = (no) => tonleitern.levels.find((l) => l.no === no);
+  // Stufe 10 (Abschlussprüfung Welle 10): Startkarte kurz (Regel in zwei nummerierten Zeilen, Tonarten-Sprüche),
+  // die ganze Reihenfolge mit Sprüchen in den Hilfen; „Kreuz-Reihe rückwärts“ als Buchstaben erklärt
   const h10 = startHint(by(10), { state: s });
-  assert.ok(h10.includes("Kreuze: Fis Cis Gis Dis Ais Eis His („Fünf Cowboys Gehen Durch Alle Einkaufs-Hallen“)"), h10);
-  assert.ok(h10.includes("Be: B Es As Des Ges Ces Fes – die Kreuz-Reihe rückwärts („Brezen Essen Asse Des Gesangs“ für die ersten fünf)"), h10);
-  assert.ok(h10.includes("„Geh Du Alter Esel Hole Fische“") && h10.includes("„Frische Brezen Essen Asse Des Gesangs“"));
+  assert.ok(h10.includes("\n1. Das entscheidende Vorzeichen") && h10.includes("\n2. Die Tonart"), h10);
+  assert.ok(h10.includes("Reihenfolge der Vorzeichen und Merksprüche: in den Hilfen."));
+  assert.ok(h10.endsWith("Beide Schritte müssen stimmen."));
+  assert.ok(h10.split("\n").length <= 7, h10);
+  assert.ok(!h10.includes("Ais Eis His"));
+  const help10 = (st) => helpsHtml(by(10), makeRound(by(10), 1)[0], { state: st });
+  assert.ok(help10(s).includes("Kreuze: Fis Cis Gis Dis Ais Eis His („Fünf Cowboys Gehen Durch Alle Einkaufs-Hallen“)"));
+  assert.ok(help10(s).includes("Be: B Es As Des Ges Ces Fes – dieselben Buchstaben wie bei den Kreuzen, rückwärts: H E A D G C F (H mit ♭ heißt B) („Brezen Essen Asse Des Gesangs“ für die ersten fünf)"));
+  for (const t of [h10, help10(s), circleBoard(s)]) assert.ok(!t.includes("Kreuz-Reihe rückwärts"));
   waehle(s, "kreuze", 2);
   setzeEigen(s, "be-tonarten", "Frische Bananen Essen Affen Den Ganzen");
-  assert.ok(startHint(by(10), { state: s }).includes("(„Fritz Christian Geht Durch Alle Ecken Heim“)"));
-  assert.ok(startHint(by(10), { state: s }).includes("„Bananen Essen Affen Den Ganzen“ für die ersten fünf"));
+  assert.ok(help10(s).includes("(„Fritz Christian Geht Durch Alle Ecken Heim“)"));
+  assert.ok(help10(s).includes("„Bananen Essen Affen Den Ganzen“ für die ersten fünf"));
+  assert.ok(help10(s).includes("♭: F B Es As Des Ges („Frische Bananen Essen Affen Den Ganzen“)"));
+  // eigener Spruch in den Hilfen maskiert
+  const t = fresh(); setzeEigen(t, "kreuze", "F<b> C G D A E H");
+  assert.ok(help10(t).includes("F&lt;b&gt; C G D A E H") && !help10(t).includes("F<b>"));
   assert.ok(startHint(by(8), { state: s }).includes("Merksprüche: ♯ „Fritz Christian Geht Durch Alle Ecken Heim“, ♭ „Bananen Essen Affen Den Ganzen“."));
   assert.ok(textOf(by(11).hint, { state: s }).includes("♭: „Frische Bananen Essen Affen Den Ganzen“"));
   const q10 = makeRound(by(10), 1)[0];
-  assert.ok(helpsHtml(by(10), q10, { state: s }).includes("♭-Tonarten: „Frische Bananen Essen Affen Den Ganzen“"));
+  assert.ok(helpsHtml(by(10), q10, { state: s }).includes("♭: F B Es As Des Ges („Frische Bananen Essen Affen Den Ganzen“)"));
   const cb = circleBoard(s);
   assert.ok(cb.includes("Fis Cis Gis Dis Ais Eis His") && cb.includes("B Es As Des Ges Ces Fes"));
   assert.ok(cb.includes('<span data-spruch-show="be-tonarten">Frische Bananen Essen Affen Den Ganzen</span>'));

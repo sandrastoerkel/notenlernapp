@@ -1009,3 +1009,25 @@ test("Welcher Ton fehlt?: Hilfe-Klaviatur zeigt die Taste der Lücke und ihre be
     assert.ok(!new RegExp(`class="[wb]key mark[^"]*" data-midi="${m}"`).test(html), `${it.key}: die Lücke ist nicht markiert`);
   }
 });
+
+test("Abschlussprüfung Welle 10: Tonleitern 1–3 daneben mit Grund; Startkarten 4 und 12 in kurzen Zeilen", async () => {
+  const { ITEMS_1, ITEMS_2, ITEMS_3, STEP_REASON_WHOLE, STEP_REASON_HALF } = await import("../../src/packs/tonleitern.js");
+  const { midi } = await import("../../src/music.js");
+  const T = (await import("../../src/packs/tonleitern.js")).default;
+  for (const no of [1, 2, 3]) {
+    const l = T.levels.find((x) => x.no === no);
+    for (const it of [ITEMS_1, ITEMS_2, ITEMS_3][no - 1]) {
+      const d = midi(it.notes[it.i + 1]) - midi(it.notes[it.i]);
+      // Grund stimmt: Ganzton = 2 Halbtöne (eine Taste dazwischen), Halbton = 1 (keine Taste)
+      assert.equal(d, it.half ? 1 : 2);
+      let q = null;
+      for (let k = 0; k < 400 && (!q || q.key !== it.key); k++) q = l.question(null);
+      if (q.key !== it.key) continue;
+      assert.ok(q.reveal.endsWith(`: ${it.half ? STEP_REASON_HALF : STEP_REASON_WHOLE}.`), q.reveal);
+    }
+  }
+  for (const no of [4, 12]) {
+    const h = T.levels.find((x) => x.no === no).hint;
+    assert.ok(h.startsWith("Zwei Schritte:\n1. ") && h.includes("\n2. ") && h.includes("Stammton = Note ohne Vorzeichen."), h);
+  }
+});

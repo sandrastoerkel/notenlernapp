@@ -41,7 +41,8 @@ export const fifthsOf = (tonic) => majorScale(tonic).reduce((s, n) => s + n.acc,
 export const SHARP_ORDER = ["Fis", "Cis", "Gis", "Dis"];
 export const FLAT_ORDER = ["B", "Es", "As", "Des"];
 // Ganze Reihenfolge bis 7 Vorzeichen, aus music.js abgeleitet (das Vorzeichen, das mit jeder Tonart dazukommt):
-// Fis Cis Gis Dis Ais Eis His bzw. B Es As Des Ges Ces Fes. Die Be-Reihe ist die Kreuz-Reihe rückwärts.
+// Fis Cis Gis Dis Ais Eis His bzw. B Es As Des Ges Ces Fes. Die Be-Reihe hat die Buchstaben der Kreuz-Reihe
+// rückwärts (H E A D G C F, H mit ♭ heißt B).
 const accNames = (f) => majorScale(majorTonic(f)).filter((n) => n.acc !== 0).map(gName);
 const addedAcc = (f) => { const before = accNames(f - Math.sign(f)); return accNames(f).find((x) => !before.includes(x)); };
 export const SHARPS_ALL = [1, 2, 3, 4, 5, 6, 7].map(addedAcc);
@@ -54,9 +55,15 @@ export const orderHint = (ctx) => `Merksprüche: ♯ „${sp(ctx, "kreuze")}“,
 // Tonleitern 10 (Startkarte): die ganze Reihenfolge und die Sprüche für Reihe und Tonarten. Die Sprüche
 // decken die siebte Tonart (Cis-Dur, Ces-Dur) und das sechste und siebte Be (Ces, Fes) nicht ab; dort steht
 // nur die Reihe.
+// Abschlussprüfung Welle 10: Die Startkarte von Stufe 10 war mit Regel, Reihen und Sprüchen rund 20 Zeilen
+// lang; die Reihen und Sprüche stehen jetzt in den Hilfen (HTML, Sprüche mit esc), die Startkarte nennt die
+// Regel in zwei nummerierten Zeilen. „Die Kreuz-Reihe rückwärts“ führte wörtlich gelesen in die Irre
+// (His Eis Ais …): gemeint sind die Buchstaben F C G D A E H rückwärts, und aus H wird B.
+export const FLATS_FROM_SHARPS = "dieselben Buchstaben wie bei den Kreuzen, rückwärts: H E A D G C F (H mit ♭ heißt B)";
 export const fullOrderHint = (ctx) => `Kreuze: ${SHARPS_ALL.join(" ")} („${sp(ctx, "kreuze")}“)
-Be: ${FLATS_ALL.join(" ")} – die Kreuz-Reihe rückwärts („${sp(ctx, "bes")}“ für die ersten fünf)
+Be: ${FLATS_ALL.join(" ")} – ${FLATS_FROM_SHARPS} („${sp(ctx, "bes")}“ für die ersten fünf)
 Tonarten ♯: G D A E H Fis („${sp(ctx, "kreuz-tonarten")}“), ♭: F B Es As Des Ges („${sp(ctx, "be-tonarten")}“)`;
+export const fullOrderHtml = (ctx) => esc(fullOrderHint(ctx)).replace(/\n/g, "<br>");
 
 export function sigList(fifths) {
   if (fifths === 0) return "keine";
@@ -203,6 +210,8 @@ export function pickStep(items, prev, rnd = Math.random, p = HALF_P) {
 // Unterstes C der Hilfe-Klaviatur (q.helpFrom, engine.js): das C auf oder unter dem Grundton
 export const helpFromOf = (tonic) => 12 * Math.floor(midi(tonic) / 12);
 
+export const STEP_REASON_WHOLE = "2 Halbtöne, dazwischen liegt eine Taste";
+export const STEP_REASON_HALF = "1 Halbton, keine Taste dazwischen";
 function stepQuestion(it) {
   const a = it.notes[it.i], b = it.notes[it.i + 1];
   const answer = it.half ? STEP_HALF : STEP_WHOLE;
@@ -214,7 +223,9 @@ function stepQuestion(it) {
     answer,
     choices: [STEP_WHOLE, STEP_HALF],
     display: `${answer} (${pair})`,
-    reveal: `Richtig wäre: ${answer} (${pair}).`,
+    // mit Grund (Abschlussprüfung Welle 10): auf der Klaviatur liegt beim Ganzton eine Taste dazwischen (schwarz
+    // oder weiß, z. B. e–fis: f), beim Halbton keine
+    reveal: `Richtig wäre: ${answer} (${pair}): ${it.half ? STEP_REASON_HALF : STEP_REASON_WHOLE}.`,
     play: [a, b],
     clef: it.clef, notes: it.notes, i: it.i,
     helpMarks: [a, b], helpFrom: helpFromOf(it.notes[0]),
@@ -668,7 +679,7 @@ const HELPS_BOTH = ["klaviatur", "tabelle"];
 const STEP_DEMO = (q) => stepDemo(q.notes, q.i, q.clef);
 const SCALE_DEMO = (q) => scaleDemo(q.notes[0], q.clef);
 const planHelps = (demo) => ({ helps: HELPS_BOTH, helpText: HELP_TEXT_PLAN, helpTable: planTable(), demo });
-const keyHelps = () => ({ helps: HELPS_BOTH, helpText: (ctx) => `${HELP_TEXT_KEY} ♯-Tonarten: „${esc(sp(ctx, "kreuz-tonarten"))}“, ♭-Tonarten: „${esc(sp(ctx, "be-tonarten"))}“.`, helpTable: circleTable({ split: true }), demo: (q) => keyDemo(q.fifths, q.clef) });
+const keyHelps = () => ({ helps: HELPS_BOTH, helpText: (ctx) => `${HELP_TEXT_KEY}<br>${fullOrderHtml(ctx)}`, helpTable: circleTable({ split: true }), demo: (q) => keyDemo(q.fifths, q.clef) });
 // Stufe 12: nur Klaviatur und Satz. Eine Spalte „parallel Moll“ gäbe beide Schritte durch bloßes Ablesen vor.
 const minorHelps = () => ({ helps: ["klaviatur"], helpText: HELP_TEXT_MINOR, demo: (q) => minorDemo(q.fifths) });
 
@@ -988,7 +999,7 @@ const levels = [
     title: "Welcher Ton fehlt?",
     twoSteps: true,
     subtitle: `Violinschlüssel · bis 2 Vorzeichen · zwei Schritte · mit Hilfen · ${ITEMS_4.length} Aufgaben`,
-    hint: "Zwei Schritte: Erst der Bauplan – zähle ab dem Grundton, welcher Schritt zur Lücke führt, Ganz oder Halb. Dann die Klaviatur – welcher Ton liegt so viele Halbtöne über der Note davor? Zur Wahl stehen der Stammton (Stammton = Note ohne Vorzeichen) und seine Formen mit ♯ oder ♭.",
+    hint: "Zwei Schritte:\n1. Bauplan: Zähle ab dem Grundton, welcher Schritt zur Lücke führt – Ganz oder Halb?\n2. Klaviatur: Welcher Ton liegt so viele Halbtöne über der Note davor?\nZur Wahl stehen der Stammton und seine Formen mit ♯ oder ♭.\nStammton = Note ohne Vorzeichen.",
     items: ITEMS_4,
     example: gapStepQuestion(find(ITEMS_4, "treble:G:6")).svg,
     question(prev) { return gapStepQuestion(pickStep(ITEMS_4, prev, Math.random, GAP_HALF_P)); },
@@ -1044,7 +1055,7 @@ const levels = [
     title: "Tonart aus den Vorzeichen",
     twoSteps: true,
     subtitle: `Violinschlüssel · zwei Schritte · mit Hilfen · ${FIFTHS.length} Dur-Tonarten`,
-    hint: (ctx) => `Zwei Schritte: Erst das entscheidende Vorzeichen – bei Kreuzen das letzte, bei Be das vorletzte. Dann die Tonart: einen Halbton über dem letzten Kreuz (Fis → G-Dur) bzw. das vorletzte Be selbst (B, Es → B-Dur). Ein einzelnes Be steht für F-Dur.\n${fullOrderHint(ctx)}`,
+    hint: (ctx) => `Zwei Schritte:\n1. Das entscheidende Vorzeichen: bei Kreuzen das letzte, bei Be das vorletzte.\n2. Die Tonart: einen Halbton über dem letzten Kreuz (Fis → G-Dur), bei Be das vorletzte selbst (B, Es → B-Dur).\nEin einzelnes Be: F-Dur.\nReihenfolge der Vorzeichen und Merksprüche: in den Hilfen.`,
     items: ITEMS_10,
     example: keySvg({ clef: "treble", fifths: 4 }),
     question(prev) { return majorStepQuestion(pickKey(ITEMS_10, prev)); },
@@ -1062,7 +1073,7 @@ const levels = [
     title: "Parallele Molltonart",
     twoSteps: true,
     subtitle: `Violinschlüssel · zwei Schritte · mit Hilfen · ${FIFTHS.length} Molltonarten`,
-    hint: "Zwei Schritte: Erst die Terz abwärts – drei Notenstufen, der Dur-Grundton zählt als 1 (Es, D, C). Das ergibt den Stammton (Stammton = Note ohne Vorzeichen). Dann drei Halbtöne abwärts, so bekommt der Stammton sein Vorzeichen: Zusammen ist das eine kleine Terz abwärts. Moll wird klein geschrieben.",
+    hint: "Zwei Schritte:\n1. Terz abwärts: drei Notenstufen, der Dur-Grundton zählt als 1 (Es, D, C). Das ergibt den Stammton.\n2. Drei Halbtöne abwärts: So bekommt der Stammton sein Vorzeichen.\nZusammen ist das eine kleine Terz abwärts.\nStammton = Note ohne Vorzeichen. Moll wird klein geschrieben.",
     items: ITEMS_12,
     example: keySvg({ clef: "treble", fifths: -3 }),
     question(prev) { return minorStepQuestion(pickKey(ITEMS_12, prev)); },
@@ -1103,7 +1114,7 @@ export function circleBoard(state) {
     ${TABLE_OPEN}<thead><tr><th>Vorzeichen</th><th>Dur</th><th>parallele Molltonart</th></tr></thead><tbody>${rows}</tbody></table>
     ${FIG(circleTable())}
     ${P(`Kreuze: <b>${SHARPS_ALL.join(" ")}</b> – „${showHtml(state, "kreuze")}“`, "small")}
-    ${P(`Be: <b>${FLATS_ALL.join(" ")}</b> – die Kreuz-Reihe rückwärts. „${showHtml(state, "bes")}“ (dein ♭-Tonarten-Spruch ohne das erste Wort) reicht bis Ges.`, "small")}
+    ${P(`Be: <b>${FLATS_ALL.join(" ")}</b> – ${FLATS_FROM_SHARPS}. „${showHtml(state, "bes")}“ (dein ♭-Tonarten-Spruch ohne das erste Wort) reicht bis Ges.`, "small")}
     ${P(`Dur-Tonarten ♯: <b>G D A E H Fis</b> – „${showHtml(state, "kreuz-tonarten")}“ · ♭: <b>F B Es As Des Ges</b> – „${showHtml(state, "be-tonarten")}“. Cis-Dur und Ces-Dur (7 Vorzeichen) haben keinen Spruch.`, "small")}
     <div class="spruch-board"><p class="small muted">Wähle deine Merksprüche oder schreib eigene. Die Anfangsbuchstaben müssen passen.</p>${CIRCLE_WAHL.map((id) => wahlHtml(state, id)).join("")}</div>`;
 }
