@@ -407,6 +407,29 @@ test("waitsAfter: Hilfen, daneben, richtig mit kurzem oder langem Text", () => {
   }
 });
 
+test("Abschlussprüfung Welle 10: Weiterlaufen nach „richtig“ je Stufe, nicht je Text", async () => {
+  const { PACKS } = await import("../src/packs/index.js");
+  const { okWaits, okTextsMax, OK_SAMPLE } = await import("../src/engine.js");
+  const want = { "notenwerte-3": true, "notenwerte-5": false, "tonleitern-3": false, "tonleitern-11": true, "akkorde-3": true, "akkorde-4": false, "akkorde-5": true, "akkorde-6": true, "intervall-2": false };
+  for (const p of PACKS) for (const level of p.levels) {
+    if (hasHelps(level)) continue;
+    const w = okWaits(level);
+    // gleiche Entscheidung mit größerer Stichprobe
+    assert.equal(okTextsMax(level, OK_SAMPLE * 4) > AUTO_OK_MAX, w, level.id);
+    // innerhalb der Stufe einheitlich: jede richtige Antwort wartet oder keine, egal wie lang der Text ist
+    let prev = null;
+    for (let i = 0; i < 40; i++) {
+      prev = level.question(prev, { notes: {}, round: [] });
+      assert.equal(waitsAfter(level, true, feedbackText(prev, true)), w, level.id);
+    }
+    if (level.id in want) assert.equal(w, want[level.id], level.id);
+    if (level.id.startsWith("noten-")) assert.equal(w, false, `${level.id}: Noten lesen läuft weiter`);
+  }
+  // level.autoNext setzt es fest
+  assert.equal(waitsAfter({ autoNext: true, question: () => ({ display: "x".repeat(99) }) }, true, "x".repeat(99)), false);
+  assert.equal(waitsAfter({ autoNext: false, question: () => ({ display: "x" }) }, true, "x"), true);
+});
+
 test("digitAction: Ziffern nur bei digits, innerhalb der Knöpfe, ohne Strg/Alt/Cmd", () => {
   const set = { choices: ["Prime", "Sekunde", "Terz", "Quarte", "Quinte", "Sexte", "Septime", "Oktave"], digits: true };
   const k = (key, extra = {}) => ({ key, ...extra });

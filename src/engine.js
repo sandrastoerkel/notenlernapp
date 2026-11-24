@@ -214,8 +214,32 @@ export const NEXT_STEP = "Weiter zu Schritt 2";
 // Leertaste), damit du Auflösung, Hilfen und „Vorführen“ in Ruhe ansehen kannst (Sonderfall von waitsAfter).
 export const waitsForNext = (level) => hasHelps(level);
 // Warten nach einer Aufgabe (rein): Stufe mit Hilfen → ja; daneben (auch Teilerfolg) → immer; richtig ohne
-// Hilfen → nur bei einem Rückmeldetext länger als AUTO_OK_MAX, sonst nach answerDelay von selbst weiter.
-export const waitsAfter = (level, ok, text) => waitsForNext(level) || !ok || String(text || "").length > AUTO_OK_MAX;
+// Hilfen → nur in Stufen, deren richtige Rückmeldungen länger als AUTO_OK_MAX werden können (okWaits), sonst
+// nach answerDelay von selbst weiter.
+// Seit der Abschlussprüfung Welle 10 gilt die Grenze je Stufe, nicht je Text: Sonst lief in Tonleitern 11 und
+// Dreiklänge 3, 5, 6 nur ein Teil der richtigen Antworten von selbst weiter (unvorhersehbar). Eine Stufe ohne
+// Hilfen wartet auch nach „richtig“, wenn irgendeine ihrer richtigen Rückmeldungen länger als AUTO_OK_MAX ist
+// (okWaits); level.autoNext (true/false) setzt es fest. Ohne level.question (Testobjekte) gilt der Text selbst.
+export const waitsAfter = (level, ok, text) => waitsForNext(level) || !ok || okWaits(level, text);
+// Stichprobe je Stufe (gemerkt): so viele Aufgaben, dass jede Aufgabe der Stufe sicher vorkommt (größter Vorrat
+// ohne Hilfen etwa 200 Aufgaben; test/engine.test.js prüft, dass das Ergebnis mit 20-facher Stichprobe gleich ist)
+export const OK_SAMPLE = 1500;
+const okWaitCache = new WeakMap();
+export function okTextsMax(level, n = OK_SAMPLE) {
+  let max = 0, prev = null;
+  const round = [];
+  for (let i = 0; i < n; i++) {
+    prev = level.question(prev, { notes: {}, round });
+    max = Math.max(max, feedbackText(prev, true).length);
+  }
+  return max;
+}
+export function okWaits(level, text) {
+  if (level && typeof level.autoNext === "boolean") return !level.autoNext;
+  if (!level || typeof level.question !== "function") return String(text || "").length > AUTO_OK_MAX;
+  if (!okWaitCache.has(level)) okWaitCache.set(level, okTextsMax(level) > AUTO_OK_MAX);
+  return okWaitCache.get(level);
+}
 // Hinweis- und Hilfetexte dürfen Funktionen sein, (ctx) => Text, z. B. mit dem gewählten Merkspruch aus
 // ctx.state (Welle 10, Schritt 4); sonst der Text selbst. Rein, getestet.
 export const textOf = (v, ctx) => (typeof v === "function" ? v(ctx || {}) : v);
@@ -385,6 +409,9 @@ export function startRound(level, ui, hooks) {
     input: effectiveInput(level.input, hooks.state.input, !!level.namesOnly),
   };
   run = r;
+  // Entscheidung „wartet nach richtig?“ für die Stufe schon jetzt rechnen (Stichprobe, gemerkt), nicht erst nach
+  // der ersten Antwort
+  if (!hasHelps(level)) okWaits(level);
   if (ui.answers) ui.answers.classList.remove("choices", "short", "names", "cols");
   // Hilfen: nur bei Stufen mit helps; zu Beginn der Runde zugeklappt, danach bleibt der Bereich, wie du
   // ihn gelassen hast (auf oder zu), der Inhalt wechselt mit jeder Aufgabe
