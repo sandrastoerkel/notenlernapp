@@ -663,11 +663,12 @@ export const COUNT_EXPLAIN = `${UND_HTML} heißt „und“. In Klammern: Schläg
 const countFigure = (svg) => `<figure class="nw-count-fig">${svg}<figcaption class="nw-count-cap">${COUNT_EXPLAIN}</figcaption></figure>`;
 
 // Zählzeit, auf der die Lücke beginnt, als Wort: „3“, „2 +“; eine Sechzehntel zwischen zwei Silben:
-// „zwischen „1“ und „1 +““. a = Einsatz in Achteln.
+// „zwischen den Zählzeiten „1“ und „1 +““ (mit „Zählzeiten“, damit klar ist, dass „1“ und „1 +“ zwei Stellen
+// beim Zählen sind und die Sechzehntel keine eigene Silbe hat). a = Einsatz in Achteln.
 const syllableName = (i) => (isBeatSyllable(i) ? `${i / 2 + 1}` : `${(i - 1) / 2 + 1} ${UND_HTML}`);
 export function gapPlace(a) {
   if (Math.abs(a - Math.round(a)) < 1e-9) return `auf „${syllableName(Math.round(a))}“`;
-  return `zwischen „${syllableName(Math.floor(a))}“ und „${syllableName(Math.ceil(a))}“`;
+  return `zwischen den Zählzeiten „${syllableName(Math.floor(a))}“ und „${syllableName(Math.ceil(a))}“`;
 }
 // „Die Lücke steht auf „2 +“, dort steht jetzt die Achtelnote.“ (aus den Einsatzzeiten gerechnet)
 export const gapSentence = (els, gap) => `Die Lücke steht ${gapPlace(onsetsOf(els)[gap] * 2)}, dort steht jetzt die ${nameOf(els[gap])}.`;

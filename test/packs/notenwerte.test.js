@@ -994,8 +994,8 @@ test("Vorführung 3: Satz zur Lücke aus den Einsatzzeiten (alle 91 Aufgaben)", 
   const U = '<span class="nw-und">+</span>';
   assert.equal(gapSentence(parseBar("4. 8 4 4"), 1), `Die Lücke steht auf „2 ${U}“, dort steht jetzt die Achtelnote.`);
   assert.equal(gapSentence(parseBar("4 4 r2"), 2), "Die Lücke steht auf „3“, dort steht jetzt die halbe Pause.");
-  assert.equal(gapSentence(parseBar("16 16 8 4 2"), 1), `Die Lücke steht zwischen „1“ und „1 ${U}“, dort steht jetzt die Sechzehntelnote.`);
-  assert.equal(gapSentence(parseBar("8 16 16 4 2"), 2), `Die Lücke steht zwischen „1 ${U}“ und „2“, dort steht jetzt die Sechzehntelnote.`);
+  assert.equal(gapSentence(parseBar("16 16 8 4 2"), 1), `Die Lücke steht zwischen den Zählzeiten „1“ und „1 ${U}“, dort steht jetzt die Sechzehntelnote.`);
+  assert.equal(gapSentence(parseBar("8 16 16 4 2"), 2), `Die Lücke steht zwischen den Zählzeiten „1 ${U}“ und „2“, dort steht jetzt die Sechzehntelnote.`);
   for (const it of ITEMS_8) {
     const els = parseBar(it.bar), a = onsetsOf(els)[it.gap] * 2, t = gapSentence(els, it.gap);
     assert.ok(t.endsWith(`, dort steht jetzt die ${nameOf(els[it.gap])}.`), it.key);
@@ -1044,4 +1044,15 @@ test("Rechen-Plus nur in Rechnungen mit „=“, Zählsilbe nie in derselben Zei
     if (plain.includes("+")) assert.ok(plain.includes("="), t);
     if (t.includes("nw-und")) assert.ok(!t.includes("="), t);
   }
+});
+
+// Prüfung Schritt 6: Grenzfälle der Regel, die in BARS nicht vorkommen (Sandra: jeder SCHLAG wird gezeigt,
+// gehaltene „+“ nicht)
+test("countLabelText: Note auf „+“ über einen Schlag gehalten, punktierte Achtel, Pausen auf „+“", () => {
+  assert.deepEqual(countLabelText(parseBar("8 4 8 2")), ["1", "+ (2)", "+", "3 (4)"]);
+  assert.deepEqual(countLabelText(parseBar("8 4. 2")), ["1", "+ (2)", "3 (4)"]);
+  assert.deepEqual(countLabelText(parseBar("8. 16 4 2")), ["1", "", "2", "3 (4)"]);
+  assert.deepEqual(countLabelText(parseBar("r8 8 r4 r8 8 4")), ["(1)", "+", "(2)", "(3)", "+", "4"]);
+  assert.deepEqual(countLabelText(parseBar("1")), ["1 (2) (3) (4)"]);
+  assert.deepEqual(countLabelText(parseBar("r1")), ["(1) (2) (3) (4)"]);
 });
