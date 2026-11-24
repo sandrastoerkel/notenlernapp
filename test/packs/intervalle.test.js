@@ -676,6 +676,9 @@ test("Aufgaben mit ♮: 9 in Stufe 5, 18 in Stufe 6, alle übermäßige Primen v
   assert.ok(!svg.includes("♮"));
   // Hinweis der Stufe 5 erklärt das Zeichen
   assert.ok(L[4].hint.includes("♮") && L[4].hint.includes("des'–d'"));
+  // Abschlussprüfung Welle 10: Startkarten in kurzen Zeilen, Fachwörter je eine Zeile
+  assert.ok(L[4].hint.includes("\nVermindert = ein Halbton weniger als rein oder klein.\nÜbermäßig = ein Halbton mehr als rein oder groß."));
+  assert.ok(L[2].hint.startsWith("Zwei Schritte:\n1. Grobbestimmung") && L[2].hint.includes("\n2. Feinbestimmung"));
 });
 
 test("Welle 10, B5: Grob- und Feinbestimmung – Fragen, Marken, Tabellenkopf, Erklärung in Stufe 3", () => {

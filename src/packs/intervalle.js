@@ -559,7 +559,7 @@ const levels = [
   {
     title: "Rein, klein, groß",
     subtitle: `Violinschlüssel · zwei Schritte · mit Hilfen · ${POOL_3.length} Aufgaben`,
-    hint: "Zwei Schritte: Erst die Grobbestimmung aus den Notenstufen, dann die Feinbestimmung aus den Halbtönen. Grobbestimmung = nur die Zahl: Prime, Sekunde, Terz … Feinbestimmung = rein, klein oder groß. Prime, Quarte, Quinte und Oktave sind hier rein, Sekunde, Terz, Sexte und Septime klein oder groß.",
+    hint: "Zwei Schritte:\n1. Grobbestimmung = nur die Zahl: Prime, Sekunde, Terz … – aus den Notenstufen.\n2. Feinbestimmung = rein, klein oder groß – aus den Halbtönen.\nRein sind hier Prime, Quarte, Quinte, Oktave.\nKlein oder groß: Sekunde, Terz, Sexte, Septime.",
     items: POOL_3,
     example: intervalSvg(find(POOL_3, N("E", 4), N("G", 4))),
     twoSteps: true,
@@ -580,7 +580,7 @@ const levels = [
   {
     title: "Vermindert und übermäßig",
     subtitle: `Violinschlüssel · zwei Schritte · mit Hilfen · ${POOL_5.length} Aufgaben`,
-    hint: "Ein Halbton weniger als rein oder klein heißt vermindert, einer mehr als rein oder groß übermäßig. f'–h' ist eine übermäßige Quarte, h'–f'' eine verminderte Quinte, beide 6 Halbtöne: Erst die Zahl sagt, welches es ist. Steht nach des' ein d' an derselben Stelle, hebt das Auflösungszeichen ♮ das ♭ auf: des'–d' ist eine übermäßige Prime.",
+    hint: "Neu: vermindert und übermäßig.\nVermindert = ein Halbton weniger als rein oder klein.\nÜbermäßig = ein Halbton mehr als rein oder groß.\nf'–h' (übermäßige Quarte) und h'–f'' (verminderte Quinte) haben beide 6 Halbtöne: Erst die Zahl sagt, welches es ist.\n♮ hebt ein ♭ an derselben Stelle auf: des'–d' ist eine übermäßige Prime.",
     items: POOL_5,
     example: intervalSvg(find(POOL_5, N("F", 4), N("H", 4))),
     twoSteps: true,
