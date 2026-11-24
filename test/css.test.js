@@ -131,3 +131,20 @@ test("Zählleiste der Hilfen (Notenwerte 8) passt bei 320 px in ihren Rahmen", (
   // die Spalte der Abbildung darf schrumpfen, sonst drückt die Tabelle den Satz darunter aus dem Rahmen
   assert.match(css, /\.nw-count-fig \{[^}]*grid-template-columns: minmax\(0, 1fr\)/);
 });
+
+/* ---------- Antwortknöpfe und Hilfen (Abschlussprüfung Welle 10) ---------- */
+
+test("Antwortknöpfe: Rahmen immer 2 px, damit sich die Breite nach der Antwort nicht ändert", () => {
+  assert.match(plain, /\.answers \.btn \{ border-width: 2px; \}/);
+});
+
+test("Auswahlknöpfe: Umbruch nur zwischen Wörtern, nie mitten im Wort", () => {
+  const rule = plain.match(/\.answers\.choices \.btn \{([^}]*)\}/)[1];
+  assert.match(rule, /overflow-wrap: normal/);
+  assert.match(rule, /hyphens: manual/);
+  assert.doesNotMatch(plain, /overflow-wrap: anywhere;[^}]*\}\s*\.answers/);
+});
+
+test("Hilfen: auf Handys steht „Vorführen“ unter dem Hilfetext", () => {
+  assert.match(plain, /@media \(max-width: 599px\) \{\s*\.help-head \{ flex-direction: column;/);
+});

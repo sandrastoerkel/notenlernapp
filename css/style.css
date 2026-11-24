@@ -196,6 +196,9 @@ section { display: grid; gap: 14px; }
    (engine.js, markAnswer). Der richtige Knopf bekommt nach einer falschen Antwort ebenfalls ✓. */
 .answers .btn { position: relative; }
 .answers .btn.ok, .answers .btn.bad { border-width: 2px; }
+/* Rahmen immer 2 px (vor der Antwort in --line): sonst wird der Knopf mit .ok/.bad innen 2 px schmaler, Text
+   bricht erst nach der Antwort um und die Knöpfe springen (Abschlussprüfung Welle 10) */
+.answers .btn { border-width: 2px; }
 .answers .btn.ok::after, .answers .btn.bad::after {
   position: absolute; top: -7px; right: -5px; width: 18px; height: 18px; border-radius: 50%;
   display: grid; place-items: center; font: 800 12px/1 var(--body); color: var(--on-mark); pointer-events: none;
@@ -203,12 +206,13 @@ section { display: grid; gap: 14px; }
 .answers .btn.ok::after { content: "✓"; background: var(--ok); }
 .answers .btn.bad::after { content: "✗"; background: var(--bad); }
 /* Auswahlknöpfe (input "choices", Klasse von src/engine.js): Begriffe in zwei Spalten, kurze Texte
-   (½, VII, 3 ♭) nebeneinander; Schrift Nunito, weil Outfit Brüche (½ ¼ ¾) winzig setzt; Knöpfe dürfen schmaler als ihr Text werden und brechen dann um */
+   (½, VII, 3 ♭) nebeneinander; Schrift Nunito, weil Outfit Brüche (½ ¼ ¾) winzig setzt; Knöpfe brechen nur zwischen Wörtern um, nie mitten im Wort („De|s“, „1|½“); Schrift und Innenabstand sind
+   so gewählt, dass das längste Wort bei 320 px hineinpasst (test/css.test.js, /home/claude/work: Messung) */
 .answers.choices { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .answers.choices.short { grid-template-columns: repeat(var(--cols, 4), minmax(0, 1fr)); } /* --cols setzt src/engine.js */
 /* Feste Spaltenzahl (q.cols bzw. Schritt in q.steps): Prime … Oktave in zwei Reihen zu vier */
 .answers.choices.cols { grid-template-columns: repeat(var(--cols, 4), minmax(0, 1fr)); }
-.answers.choices .btn { min-width: 0; padding: 12px 6px; font-size: 1rem; font-family: var(--body); line-height: 1.2; overflow-wrap: anywhere; hyphens: auto; }
+.answers.choices .btn { min-width: 0; padding: 12px 6px; font-size: 1rem; font-family: var(--body); line-height: 1.2; overflow-wrap: normal; word-break: normal; hyphens: manual; }
 .answers.choices.short .btn { font-size: 1.25rem; }
 /* Namensraster (Stufen mit Vorzeichen, Klasse von src/engine.js): 3 Reihen × 7 Spalten, C … H, Cis … His,
    Ces … B; Namen bis drei Zeichen passen bei 420 px in eine Spalte */
@@ -222,6 +226,8 @@ section { display: grid; gap: 14px; }
 /* Nunito statt Outfit: die Bruchzeichen ½ ¼ ¾ sind in Outfit sehr klein */
 .feedback { min-height: 1.6em; font-weight: 800; font-family: var(--body); font-size: 1.05rem; }
 .feedback.ok { color: var(--ok); } .feedback.bad { color: var(--bad); }
+/* Hervorgehobenes Wort in der Rückmeldung (Noten lesen: Wort des Merkspruchs zur Stelle der Note) */
+.feedback .fb-mark { font-weight: 900; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
 /* Zeichen vor der Rückmeldung (auch für Antworten über die Klaviatur): ✓ richtig, ✗ daneben */
 .feedback.ok::before { content: "✓ "; } .feedback.bad::before { content: "✗ "; }
 /* Teilerfolg: eigene Fläche statt Rot, damit er auf den ersten Blick von „daneben“ verschieden ist */
@@ -263,7 +269,14 @@ section { display: grid; gap: 14px; }
 .keys-static .klabel.mark { fill: var(--accent-fg); font-weight: 700; }
 .helps-body.stack { gap: 8px; }
 .help-text { font-size: .8rem; }
+/* Satz und „Vorführen“: auf Handys untereinander (Text in voller Breite, Knopf darunter linksbündig), sonst
+   liefe ein langer Hilfetext als schmale Spalte neben dem Knopf (Abschlussprüfung Welle 10); ab 600 px nebeneinander */
 .help-head { display: flex; gap: 10px; align-items: center; }
+@media (max-width: 599px) {
+  .help-head { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .help-head .help-text { flex: none; width: 100%; }
+  .help-head .demo-go { grid-auto-flow: column; align-items: center; gap: 8px; }
+}
 .help-head .help-text { flex: 1; min-width: 0; }
 .help-head .btn { padding: 6px 10px; flex: none; font-size: .9rem; }
 /* „Vorführen“ mit dem sichtbaren Zusatz „nach deiner Antwort“ darunter (verschwindet nach der Antwort) */
@@ -278,10 +291,12 @@ section { display: grid; gap: 14px; }
 .help-table-wrap .tt-label { padding-right: 6px; }
 @media (min-width: 600px) { .help-grid { grid-template-columns: minmax(0, 1fr) auto; align-items: center; } }
 .help-demo { display: grid; gap: 10px; }
-/* Bis 380 px Breite passen Notenzeile, offene Hilfen und Antwortknöpfe nicht übereinander auf den Bildschirm:
-   Die Hilfen stehen dann unter den Antwortknöpfen, die Tabelle wieder in einem Stück */
+/* Auf Handys (bis 599 px Breite) passen Notenzeile, offene Hilfen und Antwortknöpfe nicht übereinander auf den
+   Bildschirm: Die Hilfen stehen dann unter den Antwortknöpfen, damit Notenzeile, Rückmeldung und Knöpfe
+   zusammen sichtbar bleiben (auch die Auflösung mit den Zählzeiten nach der Antwort; Abschlussprüfung Welle 10,
+   vorher bis 380 px). Bis 380 px zusätzlich die Tabelle in einem Stück. */
+@media (max-width: 599px) { #pHelps { order: 1; } }
 @media (max-width: 380px) {
-  #pHelps { order: 1; }
   .help-table-wrap .tt-split { flex-direction: column; gap: 4px; }
 }
 
@@ -551,9 +566,11 @@ section { display: grid; gap: 14px; }
   .hero { grid-template-columns: 1fr; }
   .answers .btn { font-size: 1.05rem; padding: 12px 0; }
   .answers.choices .btn { font-size: .95rem; padding: 12px 4px; }
-  .answers.choices.short .btn { font-size: 1.2rem; }
+  .answers.choices.short .btn { font-size: 1.2rem; padding-inline: 0; }
   .answers.choices.cols .btn { font-size: .9rem; padding: 12px 2px; }
 }
+/* Sechs kurze Knöpfe in einer Reihe (Tonleitern 6, 7, 10: „Des“, „Ges“) passen bei 320 px nur etwas kleiner */
+@media (max-width: 340px) { .answers.choices.short .btn { font-size: 1.1rem; } }
 @media (prefers-reduced-motion: reduce) { .btn { transition: none; } }
 /* Kopfzeile bei 320 px: Logo, Serie, XP und Tonknopf passen nebeneinander, auch bei großen Zahlen */
 @media (max-width: 360px) {

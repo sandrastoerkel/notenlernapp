@@ -143,11 +143,11 @@ test("Hilfen aufgeklappt: so weit scrollen, dass die erste Reihe der Antwortknö
   assert.equal(answersScroll(700.2, 560), 141);
 });
 
-test("index.html: Hilfen zwischen Notenzeile und Runde; bis 380 px rücken sie per CSS unter die Antwortknöpfe", () => {
+test("index.html: Hilfen zwischen Notenzeile und Runde; bis 599 px rücken sie per CSS unter die Antwortknöpfe", () => {
   const html = readFileSync(new URL("../../index.html", import.meta.url), "utf8");
   assert.ok(html.indexOf('id="pStaff"') < html.indexOf('id="pHelps"') && html.indexOf('id="pHelps"') < html.indexOf('id="pPlay"'));
   const css = readFileSync(new URL("../../css/style.css", import.meta.url), "utf8");
-  assert.match(css, /@media \(max-width: 380px\) \{\s*#pHelps \{ order: 1; \}/);
+  assert.match(css, /@media \(max-width: 599px\) \{ #pHelps \{ order: 1; \} \}/);
 });
 
 test("Startkarte: zweischrittige Stufen sagen „Beide Schritte müssen stimmen.“", () => {
