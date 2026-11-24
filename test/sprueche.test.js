@@ -11,6 +11,7 @@ import tonleitern, { SHARPS_ALL, FLATS_ALL, circleBoard } from "../src/packs/ton
 import { learnCardsHtml } from "../src/views/learn.js";
 import { startHint } from "../src/views/practice.js";
 import { PACKS } from "../src/packs/index.js";
+import akkorde, { circleRing, circleHtml } from "../src/packs/akkorde.js";
 
 const memStorage = (init = {}) => {
   const data = { ...init }; let writes = 0;
@@ -309,4 +310,39 @@ test("Tonleitern: ganze Reihenfolge (aus music.js) und Sprüche in Stufe 8, 10, 
   const cb = circleBoard(s);
   assert.ok(cb.includes("Fis Cis Gis Dis Ais Eis His") && cb.includes("B Es As Des Ges Ces Fes"));
   assert.ok(cb.includes('<span data-spruch-show="be-tonarten">Frische Bananen Essen Affen Den Ganzen</span>'));
+});
+
+test("Prüfung Schritt 4: zerlegte Umlaute (NFD) – gespeichert in NFC, bes schneidet an der richtigen Stelle", () => {
+  const s = fresh();
+  const nfd = "Fünf Bären Essen Äpfel Die Gären".normalize("NFD");
+  assert.notEqual(nfd, nfd.normalize("NFC"));
+  // „Äpfel“ beginnt mit Ä, nicht mit A – auch zerlegt
+  assert.equal(setzeEigen(s, "be-tonarten", nfd).grund, "buchstabe");
+  const ok = "Fünf Bären Essen Alle Dünne Gräten".normalize("NFD");
+  assert.ok(setzeEigen(s, "be-tonarten", ok).ok);
+  assert.equal(s.sprueche["be-tonarten"].eigen, "Fünf Bären Essen Alle Dünne Gräten");
+  assert.equal(spruch(s, "bes"), "Bären Essen Alle Dünne Gräten");
+  // von Hand zerlegt im Speicher: bes bleibt richtig geschnitten
+  s.sprueche["be-tonarten"] = { eigen: ok };
+  assert.equal(spruch(s, "bes"), "Bären Essen Alle Dünne Gräten");
+  // 80 Zeichen zählen im NFC-Text
+  const lang = ("Ü".repeat(15) + " ").repeat(5).trim();
+  assert.equal(lang.length, 79);
+  assert.notEqual(checkSpruch("violin-linien", lang.normalize("NFD")).grund, "lang");
+});
+
+test("Prüfung Schritt 4: Tafel „Quintenzirkel“ der Dreiklänge zeigt die gewählten Tonarten-Sprüche zum Ring", () => {
+  // Reihen im Ring: ab G im Uhrzeigersinn, ab F gegen den Uhrzeigersinn (aus circleRing, nicht abgetippt)
+  const ring = circleRing().map((e) => e.major.split("/"));
+  assert.deepEqual([1, 2, 3, 4, 5, 6].map((i) => ring[i][0]), "G D A E H Fis".split(" "));
+  assert.deepEqual([11, 10, 9, 8, 7, 6].map((i) => ring[i][ring[i].length - 1]), "F B Es As Des Ges".split(" "));
+  const s = fresh();
+  let h = circleHtml(s);
+  assert.ok(h.includes("<b>G D A E H Fis</b>") && h.includes("<b>F B Es As Des Ges</b>"));
+  assert.ok(h.includes('<span data-spruch-show="kreuz-tonarten">Geh Du Alter Esel Hole Fische</span>'));
+  assert.ok(h.includes('<span data-spruch-show="be-tonarten">Frische Brezen Essen Asse Des Gesangs</span>'));
+  s.sprueche["be-tonarten"] = { eigen: "Faule Bären Essen Abends Dicke Gurken<b>&</b>" };
+  h = akkorde.learn.find((c) => c.title === "Quintenzirkel").render({ state: s });
+  assert.ok(h.includes("Gurken&lt;b&gt;&amp;&lt;/b&gt;") && !h.includes("<b>&</b>"));
+  assert.ok(circleHtml().includes("Geh Du Alter Esel Hole Fische"), "ohne Spielstand die Voreinstellung");
 });

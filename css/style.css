@@ -473,7 +473,7 @@ section { display: grid; gap: 14px; }
 .spruch-wahl { display: grid; gap: 6px; margin: 0; padding: 10px 12px 8px; border: 1px solid var(--line); border-radius: 12px; min-width: 0; }
 .spruch-wahl legend { padding: 0 4px; font-size: .9rem; font-weight: 700; }
 .spruch-wahl legend b { white-space: nowrap; }
-.spruch-opt { display: flex; align-items: flex-start; gap: 8px; padding: 6px 8px; border: 1px solid transparent; border-radius: 10px; cursor: pointer; overflow-wrap: anywhere; }
+.spruch-opt { display: flex; align-items: flex-start; gap: 8px; min-height: 44px; box-sizing: border-box; padding: 10px 8px; border: 1px solid transparent; border-radius: 10px; cursor: pointer; overflow-wrap: anywhere; }
 .spruch-opt input { margin: 3px 0 0; flex: none; accent-color: var(--accent); }
 .spruch-opt.on { border-color: var(--accent); background: var(--accent-soft); font-weight: 700; }
 .spruch-eigen { width: 100%; box-sizing: border-box; font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--fg); }

@@ -46,7 +46,8 @@ export const initials = (text) => words(text).map((m) => m[0].match(LETTER)[0].t
 export function checkSpruch(id, text) {
   const m = MERKHILFEN[id];
   const soll = m ? m.buchstaben : [];
-  const t = String(text || "").trim();
+  // NFC wie in words(): „A“ + Trema (zerlegt, z. B. eingefügter Text) zählt als Ä und als ein Zeichen
+  const t = String(text || "").normalize("NFC").trim();
   const ist = initials(t);
   const res = (grund, stelle) => ({ ok: !grund, soll, ist, stelle, grund });
   if (!m) return res("unbekannt", null);
@@ -86,8 +87,9 @@ export function aktiv(state, id) {
 
 // Ohne das erste Wort (für bes aus be-tonarten); der Rest bleibt, wie er geschrieben ist
 const ohneErstesWort = (text) => {
-  const w = words(text);
-  return w.length > 1 ? text.slice(w[1].index).trim() : "";
+  // words() rechnet in NFC; die Stelle des zweiten Worts gilt deshalb nur im NFC-Text
+  const t = String(text || "").normalize("NFC"), w = words(t);
+  return w.length > 1 ? t.slice(w[1].index).trim() : "";
 };
 
 // Der Spruch, der gilt: eigener Text, gewählter Vorschlag oder Voreinstellung
@@ -122,7 +124,7 @@ export function waehle(state, id, n) {
 export function setzeEigen(state, id, text) {
   const m = MERKHILFEN[id];
   const r = checkSpruch(id, text);
-  if (r.ok && m && !m.von) slot(state)[id] = { eigen: String(text).trim() };
+  if (r.ok && m && !m.von) slot(state)[id] = { eigen: String(text).normalize("NFC").trim() };
   return r;
 }
 

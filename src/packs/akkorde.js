@@ -4,6 +4,7 @@ import {
   MAJOR_KEYS, relativeMinorOf, fifthUp, fifthDown, degreeTriad, ROMAN, triadName, majorScale, majorTonic,
 } from "../music.js";
 import { staffSvg, noteSvg, BOTTOM, S, ACC_DY } from "../staff.js";
+import { showHtml } from "../sprueche.js";
 
 const r2 = (v) => Math.round(v * 100) / 100;
 const yOf = (p) => BOTTOM - p * (S / 2);
@@ -433,8 +434,12 @@ function circleSvg() {
   return s + "</svg>";
 }
 
-const circleHtml = () => `<div style="${WRAP}"><p class="eyebrow" style="margin:6px 0 2px">Im Uhrzeigersinn eine Quinte höher: ein ♯ mehr bzw. ein ♭ weniger</p>${circleSvg()}`
-  + `<p class="small muted" style="margin:4px 0 0;text-align:center">Außen Dur, <span style="color:var(--accent)">innen die parallele Molltonart</span> (kleine Terz tiefer), in der Mitte die Vorzeichen.</p></div>`;
+// state (optional): Spielstand für die gewählten Tonarten-Merksprüche (sprueche.js; gewählt wird in der
+// Tafel „Quintenzirkel“ der Tonleitern). Im Ring gelesen: ab G im Uhrzeigersinn die ♯-Tonarten, ab F gegen
+// den Uhrzeigersinn die ♭-Tonarten.
+export const circleHtml = (state) => `<div style="${WRAP}"><p class="eyebrow" style="margin:6px 0 2px">Im Uhrzeigersinn eine Quinte höher: ein ♯ mehr bzw. ein ♭ weniger</p>${circleSvg()}`
+  + `<p class="small muted" style="margin:4px 0 0;text-align:center">Außen Dur, <span style="color:var(--accent)">innen die parallele Molltonart</span> (kleine Terz tiefer), in der Mitte die Vorzeichen.</p>`
+  + `<p class="small" style="margin:6px 0 0">Ab G im Uhrzeigersinn: <b>G D A E H Fis</b> – „${showHtml(state, "kreuz-tonarten")}“. Ab F gegen den Uhrzeigersinn: <b>F B Es As Des Ges</b> – „${showHtml(state, "be-tonarten")}“.</p></div>`;
 
 export default {
   id: "akkorde",
@@ -445,7 +450,7 @@ export default {
   learn: [
     { title: "Dreiklangstypen", clef: "treble", render() { return typesHtml("treble"); } },
     { title: "Dreiklangstypen", clef: "bass", render() { return typesHtml("bass"); } },
-    { title: "Quintenzirkel", render() { return circleHtml(); } },
+    { title: "Quintenzirkel", render(ctx) { return circleHtml(ctx && ctx.state); } },
   ],
   blitz: null,
 };
