@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { startLabel, keysHint, lettersLabel, resultInfo, answersScroll, startHint, TWO_STEPS_NOTE, resultLine, avgText } from "../../src/views/practice.js";
+import { startLabel, keysHint, lettersLabel, resultInfo, missingText, keepStufe, answersScroll, startHint, TWO_STEPS_NOTE, resultLine, avgText } from "../../src/views/practice.js";
 import { PACKS } from "../../src/packs/index.js";
 import { lockText } from "../../src/views/home.js";
 import { fresh } from "../../src/store.js";
@@ -28,52 +28,83 @@ const lv = (pack, no) => pack.levels[no - 1];
 // seit „Intervalle neu“ nutzt kein Paket requires mehr, die Logik bleibt erhalten und getestet
 const REQ = { levels: Array.from({ length: 12 }, (_, i) => ({ id: `r-${i + 1}`, no: i + 1, ...(i >= 6 ? { requires: `r-${i === 6 ? 1 : i}` } : {}) })) };
 
-test("Ergebniskarte folgt requires", () => {
+test("Ergebniskarte folgt requires (Welle 10, A7: eigene Freischalt-Zeile)", () => {
   const s = fresh();
-  // Stufe 1 mit 6 Richtigen: Stufe 2 und 7 öffnen sich ab 8
+  // Stufe 1 schaltet zwei Stufen frei (2 und 7): mit 6 Richtigen fehlen noch 2
   let r = resultInfo(s, REQ, lv(REQ, 1), 6);
   assert.equal(r.next.id, "r-2"); assert.equal(r.nextOpen, false);
-  assert.equal(r.note, "Stufe 2 und 7 öffnen sich ab 8 Richtigen");
-  // Stufe 1 mit 8 Richtigen (der Store hat best schon eingetragen): Stufe 2 anbieten, Stufe 7 nennen
+  assert.equal(r.note, "Noch 2 richtige Antworten, dann öffnen sich die Stufen 2 und 7.");
+  assert.equal(resultInfo(s, REQ, lv(REQ, 1), 7).note, "Noch eine richtige Antwort, dann öffnen sich die Stufen 2 und 7.");
+  assert.equal(resultInfo(s, REQ, lv(REQ, 1), 4).note, "Ab 8 von 10 öffnen sich die Stufen 2 und 7.");
+  // Stufe 1 mit 8 Richtigen (der Store hat best schon eingetragen): beide offen
   s.levels["r-1"] = { stars: 2, best: 8, played: 1 };
   r = resultInfo(s, REQ, lv(REQ, 1), 8);
   assert.equal(r.next.id, "r-2"); assert.equal(r.nextOpen, true);
-  assert.equal(r.note, "Stufe 7 ist offen");
+  assert.equal(r.note, "Die Stufen 2 und 7 sind offen.");
   // Stufe 7: als Nächstes Stufe 8
   r = resultInfo(s, REQ, lv(REQ, 7), 5);
   assert.equal(r.next.id, "r-8"); assert.equal(r.nextOpen, false);
-  assert.equal(r.note, "Stufe 8 öffnet sich ab 8 Richtigen");
+  assert.equal(r.note, "Noch 3 richtige Antworten, dann öffnet sich Stufe 8.");
   s.levels["r-7"] = { stars: 3, best: 9, played: 1 };
   r = resultInfo(s, REQ, lv(REQ, 7), 9);
-  assert.equal(r.next.id, "r-8"); assert.equal(r.nextOpen, true); assert.equal(r.note, "");
+  assert.equal(r.next.id, "r-8"); assert.equal(r.nextOpen, true); assert.equal(r.note, "Stufe 8 ist offen.");
   // Stufe 6 schaltet nichts frei; Stufe 7 hängt an Stufe 1
   const t = fresh();
   t.levels["r-6"] = { stars: 3, best: 10, played: 1 };
   r = resultInfo(t, REQ, lv(REQ, 6), 4);
   assert.equal(r.next.id, "r-7"); assert.equal(r.nextOpen, false);
-  assert.equal(r.note, "Stufe 7 ist frei nach Stufe 1");
-  // letzte Stufe: nichts danach
+  assert.equal(r.note, "Stufe 7 öffnet sich ab 8 von 10 in Stufe 1.");
+  // letzte Stufe eines Pakets: nichts danach, keine Zeile (auch nicht unter 8)
   r = resultInfo(s, REQ, lv(REQ, 12), 10);
   assert.equal(r.next, null); assert.equal(r.note, "");
-  // andere Pakete wie bisher
+  assert.equal(resultInfo(fresh(), REQ, lv(REQ, 12), 3).note, "");
+  // Noten lesen: 4, 7, 8 Richtige
+  assert.equal(resultInfo(fresh(), noten, lv(noten, 1), 4).note, "Ab 8 von 10 öffnet sich Stufe 2.");
   r = resultInfo(fresh(), noten, lv(noten, 1), 7);
   assert.equal(r.next.id, "noten-2"); assert.equal(r.nextOpen, false);
-  assert.equal(r.note, "Stufe 2 öffnet sich ab 8 Richtigen");
-  r = resultInfo(fresh(), noten, lv(noten, 8), 3);
+  assert.equal(r.note, "Noch eine richtige Antwort, dann öffnet sich Stufe 2.");
+  const u = fresh(); u.levels["noten-1"] = { stars: 2, best: 8, played: 1 };
+  r = resultInfo(u, noten, lv(noten, 1), 8);
+  assert.equal(r.nextOpen, true); assert.equal(r.note, "Stufe 2 ist offen.");
+  // unter 8, aber die Folgestufe ist schon offen (frühere beste Runde): „ist offen“
+  assert.equal(resultInfo(u, noten, lv(noten, 1), 5).note, "Stufe 2 ist offen.");
+  const last = noten.levels.length;
+  r = resultInfo(fresh(), noten, lv(noten, last), 3);
   assert.equal(r.next, null); assert.equal(r.note, "");
   // Intervalle: der Reihe nach
   r = resultInfo(fresh(), intervalle, lv(intervalle, 1), 6);
   assert.equal(r.next.id, "intervall-2"); assert.equal(r.nextOpen, false);
-  assert.equal(r.note, "Stufe 2 öffnet sich ab 8 Richtigen");
+  assert.equal(r.note, "Noch 2 richtige Antworten, dann öffnet sich Stufe 2.");
+  // jede letzte Stufe jedes Pakets: keine Freischalt-Zeile
+  for (const pack of PACKS) {
+    const l = pack.levels[pack.levels.length - 1];
+    assert.equal(resultInfo(fresh(), pack, l, 5).note, "", l.id);
+  }
 });
 
-test("Startseite: „frei nach Stufe X“ nur bei requires", () => {
-  assert.equal(lockText(REQ, lv(REQ, 7)), "frei nach Stufe 1");
-  assert.equal(lockText(REQ, lv(REQ, 8)), "frei nach Stufe 7");
-  assert.equal(lockText(REQ, lv(REQ, 12)), "frei nach Stufe 11");
-  assert.equal(lockText(REQ, lv(REQ, 2)), "");
-  assert.equal(lockText(noten, lv(noten, 3)), "");
-  for (const l of intervalle.levels) assert.equal(lockText(intervalle, l), "", l.id);
+test("Ergebniskarte: „eine richtige Antwort“ bzw. „k richtige Antworten“", () => {
+  assert.equal(missingText(1), "Noch eine richtige Antwort");
+  assert.equal(missingText(2), "Noch 2 richtige Antworten");
+  assert.equal(missingText(3), "Noch 3 richtige Antworten");
+  // die Zeile steht für sich, nicht im kleinen grauen Text
+  const src = readFileSync(new URL("../../src/views/practice.js", import.meta.url), "utf8");
+  assert.ok(src.includes('<p class="unlock-line" id="rUnlock">${keepStufe(note)}</p>'));
+  assert.equal(keepStufe("Ab 8 von 10 öffnen sich die Stufen 2 und 7."), "Ab 8 von 10 öffnen sich die Stufen\u00a02 und 7.");
+  assert.equal(keepStufe("frei ab 8/10 in Stufe 1"), "frei ab 8/10 in Stufe\u00a01");
+  assert.ok(!src.includes("${note ? ` · ${note}`"));
+  const css = readFileSync(new URL("../../css/style.css", import.meta.url), "utf8");
+  assert.match(css, /\.result \.unlock-line \{[^}]*color: var\(--fg\)[^}]*font-weight: 700/);
+});
+
+test("Startseite: gesperrte Karte immer „frei ab 8/10 in Stufe n“, mit und ohne requires", () => {
+  assert.equal(lockText(REQ, lv(REQ, 7)), "frei ab 8/10 in Stufe 1");
+  assert.equal(lockText(REQ, lv(REQ, 8)), "frei ab 8/10 in Stufe 7");
+  assert.equal(lockText(REQ, lv(REQ, 12)), "frei ab 8/10 in Stufe 11");
+  assert.equal(lockText(REQ, lv(REQ, 2)), "frei ab 8/10 in Stufe 1");
+  assert.equal(lockText(noten, lv(noten, 3)), "frei ab 8/10 in Stufe 2");
+  intervalle.levels.forEach((l, i) => assert.equal(lockText(intervalle, l), i === 0 ? "" : `frei ab 8/10 in Stufe ${intervalle.levels[i - 1].no}`, l.id));
+  // erste Stufe und unbekanntes requires: kein Zusatz
+  assert.equal(lockText(noten, lv(noten, 1)), "");
   assert.equal(lockText({ levels: [{ id: "x-1" }, { id: "x-2", no: 2, requires: "x-9" }] }, { id: "x-2", no: 2, requires: "x-9" }), "");
 });
 

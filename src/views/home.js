@@ -3,6 +3,7 @@ import { isUnlocked, unlockedBy, accuracy } from "../store.js";
 import { findLevel, starsHtml } from "../engine.js";
 import { countUnsure } from "../adapt.js";
 import { NOTE_KEYS } from "../packs/noten.js";
+import { keepStufe } from "./practice.js";
 
 const $ = (s) => document.querySelector(s);
 let ctx = null;
@@ -20,12 +21,12 @@ export function init(c) {
   });
 }
 
-// Zusatz für gesperrte Stufen mit requires (rein, getestet): „frei nach Stufe 1“. Ohne requires leer
-// (dann schaltet die Stufe davor frei), ebenso bei einem requires, das es im Paket nicht gibt
+// Zusatz für gesperrte Stufen (rein, getestet, Welle 10, A7): immer die Regel „frei ab 8/10 in Stufe n“
+// mit n = unlockedBy (requires oder die Stufe davor). Leer nur, wenn keine Stufe freischaltet (erste
+// Stufe oder ein requires, das es im Paket nicht gibt)
 export function lockText(pack, l) {
-  if (l.requires === undefined) return "";
   const by = unlockedBy(pack, l.id);
-  return by ? `frei nach Stufe ${by.no}` : "";
+  return by ? `frei ab 8/10 in Stufe ${by.no}` : "";
 }
 
 function levelHtml(s, pack, l) {
@@ -33,7 +34,7 @@ function levelHtml(s, pack, l) {
   const lock = open ? "" : lockText(pack, l);
   return `<button class="level ${open ? "" : "locked"} ${l.id === s.current ? "current" : ""}" data-id="${l.id}" ${open ? "" : "disabled"}>
         <span class="level-no ${st.stars >= 2 ? "done" : ""}">${open ? l.no : "🔒"}</span>
-        <span><span class="level-title">${l.title}</span><br><span class="small muted">${l.subtitle || ""}${lock ? ` · ${lock}` : ""}${st.played ? ` · beste Runde ${st.best}/10` : ""}</span></span>
+        <span><span class="level-title">${l.title}</span><br><span class="small muted">${l.subtitle || ""}${lock ? ` · ${keepStufe(lock)}` : ""}${st.played ? ` · beste Runde ${st.best}/10` : ""}</span></span>
         ${starsHtml(st.stars || 0)}
       </button>`;
 }

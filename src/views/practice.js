@@ -32,26 +32,40 @@ export const keysHint = (level) => (level && level.digits
 // Beschriftung der Wahl Buchstaben/Klaviatur (rein, getestet): mit Namensraster „Namen“
 export const lettersLabel = (level) => (engine.usesNames(level) ? "Namen" : "Buchstaben");
 
-// Ergebniskarte (rein, getestet): nächste Stufe der Reihe nach (Knopf nur, wenn sie offen ist) und ein
-// Zusatz, der requires folgt. Unter 8 Richtigen: „Stufe 2 und 7 öffnen sich ab 8 Richtigen“ (die Stufen,
-// die diese Stufe freischaltet und die noch zu sind). Sonst: weitere offene Stufen, die diese Stufe
-// freischaltet („Stufe 7 ist offen“). Ist die nächste Stufe zu und hängt an einer anderen Stufe:
-// „Stufe 7 ist frei nach Stufe 1“.
+// Ergebniskarte (rein, getestet, Welle 10, A7): nächste Stufe der Reihe nach (Knopf nur, wenn sie offen
+// ist) und eine eigene, gut lesbare Zeile zur Freischaltung (note). Die Regel bleibt: beste Runde ≥ 8 in
+// der Stufe, die freischaltet (store.js, isUnlocked).
+// - Stufen, die diese Stufe freischaltet und die noch zu sind, bei weniger als 8 Richtigen:
+//   k = 8 − Richtige; k = 1: „Noch eine richtige Antwort, dann öffnet sich Stufe 3.“,
+//   k = 2 oder 3: „Noch 2 richtige Antworten, dann öffnet sich Stufe 3.“,
+//   ab k = 4: „Ab 8 von 10 öffnet sich Stufe 3.“ (zwei Stufen: „… öffnen sich die Stufen 2 und 7.“)
+// - sonst, wenn sie offen sind: „Stufe 3 ist offen.“ („Die Stufen 2 und 7 sind offen.“)
+// - ist die nächste Stufe zu und hängt an einer anderen Stufe: „Stufe 7 öffnet sich ab 8 von 10 in Stufe 1.“
+// - letzte Stufe eines Pakets ohne weitere Freischaltung: keine Zeile
 const andList = (nos) => (nos.length < 2 ? `${nos[0]}` : `${nos.slice(0, -1).join(", ")} und ${nos[nos.length - 1]}`);
+const stufen = (ls) => (ls.length > 1 ? `die Stufen ${andList(ls.map((l) => l.no))}` : `Stufe ${ls[0].no}`);
+const cap = (t) => t[0].toUpperCase() + t.slice(1);
+// „Stufe 2“ nicht umbrechen (geschütztes Leerzeichen; bei 320 px stand die Zahl sonst allein in der Zeile)
+export const keepStufe = (t) => t.replace(/Stufen? (?=\d)/g, (m) => m.trimEnd() + "\u00a0");
+export const missingText = (k) => (k === 1 ? "Noch eine richtige Antwort" : `Noch ${k} richtige Antworten`);
 export function resultInfo(state, pack, level, correct) {
   const next = engine.nextLevel(pack, level);
   const nextOpen = !!next && isUnlocked(state, pack, next.id);
   const mine = unlocks(pack, level.id);
   const closed = mine.filter((l) => !isUnlocked(state, pack, l.id));
+  const open = mine.filter((l) => isUnlocked(state, pack, l.id));
   const notes = [];
-  if (correct < 8 && closed.length) notes.push(`Stufe ${andList(closed.map((l) => l.no))} ${closed.length > 1 ? "öffnen" : "öffnet"} sich ab 8 Richtigen`);
-  const extra = mine.filter((l) => l !== next && isUnlocked(state, pack, l.id));
-  if (extra.length) notes.push(`Stufe ${andList(extra.map((l) => l.no))} ${extra.length > 1 ? "sind" : "ist"} offen`);
+  if (correct < 8 && closed.length) {
+    const k = 8 - correct, verb = closed.length > 1 ? "öffnen" : "öffnet";
+    notes.push(k >= 4 ? `Ab 8 von 10 ${verb} sich ${stufen(closed)}.` : `${missingText(k)}, dann ${verb} sich ${stufen(closed)}.`);
+  } else if (closed.length === 0 && open.length) {
+    notes.push(`${cap(stufen(open))} ${open.length > 1 ? "sind" : "ist"} offen.`);
+  }
   if (next && !nextOpen && !mine.includes(next)) {
     const by = unlockedBy(pack, next.id);
-    if (by) notes.push(`Stufe ${next.no} ist frei nach Stufe ${by.no}`);
+    if (by) notes.push(`Stufe ${next.no} öffnet sich ab 8 von 10 in Stufe ${by.no}.`);
   }
-  return { next, nextOpen, note: notes.join(" · ") };
+  return { next, nextOpen, note: notes.join(" ") };
 }
 
 // Hilfen aufgeklappt: so weit scrollen, dass die erste Reihe der Antwortknöpfe über der Tab-Leiste steht
@@ -133,7 +147,8 @@ function showResult(res) {
       ${engine.starsHtml(stars)}
       <p class="big num">${c} / ${res.total}</p>
       <p class="muted">${engine.resultMessage(stars)}</p>
-      <p class="small muted num">${resultLine(pack, gained, avg)}${note ? ` · ${note}` : ""}</p>
+      <p class="small muted num">${resultLine(pack, gained, avg)}</p>
+      ${note ? `<p class="unlock-line" id="rUnlock">${keepStufe(note)}</p>` : ""}
       <div class="row" style="justify-content:center">
         <button class="btn primary" id="rAgain">Nochmal</button>
         ${nextOpen ? `<button class="btn" id="rNext">Stufe ${next.no}</button>` : ""}

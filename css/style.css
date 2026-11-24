@@ -448,6 +448,8 @@ section { display: grid; gap: 14px; }
 
 .result { text-align: center; display: grid; gap: 10px; justify-items: center; }
 .result .stars { font-size: 2rem; }
+/* Freischalt-Zeile der Ergebniskarte (Welle 10, A7): eigene, gut lesbare Zeile, nicht im kleinen grauen Text */
+.result .unlock-line { margin: 0; padding: 8px 14px; border-radius: 12px; background: var(--accent-soft); color: var(--fg); font-weight: 700; max-width: 34rem; }
 
 .tabs {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 9;

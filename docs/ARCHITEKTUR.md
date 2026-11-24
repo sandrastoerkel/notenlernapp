@@ -726,8 +726,11 @@ die davor; `null` bei der ersten Stufe, bei unbekannter Stufe und bei einem
 `requires`, das es im Paket nicht gibt: die Stufe bleibt dann gesperrt, außer
 mit `unlockAll`). `unlocks(pack, levelId)` liefert umgekehrt die Stufen, die
 `levelId` freischaltet. Genutzt von `isUnlocked`, der Startseite (`lockText`
-in `home.js`: „frei nach Stufe 1“ unter gesperrten Stufen mit `requires`)
-und der Ergebniskarte (`resultInfo` in `practice.js`). Spielstände ändern
+in `home.js`: „frei ab 8/10 in Stufe n“ unter jeder gesperrten Stufe, seit
+Welle 10, A7) und der Ergebniskarte (`resultInfo` in `practice.js`: eigene
+Zeile „Noch eine richtige Antwort, dann öffnet sich Stufe 3.“, „Noch 2
+richtige Antworten, dann …“, ab 4 fehlenden „Ab 8 von 10 öffnet sich
+Stufe 3.“, ab 8 Richtigen „Stufe 3 ist offen.“). Spielstände ändern
 sich dadurch nicht. Alte Daten unter `notenheld.v1` werden beim ersten
 Start übernommen (Stufe `n` wird zu `noten-n`, `current: n` zu `"noten-n"`)
 und als v2 gespeichert; der v1-Eintrag bleibt unverändert.
