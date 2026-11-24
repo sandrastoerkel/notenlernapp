@@ -45,8 +45,6 @@ export const lettersLabel = (level) => (engine.usesNames(level) ? "Namen" : "Buc
 const andList = (nos) => (nos.length < 2 ? `${nos[0]}` : `${nos.slice(0, -1).join(", ")} und ${nos[nos.length - 1]}`);
 const stufen = (ls) => (ls.length > 1 ? `die Stufen ${andList(ls.map((l) => l.no))}` : `Stufe ${ls[0].no}`);
 const cap = (t) => t[0].toUpperCase() + t.slice(1);
-// „Stufe 2“ nicht umbrechen (geschütztes Leerzeichen; bei 320 px stand die Zahl sonst allein in der Zeile)
-export const keepStufe = (t) => t.replace(/Stufen? (?=\d)/g, (m) => m.trimEnd() + "\u00a0");
 export const missingText = (k) => (k === 1 ? "Noch eine richtige Antwort" : `Noch ${k} richtige Antworten`);
 export function resultInfo(state, pack, level, correct) {
   const next = engine.nextLevel(pack, level);
@@ -148,7 +146,7 @@ function showResult(res) {
       <p class="big num">${c} / ${res.total}</p>
       <p class="muted">${engine.resultMessage(stars)}</p>
       <p class="small muted num">${resultLine(pack, gained, avg)}</p>
-      ${note ? `<p class="unlock-line" id="rUnlock">${keepStufe(note)}</p>` : ""}
+      ${note ? `<p class="unlock-line" id="rUnlock">${engine.keepStufe(note)}</p>` : ""}
       <div class="row" style="justify-content:center">
         <button class="btn primary" id="rAgain">Nochmal</button>
         ${nextOpen ? `<button class="btn" id="rNext">Stufe ${next.no}</button>` : ""}

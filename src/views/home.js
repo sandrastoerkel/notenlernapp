@@ -1,9 +1,8 @@
 // Startseite: Begrüßung, Trefferquote, Pakete mit ihren Stufen
 import { isUnlocked, unlockedBy, accuracy } from "../store.js";
-import { findLevel, starsHtml } from "../engine.js";
+import { findLevel, starsHtml, keepStufe } from "../engine.js";
 import { countUnsure } from "../adapt.js";
 import { NOTE_KEYS } from "../packs/noten.js";
-import { keepStufe } from "./practice.js";
 
 const $ = (s) => document.querySelector(s);
 let ctx = null;

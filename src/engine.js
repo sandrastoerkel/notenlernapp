@@ -37,6 +37,10 @@ export const RHYTHM_TAIL = 300;
 
 /* ---------- Reine Hilfsfunktionen ---------- */
 
+// „Stufe 2“ und „… und 7“ nicht umbrechen (geschütztes Leerzeichen; bei 320 px stand die Zahl sonst allein in
+// der Zeile). Rein, getestet; genutzt von der Startseite (gesperrte Karten) und der Ergebniskarte (Welle 10, A7)
+export const keepStufe = (t) => t.replace(/(Stufen?| und) (?=\d)/g, "$1\u00a0");
+
 export const starsHtml = (k) => `<span class="stars">${"★".repeat(k)}<span class="off">${"★".repeat(3 - k)}</span></span>`;
 
 // Eingabeart: die Wahl „Klaviatur“ (state.input === "keys") ersetzt "letters"; andere Arten bleiben.

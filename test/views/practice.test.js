@@ -1,10 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { startLabel, keysHint, lettersLabel, resultInfo, missingText, keepStufe, answersScroll, startHint, TWO_STEPS_NOTE, resultLine, avgText } from "../../src/views/practice.js";
+import { startLabel, keysHint, lettersLabel, resultInfo, missingText, answersScroll, startHint, TWO_STEPS_NOTE, resultLine, avgText } from "../../src/views/practice.js";
+import { keepStufe } from "../../src/engine.js";
 import { PACKS } from "../../src/packs/index.js";
 import { lockText } from "../../src/views/home.js";
-import { fresh } from "../../src/store.js";
+import { fresh, recordRound, isUnlocked, unlocks } from "../../src/store.js";
 import intervalle from "../../src/packs/intervalle.js";
 import noten from "../../src/packs/noten.js";
 
@@ -88,8 +89,12 @@ test("Ergebniskarte: „eine richtige Antwort“ bzw. „k richtige Antworten“
   assert.equal(missingText(3), "Noch 3 richtige Antworten");
   // die Zeile steht für sich, nicht im kleinen grauen Text
   const src = readFileSync(new URL("../../src/views/practice.js", import.meta.url), "utf8");
-  assert.ok(src.includes('<p class="unlock-line" id="rUnlock">${keepStufe(note)}</p>'));
-  assert.equal(keepStufe("Ab 8 von 10 öffnen sich die Stufen 2 und 7."), "Ab 8 von 10 öffnen sich die Stufen\u00a02 und 7.");
+  assert.ok(src.includes('<p class="unlock-line" id="rUnlock">${engine.keepStufe(note)}</p>'));
+  assert.equal(keepStufe("Ab 8 von 10 öffnen sich die Stufen 2 und 7."), "Ab 8 von 10 öffnen sich die Stufen\u00a02 und\u00a07.");
+  assert.equal(keepStufe("Die Stufen 2, 3 und 7 sind offen."), "Die Stufen\u00a02, 3 und\u00a07 sind offen.");
+  assert.equal(keepStufe("Stufe 7 öffnet sich ab 8 von 10 in Stufe 1."), "Stufe\u00a07 öffnet sich ab 8 von 10 in Stufe\u00a01.");
+  // Ansichten hängen nicht voneinander ab: die Startseite holt keepStufe aus engine.js
+  assert.ok(!readFileSync(new URL("../../src/views/home.js", import.meta.url), "utf8").includes('from "./practice.js"'));
   assert.equal(keepStufe("frei ab 8/10 in Stufe 1"), "frei ab 8/10 in Stufe\u00a01");
   assert.ok(!src.includes("${note ? ` · ${note}`"));
   const css = readFileSync(new URL("../../css/style.css", import.meta.url), "utf8");
@@ -170,4 +175,29 @@ test("Welle 10, B5/B15: Tastaturhinweis ohne Klammerzusatz, Ergebniskarte mit Ko
   for (const id of ["notenwerte", "tonleitern", "intervalle", "akkorde"]) assert.equal(resultLine({ id }, 5, 0.1), "+5 XP · Ø 0,1 s pro Aufgabe");
   const src = readFileSync(new URL("../../src/views/practice.js", import.meta.url), "utf8");
   assert.ok(src.includes("${resultLine(pack, gained, avg)}") && !src.includes("s pro Note${"));
+});
+
+test("Ergebniskarte: die Freischalt-Zeile stimmt in jeder Stufe jedes Pakets mit der Regel in store.js überein", () => {
+  for (const pack of PACKS) for (const level of pack.levels) for (let c = 0; c <= 10; c++) {
+    const s = fresh();
+    recordRound(s, level.id, c);
+    const { note } = resultInfo(s, pack, level, c);
+    const mine = unlocks(pack, level.id), where = `${level.id} mit ${c}`;
+    if (!mine.length) { assert.equal(note, "", where); continue; }
+    const ziel = mine.length > 1 ? `die Stufen ${mine.map((l) => l.no).join(" und ")}` : `Stufe ${mine[0].no}`;
+    const verb = mine.length > 1 ? "öffnen" : "öffnet";
+    if (c >= 8) {
+      assert.ok(mine.every((l) => isUnlocked(s, pack, l.id)), where);
+      assert.equal(note, mine.length > 1 ? `Die Stufen ${mine.map((l) => l.no).join(" und ")} sind offen.` : `Stufe ${mine[0].no} ist offen.`, where);
+      continue;
+    }
+    assert.ok(mine.every((l) => !isUnlocked(s, pack, l.id)), where);
+    const k = 8 - c;
+    assert.equal(note, k >= 4 ? `Ab 8 von 10 ${verb} sich ${ziel}.` : `${missingText(k)}, dann ${verb} sich ${ziel}.`, where);
+    // genau k weitere Richtige öffnen die Stufe, k − 1 noch nicht
+    const knapp = structuredClone(s), genug = structuredClone(s);
+    recordRound(knapp, level.id, c + k - 1); recordRound(genug, level.id, c + k);
+    assert.ok(mine.every((l) => !isUnlocked(knapp, pack, l.id)), where);
+    assert.ok(mine.every((l) => isUnlocked(genug, pack, l.id)), where);
+  }
 });
