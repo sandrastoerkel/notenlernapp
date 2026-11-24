@@ -629,7 +629,7 @@ Stufen-ID.
   (Frage `q.prompt`), wertet die Wahl aus (`ok`/`bad`-Text farbig, richtige Wahl markiert). Schritt 1 richtig →
   nach `DELAY_STEP_OK` = 700 ms `steps[1]` mit dessen `prompt`; Schritt 1 daneben → seit Welle 10 **kein
   Zeitgeber**: `#pNext` erscheint mit der Aufschrift „Weiter zu Schritt 2“ (`NEXT_STEP`; Knopf, Enter oder
-  Leertaste), danach heißt er wieder „Nächste Aufgabe“ (`DELAY_STEP_BAD` und `DELAY_BAD` gibt es nicht mehr).
+  Leertaste), danach heißt er wieder „Nächste Aufgabe“ (`DELAY_STEP_BAD` und `DELAY_BAD` gibt es in `engine.js` nicht mehr; „Blitz“ hat sein eigenes `DELAY_BAD` in `views/blitz.js`).
   Erst nach dem letzten Schritt zählt die Aufgabe, einmal, und nur richtig, wenn alle Schritte stimmen
   (Statistik, Sterne, XP, `statKey` wie bisher). Rückmeldung `stepsFeedback(q, oks)`: alles richtig
   `Richtig! ${display}`, nur der erste Schritt daneben `q.partial` (falls gesetzt), sonst `q.reveal`.
@@ -912,6 +912,17 @@ importiert; aus den Ansichten nur reine Exporte wie `learnCardsHtml`
 `test/texte.test.js` prüft `index.html` und `src/` auf Wörter, die laut
 Konzept nicht vorkommen sollen (Tonfall). Für Module, die den DOM brauchen, gibt es keine Tests; sie sollen
 deshalb so dünn wie möglich sein und ihre Logik in reine Module auslagern.
+
+Überlauf im Browser (seit Welle 10, Prüfung Schritt 8): `node docs/screens/ueberlauf.mjs` bei laufendem Server
+(Playwright wie bei `screenshots.mjs`, keine Abhängigkeit der App, läuft nicht in `npm test`). Das Skript findet
+jedes sichtbare Element und jede Textzeile, die waagrecht über den eigenen Rahmen hinausragt (nächster Vorfahr
+mit Rand, eigener Fläche oder abschneidendem `overflow`; Teile eines SVG gegen ihr SVG; dazu das Fenster).
+Geprüft werden bei 320 px dunkel und 420 px hell die Startseite, alle Stufen aller Pakete (Startkarte, Aufgabe
+mit offenen Hilfen, nach jeder Antwort, jede Vorführung Bild für Bild), „Lernen“ in beiden Schlüsseln, Blitz und
+Statistik. Gewollte Rollbereiche (`overflow-x: auto`) und absolut gesetzte Marken mit negativem Abstand (✓/✗ am
+Knopf) zählen nicht. Senkrechtes Abschneiden prüft es nicht. Vor jedem Release laufen lassen. Anlass: Die
+Zählleiste der Hilfen in Notenwerte 8 ragte bei 320 px 26 px über ihren Rahmen; seitdem hat `.nw-count` unter
+380 px kleinere Felder (`--tile` 20 px), die Rechnung dazu steht in `test/css.test.js`.
 
 ## Stil
 

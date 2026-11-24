@@ -34,7 +34,7 @@ Statische Web-App: HTML, CSS, JavaScript, keine Abhängigkeiten, kein Build.
 - Keine Frameworks, keine npm-Abhängigkeiten. Tests mit `node --test`.
 - Keine Musiktheorie erfinden: bei Unsicherheit im Commit-Text vermerken und nachfragen.
 - Farben nur über die Tokens auf `:root` (hell und dunkel).
-- Vor jedem Commit: `npm test` (sobald vorhanden) und die App im Browser prüfen.
+- Vor jedem Commit: `npm test` (sobald vorhanden) und die App im Browser prüfen. Nach Änderungen an Aussehen oder Texten zusätzlich `node docs/screens/ueberlauf.mjs` (bei laufendem Server; findet bei 320 px und 420 px alles, was über seinen Rahmen hinausragt).
 - Rechner: MacBook M4. Lokaler Server: `python3 -m http.server 8080`.
 
 ## Feste Entscheidungen (Sandra, November 2026)

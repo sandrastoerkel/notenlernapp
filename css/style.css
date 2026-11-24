@@ -412,8 +412,16 @@ section { display: grid; gap: 14px; }
 /* Zählsilbe „+“ (gesprochen „und“): kleiner und grau, damit sie nicht wie das Rechen-Plus aussieht */
 .nw-und { color: var(--muted); fill: var(--muted); font-size: .88em; font-weight: 700; }
 /* Zählleiste als ein Bild mit dem Satz „+ heißt „und““ (Hilfen Stufe 8, Ergebnis der Vorführung 3) */
-.nw-count-fig { margin: 0; display: grid; gap: 4px; justify-items: center; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); max-width: 100%; }
-.nw-count-cap { font-size: .8rem; color: var(--fg); text-align: center; line-height: 1.35; }
+.nw-count-fig { margin: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; justify-items: center; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); max-width: 100%; }
+.nw-count-cap { font-size: .8rem; color: var(--fg); text-align: center; line-height: 1.35; max-width: 100%; }
+/* Schmale Fenster (320 px): acht Felder und „Zählen“ müssen in den Rahmen passen (im Rahmen bleiben rund 240 px):
+   kleinere Felder, engere Zellen, schmalerer Innenrand. Die Spalte der Sätze darf schrumpfen. */
+@media (max-width: 380px) {
+  .nw-count-fig { padding: 8px 6px; }
+  .help-table-wrap .nw-count { --tile: 20px; }
+  .help-table-wrap .nw-count td { padding: 1px; }
+  .help-table-wrap .nw-count .tt-label { padding-right: 4px; }
+}
 .tt-dot.tt-blank { color: var(--muted); }
 /* Zählzeiten unter den Noten (nach der Antwort in Stufe 8/9, Ergebnis der Vorführung 3) */
 .nw-cnt { font-family: var(--display); font-weight: 800; font-size: 14px; fill: var(--fg); }

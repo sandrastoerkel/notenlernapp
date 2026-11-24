@@ -1816,7 +1816,7 @@ und wird nicht neu gespeichert.
 **Umgesetzt (24.11.2026).** Branch `korrekturen-10` von `main` 5b2dd1b (nicht von `notenwerte-neu` 7dcab7c, wie
 oben angenommen: Welle 9 war inzwischen auf `main`; Inhalt derselbe plus Pages-Workflow). Plan 0b58319, Sandras
 Entscheidungen c838989. Je Schritt ein Opus-Agent, danach eine Prüfung mit eigenem Commit. Cache
-`notenheld-v0.2.0-13`. `npm test` am Ende 365 grün, 0 rot. Noch nicht auf `main`.
+`notenheld-v0.2.0-13`. `npm test` am Ende 366 grün, 0 rot. Noch nicht auf `main`.
 
 | Schritt | Umsetzung | Prüfung |
 |---|---|---|
@@ -1828,7 +1828,7 @@ Entscheidungen c838989. Je Schritt ein Opus-Agent, danach eine Prüfung mit eige
 | 5 Balken (Top 1) | 1ea16a0 | d6bc7d4 |
 | 6 Zählen, Wortlaut, Vorführungen (Top 2–7, 10) | b58bfa3 | 28ee14d |
 | 7 Lesbarkeit, Barrierefreiheit (B13, B14) | 4d3c756 | 7d7657b |
-| 8 Doku, Cache, Bildschirmfotos | dieser Commit („Welle 10, Schritt 8“) | Abschlussprüfung |
+| 8 Doku, Cache, Bildschirmfotos | 8ddb7a5 | Commit „Prüfung Schritt 8“ |
 
 Abweichungen vom Plan und Entscheidungen der Prüfer, je Schritt:
 - **Schritt 0.** `waitsAfter` und `AUTO_OK_MAX` = 45 wie geplant; Noten lesen 1–8 (richtige Rückmeldungen 14–20
@@ -1890,7 +1890,14 @@ Abweichungen vom Plan und Entscheidungen der Prüfer, je Schritt:
   Entscheidungen 24.11.2026; Welle 9 als „auf `main`“ berichtigt), dieser Abschnitt. `sw.js` Cache -13;
   `test/sw.test.js` prüft jetzt zusätzlich, dass `PRECACHE` genau den Dateibaum (src/, css/, fonts/, icons/,
   Shell, Manifest) abdeckt und die Version mindestens -13 ist. Bildschirmfotos für die Abschlussprüfung außerhalb
-  des Repos (420 px hell, 320 px dunkel, mit Verzeichnis).
+  des Repos (420 px hell, 320 px dunkel, mit Verzeichnis). Prüfung: Doku gegen den Code geprüft (alle
+  genannten Namen und Werte vorhanden; in ARCHITEKTUR klargestellt, dass „Blitz“ sein eigenes `DELAY_BAD`
+  behält). **Zählleiste der Hilfen in Notenwerte 8 ragte bei 320 px 26 px über ihren Rahmen** (letztes
+  „+“-Feld und der Satz „+ heißt ‚und‘“): unter 380 px Felder 20 statt 22 px, engere Zellen, die Spalte der
+  Abbildung darf schrumpfen. Neu `docs/screens/ueberlauf.mjs`: sucht im Browser bei 320 px und 420 px in allen
+  Stufen aller Pakete (Startkarte, Hilfen offen, nach der Antwort, Vorführungen), in „Lernen“, Blitz und
+  Statistik jedes Element, das über seinen Rahmen hinausragt – nach der Korrektur kein Treffer (auch 360 px).
+  Rechnung für die Zählleiste zusätzlich in `test/css.test.js`. `npm test` 366 grün.
 
 **Offen für Sandra (Welle 10, nach der Umsetzung).** Gebaut ist jeweils die Voreinstellung; Punkte 1–4 der
 Liste oben hat Sandra am 24.11.2026 entschieden.

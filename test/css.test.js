@@ -114,3 +114,20 @@ test("Nicht nur Rot/Grün: Zeichen ✓/✗ in Knöpfen, Punkten und Rückmeldung
 test("Quintenzirkel-Kästchen: Kopfzeile auch über der zweiten Hälfte (keine versteckte thead)", () => {
   assert.ok(!/tt-second thead\s*\{[^}]*display:\s*none/.test(plain));
 });
+
+test("Zählleiste der Hilfen (Notenwerte 8) passt bei 320 px in ihren Rahmen", () => {
+  // Prüfung Schritt 8: Das letzte „+“-Feld ragte bei 320 px 26 px über den Rahmen. Im Browser prüft das
+  // docs/screens/ueberlauf.mjs für alle Ansichten; hier die Rechnung für diese eine Stelle.
+  const narrow = css.match(/@media \(max-width: 380px\) \{\s*\.nw-count-fig \{[^}]*\}[^@]*?\n\}/);
+  assert.ok(narrow, "Regeln für schmale Fenster fehlen");
+  const num = (re) => { const m = narrow[0].match(re); assert.ok(m, String(re)); return +m[1]; };
+  const tile = num(/\.nw-count \{ --tile: (\d+)px; \}/), pad = num(/\.nw-count td \{ padding: (\d+)px; \}/);
+  const labelPad = num(/\.tt-label \{ padding-right: (\d+)px; \}/), figPad = num(/\.nw-count-fig \{ padding: \d+px (\d+)px; \}/);
+  // 320 px Fenster − 2 × 16 (Seite) − 2 × 16 (.helps-body) − 2 (Rand der Abbildung) − Innenrand
+  const room = 320 - 32 - 32 - 2 - 2 * figPad;
+  // acht Felder mit Rand (1 px je Seite steckt in der Feldbreite) und Zellenabstand, dazu „Zählen“ (gemessen 40 px bei .8rem)
+  const need = 8 * (tile + 2 * pad) + 40 + pad + labelPad;
+  assert.ok(need <= room, `${need} > ${room}`);
+  // die Spalte der Abbildung darf schrumpfen, sonst drückt die Tabelle den Satz darunter aus dem Rahmen
+  assert.match(css, /\.nw-count-fig \{[^}]*grid-template-columns: minmax\(0, 1fr\)/);
+});
