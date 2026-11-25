@@ -3053,6 +3053,23 @@ Offen für Sandra: Handy-Scan (iOS/Android) je eines kurzen (V4) und eines lange
   nicht wieder; `#klasse=keine` entfernt; `#klasse=99` zeigt den Hinweis; Dialog mit Tastatur bedienbar, bei
   320 px ohne Überlauf.
 
+**Umgesetzt (25.11.2026, Opus, eigener Arbeitsbaum `klasse-11`, zusammengeführt):** Commit 12280c5. `src/klasse.js`
+(rein): `DRAN`/`DRAN_MUG` wie Abschnitt 4 (MuG ab Jahrgang 6 Intervalle bis 10; Quellen als Kommentar), `dranFor`,
+`parseLink` (streng: unbekannte, doppelte, leere Angaben, Zahlen außerhalb, führende Null, Großschreibung und
+`dran`/`zweig` ohne `klasse` werden verworfen; Reihenfolge beliebig, prozentkodiert erlaubt), `buildLink`,
+`sameKlasse`, `klasseText`, `sections`, `nextUp`, `isKlasseLink`, `dranOf`. `store.js`: `isUnlocked` zusätzlich bei
+`no ≤ klasse.dran[pack]` (auch „Jetzt dran“ sofort offen), `klasseDran`, `setKlasse`, `clearKlasse`. `app.js`: Adresse
+bei Start und `hashchange`, Bestätigung im `<dialog id="klasseDialog">` (mit „Bisher: …“), danach
+`history.replaceState`; Hinweisleiste `#klasseBar` bei unpassendem Link; Token `--backdrop`. Kein Schalter in der App.
+`grade` aus allen Paketen entfernt. Entscheidungen: nach „Nicht übernehmen“ kein Neuzeichnen (laufende Runde bleibt);
+gleiche Einstellung fragt nicht; `sections`: „Jetzt dran“ beginnt über der Voreinstellung des Vorjahrs im selben
+Zweig, geschafft = beste Runde ≥ 8. Tests in `test/klasse.test.js` (nicht zusätzlich in `store.test.js`).
+
+**Prüfung (25.11.2026, Fable): bestanden nach Korrektur abe8a48** (Dialog sagt beim Vorlesen den Jahrgang an;
+zweiter Link bei offener Frage ersetzt nur den Inhalt). 14 fehlerhafte und bösartige Links im Browser: nichts
+eingeschleust, Spielstand unverändert. Hinweise: `#klasse6` ohne „=“ wird still übergangen; „Übernehmen“ wechselt
+auf die Startseite; `setKlasse` nur mit Ergebnissen von `parseLink` aufrufen (Schritt 12).
+
 #### Schritt 12 – Lehrkraft-Seite mit Link und QR-Code, Abschnitte der Startseite
 
 - `src/views/lehrkraft.js` (neu), `index.html` (`<section id="view-lehrkraft" hidden>`), `app.js` (Ansicht

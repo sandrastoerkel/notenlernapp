@@ -101,6 +101,10 @@
   color-scheme: dark;
 }
 
+/* Abdunklung hinter einem Dialog (hell und dunkel gleich). Auch auf ::backdrop gesetzt, weil ältere Browser dort
+   keine Werte von :root erben */
+:root, ::backdrop { --backdrop: rgba(8, 10, 22, .6); }
+
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html, body { height: 100%; }
@@ -640,3 +644,15 @@ svg.ok .beam { fill: var(--ok); } svg.bad .beam { fill: var(--bad); }
 .update-bar[hidden] { display: none; }
 .update-actions { display: inline-flex; gap: 6px; }
 .update-bar .btn.small { padding: 6px 12px; }
+
+/* Bestätigung „Einstellung deiner Lehrkraft übernehmen?“ (src/app.js, Welle 11, Schritt 11) */
+.klasse-dialog {
+  width: min(420px, calc(100vw - 32px)); max-width: none; box-sizing: border-box; padding: 20px;
+  background: var(--surface); color: var(--fg); border: 1px solid var(--line); border-radius: 16px;
+}
+.klasse-dialog::backdrop { background: var(--backdrop); }
+.klasse-dialog h2 { font-size: 1.2rem; }
+.klasse-dialog p { margin: 0; overflow-wrap: anywhere; }
+.klasse-what { font-family: var(--display); font-weight: 700; font-size: 1.1rem; }
+.klasse-what[hidden], .klasse-dialog p[hidden] { display: none; }
+.klasse-actions .btn { flex: 1 1 auto; }

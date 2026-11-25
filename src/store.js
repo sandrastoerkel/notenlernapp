@@ -247,14 +247,42 @@ export const unlocks = (pack, levelId) => pack.levels.filter((l) => {
 // (unlockedBy), oder mit unlockAll. Eine Stufe mit unbekanntem requires bleibt gesperrt.
 // Eine schon gespielte Stufe bleibt offen (seit „Intervalle neu“: übernommener Fortschritt in
 // tonleitern-7 und -8, auch wenn tonleitern-6 noch nicht geschafft ist).
+// Mit Jahrgang (Welle 11, Schritt 11) ist zusätzlich alles bis „dran“ des Pakets sofort offen, auch die Stufen in
+// „Jetzt dran“ (Entscheidung Sandra 8). Die Regel kommt nur dazu (oder-verknüpft): Der Jahrgang öffnet, er schließt nie.
 export function isUnlocked(s, pack, levelId) {
   const i = pack.levels.findIndex((l) => l.id === levelId);
   if (i < 0) return false;
   if (s.unlockAll) return true;
   if (((s.levels[levelId] || {}).played || 0) > 0) return true;
+  if ((pack.levels[i].no ?? i + 1) <= klasseDran(s, pack.id)) return true;
   const by = unlockedBy(pack, levelId);
   if (!by) return i === 0 && pack.levels[i].requires === undefined;
   return ((s.levels[by.id] || {}).best || 0) >= 8;
+}
+
+// „dran bis Stufe n“ eines Pakets aus der Einstellung der Lehrkraft (0 ohne Einstellung oder bei unbrauchbarem Wert)
+export function klasseDran(s, packId) {
+  const n = s && s.klasse && s.klasse.dran && typeof s.klasse.dran === "object" ? s.klasse.dran[packId] : 0;
+  return Number.isInteger(n) && n > 0 ? n : 0;
+}
+
+// Jahrgang setzen bzw. entfernen (Welle 11, Schritt 11): die einzigen Stellen, die s.klasse schreiben. app.js ruft
+// sie erst nach der Bestätigung im Dialog auf, mit dem Ergebnis von klasse.parseLink. Fortschritt, Sterne,
+// Erfahrungspunkte und Karteikasten bleiben unberührt. Eine unbrauchbare Einstellung wird abgewiesen (Fehler), der
+// Stand bleibt dann wie er war.
+export function setKlasse(s, k) {
+  const ok = k && Number.isInteger(k.jahrgang) && k.jahrgang >= 5 && k.jahrgang <= 13
+    && (k.zweig === null || k.zweig === undefined || k.zweig === "mug")
+    && k.dran && typeof k.dran === "object" && !Array.isArray(k.dran)
+    && Object.values(k.dran).every((n) => Number.isInteger(n) && n >= 0);
+  if (!ok) throw new Error("Ungültige Einstellung für den Jahrgang");
+  s.klasse = { jahrgang: k.jahrgang, zweig: k.zweig ?? null, dran: { ...k.dran } };
+  return s;
+}
+
+export function clearKlasse(s) {
+  s.klasse = null;
+  return s;
 }
 
 export const starsFor = (c) => (c >= 9 ? 3 : c >= 7 ? 2 : c >= 5 ? 1 : 0);

@@ -10,7 +10,8 @@
 // vorläufig bis Schritt 8; alle Aufgaben, abwechselnd richtig und daneben, dazu Herkunftszeile und keine Reste
 // der vorigen Eingabeart), zwei Runden „Grundlagen wiederholen“ über die Startkarte und eine Ergebniskarte mit
 // Fehlermuster (Schritt 7),
-// „Lernen“ je Reiter und Schlüssel mit allen Vorführungen, Blitz und Statistik.
+// „Lernen“ je Reiter und Schlüssel mit allen Vorführungen, Blitz und Statistik, zuletzt die Bestätigung beim Link der
+// Lehrkraft (setzen, ändern, entfernen) und der Hinweis bei einem Link, der nicht passt (Welle 11, Schritt 11).
 // In jedem Zustand zählt außerdem ein zweiter sichtbarer Knopf „Nächste Aufgabe“ als Treffer (W2, Welle 11).
 //
 // Playwright ist KEINE Abhängigkeit der App (siehe screenshots.mjs). Aufruf bei laufendem Server:
@@ -31,7 +32,7 @@ const WIDTHS = (process.env.BREITEN || "320,420").split(",").map(Number);
 const ROUNDS = +(process.env.RUNDEN || 4);
 
 // läuft in der Seite: Liste der Treffer
-const FIND = () => {
+const FIND = (rootSel) => {
   const TOL = 1;
   const vis = (e) => { const s = getComputedStyle(e); if (s.display === 'none' || s.visibility === 'hidden' || +s.opacity === 0) return false;
     const r = e.getBoundingClientRect(); return r.width > 0.5 && r.height > 0.5; };
@@ -74,7 +75,7 @@ const FIND = () => {
     const key = sel(e) + '|' + frame + '|' + what; if (seen.has(key)) return; seen.add(key);
     hits.push({ el: sel(e), what, frame, kind, links: Math.max(0, +(f.left - r.left).toFixed(1)), rechts: Math.max(0, +(r.right - f.right).toFixed(1)), text: (e.textContent || '').trim().slice(0, 40) });
   };
-  const root = document.querySelector('main') || document.body;
+  const root = document.querySelector(rootSel || 'main') || document.body;
   for (const e of root.querySelectorAll('*')) {
     if (!vis(e) || hidden(e)) continue;
     const s = getComputedStyle(e);
@@ -151,9 +152,9 @@ async function run(browser, width, scheme) {
   pg.on("console", (m) => { if (m.type() === "error") errs.push(m.text()); });
   pg.on("pageerror", (e) => errs.push(String(e)));
   await pg.goto(BASE); await pg.waitForTimeout(600);
-  const chk = async (where) => {
+  const chk = async (where, rootSel) => {
     await pg.waitForTimeout(60);
-    const hs = await pg.evaluate(FIND);
+    const hs = await pg.evaluate(FIND, rootSel);
     if (await pg.evaluate("document.documentElement.scrollWidth > innerWidth")) hs.push({ el: "html", what: "Seite", frame: "Fenster", kind: "waagrechter Überlauf", links: 0, rechts: 0, text: "" });
     // W2 (Welle 11): „Nächste Aufgabe“ höchstens einmal sichtbar
     const nexts = await pg.evaluate(NEXT_COUNT);
@@ -281,6 +282,19 @@ async function run(browser, width, scheme) {
   await pg.click("#bStart"); await pg.waitForTimeout(300); await chk("Blitz Frage");
   await pg.locator("#bAnswers .btn").first().click(); await pg.waitForTimeout(150); await chk("Blitz nach Antwort");
   await pg.click('.tab[data-view="stats"]'); await pg.waitForTimeout(400); await chk("Statistik");
+  // Bestätigung beim Link der Lehrkraft (Welle 11, Schritt 11): Setzen, Setzen mit „Bisher“, Entfernen, Hinweis
+  // bei einem Link, der nicht passt (Dialog und Leiste liegen außerhalb von <main>)
+  const dlg = async (hash, where) => {
+    await pg.goto(BASE + hash); await pg.waitForTimeout(400);
+    if (!(await vis("#klasseDialog"))) { errs.push(`${where}: kein Dialog`); return; }
+    await chk(where, "#klasseDialog"); await chk(`${where} (Seite)`);
+  };
+  await dlg("#klasse=6", "Dialog Jahrgang setzen"); await pg.click("#klasseYes"); await pg.waitForTimeout(300);
+  await dlg("#klasse=13&zweig=mug&dran=akkorde:1", "Dialog Jahrgang ändern"); await pg.keyboard.press("Escape");
+  await dlg("#klasse=keine", "Dialog Jahrgang entfernen"); await pg.click("#klasseNo");
+  await pg.goto(BASE + "#klasse=99"); await pg.waitForTimeout(400);
+  if (!(await vis("#klasseBar"))) errs.push("Hinweis bei falschem Link fehlt");
+  await chk("Hinweis Link passt nicht", "#klasseBar");
   await ctx.close();
   return { hits: [...all.values()], errs };
 }

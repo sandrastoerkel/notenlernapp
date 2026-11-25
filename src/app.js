@@ -9,6 +9,7 @@ import * as learn from "./views/learn.js";
 import * as blitz from "./views/blitz.js";
 import * as stats from "./views/stats.js";
 import { stopDemos } from "./demo.js";
+import { isKlasseLink, parseLink, sameKlasse, klasseText } from "./klasse.js";
 
 const $ = (s) => document.querySelector(s);
 const VIEWS = { home, practice, learn, blitz, stats };
@@ -57,6 +58,8 @@ $("#muteBtn").addEventListener("click", () => {
 // Tastatur: an die aktive Ansicht weitergeben (ohne Strg, Alt, Cmd)
 document.addEventListener("keydown", (e) => {
   if (e.metaKey || e.ctrlKey || e.altKey) return;
+  // offene Bestätigung (Jahrgang): Tasten gehören dem Dialog
+  if ($("#klasseDialog").open) return;
   const v = VIEWS[view];
   if (v && v.handleKey) v.handleKey(e);
 });
@@ -112,7 +115,62 @@ if ("serviceWorker" in navigator && (location.protocol === "https:" || ["localho
   else window.addEventListener("load", register);
 }
 
+/* ---------- Jahrgang über den Lehrkraft-Link (Welle 11, Schritt 11) ---------- */
+
+// Die Angabe aus der Adresszeile nehmen (ohne neuen Eintrag im Verlauf und ohne hashchange), damit ein Neuladen
+// nicht noch einmal fragt
+const clearHash = () => history.replaceState(null, "", location.pathname + location.search);
+
+// Hinweis bei einem Link, der nicht passt (Leiste wie der Update-Hinweis); der Spielstand bleibt unberührt
+function showLinkHint() {
+  const bar = $("#klasseBar");
+  bar.hidden = false;
+  $("#klasseBarClose").onclick = () => { bar.hidden = true; };
+}
+
+// Bestätigung im Dialog: k ist das Ergebnis von parseLink (Setzen) oder { keine: true } (Entfernen).
+// Erst „Übernehmen“ bzw. „Entfernen“ schreibt den Stand (store.setKlasse / clearKlasse); Escape und „Nicht …“
+// lassen alles, wie es war.
+function askKlasse(k) {
+  const dlg = $("#klasseDialog"), old = ctx.state.klasse;
+  const remove = !!k.keine;
+  $("#klasseTitle").textContent = remove ? "Jahrgang entfernen?" : "Einstellung deiner Lehrkraft übernehmen?";
+  $("#klasseWhat").textContent = remove ? "" : klasseText(k);
+  $("#klasseWhat").hidden = remove;
+  $("#klasseNote").textContent = remove ? "Dein Fortschritt bleibt, es schließt sich nichts."
+    : "Alles bis dahin ist dann sofort offen. Dein Fortschritt bleibt, es schließt sich nichts.";
+  $("#klasseBisher").textContent = old ? `Bisher: ${klasseText(old)}.` : "";
+  $("#klasseBisher").hidden = !old;
+  $("#klasseYes").textContent = remove ? "Entfernen" : "Übernehmen";
+  $("#klasseNo").textContent = remove ? "Nicht entfernen" : "Nicht übernehmen";
+  dlg.returnValue = "";
+  dlg.onclose = () => {
+    clearHash();
+    if (dlg.returnValue !== "ja") return;
+    if (remove) store.clearKlasse(ctx.state); else store.setKlasse(ctx.state, k);
+    ctx.save();
+    show("home");
+  };
+  // schon offen (zweiter Link bei offener Frage): nur der Inhalt wechselt. Kein close() – dessen Ereignis käme
+  // verspätet und nähme die neue Angabe aus der Adresszeile, bevor geantwortet ist
+  if (!dlg.open) dlg.showModal();
+  $("#klasseYes").focus();
+}
+
+// Beim Start und bei hashchange: #klasse=… (bzw. eine Angabe mit zweig oder dran) prüfen
+function readKlasseLink() {
+  if (!isKlasseLink(location.hash)) return;
+  const k = parseLink(location.hash, PACKS);
+  if (!k) { clearHash(); showLinkHint(); return; }
+  // dieselbe Einstellung ist schon gesetzt bzw. es gibt nichts zu entfernen: nicht fragen
+  if (k.keine ? !ctx.state.klasse : sameKlasse(k, ctx.state.klasse)) { clearHash(); return; }
+  askKlasse(k);
+}
+
+window.addEventListener("hashchange", readKlasseLink);
+
 /* ---------- Start ---------- */
 audio.setMuted(ctx.state.muted);
 Object.values(VIEWS).forEach((v) => v.init(ctx));
 show("home");
+readKlasseLink();

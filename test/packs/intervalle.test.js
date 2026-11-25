@@ -29,8 +29,8 @@ const POOLS = [POOL_1, POOL_2, POOL_3, POOL_4, POOL_5, POOL_6, POOL_7, POOL_8, P
 test("Paket ist registriert, ohne Tonarten", () => {
   assert.ok(PACKS.some((p) => p.id === "intervalle"));
   assert.equal(intervalle.title, "Intervalle");
-  // Paketangabe bleibt allgemein (wird nirgends angezeigt), an den Stufen steht keine Klasse
-  assert.equal(intervalle.grade, "Klasse 5–9");
+  // Kein Jahrgang im Paket und an den Stufen (seit Welle 11, Schritt 11: der Jahrgang kommt über src/klasse.js)
+  assert.equal(intervalle.grade, undefined);
   assert.ok(!L.some((l) => /Tonart|Moll|Dur\b/.test(l.title)));
 });
 

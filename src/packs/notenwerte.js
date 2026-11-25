@@ -961,7 +961,6 @@ export default {
   id: "notenwerte",
   title: "Notenwerte und Pausen",
   subtitle: "Dauer, Schläge und Punktierung",
-  grade: "Klasse 5/6",
   levels,
   learn: [
     { title: "So erkennst du einen Notenwert", render() { return boardHtml("value"); }, mount: mountBoard("value") },

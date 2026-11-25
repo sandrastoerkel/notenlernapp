@@ -30,8 +30,8 @@ test("Paket ist registriert und steht zwischen Intervallen und Dreiklängen (sei
   assert.deepEqual(PACKS.map((p) => p.id), ["noten", "notenwerte", "intervalle", "tonleitern", "akkorde"]);
   assert.equal(tonleitern.title, "Tonleitern");
   assert.equal(tonleitern.subtitle, "Dur-Tonleitern bauen und lesen");
-  // seit die Tonarten-Stufen (bis 7 Vorzeichen) hier stehen: Klasse 5–9 (wird nirgends angezeigt)
-  assert.equal(tonleitern.grade, "Klasse 5–9");
+  // Kein Jahrgang im Paket (seit Welle 11, Schritt 11: der Jahrgang kommt über src/klasse.js)
+  assert.equal(tonleitern.grade, undefined);
   assert.equal(tonleitern.blitz, null);
 });
 

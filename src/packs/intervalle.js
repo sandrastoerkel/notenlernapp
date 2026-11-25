@@ -809,7 +809,6 @@ export default {
   id: "intervalle",
   title: "Intervalle",
   subtitle: "Grob- und Feinbestimmung, bauen, Fehler finden",
-  grade: "Klasse 5–9",
   levels,
   learn: [
     { title: "So bestimmst du ein Intervall", render() { return demoBoard(); }, mount: mountBoard },
