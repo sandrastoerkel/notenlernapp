@@ -11,8 +11,12 @@
 #   zbar     libzbar.so.0 über ctypes, falls im System vorhanden (eigene Implementierung, nicht OpenCV)
 # Bestanden, wenn kein Leser einen falschen Text liefert und mindestens zwei Leser den Text genau lesen.
 # Hinweis: Der klassische cv2.QRCodeDetector findet bei einzelnen gültigen Codes die Suchmuster nicht
-# (abhängig von Daten und Maske; die anderen Leser lesen dieselben Bilder) – das wird angezeigt, ist aber
-# kein Fehler des Codes.
+# (abhängig von Daten, Maske und Bildgröße, gehäuft bei Version 8; die anderen Leser lesen dieselben Bilder) –
+# das wird angezeigt, ist aber kein Fehler des Codes: In der Prüfung von Schritt 10 fiel er bei Codes aus
+# OpenCVs eigenem Encoder genauso oft aus (94 von 624 Bildern gegenüber 88 von 624 bei qr.js).
+# Dazu ein Vergleich Modul für Modul mit cv2.QRCodeEncoder (Byte-Modus, M, gleiche Maske): Alle Module müssen
+# gleich sein – außer den 7 Restbits der Versionen 2 bis 6 (dort setzt OpenCV einzelne Bits anders; Restbits
+# tragen keine Daten).
 #
 # Aufruf im Repo:   python3 docs/screens/qr-gegenprobe.py        (Bilder: BILDER=/pfad, sonst ein Temp-Ordner)
 # Braucht: node, Python-Paket playwright mit Chromium, opencv-python (cv2). Ende mit Code 1 bei einem Fehler.
@@ -23,6 +27,7 @@ import sys
 import tempfile
 
 import cv2
+import numpy as np
 
 import ctypes
 import ctypes.util
@@ -55,6 +60,59 @@ import { qrSvg, qrMatrix } from "./src/qr.js";
 const links = JSON.parse(process.argv[1]);
 console.log(JSON.stringify(links.map((t) => ({ t, v: qrMatrix(t)?.version, svg: qrSvg(t, { scale: 6 }) }))));
 """
+
+JS_MASKE = """
+import { qrMatrix } from "./src/qr.js";
+const [texte, masken] = JSON.parse(process.argv[1]);
+console.log(JSON.stringify(texte.map((t, i) => qrMatrix(t, { mask: masken[i] }).modules.map((r) => r.map((c) => (c ? 1 : 0))))));
+"""
+
+
+def format_m(maske):
+    rest = maske
+    for _ in range(10):
+        rest = (rest << 1) ^ ((rest >> 9) * 0x537)
+    return ((maske << 10) | rest) ^ 0x5412
+
+
+def vergleich_encoder(texte):
+    """Vergleicht qr.js Modul für Modul mit cv2.QRCodeEncoder; gibt die Zahl der Abweichungen zurück."""
+    if not hasattr(cv2, "QRCodeEncoder_create"):
+        print("Encoder-Vergleich übersprungen (cv2.QRCodeEncoder fehlt)")
+        return 0
+    masken_zu = {format_m(k): k for k in range(8)}
+    bezug, masken = [], []
+    for t in texte:
+        par = cv2.QRCodeEncoder_Params()
+        par.correction_level = cv2.QRCodeEncoder_CORRECT_LEVEL_M
+        par.mode = cv2.QRCodeEncoder_MODE_BYTE
+        bild = cv2.QRCodeEncoder_create(par).encode(t)
+        ys, xs = np.where(bild == 0)
+        m = (bild[ys.min():ys.max() + 1, xs.min():xs.max() + 1] == 0).astype(int)
+        n = m.shape[0]
+        bits = sum(int(m[8][n - 1 - i]) << i for i in range(8)) | sum(int(m[n - 15 + i][8]) << i for i in range(8, 15))
+        bezug.append(m)
+        masken.append(masken_zu.get(bits, 0))
+    eigen = json.loads(subprocess.check_output(
+        ["node", "--input-type=module", "-e", JS_MASKE, json.dumps([texte, masken])], cwd=REPO).decode())
+    fehler = 0
+    for t, b, e in zip(texte, bezug, eigen):
+        e = np.array(e)
+        n = e.shape[0]
+        if e.shape != b.shape:
+            print(f"FEHLER  Encoder-Vergleich: Größe {e.shape} statt {b.shape} bei {len(t.encode())} Bytes")
+            fehler += 1
+            continue
+        v = (n - 17) // 4
+        anders = [(int(y), int(x)) for y, x in np.argwhere(e != b)]
+        # Restbits: die letzten 7 Module des Zickzacks (Spalten 0/1, Zeilen n − 12 bis n − 9), nur Version 2 bis 6
+        erlaubt = 2 <= v <= 6 and all(x <= 1 and n - 12 <= y <= n - 9 for y, x in anders)
+        if anders and not erlaubt:
+            print(f"FEHLER  Encoder-Vergleich: {len(anders)} Module anders bei {len(t.encode())} Bytes (V{v})")
+            fehler += 1
+    print(f"Encoder-Vergleich mit cv2.QRCodeEncoder: {len(texte) - fehler} von {len(texte)} gleich")
+    return fehler
+
 
 SEITE = """<!doctype html><html><head><meta charset="utf-8"><style>
 :root {{ --qr-dark: #000; --qr-light: #fff; color-scheme: light dark; }}
@@ -175,6 +233,9 @@ def main():
                       f"{', '.join(teile)}  {e['t'][:50]}")
             seite.close()
         browser.close()
+    # Modulvergleich: die Links von oben und ASCII-Texte jeder Grenzlänge (jede Version 1 bis 10)
+    grenzen = [1, 14, 15, 26, 27, 42, 43, 62, 63, 84, 85, 106, 107, 122, 123, 152, 153, 180, 181, 213]
+    fehler += vergleich_encoder(LINKS + [("Notenheld:" * 22)[:k] for k in grenzen])
     print(f"Bilder: {ordner}")
     print("Gegenprobe bestanden" if fehler == 0 else f"{fehler} Fehler")
     sys.exit(1 if fehler else 0)

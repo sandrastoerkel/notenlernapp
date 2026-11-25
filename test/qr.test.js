@@ -4,7 +4,7 @@
 // Gegenprobe (OpenCV) liegt außerhalb von npm test in docs/screens/qr-gegenprobe.py.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { qrMatrix, qrSvg, rsRemainder, formatBits, versionBits, DATENBYTES, KAPAZITAET, MAX_VERSION } from "../src/qr.js";
+import { qrMatrix, qrSvg, rsRemainder, formatBits, versionBits, strafe, DATENBYTES, KAPAZITAET, MAX_VERSION } from "../src/qr.js";
 
 const BASIS = "https://sandrastoerkel.github.io/notenlernapp/";
 const bin = (x, n) => x.toString(2).padStart(n, "0");
@@ -255,6 +255,33 @@ test("Rücklesen: Zufallstexte jeder Länge 1 bis 213", () => {
 test("Rücklesen: Umlaute und ß (UTF-8)", () => {
   for (const t of ["Übung macht den Meister – Größe, Fuß, Ärger, öde", "ä", "Notenheld: Fis, Es, c', c''"]) {
     assert.equal(lies(qrMatrix(t)).text, t);
+  }
+});
+
+// Strafregeln: Werte von Hand nachgerechnet (21 × 21 Module).
+test("Strafregeln: von Hand nachgerechnete Flächen", () => {
+  const leer = () => Array.from({ length: 21 }, () => new Array(21).fill(false));
+  // alles hell: Regel 1 je Zeile/Spalte 3 + 16 = 19, mal 42 = 798; Regel 2: 20 · 20 · 3 = 1200; Regel 4: 0 % → 100
+  assert.equal(strafe(leer()), 798 + 1200 + 100);
+  // Schachbrett: keine Läufe, keine Blöcke, 221 von 441 dunkel → 0
+  assert.equal(strafe(leer().map((r, y) => r.map((_, x) => (x + y) % 2 === 0))), 0);
+  // 1 0 1 1 1 0 1 am Anfang der ersten Zeile, sonst hell:
+  // Regel 1: Zeile 0 nur noch Lauf 14 (12 statt 19), fünf Spalten mit Lauf 20 (18 statt 19) → 798 − 12 = 786
+  // Regel 2: in den Zeilen 0/1 nur noch 13 statt 20 Blöcke → 1200 − 21 = 1179
+  // Regel 3: Ruhezone davor und vier helle Module danach → 2 · 40; Regel 4: 5 von 441 dunkel → 90
+  const m = leer();
+  [0, 2, 3, 4, 6].forEach((x) => { m[0][x] = true; });
+  assert.equal(strafe(m), 786 + 1179 + 80 + 90);
+  // dasselbe Muster in der Spalte ergibt dieselbe Summe
+  assert.equal(strafe(m[0].map((_, x) => m.map((r) => r[x]))), 786 + 1179 + 80 + 90);
+});
+
+test("Maskenwahl: kleinste Strafsumme, bei Gleichstand die kleinere Nummer; ungültige Maske → Wahl", () => {
+  for (const t of [BASIS + "#klasse=6", BASIS + "#klasse=13&zweig=mug", "Notenheld", "x".repeat(152), "y".repeat(213)]) {
+    const summen = [0, 1, 2, 3, 4, 5, 6, 7].map((k) => strafe(qrMatrix(t, { mask: k }).modules));
+    const q = qrMatrix(t);
+    assert.equal(q.mask, summen.indexOf(Math.min(...summen)), t);
+    for (const falsch of [8, -1, 2.5, "3", null]) assert.deepEqual(qrMatrix(t, { mask: falsch }), q);
   }
 });
 

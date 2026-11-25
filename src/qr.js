@@ -275,7 +275,8 @@ export function versionFor(bytes) {
 }
 
 // qrMatrix(text) → { version, size, mask, modules } oder null (Text zu lang für Version 10).
-// optionen.mask (0 … 7) erzwingt eine Maske (für Tests); sonst Wahl nach den Strafregeln.
+// optionen.mask (0 … 7) erzwingt eine Maske (für Tests); sonst – auch bei einem ungültigen Wert – Wahl nach
+// den Strafregeln (kleinste Summe, bei Gleichstand die kleinere Maskennummer).
 export function qrMatrix(text, optionen = {}) {
   const bytes = utf8(text);
   const v = versionFor(bytes.length);
@@ -283,7 +284,8 @@ export function qrMatrix(text, optionen = {}) {
   const cw = codewoerter(bytes, v);
   const { n, m, fest } = geruest(v);
   schreibeDaten(m, fest, n, cw);
-  const kandidaten = Number.isInteger(optionen.mask) ? [optionen.mask] : [0, 1, 2, 3, 4, 5, 6, 7];
+  const fest1 = Number.isInteger(optionen.mask) && optionen.mask >= 0 && optionen.mask <= 7;
+  const kandidaten = fest1 ? [optionen.mask] : [0, 1, 2, 3, 4, 5, 6, 7];
   let beste = null;
   for (const maske of kandidaten) {
     const k = m.map((r) => r.slice());
