@@ -17,6 +17,7 @@ const PRECACHE = [
   "./src/engine.js",
   "./src/grid.js",
   "./src/music.js",
+  "./src/qr.js",
   "./src/repeat.js",
   "./src/sprueche.js",
   "./src/staff.js",

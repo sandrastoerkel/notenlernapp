@@ -2889,6 +2889,20 @@ damit offline.
     vor dem Push einmal mit der Handykamera (Abschnitt 8).
 - Abnahme: `npm test` grün; die Gegenprobe mit dem unabhängigen Leser liest alle drei Links.
 
+**Umgesetzt (25.11.2026, Opus, eigener Arbeitsbaum `qr-11`, zusammengeführt):** Commits 3689ed3 (Modul, Tests,
+Gegenprobe `docs/screens/qr-gegenprobe.py`), 51e705a (PRECACHE). `qrMatrix(text, { mask })` (`mask` nur für Tests,
+ungültige Werte → Wahl nach Strafregeln), `qrSvg(text, { scale = 6, margin = 4, label })` mit `role="img"`, Farben
+`var(--qr-dark, #000)` / `var(--qr-light, #fff)` (Tokens folgen in Schritt 12). Strafregel 3 zählt die Ruhezone als
+hell (Norm 2015). Tests: Bezugswerte, Struktur V1–V10, alle acht Masken, eigener Testleser für 37 Links,
+Zufallstexte 1–213 Bytes.
+
+**Prüfung (25.11.2026, Fable): bestanden nach Korrektur e478c74** (ungültige Maske abgefangen, `strafe()` mit von
+Hand gerechneten Flächen getestet, Gegenprobe vergleicht Modul für Modul mit `cv2.QRCodeEncoder`: 93 Texte gleich;
+Strafregeln an 107 Texten × 8 Masken nachgerechnet). Gegenprobe 22/22 mit drei Lesern (aruco, wechat, zbar). Der
+klassische `cv2.QRCodeDetector` verfehlt manche Codes ab Version 8 – genauso bei OpenCVs eigenem Encoder, also
+Leserschwäche, kein Defekt. Für Schritt 12: sprechendes `label` („QR-Code für Jahrgang 6“), `scale` ≥ 6.
+Offen für Sandra: Handy-Scan (iOS/Android) je eines kurzen (V4) und eines langen Codes (V8–V10).
+
 #### Schritt 11 – Jahrgang: Tabelle, Link, Bestätigung, Öffnen
 
 - `src/klasse.js` (neu, rein): `JAHRGAENGE = [5 … 13]`; `DRAN` und `DRAN_MUG` nach der Tabelle in 4 (je Jahrgang
