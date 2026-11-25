@@ -268,6 +268,20 @@ export function recordRound(s, levelId, correct, now = new Date()) {
   return { stars, gained };
 }
 
+// Gemischte Runde beenden (Welle 11, Schritt 6): kind "wiederholen" (Wiederholung über Tage) oder "grundlagen"
+// („Grundlagen wiederholen“). Erfahrungspunkte: 10 je richtige Antwort, bei „wiederholen“ dazu der Bonus wie in
+// einer normalen Runde (20 · Sterne nach starsFor); beide zählen für die Tagesserie. Kein Eintrag in s.levels:
+// keine Sterne, keine beste Runde, keine Freischaltung. Die Antworten selbst zählen schon über recordAnswer in
+// der Statistik ihrer eigenen Stufe. total ist für die Ergebniskarte da und ändert die Punkte nicht.
+export const MIXED_KINDS = ["wiederholen", "grundlagen"];
+export function recordMixedRound(s, kind, correct, total, now = new Date()) {
+  if (!MIXED_KINDS.includes(kind)) throw new Error(`Unbekannte Art der Runde: ${kind}`);
+  const gained = correct * 10 + (kind === "wiederholen" ? starsFor(correct) * 20 : 0);
+  s.xp += gained;
+  touchStreak(s, now);
+  return { gained, total };
+}
+
 // Eine Antwort zählen und je Aufgabe vermerken: { ok, bad, sec, timed, last, hist, hsec }.
 // sec ist die Summe der Antwortzeiten richtiger Antworten in Sekunden, timed deren Anzahl,
 // last der Tag der letzten Antwort. sec (optional) zählt nur bei richtigen Antworten und

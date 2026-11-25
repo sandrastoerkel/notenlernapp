@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { startLabel, keysHint, lettersLabel, resultInfo, missingText, answersScroll, startHint, TWO_STEPS_NOTE, resultLine, avgText } from "../../src/views/practice.js";
+import { startLabel, keysHint, lettersLabel, resultInfo, missingText, answersScroll, startHint, TWO_STEPS_NOTE, resultLine, avgText, perLevelLine, MIXED_HEAD } from "../../src/views/practice.js";
 import { keepStufe, textOf } from "../../src/engine.js";
 import { PACKS } from "../../src/packs/index.js";
 import { lockText } from "../../src/views/home.js";
@@ -125,7 +125,7 @@ test("Tastatur-Hinweis: Ziffern bei Stufen mit digits", () => {
 test("Hilfen: nur während der Runde, eigener Bereich unter der Notenzeile", () => {
   const src = readFileSync(new URL("../../src/views/practice.js", import.meta.url), "utf8");
   assert.match(src, /helps: \$\("#pHelps"\), helpsTitle: \$\("#pHelps summary"\), helpsBody: \$\("#pHelpsBody"\)/);
-  assert.equal((src.match(/\$\("#pHelps"\)\.hidden = true/g) || []).length, 2);
+  assert.equal((src.match(/\$\("#pHelps"\)\.hidden = true/g) || []).length, 3, "render, Ergebniskarte und Ergebniskarte der gemischten Runde (Welle 11)");
   const html = readFileSync(new URL("../../index.html", import.meta.url), "utf8");
   const i = html.indexOf('id="pStaff"'), j = html.indexOf('id="pHelps"'), k = html.indexOf('id="pIntro"'), p = html.indexOf('id="pPiano"');
   assert.ok(i < j && j < k && k < p, "Hilfen zwischen Notenzeile und Startkarte, getrennt von #pPiano");
@@ -200,4 +200,17 @@ test("Ergebniskarte: die Freischalt-Zeile stimmt in jeder Stufe jedes Pakets mit
     assert.ok(mine.every((l) => !isUnlocked(knapp, pack, l.id)), where);
     assert.ok(mine.every((l) => isUnlocked(genug, pack, l.id)), where);
   }
+});
+
+test("Gemischte Runde (vorläufig, Welle 11, Schritt 6): Kopf und Zeile je Stufe", () => {
+  assert.deepEqual(MIXED_HEAD, { wiederholen: "Wiederholen", grundlagen: "Grundlagen wiederholen" });
+  assert.equal(perLevelLine(PACKS, { id: "intervall-2", n: 3, ok: 3 }), "Intervalle 2 · 3 von 3");
+  assert.equal(perLevelLine(PACKS, { id: "noten-7", n: 4, ok: 2 }), "Noten lesen 7 · 2 von 4");
+});
+
+test("index.html: Herkunftszeile #pOrigin über der Notenzeile, zu Beginn verborgen", () => {
+  const html = readFileSync(new URL("../../index.html", import.meta.url), "utf8");
+  const i = html.indexOf('id="pOrigin"'), j = html.indexOf('id="pStaff"');
+  assert.ok(i > 0 && i < j, "vor #pStaff");
+  assert.match(html.slice(html.lastIndexOf("<", i), html.indexOf(">", i) + 1), /hidden/);
 });

@@ -8,6 +8,7 @@ import {
   playMode, revealedSvg, svgResultClass, playSchedule, rhythmEnd, answerDelay, PLAY_GAP, BEAT_MS, RHYTHM_TAIL, DELAY_OK, AUTO_OK_MAX, waitsAfter, NEXT_STEP, DEMO_WAIT_SHORT, stepsResult,
   choiceSet, setClass, stepsFeedback, digitAction, helpsHtml, hasHelps, HELP_FROM, helpFrom, helpsTitle, DELAY_STEP_OK,
   startRound, stop, handleKey, ROUND_LENGTH, isWaiting, DEMO_LABEL, DEMO_WAIT, DEMO_READY, DEMO_NEXT, waitsForNext, silenceTones,
+  makeMixed, startMixed, originText, perLevelOf, currentQuestion,
 } from "../src/engine.js";
 import { mock } from "node:test";
 import { setMuted } from "../src/audio.js";
@@ -16,7 +17,7 @@ import { toneEnd } from "../src/audio.js";
 import { PACKS } from "../src/packs/index.js";
 import noten from "../src/packs/noten.js";
 import { fresh } from "../src/store.js";
-import { N, same, gName, LETTERS } from "../src/music.js";
+import { N, same, gName, LETTERS, midi } from "../src/music.js";
 import akkorde from "../src/packs/akkorde.js";
 import notenwerte, { ITEMS_8 } from "../src/packs/notenwerte.js";
 
@@ -633,6 +634,14 @@ test("Ablauf zweischrittig: richtig/richtig, Zahl daneben/dann Qualität, einmal
     assert.deepEqual(res.results.slice(0, 3), [true, false, false], "Teilerfolg zählt als daneben");
     assert.equal(r.state.answered, 10);
     assert.deepEqual(r.state.levels["intervall-5"], { stars: 2, best: 8, played: 1 });
+    // Rundenprotokoll (Welle 11, Schritt 6): je Aufgabe Stufe, Ergebnis und Ergebnis je Schritt
+    assert.equal(res.log.length, 10);
+    assert.deepEqual(res.log.slice(0, 3), [
+      { id: "intervall-5", ok: true, oks: [true, true] },
+      { id: "intervall-5", ok: false, oks: [false, true] },
+      { id: "intervall-5", ok: false, oks: [true, false] },
+    ]);
+    assert.equal(res.perLevel, undefined, "perLevel nur in der gemischten Runde");
   } finally { stop(); mock.timers.reset(); }
 });
 
@@ -1056,4 +1065,274 @@ test("level.twoSteps passt zu den Aufgaben (q.steps mit zwei Schritten)", () => 
     for (let k = 0; k < 8 && !seen; k++) seen = makeRound(level, ROUND_LENGTH, { notes: {} }).some((q) => q.steps && q.steps.length > 1);
     assert.equal(!!level.twoSteps, seen, level.id);
   }
+});
+
+/* ---------- Gemischte Runde (Welle 11, Schritt 6) ---------- */
+
+const lvl = (id) => findLevel(PACKS, id);
+// Eine Aufgabe der Stufe id wie aus makeMixed (q.from, q.fromPack); pred (optional) wählt eine passende Aufgabe
+function mixedItem(id, pred = () => true) {
+  const { pack, level } = lvl(id);
+  assert.equal(level.id, id);
+  for (let i = 0; i < 500; i++) {
+    const q = level.question(null, { notes: {}, round: [] });
+    if (pred(q)) return { ...q, from: level, fromPack: pack };
+  }
+  throw new Error(`keine passende Aufgabe in ${id}`);
+}
+function mixedUi() {
+  const ui = { staff: fakeEl(), feedback: fakeEl(), count: fakeEl(), dots: fakeEl(), answers: fakeEl(), typed: fakeEl(), piano: fakeEl(), helps: fakeEl(), helpsBody: anyEl(), next: fakeEl(), origin: fakeEl() };
+  ui.feedback.append = () => {};
+  ui.helps.hidden = false; ui.origin.hidden = true;
+  return ui;
+}
+const btnText = (ui, b) => ui.answers.innerHTML.match(new RegExp(`data-choice="${b.dataset.choice}">([^<]+)<`))[1];
+const letterBtns = (ui) => [...ui.answers.innerHTML.matchAll(/data-letter="([A-H])"/g)].length;
+const accBtns = (ui) => [...ui.answers.innerHTML.matchAll(/data-acc=/g)].length;
+const letterTarget = (a) => ({ dataset: { letter: a.letter, acc: String(a.acc || 0) }, classList: { add() {}, remove() {} }, closest() { return this; } });
+const clickChoice = (ui, text) => {
+  const b = ui.answers.querySelectorAll(".btn[data-choice]").find((x) => btnText(ui, x) === text);
+  assert.ok(b, `Knopf ${text}`);
+  ui.answers.onclick({ target: b });
+};
+// weiter zur nächsten Aufgabe: „Nächste Aufgabe“, wenn die Runde wartet, sonst die Pause abwarten
+const advance = (ui) => { if (isWaiting()) ui.next.onclick(); else mock.timers.tick(5000); };
+
+test("makeMixed: Anzahl je Stufe, q.from, prev und ctx.round innerhalb der Stufe, nie zweimal dieselbe Stufe hintereinander", () => {
+  const seen = [];
+  const mk = (id) => ({ id, no: 1, question(prev, c) { const q = { id, prev, roundLen: c.round.length, notes: c.notes }; seen.push(q); return q; } });
+  const packs = [{ id: "p", title: "P", levels: [mk("a"), mk("b")] }, { id: "q", title: "Q", levels: [mk("c")] }];
+  const ctx = { notes: { x: 1 } };
+  const out = makeMixed(packs, [{ id: "a", n: 4 }, { id: "b", n: 3 }, { id: "c", n: 3 }], ctx, () => 0);
+  assert.equal(out.length, 10);
+  const count = (id) => out.filter((q) => q.from.id === id).length;
+  assert.deepEqual([count("a"), count("b"), count("c")], [4, 3, 3]);
+  for (let i = 1; i < out.length; i++) assert.notEqual(out[i].from.id, out[i - 1].from.id, `Stelle ${i}`);
+  assert.ok(out.every((q) => q.from.id === q.id && q.fromPack === (q.id === "c" ? packs[1] : packs[0])));
+  assert.ok(out.every((q) => q.notes === ctx.notes), "ctx geht an question");
+  assert.equal(ctx.round, undefined, "ctx selbst bleibt unverändert");
+  // prev und ctx.round je Stufe: die erste Aufgabe einer Stufe ohne prev, jede weitere mit der vorigen derselben Stufe
+  for (const id of ["a", "b", "c"]) {
+    const qs = seen.filter((q) => q.id === id);
+    assert.equal(qs[0].prev, null);
+    qs.slice(1).forEach((q, i) => { assert.equal(q.prev, qs[i]); assert.equal(q.roundLen, i + 1); });
+  }
+  // Kopien: die Aufgaben der Pakete bekommen kein from
+  assert.ok(seen.every((q) => !("from" in q)));
+  // Ungleich verteilt: so wenige Nachbarn derselben Stufe wie möglich (5 + 1: a b a a a a)
+  const un = makeMixed(packs, [{ id: "a", n: 5 }, { id: "b", n: 1 }], {}, () => 0.99);
+  assert.deepEqual(un.map((q) => q.from.id), ["a", "b", "a", "a", "a", "a"]);
+  // n = 0 entfällt, doppelte Einträge zählen zusammen, unbekannte ID ist ein Fehler
+  assert.equal(makeMixed(packs, [{ id: "a", n: 0 }, { id: "b", n: 2 }], {}).length, 2);
+  assert.equal(makeMixed(packs, [{ id: "a", n: 2 }, { id: "a", n: 1 }], {}).length, 3);
+  assert.throws(() => makeMixed(packs, [{ id: "zz", n: 2 }], {}), /Unbekannte Stufe: zz/);
+  // Gleichstand per rand: mit 0 die erste, mit 0,99 die letzte Stufe zuerst
+  assert.equal(makeMixed(packs, [{ id: "a", n: 1 }, { id: "c", n: 1 }], {}, () => 0)[0].from.id, "a");
+  assert.equal(makeMixed(packs, [{ id: "a", n: 1 }, { id: "c", n: 1 }], {}, () => 0.99)[0].from.id, "c");
+});
+
+test("makeMixed mit echten Stufen: 4 + 3 + 3 aus drei Paketen, jede Aufgabe stellbar", () => {
+  for (let k = 0; k < 20; k++) {
+    const out = makeMixed(PACKS, [{ id: "noten-7", n: 4 }, { id: "notenwerte-5", n: 3 }, { id: "intervall-4", n: 3 }], { notes: {}, state: fresh() });
+    assert.equal(out.length, 10);
+    for (let i = 1; i < out.length; i++) assert.notEqual(out[i].from.id, out[i - 1].from.id);
+    assert.ok(out.every((q) => q.svg && q.from && q.fromPack.levels.includes(q.from)));
+  }
+});
+
+test("originText: Paket · Stufe, „Stufe 4“ bricht nicht um", () => {
+  assert.equal(originText(lvl("intervall-4").pack, lvl("intervall-4").level), "Intervalle · Stufe 4");
+  assert.equal(originText(lvl("akkorde-6").pack, lvl("akkorde-6").level), "Dreiklänge und Quintenzirkel · Stufe 6");
+});
+
+test("perLevelOf: Ergebnis je Stufe, Reihenfolge des Plans, weitere Stufen nach erstem Auftreten", () => {
+  const log = [{ id: "b", ok: true }, { id: "a", ok: false }, { id: "b", ok: false }, { id: "c", ok: true }, { id: "a", ok: true }];
+  assert.deepEqual(perLevelOf(log, ["a", "b"]), [{ id: "a", n: 2, ok: 1 }, { id: "b", n: 2, ok: 1 }, { id: "c", n: 1, ok: 1 }]);
+  assert.deepEqual(perLevelOf(log), [{ id: "b", n: 2, ok: 1 }, { id: "a", n: 2, ok: 1 }, { id: "c", n: 1, ok: 1 }]);
+  assert.deepEqual(perLevelOf([], ["a"]), [], "Stufen ohne Aufgabe entfallen");
+});
+
+test("startMixed: unbekannte Art und Aufgaben ohne q.from sind Fehler", () => {
+  const ui = mixedUi(), hooks = { state: fresh(), save() {}, onFinish() {} };
+  assert.throws(() => startMixed({ kind: "blitz", items: [mixedItem("noten-3")] }, ui, hooks), /Unbekannte Art/);
+  assert.throws(() => startMixed({ kind: "grundlagen", items: [] }, ui, hooks), /ohne Aufgaben/);
+  assert.throws(() => startMixed({ kind: "grundlagen", items: [noten.levels[2].question(null)] }, ui, hooks), /q\.from/);
+  stop();
+});
+
+test("Gemischte Runde: jede Eingabeart im Wechsel (Buchstaben, Namensraster, Auswahlknöpfe, Ziffern, zwei Schritte, namesOnly), ohne Reste der vorigen Aufgabe", () => withDoc(() => {
+  setMuted(true);
+  mock.timers.enable({ apis: ["setTimeout"] });
+  try {
+    const items = [
+      mixedItem("noten-3"),
+      mixedItem("noten-7"),
+      mixedItem("notenwerte-5"),
+      mixedItem("intervall-2"),
+      mixedItem("intervall-4", (q) => q.steps && q.steps.length === 2),
+      mixedItem("intervall-9"),
+      mixedItem("noten-3"),
+      mixedItem("notenwerte-5"),
+    ];
+    const ui = mixedUi(), state = fresh();
+    let res = null, saves = 0;
+    startMixed({ kind: "grundlagen", items, plan: [{ id: "intervall-2", n: 1 }, { id: "noten-3", n: 2 }] }, ui, { state, save() { saves++; }, onFinish(x) { res = x; } });
+    // ohne Hilfen, mit Herkunftszeile
+    assert.equal(ui.helps.hidden, true); assert.equal(ui.helps.open, false);
+    assert.equal(ui.helpsBody.innerHTML, "");
+    assert.equal(ui.origin.hidden, false);
+    const expectLetters = (names) => {
+      assert.equal(ui.answers.classList.contains("choices"), false);
+      assert.equal(ui.answers.classList.contains("names"), names);
+      assert.equal(letterBtns(ui), names ? 21 : 7);
+      assert.equal(accBtns(ui), names ? 21 : 0);
+      assert.equal(ui.answers.hidden, false); assert.equal(ui.piano.hidden, true);
+      assert.equal(ui.typed.hidden, !names);
+    };
+    const expectChoices = (q) => {
+      assert.equal(ui.answers.classList.contains("choices"), true);
+      assert.equal(ui.answers.classList.contains("names"), false);
+      assert.equal(letterBtns(ui), 0);
+      assert.deepEqual(ui.answers.querySelectorAll(".btn[data-choice]").map((b) => btnText(ui, b)), choiceSet(q, 0).choices);
+      assert.equal(ui.typed.hidden, true); assert.equal(ui.piano.hidden, true);
+    };
+    // 1. noten-3: Buchstaben, Taste
+    assert.equal(ui.origin.textContent, "Noten lesen · Stufe 3");
+    assert.equal(currentQuestion(), items[0]);
+    expectLetters(false);
+    assert.equal(handleKey(key(items[0].answer.letter.toLowerCase(), { preventDefault() {} })), true);
+    assert.equal(state.answered, 1); assert.equal(state.correct, 1);
+    advance(ui);
+    // 2. noten-7: Namensraster, Name tippen und Enter
+    assert.equal(ui.count.textContent, "2 / 8");
+    assert.equal(ui.origin.textContent, "Noten lesen · Stufe 7");
+    expectLetters(true);
+    for (const ch of gName(N(items[1].answer.letter, 4, items[1].answer.acc)).toLowerCase()) assert.equal(handleKey(key(ch, { preventDefault() {} })), true);
+    assert.equal(handleKey(key("Enter", { preventDefault() {} })), true);
+    assert.equal(state.answered, 2); assert.equal(state.correct, 2);
+    advance(ui);
+    // 3. notenwerte-5: Auswahlknöpfe ohne Ziffern; daneben → wartet auf „Nächste Aufgabe“
+    assert.equal(ui.origin.textContent, "Notenwerte und Pausen · Stufe 5");
+    expectChoices(items[2]);
+    assert.equal(handleKey(key("1", { preventDefault() {} })), false, "keine Ziffern in Notenwerte 5");
+    assert.equal(handleKey(key("c", { preventDefault() {} })), false, "keine Buchstaben bei Auswahlknöpfen");
+    const wrong = items[2].choices.find((c) => c !== items[2].answer);
+    clickChoice(ui, wrong);
+    assert.equal(state.answered, 3); assert.equal(state.correct, 2);
+    assert.equal(ui.feedback.className, "feedback bad");
+    mock.timers.tick(100000);
+    assert.equal(ui.count.textContent, "3 / 8", "nach „daneben“ kein Zeitgeber");
+    assert.equal(isWaiting(), true); assert.equal(ui.next.hidden, false); assert.equal(ui.next.textContent, DEMO_NEXT);
+    ui.next.onclick();
+    // 4. intervall-2: Auswahlknöpfe mit Ziffern
+    assert.equal(ui.origin.textContent, "Intervalle · Stufe 2");
+    expectChoices(items[3]);
+    assert.ok(ui.answers.classList.contains("cols"));
+    assert.equal(handleKey(key(String(items[3].choices.indexOf(items[3].answer) + 1), { preventDefault() {} })), true);
+    assert.equal(state.correct, 3);
+    advance(ui);
+    // 5. intervall-4: zwei Schritte
+    assert.equal(ui.origin.textContent, "Intervalle · Stufe 4");
+    const q5 = items[4];
+    expectChoices(q5);
+    clickChoice(ui, q5.steps[0].answer);
+    assert.equal(state.answered, 4, "nach Schritt 1 noch nicht gezählt");
+    mock.timers.tick(DELAY_STEP_OK);
+    assert.deepEqual(ui.answers.querySelectorAll(".btn[data-choice]").map((b) => btnText(ui, b)), q5.steps[1].choices);
+    clickChoice(ui, q5.steps[1].answer);
+    assert.equal(state.answered, 5); assert.equal(state.correct, 4);
+    advance(ui);
+    // 6. intervall-9: namesOnly, Namensraster (Klick)
+    assert.equal(ui.origin.textContent, "Intervalle · Stufe 9");
+    expectLetters(true);
+    assert.equal(ui.answers.classList.contains("cols"), false, "keine Spalten der vorigen Auswahlknöpfe");
+    ui.answers.onclick({ target: letterTarget(items[5].answer) });
+    assert.equal(state.answered, 6); assert.equal(state.correct, 5);
+    advance(ui);
+    // 7. noten-3 nach dem Namensraster: wieder nur sieben Buchstaben
+    expectLetters(false);
+    ui.answers.onclick({ target: letterTarget(items[6].answer) });
+    assert.equal(state.correct, 6);
+    advance(ui);
+    // 8. notenwerte-5 nach Buchstaben: Auswahlknöpfe ohne Reste
+    expectChoices(items[7]);
+    clickChoice(ui, items[7].answer);
+    assert.equal(state.correct, 7);
+    advance(ui);
+    // Ende: Ergebnis mit perLevel (Reihenfolge des Plans, dann erstes Auftreten) und log
+    assert.ok(res, "Runde beendet");
+    assert.equal(res.kind, "grundlagen");
+    assert.equal(res.correct, 7); assert.equal(res.total, 8);
+    assert.equal(res.gained, 70, "„grundlagen“: 10 je richtige Antwort, kein Bonus");
+    assert.equal(res.stars, undefined);
+    assert.deepEqual(res.perLevel, [
+      { id: "intervall-2", n: 1, ok: 1 }, { id: "noten-3", n: 2, ok: 2 }, { id: "noten-7", n: 1, ok: 1 },
+      { id: "notenwerte-5", n: 2, ok: 1 }, { id: "intervall-4", n: 1, ok: 1 }, { id: "intervall-9", n: 1, ok: 1 },
+    ]);
+    assert.deepEqual(res.log.map((e) => e.id), items.map((q) => q.from.id));
+    assert.deepEqual(res.log[4], { id: "intervall-4", ok: true, oks: [true, true] });
+    assert.deepEqual(res.log[2], { id: "notenwerte-5", ok: false, oks: [false] });
+    assert.deepEqual(res.results, [true, true, false, true, true, true, true, true]);
+    // Spielstand: XP und Serie, keine Stufe eingetragen; jede Antwort in der Statistik ihrer eigenen Aufgabe
+    assert.equal(state.xp, 70); assert.equal(state.dayStreak, 1);
+    assert.deepEqual(state.levels, {});
+    assert.equal(state.answered, 8);
+    for (const q of items.filter((x) => x.statKey)) assert.ok(state.notes[q.statKey], q.statKey);
+    assert.ok(saves >= 9);
+    assert.equal(currentQuestion(), null);
+  } finally { stop(); mock.timers.reset(); }
+}));
+
+test("Gemischte Runde mit Vorliebe „Klaviatur“: Klaviatur bei Buchstaben-Stufen, Namensraster bei namesOnly, Knöpfe bei Auswahl", () => withDoc(() => {
+  setMuted(true);
+  mock.timers.enable({ apis: ["setTimeout"] });
+  try {
+    const items = [mixedItem("noten-3"), mixedItem("notenwerte-5"), mixedItem("noten-7"), mixedItem("intervall-9")];
+    const ui = mixedUi(), state = fresh();
+    state.input = "keys";
+    let res = null;
+    startMixed({ kind: "wiederholen", items }, ui, { state, save() {}, onFinish(x) { res = x; } });
+    const keyRect = (q) => ({ closest: () => ({ dataset: { semi: String(midi(q.note)) }, classList: { add() {}, remove() {} } }) });
+    // noten-3: Klaviatur statt Buchstaben
+    assert.equal(ui.answers.hidden, true); assert.equal(ui.piano.hidden, false);
+    assert.ok(ui.piano.innerHTML.includes("<svg"));
+    ui.piano.onclick({ target: keyRect(items[0]) });
+    assert.equal(state.correct, 1);
+    advance(ui);
+    // notenwerte-5: Knöpfe, Klaviatur verborgen
+    assert.equal(ui.answers.hidden, false); assert.equal(ui.piano.hidden, true);
+    assert.ok(ui.answers.classList.contains("choices"));
+    clickChoice(ui, items[1].answer);
+    advance(ui);
+    // noten-7: Klaviatur (Name tippen geht weiterhin), Zeile für den getippten Namen sichtbar
+    assert.equal(ui.answers.hidden, true); assert.equal(ui.piano.hidden, false); assert.equal(ui.typed.hidden, false);
+    ui.piano.onclick({ target: keyRect(items[2]) });
+    assert.equal(state.correct, 3);
+    advance(ui);
+    // intervall-9: namesOnly – Namensraster trotz Vorliebe „Klaviatur“
+    assert.equal(ui.answers.hidden, false); assert.equal(ui.piano.hidden, true);
+    assert.ok(ui.answers.classList.contains("names"));
+    ui.answers.onclick({ target: letterTarget(items[3].answer) });
+    advance(ui);
+    assert.ok(res);
+    assert.equal(res.correct, 4); assert.equal(res.total, 4);
+    // „wiederholen“: 10 je richtige Antwort und 20 · Sterne nach starsFor (4 Richtige: kein Stern)
+    assert.equal(res.gained, 40);
+    assert.deepEqual(state.levels, {});
+    assert.equal(state.input, "keys", "Vorliebe bleibt");
+  } finally { stop(); mock.timers.reset(); }
+}));
+
+test("Normale Runde nach einer gemischten: Herkunftszeile verborgen, Hilfen wie bisher", () => {
+  setMuted(true);
+  mock.timers.enable({ apis: ["setTimeout"] });
+  try {
+    const ui = mixedUi();
+    startMixed({ kind: "grundlagen", items: [mixedItem("noten-3")] }, ui, { state: fresh(), save() {}, onFinish() {} });
+    assert.equal(ui.origin.hidden, false);
+    startRound(intervalle.levels[0], ui, { state: fresh(), save() {}, onFinish() {} });
+    assert.equal(ui.origin.hidden, true);
+    assert.equal(ui.helps.hidden, false, "Stufe mit Hilfen");
+    assert.ok(ui.helpsBody.innerHTML.includes("keys-static"));
+  } finally { stop(); mock.timers.reset(); }
 });

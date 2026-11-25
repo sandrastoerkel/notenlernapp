@@ -6,7 +6,9 @@
 //
 // Geprüft werden bei 320 px (dunkel) und 420 px (hell): Startseite, alle Stufen aller Pakete (Startkarte,
 // Aufgabe mit offenen Hilfen, nach jeder Antwort – abwechselnd richtig und daneben –, jede Vorführung Bild
-// für Bild), „Lernen“ je Reiter und Schlüssel mit allen Vorführungen, Blitz und Statistik.
+// für Bild), zwei gemischte Runden (Welle 11, Schritt 6: vorläufiger Start über practice.startMixed, alle
+// Aufgaben, abwechselnd richtig und daneben, dazu Herkunftszeile und keine Reste der vorigen Eingabeart),
+// „Lernen“ je Reiter und Schlüssel mit allen Vorführungen, Blitz und Statistik.
 // In jedem Zustand zählt außerdem ein zweiter sichtbarer Knopf „Nächste Aufgabe“ als Treffer (W2, Welle 11).
 //
 // Playwright ist KEINE Abhängigkeit der App (siehe screenshots.mjs). Aufruf bei laufendem Server:
@@ -118,6 +120,27 @@ const PICK = ([right, s]) => {
   return btns.findIndex((b) => !b.disabled && ok(b) === right);
 };
 const PACK = { noten: "noten", notenwerte: "notenwerte", tonleitern: "tonleitern", intervall: "intervalle", akkorde: "akkorde" };
+// Gemischte Runden (je drei Stufen, 4 + 3 + 3): Namensraster, Auswahlknöpfe, zwei Schritte; Buchstaben,
+// namesOnly, lange Auswahltexte
+const MIXED = [
+  [{ id: "noten-7", n: 4 }, { id: "notenwerte-5", n: 3 }, { id: "intervall-4", n: 3 }],
+  [{ id: "noten-3", n: 4 }, { id: "intervall-9", n: 3 }, { id: "akkorde-6", n: 3 }],
+];
+// läuft in der Seite: aktuelle Aufgabe der gemischten Runde für PICK bereitstellen und prüfen, dass Herkunftszeile
+// und Antwortbereich zur Stufe der Aufgabe passen (Fehlertext oder "")
+const MIXED_CUR = async () => {
+  const e = await import("./src/engine.js");
+  const q = e.currentQuestion(); window.__qs = [q]; window.__lv = q.from;
+  const o = document.querySelector("#pOrigin"), a = document.querySelector("#pAnswers");
+  const bad = [];
+  if (o.hidden || o.textContent !== e.originText(q.fromPack, q.from)) bad.push(`Herkunft „${o.textContent}“`);
+  const choices = q.from.input === "choices";
+  if (choices && a.querySelector("[data-letter]")) bad.push("Buchstaben bei Auswahlknöpfen");
+  if (!choices && a.querySelector("[data-choice]")) bad.push("Auswahlknöpfe bei Buchstaben");
+  if (!choices && a.classList.contains("names") !== !!q.from.acc) bad.push("Namensraster falsch");
+  if (!document.querySelector("#pHelps").hidden) bad.push("Hilfen sichtbar");
+  return bad.length ? `${q.from.id}: ${bad.join(", ")}` : "";
+};
 
 async function run(browser, width, scheme) {
   const ctx = await browser.newContext({ viewport: { width, height: 900 }, colorScheme: scheme, serviceWorkers: "block" });
@@ -155,6 +178,27 @@ async function run(browser, width, scheme) {
       }
     }
   };
+  // eine Aufgabe beantworten (aktuelle Aufgabe in window.__qs, Stufe in window.__lv), Schritt für Schritt
+  const answerQuestion = async (w, right) => {
+    const n = await pg.evaluate("(() => { const q = window.__qs[window.__qs.length - 1]; return q.steps ? q.steps.length : 1; })()");
+    for (let s = 0; s < n; s++) {
+      let i = await pg.evaluate(PICK, [right, s]);
+      if (i < 0) i = await pg.evaluate(PICK, [!right, s]);
+      if (i < 0) { errs.push(`${w}: kein Knopf gefunden`); break; }
+      await pg.locator("#pAnswers .btn").nth(i).click(); await pg.waitForTimeout(200);
+      await chk(`${w} nach Schritt ${s + 1} (${right ? "richtig" : "daneben"})`);
+      if (s < n - 1) { if (await vis("#pNext")) await pg.click("#pNext"); else await pg.waitForTimeout(900); await pg.waitForTimeout(200); }
+    }
+  };
+  // weiter: bei offener Vorführung steht „Nächste Aufgabe“ nur am Ende der Vorführung (W2), sonst unter den Antworten
+  const goOn = async () => {
+    for (let t = 0; t < 25 && !(await vis("#pResult")); t++) {
+      if (await vis("#pHelpsBody [data-demo-next]")) { await pg.click("#pHelpsBody [data-demo-next]"); break; }
+      if (await vis("#pNext")) { await pg.click("#pNext"); break; }
+      await pg.waitForTimeout(150);
+    }
+    await pg.waitForTimeout(250);
+  };
   await chk("Start (gesperrt)");
   await pg.click("#unlockAll"); await pg.waitForTimeout(300); await chk("Start (offen)");
   const levels = await pg.evaluate("[...document.querySelectorAll('.level[data-id]')].map((e) => e.dataset.id)");
@@ -167,24 +211,25 @@ async function run(browser, width, scheme) {
       const w = `${lid} Aufgabe ${rnd + 1}`, right = rnd % 2 === 0;
       if ((await vis("#pHelps")) && !(await pg.evaluate("document.querySelector('#pHelps').open"))) { await pg.click("#pHelps summary"); await pg.waitForTimeout(150); }
       await chk(`${w} Frage`);
-      const n = await pg.evaluate("(() => { const q = window.__qs[window.__qs.length - 1]; return q.steps ? q.steps.length : 1; })()");
-      for (let s = 0; s < n; s++) {
-        let i = await pg.evaluate(PICK, [right, s]);
-        if (i < 0) i = await pg.evaluate(PICK, [!right, s]);
-        if (i < 0) { errs.push(`${w}: kein Knopf gefunden`); break; }
-        await pg.locator("#pAnswers .btn").nth(i).click(); await pg.waitForTimeout(200);
-        await chk(`${w} nach Schritt ${s + 1} (${right ? "richtig" : "daneben"})`);
-        if (s < n - 1) { if (await vis("#pNext")) await pg.click("#pNext"); else await pg.waitForTimeout(900); await pg.waitForTimeout(200); }
-      }
+      await answerQuestion(w, right);
       if (rnd < 2 && (await vis("#pHelps"))) await demos("#pHelpsBody", w);
-      // weiter: bei offener Vorführung steht „Nächste Aufgabe“ nur am Ende der Vorführung (W2), sonst unter den Antworten
-      for (let t = 0; t < 25 && !(await vis("#pResult")); t++) {
-        if (await vis("#pHelpsBody [data-demo-next]")) { await pg.click("#pHelpsBody [data-demo-next]"); break; }
-        if (await vis("#pNext")) { await pg.click("#pNext"); break; }
-        await pg.waitForTimeout(150);
-      }
-      await pg.waitForTimeout(250);
+      await goOn();
     }
+  }
+  // Gemischte Runden: jede Aufgabe, abwechselnd richtig und daneben (vorläufiger Start, Welle 11, Schritt 6)
+  for (const [k, plan] of MIXED.entries()) {
+    await pg.evaluate(async (p) => { (await import("./src/views/practice.js")).startMixed("wiederholen", p); }, plan);
+    await pg.waitForTimeout(250);
+    for (let rnd = 0; rnd < 12 && !(await vis("#pResult")); rnd++) {
+      const w = `gemischt ${k + 1} Aufgabe ${rnd + 1}`, right = rnd % 2 === 0;
+      const bad = await pg.evaluate(MIXED_CUR);
+      if (bad) errs.push(`${w}: ${bad}`);
+      await chk(`${w} Frage`);
+      await answerQuestion(w, right);
+      await goOn();
+    }
+    if (!(await vis("#pResult"))) errs.push(`gemischt ${k + 1}: keine Ergebniskarte`);
+    await chk(`gemischt ${k + 1} Ergebnis`);
   }
   // „Lernen“ je Reiter (Welle 11, W3) und, wo die Schlüsselwahl sichtbar ist, je Schlüssel, mit allen Vorführungen
   await pg.click('.tab[data-view="learn"]'); await pg.waitForTimeout(300);

@@ -153,6 +153,8 @@ section { display: grid; gap: 14px; }
 .btn:disabled { opacity: .5; cursor: default; }
 
 /* staff */
+/* Herkunft der Aufgabe in der gemischten Runde („Intervalle · Stufe 4“), dicht über der Notenzeile */
+.origin { font-weight: 700; margin: 0 0 -8px; }
 .staff-card { padding: 10px 12px; }
 /* Nach „Nächste Aufgabe“ am Ende der Vorführung rückt die Notenzeile unter die Kopfleiste (src/engine.js, showStaff) */
 #pStaff { scroll-margin-top: 72px; }

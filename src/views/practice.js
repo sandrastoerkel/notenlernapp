@@ -119,8 +119,9 @@ export function render() {
   // namesOnly: nur das Namensraster (die Schreibweise zählt), keine Wahl der Klaviatur
   $("#view-practice .seg").hidden = !letters || !!level.namesOnly;
   $("#pKeys").hidden = !letters && !level.digits;
-  // Hilfen nur während der Runde (engine.startRound)
+  // Hilfen nur während der Runde (engine.startRound); Herkunftszeile nur in der gemischten Runde
   $("#pHelps").hidden = true;
+  $("#pOrigin").hidden = true;
   $("#pNext").hidden = true;
   $("#pKeys").innerHTML = keysHint(level);
   $("#inLetters").textContent = lettersLabel(level);
@@ -129,14 +130,58 @@ export function render() {
   ctx.renderTop();
 }
 
+const playUi = () => ({
+  staff: $("#pStaff"), feedback: $("#pFeedback"), count: $("#pCount"), dots: $("#pDots"),
+  answers: $("#pAnswers"), typed: $("#pTyped"), piano: $("#pPiano"),
+  helps: $("#pHelps"), helpsTitle: $("#pHelps summary"), helpsBody: $("#pHelpsBody"), next: $("#pNext"),
+  origin: $("#pOrigin"),
+});
+
 function startRound() {
   const { level } = current();
   $("#pIntro").hidden = true; $("#pResult").hidden = true; $("#pPlay").hidden = false;
-  engine.startRound(level, {
-    staff: $("#pStaff"), feedback: $("#pFeedback"), count: $("#pCount"), dots: $("#pDots"),
-    answers: $("#pAnswers"), typed: $("#pTyped"), piano: $("#pPiano"),
-    helps: $("#pHelps"), helpsTitle: $("#pHelps summary"), helpsBody: $("#pHelpsBody"), next: $("#pNext"),
-  }, { state: ctx.state, save: ctx.save, onFinish: showResult });
+  engine.startRound(level, playUi(), { state: ctx.state, save: ctx.save, onFinish: showResult });
+}
+
+// Gemischte Runde (Welle 11, Schritt 6) – VORLÄUFIG ohne Knopf in der Oberfläche, nur für die Browserprüfung
+// (Playwright, docs/screens/ueberlauf.mjs) und die Konsole:
+//   (await import("./src/views/practice.js")).startMixed("wiederholen", [{ id: "noten-7", n: 4 }, …])
+// Die Startkarten und Ergebniskarten der Runden „Grundlagen wiederholen“ (Schritt 7) und „Wiederholen“ (Schritt 8)
+// ersetzen Kopf und Ergebnis hier.
+export const MIXED_HEAD = { wiederholen: "Wiederholen", grundlagen: "Grundlagen wiederholen" };
+export function startMixed(kind, plan) {
+  ctx.show("practice");
+  const items = engine.makeMixed(ctx.packs, plan, { notes: ctx.state.notes, state: ctx.state });
+  $("#pLevelNo").textContent = MIXED_HEAD[kind] || kind;
+  $("#pLevelTitle").textContent = "Gemischte Runde";
+  // Die Wahl Buchstaben/Klaviatur gilt nicht für die ganze gemischte Runde (Schritt 7: verborgen)
+  $("#view-practice .seg").hidden = true;
+  $("#pIntro").hidden = true; $("#pResult").hidden = true; $("#pPlay").hidden = false;
+  engine.startMixed({ kind, items, plan }, playUi(), { state: ctx.state, save: ctx.save, onFinish: (res) => showMixedResult(res, kind, plan) });
+  return items;
+}
+
+// Ergebniszeile je Stufe der gemischten Runde (rein, getestet): „Intervalle 2 · 3 von 3“
+export function perLevelLine(packs, e) {
+  const { pack, level } = engine.findLevel(packs, e.id);
+  return `${pack.title} ${level.no} · ${e.ok} von ${e.n}`;
+}
+
+function showMixedResult(res, kind, plan) {
+  $("#pPlay").hidden = true; $("#pHelps").hidden = true; $("#pOrigin").hidden = true;
+  $("#pResult").hidden = false;
+  $("#pResult").innerHTML = `
+      <p class="eyebrow">${MIXED_HEAD[kind] || kind}</p>
+      <p class="big num">${res.correct} / ${res.total}</p>
+      <p class="small muted num">+${res.gained} XP</p>
+      ${res.perLevel.map((e) => `<p class="small">${perLevelLine(ctx.packs, e)}</p>`).join("")}
+      <div class="row" style="justify-content:center">
+        <button class="btn primary" id="rAgain">Nochmal</button>
+        <button class="btn ghost" id="rHome">Übersicht</button>
+      </div>`;
+  $("#rAgain").addEventListener("click", () => startMixed(kind, plan));
+  $("#rHome").addEventListener("click", () => ctx.show("home"));
+  ctx.renderTop();
 }
 
 function showResult(res) {
