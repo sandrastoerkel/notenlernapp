@@ -79,7 +79,7 @@ Grundstellung, 1 Sextakkord, 2 Quartsextakkord; `INVERSIONS`), `fifthUp`,
 vermindert“), `majorScale(tonic)`, `degreeTriad(tonic, deg)`, `ROMAN`.
 
 Erweiterung aus Paket C (Notenwerte und Pausen): `VALUES` (`[1, 2, 4, 8, 16]`),
-`beats(value, dotted)` (Schläge im 4/4-Takt, Viertel = 1, Punkt verlängert um die
+`beats(value, dotted)` (Dauer in Schlägen, 1 Schlag = 1 Viertelnote, Punkt verlängert um die
 Hälfte), `beatsText(b)` („1½“, „¾“), `beatsLabel(b)` („1 Schlag“, „2 Schläge“),
 `valueName(value, rest, dotted)` („punktierte halbe Note“, „Achtelpause“).
 
@@ -330,7 +330,7 @@ Eine Stufe:
   question(prev, ctx) {        // liefert eine neue Aufgabe, nie dieselbe wie prev; ctx siehe unten
     return {
       svg: "<svg …>",          // fertiges SVG (meist staffSvg(...))
-      prompt: "",              // optionale Frage über der Zeile, z. B. "Wie viele Schläge?"
+      prompt: "",              // optionale Frage über der Zeile, z. B. "Wie viele Schläge dauert diese Note? (1 Schlag = 1 Viertelnote)"
       answer: { letter: "G", acc: 0 }, // kanonische Antwort: bei "letters" { letter, acc }, sonst String oder Zahl
       display: "G (g')",       // Text fürs Feedback: „Richtig! G (g')“ bzw. „Das war ein G (g').“
       reveal: "Richtig wäre: A-Dur.", // optional, ganzer Satz bei falscher Antwort statt „Das war ein …“
@@ -558,7 +558,11 @@ steht genau einmal im Takt. Die erste Silbe mittig unter Kopf bzw. Pause, weiter
 rechts; Grundlinie `COUNT_Y` = 116 (Halsende und Balken bei 100, gemessen: Abstand der Schriftbox ≥ 2, der
 Ziffern etwa 6; Zeilenhöhe bleibt 122). Nur nach der Antwort (`revealSvg` der Stufen 8/9) und im Ergebnis der
 Vorführung 3, nie im Fragebild. Die Zählleiste im Ergebnis setzt alle acht Silben, ohne Klammern nur dort, wo eine
-Note beginnt. In den Stufen 1–3 nennen Rückmeldungen und Vorführung 1 die Schläge mit „im 4/4-Takt“ (`METER`).
+Note beginnt. Wortlaut der Dauer (Welle 11, W1): Jede Frage nach der Dauer heißt `beatsPrompt(e)` – „Wie viele
+Schläge dauert diese Note? (1 Schlag = 1 Viertelnote)“ bzw. „… diese Pause? …“ (`BEAT_UNIT`, geschützte
+Leerzeichen); Hinweise und Lerntafel nennen `BEAT_RULE`. In den Stufen 1–3 stehen Rückmeldungen und Vorführung 1
+mit „(dauert ½ Schlag)“ (`DAUERT`), in den Stufen 5, 7, 9 „Achtelnote = ½ Schlag“. „Schläge im 4/4-Takt“ kommt in
+keinem Text mehr vor; „Ein 4/4-Takt hat vier Schläge“ bleibt dort, wo der ganze Takt gemeint ist (Stufen 8, 9).
 Stufe 6: Frage `PROMPT_6` und Texte nach Schritt 1 gleich mit und ohne Punkt; den Punkt nennt erst `dotWay`.
 Balken (Welle 10): `beamGroups(els)` rechnet aus den Einsatzzeiten (`onsetsOf`) die Gruppen – nur Achtel und
 Sechzehntel, die im selben Schlag aufeinander folgen (`BEAM_UNIT` = 1 Schlag, Sandra: je Schlag 2 + 2 auch in
@@ -630,7 +634,8 @@ Stufen-ID.
   true/false setzt es fest; ohne `level.question` gilt der Text). Es laufen weiter: Noten lesen 1–8, Notenwerte
   3, 5, 7, 9, 10, Tonleitern 3, Intervalle 2, Dreiklänge 1, 2, 4; alle übrigen Stufen ohne Hilfen warten auch nach
   „richtig“ (u. a. Tonleitern 11, Dreiklänge 3, 5, 6). Notenwerte 3 und 10 sind mit `autoNext: true` festgelegt
-  (Nachprüfung): nur „Richtig! Sechzehntelpause (¼ Schlag im 4/4-Takt)“ hat 48 Zeichen. Gewartet wird
+  (Nachprüfung; damals hatte „Richtig! Sechzehntelpause (¼ Schlag im 4/4-Takt)“ 48 Zeichen, seit Welle 11 sind es mit
+  „(dauert ¼ Schlag)“ 43 – die Festlegung bleibt). Gewartet wird
   ohne Zeitgeber (`isWaiting()`), bis du „Nächste Aufgabe“ tippst
   (`#pNext`, ohne die Hilfen zu öffnen sichtbar, auch bei 320 × 640 ohne Scrollen) oder Enter bzw. die
   Leertaste drückst (`handleKey`; ein fokussierter Knopf der Vorführung oder `summary` behält seine Taste).

@@ -123,26 +123,28 @@ test("Feedback ohne Hilfen: ganze Sätze mit „eine“, Dauer im richtigen Nume
   for (const l of L) for (const it of l.items) { const q = it.make(); assert.ok(/\d Schl|[¼½¾] Schl/.test(q.reveal), q.reveal); }
   const all = (l) => l.items.map((it) => sp(it.make()));
   const q2 = all(L[1]), q3 = all(L[2]), q5 = all(L[4]);
-  // Stufen 1–3: Schläge mit „im 4/4-Takt“ (dort noch nicht eingeführt, Welle 10)
-  assert.equal(q3[2].display, "Viertelnote (1 Schlag im 4/4-Takt)");
-  assert.equal(q3[2].reveal, "Das war eine Viertelnote (1 Schlag im 4/4-Takt).");
-  assert.equal(q3[0].reveal, "Das war eine ganze Note (4 Schläge im 4/4-Takt).");
-  assert.equal(q3[0].display, "Ganze Note (4 Schläge im 4/4-Takt)");
+  // Stufen 1–3: Dauer in Klammern „(dauert …)“ (Welle 11, W1; vorher „… im 4/4-Takt“)
+  assert.equal(q3[2].display, "Viertelnote (dauert 1 Schlag)");
+  assert.equal(q3[2].reveal, "Das war eine Viertelnote (dauert 1 Schlag).");
+  assert.equal(q3[0].reveal, "Das war eine ganze Note (dauert 4 Schläge).");
+  assert.equal(q3[0].display, "Ganze Note (dauert 4 Schläge)");
   // Pausen mit Merkmal (Abschlussprüfung Welle 10)
-  assert.equal(q2[3].reveal, "Das war eine Achtelpause (½ Schlag im 4/4-Takt) – ein Haken.");
-  assert.equal(q2[0].reveal, "Das war eine ganze Pause (4 Schläge im 4/4-Takt) – das Rechteck hängt unter der zweiten Linie von oben (das ist die vierte Linie von unten).");
-  assert.equal(q2[1].reveal, "Das war eine halbe Pause (2 Schläge im 4/4-Takt) – das Rechteck sitzt auf der Mittellinie.");
-  assert.equal(q2[2].reveal, "Das war eine Viertelpause (1 Schlag im 4/4-Takt) – ein Zickzack.");
-  assert.equal(q2[4].reveal, "Das war eine Sechzehntelpause (¼ Schlag im 4/4-Takt) – zwei Haken.");
+  assert.equal(q2[3].reveal, "Das war eine Achtelpause (dauert ½ Schlag) – ein Haken.");
+  assert.equal(q2[0].reveal, "Das war eine ganze Pause (dauert 4 Schläge) – das Rechteck hängt unter der zweiten Linie von oben (das ist die vierte Linie von unten).");
+  assert.equal(q2[1].reveal, "Das war eine halbe Pause (dauert 2 Schläge) – das Rechteck sitzt auf der Mittellinie.");
+  assert.equal(q2[2].reveal, "Das war eine Viertelpause (dauert 1 Schlag) – ein Zickzack.");
+  assert.equal(q2[4].reveal, "Das war eine Sechzehntelpause (dauert ¼ Schlag) – zwei Haken.");
   assert.equal(q3[2].reveal.includes(" – "), false);
-  for (const q of [...q2, ...q3, ...all(L[0])]) assert.ok(q.display.includes("im 4/4-Takt") && q.reveal.includes("im 4/4-Takt"), q.display);
-  for (const q of [...q5, ...all(L[6]), ...all(L[8])]) assert.ok(!q.display.includes("im 4/4-Takt"), q.display);
+  for (const q of [...q2, ...q3, ...all(L[0])]) assert.ok(q.display.includes("(dauert ") && q.reveal.includes("(dauert "), q.display);
+  // Stufen 5, 7, 9: „Richtig! Achtelnote = ½ Schlag“ (wie die Ergebniskarte der Vorführung)
+  for (const q of [...q5, ...all(L[6]), ...all(L[8])]) assert.ok(/^[A-ZÄÖÜ][^()]* = [\d¼½¾]+ Schl(ag|äge)$/.test(q.display), q.display);
+  assert.equal(q5[8].display, "Achtelpause = ½ Schlag");
   assert.equal(q5[1].reveal, "Richtig wäre: 2 Schläge, denn das ist eine halbe Note.");
   assert.equal(q5[9].reveal, "Richtig wäre: ¼ Schlag, denn das ist eine Sechzehntelpause.");
   const q7 = Object.fromEntries(L[6].items.map((it) => [it.key, sp(it.make())]));
   assert.equal(q7["4:b:n4."].reveal, "Richtig wäre: 1½ Schläge, denn das ist eine punktierte Viertelnote.");
-  assert.equal(q7["4:n:n2."].reveal, "Das war eine punktierte halbe Note (3 Schläge).");
-  assert.equal(q7["4:n:n2."].display, "Punktierte halbe Note (3 Schläge)");
+  assert.equal(q7["4:n:n2."].reveal, "Das war eine punktierte halbe Note (dauert 3 Schläge).");
+  assert.equal(q7["4:n:n2."].display, "Punktierte halbe Note = 3 Schläge");
   assert.equal(q7["4:b:n8."].reveal, "Richtig wäre: ¾ Schlag, denn das ist eine punktierte Achtelnote.");
   const q9 = Object.fromEntries(L[8].items.map((it) => [it.key, sp(it.make())]));
   const b = (s) => BARS.indexOf(s);
@@ -204,12 +206,12 @@ test("Stufe 1: Kopf (hohl | schwarz), dann nur die Werte dieser Kopfform", () =>
   assert.equal(qs[0].steps[0].ok, "Richtig: Der Kopf ist hohl.");
   assert.equal(qs[3].steps[0].bad, "Nicht ganz: Der Kopf ist schwarz.");
   assert.deepEqual(qs.map((q) => nb(q.display)), [
-    "Kopf hohl · ohne Hals → ganze Note (4 Schläge im 4/4-Takt)", "Kopf hohl · mit Hals → halbe Note (2 Schläge im 4/4-Takt)",
-    "Kopf schwarz · kein Fähnchen → Viertelnote (1 Schlag im 4/4-Takt)", "Kopf schwarz · 1 Fähnchen → Achtelnote (½ Schlag im 4/4-Takt)",
-    "Kopf schwarz · 2 Fähnchen → Sechzehntelnote (¼ Schlag im 4/4-Takt)",
+    "Kopf hohl · ohne Hals → ganze Note (dauert 4 Schläge)", "Kopf hohl · mit Hals → halbe Note (dauert 2 Schläge)",
+    "Kopf schwarz · kein Fähnchen → Viertelnote (dauert 1 Schlag)", "Kopf schwarz · 1 Fähnchen → Achtelnote (dauert ½ Schlag)",
+    "Kopf schwarz · 2 Fähnchen → Sechzehntelnote (dauert ¼ Schlag)",
   ]);
-  assert.equal(nb(qs[1].partial), "Der Notenwert stimmt, der Kopf nicht: Kopf hohl · mit Hals → halbe Note (2 Schläge im 4/4-Takt).");
-  assert.equal(nb(qs[3].reveal), "Richtig wäre: Kopf schwarz · 1 Fähnchen → Achtelnote (½ Schlag im 4/4-Takt).");
+  assert.equal(nb(qs[1].partial), "Der Notenwert stimmt, der Kopf nicht: Kopf hohl · mit Hals → halbe Note (dauert 2 Schläge).");
+  assert.equal(nb(qs[3].reveal), "Richtig wäre: Kopf schwarz · 1 Fähnchen → Achtelnote (dauert ½ Schlag).");
   // Kopfform am Bild: hohl bei ganzer und halber Note
   qs.forEach((q, i) => assert.equal(q.svg.includes("notehead open"), i < 2));
 });
@@ -219,12 +221,12 @@ test("Stufe 4: Notenwert, dann Schläge (4 | 2 | 1 | ½ | ¼)", () => {
   assert.deepEqual(qs.map((q) => q.prompt), [...Array(5).fill("Welcher Notenwert?"), ...Array(5).fill("Welche Pause?")]);
   assert.deepEqual(qs.map((q) => q.steps[0].answer), ALL(L[2]).map((q) => q.answer));
   assert.deepEqual(qs.map((q) => q.steps[0].choices), ALL(L[2]).map((q) => q.choices));
-  qs.forEach((q) => { assert.deepEqual(q.steps[1].choices, ["4", "2", "1", "½", "¼"]); assert.equal(q.steps[1].prompt, "Wie viele Schläge im 4/4-Takt?"); });
+  qs.forEach((q) => { assert.deepEqual(q.steps[1].choices, ["4", "2", "1", "½", "¼"]); assert.equal(nb(q.steps[1].prompt), `Wie viele Schläge dauert diese ${q.el.rest ? "Pause" : "Note"}? (1 Schlag = 1 Viertelnote)`); });
   assert.deepEqual(qs.map((q) => q.answer), ["4", "2", "1", "½", "¼", "4", "2", "1", "½", "¼"]);
   assert.equal(qs[8].steps[0].ok, "Richtig: Das ist eine Achtelpause.");
   assert.equal(nb(qs[8].display), "Achtelpause → ½ Schlag");
   assert.equal(nb(qs[1].display), "Halbe Note → 2 Schläge");
-  assert.equal(nb(qs[8].partial), "Die Schläge stimmen, der Notenwert nicht: Achtelpause → ½ Schlag.");
+  assert.equal(nb(qs[8].partial), "Die Dauer stimmt, der Notenwert nicht: Achtelpause → ½ Schlag.");
 });
 
 test("Stufe 6: Notenwert ohne den Punkt, dann Schläge (3 | 2 | 1½ | 1 | ¾ | ½), punktierte doppelt im Vorrat", () => {
@@ -236,7 +238,7 @@ test("Stufe 6: Notenwert ohne den Punkt, dann Schläge (3 | 2 | 1½ | 1 | ¾ | �
     assert.equal(q.prompt, "Welcher Notenwert steckt in dieser Note? Einen Punkt lässt du zuerst weg.");
     assert.deepEqual(q.steps[0].choices, ["halbe Note", "Viertelnote", "Achtelnote"]);
     assert.deepEqual(q.steps[1].choices, BEAT_CHOICES_4);
-    assert.equal(q.steps[1].prompt, "Wie viele Schläge dauert die Note?");
+    assert.equal(nb(q.steps[1].prompt), "Wie viele Schläge dauert diese Note? (1 Schlag = 1 Viertelnote)");
     assert.equal(count(q.svg, /class="notehead aug"/g), dot ? 1 : 0);
   }
   assert.deepEqual(Object.values(qs).map((q) => [q.steps[0].answer, q.answer]), [
@@ -475,7 +477,7 @@ test("Lerntafeln: Reihenfolge, Tabelle mit Pyramide, drei Vorführungen mit eige
   assert.ok(html.includes(pyramidSvg()));
   // weiches Trennzeichen vor „note“/„pause“ (bei 320 px liefen die Namen ineinander)
   assert.ok(html.includes("Sechzehntel\u00adnote") && html.includes("Achtel\u00adpause") && html.includes("Viertel\u00adnote"));
-  for (const t of ["ganze Note", "ganze Pause", "Sechzehntel\u00adpause", "punktierte halbe Note", "punktierte Viertel\u00adnote", "punktierte Achtel\u00adnote", "Schläge im 4/4", "1½", "¾", "Notenwert-Pyramide"]) assert.ok(html.includes(t), t);
+  for (const t of ["ganze Note", "ganze Pause", "Sechzehntel\u00adpause", "punktierte halbe Note", "punktierte Viertel\u00adnote", "punktierte Achtel\u00adnote", "Dauer in Schlägen", "1½", "¾", "Notenwert-Pyramide"]) assert.ok(html.includes(t), t);
   // keine <div>: .legend div hat eigene Styles
   assert.ok(!html.includes("<div"));
   for (const [i, id] of [[0, "value"], [2, "beats"], [3, "bar"]]) {
@@ -599,7 +601,7 @@ test("Notenwert-Pyramide: 1 + 2 + 4 + 8 + 16 Kästchen, Schläge 4 · 2 · 1 · 
   }
   assert.ok(pyramidSvg({ hit: 2 }).includes('class="nw-pyr-row hit" data-row="2"'));
   assert.ok(L[5].helpTable.includes("Punkt: + die Hälfte") && !L[3].helpTable.includes("Punkt"));
-  assert.equal(L[3].helpText, "Eine Pause dauert so lang wie die Note mit demselben Wert.");
+  assert.equal(L[3].helpText, "1 Schlag = 1 Viertelnote. Eine Pause dauert so lang wie die Note mit demselben Wert.");
 });
 
 test("Hilfen Stufe 8: Zählleiste 1 + 2 + 3 + 4 + (Schläge grau) mit „+ heißt „und““ im Bild, darunter die Pyramide in voller Größe", () => {
@@ -655,7 +657,7 @@ test("Vorführung „So erkennst du einen Notenwert“: 4 Bilder, Kopf violett, 
     const note = (b) => b.match(/<g class="note ">.*?<\/g>/)[0];
     d.frames.forEach((f) => assert.equal(note(f.body), note(d.frames[0].body)));
   });
-  assert.equal(nb(valueDemo(ITEMS_1[3].el).frames[3].result.title), "Achtelnote · ½ Schlag im 4/4-Takt");
+  assert.equal(nb(valueDemo(ITEMS_1[3].el).frames[3].result.title), "Achtelnote · dauert ½ Schlag");
 });
 
 test("Vorführung „So bestimmst du die Dauer“: 4 Bilder, mit Punkt 5, die grüne Zeile der Pyramide passt", () => {
@@ -696,7 +698,7 @@ test("Vorführung „So bestimmst du die Dauer“: 4 Bilder, mit Punkt 5, die gr
     assert.deepEqual(r.tones, e.rest ? [] : [PITCH]);
   }
   assert.deepEqual(beatsDemo(parseBar("4.")[0]).frames.map((f) => nb(f.text || f.result.title)), [
-    "Wie lange dauert das? Erst der Notenwert, dann die Schläge.", "Ohne den Punkt: Viertelnote", "Viertelnote = 1 Schlag",
+    "Wie viele Schläge dauert das? Erst der Notenwert, dann die Dauer (1 Schlag = 1 Viertelnote).", "Ohne den Punkt: Viertelnote", "Viertelnote = 1 Schlag",
     "Punkt: die Hälfte dazu · 1 + ½ = 1½", "Punktierte Viertelnote = 1½ Schläge",
   ]);
   assert.equal(nb(beatsDemo(parseBar("r8")[0]).frames[2].text), "Achtelpause = ½ Schlag, so lang wie die Achtelnote");
@@ -1077,4 +1079,48 @@ test("countLabelText: Note auf „+“ über einen Schlag gehalten, punktierte A
   assert.deepEqual(countLabelText(parseBar("r8 8 r4 r8 8 4")), ["(1)", "+", "(2)", "(3)", "+", "4"]);
   assert.deepEqual(countLabelText(parseBar("1")), ["1 (2) (3) (4)"]);
   assert.deepEqual(countLabelText(parseBar("r1")), ["(1) (2) (3) (4)"]);
+});
+
+// Welle 11, W1: ein Wortlaut für die Dauer. „Wie viele Schläge im 4/4-Takt?“ ließ sich als „Wie viele Schläge hat
+// der Takt?“ lesen. Gemeint ist die Dauer der Note in Schlägen (1 Schlag = 1 Viertelnote).
+test("Dauer in Schlägen: kein Text nennt „Schläge im 4/4“, jede Frage nach der Dauer lautet gleich", () => {
+  const texts = [];
+  const add = (...t) => t.forEach((x) => { if (x) texts.push(nb(x)); });
+  for (const l of L) {
+    add(l.title, l.subtitle, l.hint, l.helpText, helpsHtml(l, l.question(null)));
+    for (const it of l.items) {
+      const q = it.make();
+      add(q.prompt, q.display, q.reveal, q.partial);
+      for (const s of q.steps || []) add(s.prompt, s.ok, s.bad);
+    }
+  }
+  const frames = (d) => d.frames.forEach((f) => add(f.text, f.body, f.result && f.result.title, ...(f.result && f.result.chips || []).map((c) => c.text)));
+  ITEMS_1.forEach((it) => frames(valueDemo(it.el)));
+  [...ITEMS_4, ...ITEMS_6].forEach((it) => frames(beatsDemo(it.el)));
+  ITEMS_8.forEach((it) => frames(barDemo(parseBar(it.bar), it.gap)));
+  add(...DEMO_STEPS_VALUE, ...DEMO_STEPS_BEATS, ...DEMO_STEPS_BAR);
+  for (const b of Object.values(BOARDS)) add(b.intro, b.after);
+  for (const c of notenwerte.learn) add(c.title, c.render());
+  add(notenwerte.title, notenwerte.subtitle);
+  assert.ok(texts.length > 500);
+  for (const t of texts) assert.ok(!/Schl(äge|ag) im 4\/4/.test(t), t.slice(0, 120));
+  assert.deepEqual(DEMO_STEPS_BEATS, ["1 · Notenwert", "2 · Dauer"]);
+  assert.equal(L[3].title, "Dauer in Schlägen");
+  assert.equal(L[4].title, "Dauer in Schlägen ohne Hilfen");
+
+  // Fragen nach der Dauer: Stufe 4 Schritt 2, Stufe 5, Stufe 6 Schritt 2, Stufe 7 (Dauer), Stufe 10
+  const want = (q) => `Wie viele Schläge dauert diese ${q.el.rest ? "Pause" : "Note"}? (1 Schlag = 1 Viertelnote)`;
+  const durQ = [];
+  for (const l of [L[3], L[4], L[5], L[6], L[9]]) for (const it of l.items) {
+    const q = it.make();
+    if (q.steps) durQ.push([nb(q.steps[1].prompt), q]);
+    else if (/^\d|^[¼½¾]/.test(q.answer)) durQ.push([nb(q.prompt), q]);
+  }
+  assert.ok(durQ.length >= 10 + 10 + 6 + 6);
+  for (const [p, q] of durQ) assert.equal(p, want(q));
+  // die Klammer „(1 Schlag = 1 Viertelnote)“ bricht nicht auseinander (geschützte Leerzeichen)
+  assert.ok(L[4].items.every((it) => it.make().prompt.endsWith("(1 Schlag = 1 Viertelnote)")));
+  // der ganze Takt bleibt in den Stufen 8 und 9 gemeint
+  assert.ok(ALL(L[7]).every((q) => q.prompt === "Wie viele Schläge fehlen bis 4?"));
+  assert.ok(L[8].hint.startsWith("Ein 4/4-Takt hat vier Schläge."));
 });

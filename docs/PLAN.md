@@ -2446,6 +2446,20 @@ Pakets: `docs/ARCHITEKTUR.md` Zeilen 82, 333, 561, 633 (Wortlaut), `README.md` f
 **Abnahme.** Stufen 4 bis 7 und 10 je eine Runde bei 320 und 420 px: Frage in höchstens drei Zeilen, kein
 Überlauf; Vorführung und Lerntafeln mit dem neuen Wortlaut. Fable prüft den Wortlaut (Sandra: „Fable prüft“).
 
+**Umgesetzt (25.11.2026, Opus).** Wortlaut wie in der Tabelle; `BEAT_UNIT`, `BEAT_RULE`, `beatsPrompt(e)`,
+`DAUERT` in `src/packs/notenwerte.js`, `METER` entfällt, `displayOf(e, paren)` gibt „Name = Dauer“ bzw. mit
+`paren` (Stufen 2, 3) „Name (dauert …)“, `revealName(e)` ohne zweiten Parameter. `BEAT_UNIT` ganz mit geschützten
+Leerzeichen: Die Frage steht bei 320 und 420 px in genau zwei Zeilen (gemessen in den Stufen 4, 5, 6, 7, 10; bei
+320 px „… dauert diese / Note? (1 Schlag = 1 Viertelnote)“), kein Überlauf. Stufen 8 und 9 unverändert („Wie viele
+Schläge fehlen bis 4?“, „Ein 4/4-Takt hat vier Schläge“). Tests: ein neuer Test sammelt alle Texte des Pakets
+(Fragen, Schritte, Rückmeldungen, Titel, Hinweise, Hilfen, alle Bilder aller Vorführungen, Lerntafeln) – keiner
+enthält „Schläge/Schlag im 4/4“ – und prüft jede Frage nach der Dauer wörtlich. Doku: `docs/ARCHITEKTUR.md`
+(Zeilen 82, 333, 561, 633); `README.md` nicht betroffen. **Abweichung:** Der Spaltenkopf „Dauer in Schlägen“ der
+Lerntafel „Notenwerte und Pausen“ ragte bei 320 px über die schmale dritte Spalte (24 %; `ueberlauf.mjs` meldet das
+nicht, nur auf dem Bildschirmfoto sichtbar). Spalten jetzt 38 % · 35 % · 27 %, Zellen links/rechts 4 px statt
+6 px: Der Kopf passt in zwei Zeilen, und „Sechzehntel-pause“ trennt jetzt am weichen Trennzeichen statt wie bisher
+„Sechzehnte|lpause“.
+
 #### Schritt 2 – W3: „Lernen“ mit Reitern
 
 **Heute** (`src/views/learn.js`, `index.html` Zeilen 103–128): oben die Schlüsselwahl, die Notenzeile zum

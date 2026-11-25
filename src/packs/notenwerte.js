@@ -219,19 +219,29 @@ const el = (v, dot = false, rest = false) => ({ v, dot, rest });
 const NOTES = VALUES.map((v) => el(v));
 const RESTS = VALUES.map((v) => el(v, false, true));
 
-// Feedback: display nach richtiger Antwort („Richtig! Viertelnote (1 Schlag)“), reveal als ganzer Satz
+// Feedback: display nach richtiger Antwort („Richtig! Viertelnote = 1 Schlag“), reveal als ganzer Satz
 // nach falscher Antwort. Alle Begriffe sind weiblich (die Note, die Pause), daher „eine“.
 // Zahl und „Schlag“ bleiben in einer Zeile (geschütztes Leerzeichen)
 const beatsNb = (e) => beatsLabel(beatsOf(e)).replace(" ", "\u00a0");
-// Nach „Richtig!“ beginnt ein neuer Satz, daher groß: „Richtig! Ganze Note (4 Schläge)“.
-// In den Stufen 1–3 sind Schläge noch nicht eingeführt: dort „(1 Schlag im 4/4-Takt)“ (meter = true).
-export const METER = "im 4/4-Takt";
-const withBeats = (e, meter = false) => `${nameOf(e)} (${beatsNb(e)}${meter ? " " + METER : ""})`;
-export const displayOf = (e, meter = false) => { const t = withBeats(e, meter); return t[0].toUpperCase() + t.slice(1); };
-// Stufen 2, 3 und 7 (Name gefragt): „Das war eine Viertelnote (1 Schlag).“ (Stufen 2, 3: „… im 4/4-Takt).“)
-// Pausen (Abschlussprüfung Welle 10): mit dem Merkmal, z. B. „Das war eine halbe Pause (2 Schläge im 4/4-Takt) –
+// Wortlaut der Dauer (Welle 11, W1): gefragt ist, wie lange die Note dauert, gemessen in Schlägen – nicht, wie
+// viele Schläge der Takt hat. Die Wendung „Schläge im 4/4-Takt“ kommt deshalb nirgends mehr vor.
+// BEAT_UNIT steht in Klammern hinter jeder Frage nach der Dauer (geschützte Leerzeichen: die Klammer bricht
+// nicht auseinander), BEAT_RULE in Hinweisen und Lerntafel.
+export const BEAT_UNIT = "1\u00a0Schlag\u00a0=\u00a01\u00a0Viertelnote";
+export const BEAT_RULE = "Gezählt wird in Schlägen: Im 4/4-Takt ist ein Schlag so lang wie eine Viertelnote.";
+// Frage nach der Dauer (Stufen 4 Schritt 2, 5, 6 Schritt 2, 7 und 10): „Wie viele Schläge dauert diese Note?
+// (1 Schlag = 1 Viertelnote)“ bzw. „… diese Pause? …“
+export const beatsPrompt = (e) => `Wie viele Schläge dauert diese ${e.rest ? "Pause" : "Note"}? (${BEAT_UNIT})`;
+// „(dauert ½ Schlag)“ hinter dem Namen (Stufen 1–3 und Daneben-Sätze mit dem Namen)
+export const DAUERT = "dauert";
+const withBeats = (e) => `${nameOf(e)} (${DAUERT} ${beatsNb(e)})`;
+// Nach „Richtig!“ beginnt ein neuer Satz, daher groß. Stufen 5, 7, 9: „Richtig! Achtelnote = ½ Schlag“ (wie die
+// Ergebniskarte der Vorführung); Stufen 2 und 3 (paren = true): „Richtig! Achtelnote (dauert ½ Schlag)“.
+export const displayOf = (e, paren = false) => upperFirst(paren ? withBeats(e) : `${nameOf(e)} = ${beatsNb(e)}`);
+// Stufen 2, 3 und 7 (Name gefragt): „Das war eine Viertelnote (dauert 1 Schlag).“
+// Pausen (Abschlussprüfung Welle 10): mit dem Merkmal, z. B. „Das war eine halbe Pause (dauert 2 Schläge) –
 // das Rechteck sitzt auf der Mittellinie.“ (restFeature steht weiter unten, wird erst beim Aufruf gebraucht)
-export const revealName = (e, meter = false) => `Das war eine ${withBeats(e, meter)}${e.rest ? ` – ${restFeature(e)}` : ""}.`;
+export const revealName = (e) => `Das war eine ${withBeats(e)}${e.rest ? ` – ${restFeature(e)}` : ""}.`;
 // Stufen 5 und 7 (Dauer gefragt): „Richtig wäre: 1½ Schläge, denn das ist eine punktierte Viertelnote.“
 export const revealBeats = (e) => `Richtig wäre: ${beatsNb(e)}, denn das ist eine ${nameOf(e)}.`;
 // Stufe 9: „Richtig wäre eine Viertelnote, denn es fehlt noch 1 Schlag.“ / „… es fehlen noch 2 Schläge.“
@@ -270,8 +280,8 @@ const FEATURE = { 1: "ohne Hals", 2: "mit Hals", 4: "kein Fähnchen", 8: "1 Fäh
 export const featureOf = (e) => FEATURE[e.v];
 // Werte je Kopfform (Schritt 2 der Stufe 1 bietet nur diese an)
 export const VALUES_BY_HEAD = { [HEAD_OPEN]: NOTES.filter((e) => headOf(e) === HEAD_OPEN), [HEAD_BLACK]: NOTES.filter((e) => headOf(e) === HEAD_BLACK) };
-// „Kopf schwarz · 1 Fähnchen → Achtelnote (½ Schlag im 4/4-Takt)“
-export const valueWay = (e) => `Kopf ${headOf(e)} · ${featureOf(e)} → ${nameOf(e)} (${nbBeats(beatsOf(e))} ${METER})`;
+// „Kopf schwarz · 1 Fähnchen → Achtelnote (dauert ½ Schlag)“
+export const valueWay = (e) => `Kopf ${headOf(e)} · ${featureOf(e)} → ${nameOf(e)} (${DAUERT} ${nbBeats(beatsOf(e))})`;
 
 // Stufe 1: Notenwerte erkennen, zwei Schritte (Kopf, dann Hals und Fähnchen)
 export const ITEMS_1 = NOTES.map((e) => ({ key: "k:" + keyOf(e), el: e, make: () => {
@@ -288,34 +298,34 @@ export const ITEMS_1 = NOTES.map((e) => ({ key: "k:" + keyOf(e), el: e, make: ()
 
 // Stufe 2: Pausen erkennen (ein Schritt wie bisher)
 export const ITEMS_2 = RESTS.map((e) => ({ key: "2:" + keyOf(e), make: () => ({
-  svg: singleSvg(e, false), prompt: "Welche Pause ist das?", answer: nameOf(e), display: displayOf(e, true), reveal: revealName(e, true), choices: REST_NAMES, el: e,
+  svg: singleSvg(e, false), prompt: "Welche Pause ist das?", answer: nameOf(e), display: displayOf(e, true), reveal: revealName(e), choices: REST_NAMES, el: e,
 }) }));
 
 // Stufe 3: Noten und Pausen erkennen ohne Hilfen (bisher Stufe 1 und 2 getrennt; die Schlüssel bleiben)
 const NAME_ITEMS = NOTES.map((e) => ({ key: "1:" + keyOf(e), make: () => ({
-  svg: singleSvg(e, false), prompt: "Welcher Notenwert ist das?", answer: nameOf(e), display: displayOf(e, true), reveal: revealName(e, true), choices: NOTE_NAMES, el: e,
+  svg: singleSvg(e, false), prompt: "Welcher Notenwert ist das?", answer: nameOf(e), display: displayOf(e, true), reveal: revealName(e), choices: NOTE_NAMES, el: e,
 }) }));
 export const ITEMS_3 = [...NAME_ITEMS, ...ITEMS_2];
 
 // Dauer einer Note oder Pause: „Achtelpause → ½ Schlag“
 export const beatsWay = (e) => `${nameOf(e)} → ${nbBeats(beatsOf(e))}`;
 
-// Stufe 4: Wie viele Schläge? Zwei Schritte (Notenwert, dann Schläge)
+// Stufe 4: Dauer in Schlägen, zwei Schritte (Notenwert, dann Dauer)
 export const ITEMS_4 = [...NOTES, ...RESTS].map((e) => ({ key: "d:" + keyOf(e), el: e, make: () => {
   const names = e.rest ? REST_NAMES : NOTE_NAMES, prompt = e.rest ? "Welche Pause?" : "Welcher Notenwert?";
   return twoStep({
     svg: singleSvg(e, true), prompt, answer: beatsText(beatsOf(e)), choices: BEAT_CHOICES,
     steps: [
       { choices: names, answer: nameOf(e), ...stepTexts(`Das ist eine ${nameOf(e)}.`) },
-      { choices: BEAT_CHOICES, answer: beatsText(beatsOf(e)), prompt: "Wie viele Schläge im 4/4-Takt?" },
+      { choices: BEAT_CHOICES, answer: beatsText(beatsOf(e)), prompt: beatsPrompt(e) },
     ],
     el: e,
-  }, beatsWay(e), "Die Schläge stimmen, der Notenwert nicht");
+  }, beatsWay(e), "Die Dauer stimmt, der Notenwert nicht");
 } }));
 
-// Stufe 5: Wie viele Schläge? Ohne Hilfen (bisher Stufe 3)
+// Stufe 5: Dauer in Schlägen ohne Hilfen (bisher Stufe 3)
 export const ITEMS_5 = [...NOTES, ...RESTS].map((e) => ({ key: "3:" + keyOf(e), make: () => ({
-  svg: singleSvg(e, true), prompt: "Wie viele Schläge im 4/4-Takt?", answer: beatsText(beatsOf(e)), display: displayOf(e), reveal: revealBeats(e), choices: BEAT_CHOICES, el: e,
+  svg: singleSvg(e, true), prompt: beatsPrompt(e), answer: beatsText(beatsOf(e)), display: displayOf(e), reveal: revealBeats(e), choices: BEAT_CHOICES, el: e,
 }) }));
 
 // Punktierungen: punktierte halbe, Viertel, Achtel; zum Vergleich auch ohne Punkt
@@ -345,16 +355,16 @@ export const ITEMS_6 = DOTTED_EL.map((e) => ({ key: "p:" + keyOf(e), dot: e.dot,
     answer: beatsText(beatsOf(e)), choices: BEAT_CHOICES_4,
     steps: [
       { choices: BASE_NAMES, answer: base, ...stepTexts(`Der Notenwert ist die ${base}.`) },
-      { choices: BEAT_CHOICES_4, answer: beatsText(beatsOf(e)), prompt: "Wie viele Schläge dauert die Note?" },
+      { choices: BEAT_CHOICES_4, answer: beatsText(beatsOf(e)), prompt: beatsPrompt(e) },
     ],
     el: e,
-  }, dotWay(e), "Die Schläge stimmen, der Notenwert nicht");
+  }, dotWay(e), "Die Dauer stimmt, der Notenwert nicht");
 } }));
 const POOL_6 = [...ITEMS_6, ...ITEMS_6.filter((it) => it.dot)];
 
 // Stufe 7: Punktierungen ohne Hilfen (bisher Stufe 4): gefragt wird die Dauer oder der Name
 export const ITEMS_7 = DOTTED_EL.flatMap((e) => [
-  { key: "4:b:" + keyOf(e), dot: e.dot, make: () => ({ svg: singleSvg(e, true), prompt: "Wie viele Schläge dauert diese Note?", answer: beatsText(beatsOf(e)), display: displayOf(e), reveal: revealBeats(e), choices: BEAT_CHOICES_4, el: e }) },
+  { key: "4:b:" + keyOf(e), dot: e.dot, make: () => ({ svg: singleSvg(e, true), prompt: beatsPrompt(e), answer: beatsText(beatsOf(e)), display: displayOf(e), reveal: revealBeats(e), choices: BEAT_CHOICES_4, el: e }) },
   { key: "4:n:" + keyOf(e), dot: e.dot, make: () => ({ svg: singleSvg(e, true), prompt: "Wie heißt dieser Notenwert?", answer: nameOf(e), display: displayOf(e), reveal: revealName(e), choices: NAME_CHOICES_4, el: e }) },
 ]);
 const POOL_7 = [...ITEMS_7, ...ITEMS_7.filter((it) => it.dot)];
@@ -555,7 +565,7 @@ export function countTable() {
 
 export const HELP_TEXT_VALUE = "Erst den Kopf ansehen, dann Hals und Fähnchen.";
 export const HELP_TEXT_REST = `Achte auf die Form und beim ${REST_SHAPE} auf die Lage.`;
-export const HELP_TEXT_BEATS = "Eine Pause dauert so lang wie die Note mit demselben Wert.";
+export const HELP_TEXT_BEATS = "1 Schlag = 1 Viertelnote. Eine Pause dauert so lang wie die Note mit demselben Wert.";
 export const HELP_TEXT_DOT = "Der Punkt verlängert eine Note um die Hälfte ihres Wertes.";
 export const HELP_TEXT_BEAM = "Achtel und Sechzehntel in einem Schlag hängen an einem Balken.";
 // Notensatz (PLAN Welle 10, Schritt 5; Abschlussprüfung): Die App balkt je Schlag (Sandra), in Noten steht oft
@@ -575,7 +585,7 @@ export const HELPS = {
 /* ---------- Vorführungen (src/demo.js; die Bilder baut das Paket, rein und in node testbar) ---------- */
 
 export const DEMO_STEPS_VALUE = ["1 · Kopf", "2 · Hals und Fähnchen"];
-export const DEMO_STEPS_BEATS = ["1 · Notenwert", "2 · Schläge"];
+export const DEMO_STEPS_BEATS = ["1 · Notenwert", "2 · Dauer"];
 export const DEMO_STEPS_BAR = ["1 · Zählen", "2 · Wert wählen"];
 
 const DEMO_X = 170;
@@ -599,7 +609,7 @@ export function valueDemo(e) {
     { step: 2, text: `${upperFirst(feat)} → ${nameOf(e)}`, body: say(staff(headRing(e, 1) + stemRing(e, 2))) },
     {
       step: 3, tones: [PITCH],
-      result: { title: `${upperFirst(nameOf(e))} · ${nbBeats(beatsOf(e))} ${METER}`, chips: [{ step: 1, text: `Kopf ${head}` }, { step: 2, text: feat }] },
+      result: { title: `${upperFirst(nameOf(e))} · ${DAUERT} ${nbBeats(beatsOf(e))}`, chips: [{ step: 1, text: `Kopf ${head}` }, { step: 2, text: feat }] },
       body: say(staff(headRing(e, 1) + stemRing(e, 2))),
     },
   ];
@@ -626,7 +636,7 @@ export function beatsDemo(e) {
   const base = baseOf(e), bb = beatsOf(base), name = nameOf(e), baseName = nameOf(base);
   const pyr = (opts) => pyramidSvg(opts);
   const frames = [
-    { step: 0, text: "Wie lange dauert das? Erst der Notenwert, dann die Schläge.", body: say(beatsStaff(e, 0), pyr()) },
+    { step: 0, text: `Wie viele Schläge dauert das? Erst der Notenwert, dann die Dauer (${BEAT_UNIT}).`, body: say(beatsStaff(e, 0), pyr()) },
     { step: 1, text: e.dot ? `Ohne den Punkt: ${baseName}` : `Das ist eine ${name}.`, body: say(beatsStaff(e, 1), pyr()) },
     {
       step: 2,
@@ -765,14 +775,14 @@ const RAW = [
   { title: "Pausen erkennen", subtitle: "5 Pausenwerte · mit Hilfen", items: ITEMS_2, example: singleSvg(el(4, false, true), false),
     hint: `Ganze und halbe Pause sind ein ${REST_SHAPE}: Die ganze Pause ${WHOLE_REST_PLACE}, die halbe Pause ${HALF_REST_PLACE}. Die Achtelpause hat einen Haken, die Sechzehntelpause zwei.` },
   // autoNext (Nachprüfung): Stufen 3 und 10 laufen nach „richtig“ weiter wie die Stufen 5, 7, 9. Nur der Text
-  // „Richtig! Sechzehntelpause (¼ Schlag im 4/4-Takt)“ (48 Zeichen) liegt über AUTO_OK_MAX (45); er nennt nichts
-  // außer Antwort und Schlägen. Ohne diese Festlegung wartete die ganze Stufe nach jeder richtigen Antwort.
+  // „Richtig! Sechzehntelpause (dauert ¼ Schlag)“ (43 Zeichen) liegt inzwischen unter AUTO_OK_MAX (45); die
+  // Festlegung bleibt trotzdem, damit ein längerer Name die Stufe nicht nach jeder richtigen Antwort warten lässt.
   { autoNext: true, title: "Noten und Pausen erkennen ohne Hilfen", subtitle: "5 Notenwerte und 5 Pausen", items: ITEMS_3, example: singleSvg(el(8, false, true), false),
     hint: "Noten und Pausen gemischt, ohne Hilfen. Bei Noten erst der Kopf, dann Hals und Fähnchen; bei Pausen Form und Lage." },
-  { twoSteps: true, title: "Wie viele Schläge?", subtitle: "4/4-Takt · Noten und Pausen · zwei Schritte · mit Hilfen", items: ITEMS_4, example: singleSvg(el(8), true),
-    hint: "Zwei Schritte: Erst den Notenwert erkennen, dann die Schläge ablesen. Im 4/4-Takt dauert eine Viertelnote einen Schlag. Eine Pause dauert so lang wie die Note mit demselben Wert." },
-  { title: "Wie viele Schläge? Ohne Hilfen", subtitle: "4/4-Takt · Noten und Pausen", items: ITEMS_5, example: singleSvg(el(16, false, true), true),
-    hint: "Im 4/4-Takt dauert eine Viertelnote einen Schlag. Ganze Note 4 Schläge, halbe 2, Achtel ½, Sechzehntel ¼. Eine Pause dauert so lang wie die Note mit demselben Wert." },
+  { twoSteps: true, title: "Dauer in Schlägen", subtitle: "Noten und Pausen · zwei Schritte · mit Hilfen", items: ITEMS_4, example: singleSvg(el(8), true),
+    hint: `Zwei Schritte: Erst den Notenwert erkennen, dann seine Dauer ablesen. ${BEAT_RULE} Eine Pause dauert so lang wie die Note mit demselben Wert.` },
+  { title: "Dauer in Schlägen ohne Hilfen", subtitle: "Noten und Pausen", items: ITEMS_5, example: singleSvg(el(16, false, true), true),
+    hint: `${BEAT_RULE} Die ganze Note dauert 4 Schläge, die halbe 2, die Achtel ½ Schlag, die Sechzehntel ¼ Schlag. Eine Pause dauert so lang wie die Note mit demselben Wert.` },
   { twoSteps: true, title: "Punktierungen", subtitle: "Punktierte halbe, Viertel und Achtel · zwei Schritte · mit Hilfen", items: ITEMS_6, pool: POOL_6, example: singleSvg(el(4, true), true),
     hint: "Zwei Schritte: Erst der Notenwert ohne den Punkt, dann die Schläge. Der Punkt verlängert eine Note um die Hälfte ihres Wertes: punktierte Viertel 1 + ½ = 1½ Schläge." },
   { title: "Punktierungen ohne Hilfen", subtitle: "Punktierte halbe, Viertel und Achtel", items: ITEMS_7, pool: POOL_7, example: singleSvg(el(2, true), true),
@@ -819,13 +829,13 @@ function miniSvg(inner, w = 60) {
   return s + inner + "</svg>";
 }
 const cellSvg = (e) => miniSvg(elementAt(e, e.dot ? 24 : 30));
-const TD = `style="padding:6px;border-bottom:1px solid var(--line);vertical-align:middle"`;
+const TD = `style="padding:6px 4px;border-bottom:1px solid var(--line);vertical-align:middle"`;
 // Name mit weichem Trennzeichen vor „note“/„pause“ („Sechzehntel-note“): Bei 320 px liefen „Sechzehntelnote“
 // und „Sechzehntelpause“ sonst ineinander (Abschlussprüfung Welle 10)
 function softName(e) { return nameOf(e).replace(/(tel)(note|pause)$/, "$1\u00ad$2"); }
 const cell = (e) => `<td ${TD}><span style="display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0;max-width:100%">${cellSvg(e)}<span class="small" style="hyphens:manual;overflow-wrap:break-word;max-width:100%">${softName(e)}</span></span></td>`;
 const TABLE = `style="width:100%;border-collapse:collapse;table-layout:fixed"`;
-const COLS = `<colgroup><col style="width:40%"><col style="width:36%"><col style="width:24%"></colgroup>`;
+const COLS = `<colgroup><col style="width:38%"><col style="width:35%"><col style="width:27%"></colgroup>`;
 
 // Bild „mit Fähnchen = mit Balken“ (Welle 10, Schritt 5): dieselbe Gruppe links mit Fähnchen, rechts mit Balken.
 // Ausschnitt der Notenzeile ohne Schlüssel, alle Noten auf h' mit Hals nach unten wie im Takt.
@@ -854,12 +864,12 @@ export function beamPictureSvg(bar, label = "Balken") {
 export function learnHtml() {
   const rows = VALUES.map((v) => `<tr>${cell(el(v))}${cell(el(v, false, true))}<td ${TD}><b>${beatsText(beats(v))}</b></td></tr>`).join("");
   const dotted = DOTTABLE.map((v) => `<tr>${cell(el(v, true))}<td ${TD} class="small muted">${beatsText(beats(v))} + ${beatsText(beats(v) / 2)}</td><td ${TD}><b>${beatsText(beats(v, true))}</b></td></tr>`).join("");
-  const th = (t) => `<th style="text-align:left;padding:4px 6px;border-bottom:1px solid var(--line);font-weight:700" class="small muted">${t}</th>`;
+  const th = (t) => `<th style="text-align:left;padding:4px;border-bottom:1px solid var(--line);font-weight:700" class="small muted">${t}</th>`;
   return `<section style="grid-column:1/-1;min-width:0">`
-    + `<table ${TABLE}>${COLS}<thead><tr>${th("Note")}${th("Pause")}${th("Schläge im 4/4")}</tr></thead><tbody>${rows}</tbody></table>`
+    + `<table ${TABLE}>${COLS}<thead><tr>${th("Note")}${th("Pause")}${th("Dauer in Schlägen")}</tr></thead><tbody>${rows}</tbody></table>`
     + `<p class="eyebrow" style="margin:14px 0 4px">Punktierte Noten</p>`
-    + `<table ${TABLE}>${COLS}<thead><tr>${th("Note")}${th("Rechnung")}${th("Schläge im 4/4")}</tr></thead><tbody>${dotted}</tbody></table>`
-    + `<p class="small muted" style="margin:8px 0 0">Der Punkt verlängert eine Note um die Hälfte ihres Wertes. Im 4/4-Takt hat jeder Takt vier Schläge, ein Schlag ist eine Viertelnote.</p>`
+    + `<table ${TABLE}>${COLS}<thead><tr>${th("Note")}${th("Rechnung")}${th("Dauer in Schlägen")}</tr></thead><tbody>${dotted}</tbody></table>`
+    + `<p class="small muted" style="margin:8px 0 0">Gezählt wird in Schlägen: Im 4/4-Takt ist ein Schlag so lang wie eine Viertelnote, ein ganzer Takt hat vier Schläge. Der Punkt verlängert eine Note um die Hälfte ihres Wertes.</p>`
     + `<p class="eyebrow" style="margin:14px 0 4px">Balken</p>`
     + BEAM_PICTURES.map((b) => `<figure class="nw-beam-fig" style="margin:6px 0;display:grid;justify-items:start;gap:2px">${beamPictureSvg(b.bar, b.text)}<figcaption class="small">${b.text}</figcaption></figure>`).join("")
     + `<p class="small muted" style="margin:8px 0 0">${HELP_TEXT_BEAM} Ein Balken steht für ein Fähnchen (Achtel), zwei Balken für zwei Fähnchen (Sechzehntel). Eine einzelne Achtel in ihrem Schlag behält ihr Fähnchen.</p>`
@@ -881,7 +891,7 @@ export const BOARDS = {
   },
   beats: {
     examples: [el(4), el(8, false, true), el(2, true), el(4, true), el(8, true)].map((e) => ({ label: nameOf(e), make: () => beatsDemo(e) })),
-    intro: "Erst den Notenwert erkennen, bei einer punktierten Note ohne den Punkt. Dann die Schläge in der Notenwert-Pyramide ablesen.",
+    intro: "Erst den Notenwert erkennen, bei einer punktierten Note ohne den Punkt. Dann die Dauer in der Notenwert-Pyramide ablesen (1 Schlag = 1 Viertelnote).",
     after: "Der Punkt verlängert um die Hälfte: punktierte halbe 2 + 1 = 3, punktierte Viertel 1 + ½ = 1½, punktierte Achtel ½ + ¼ = ¾ Schlag.",
   },
   bar: {
