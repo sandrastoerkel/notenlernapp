@@ -784,6 +784,39 @@ test("migrateWiederholen: geschaffte Stufen ohne Hilfen in Fach 1, je Tag drei, 
   assert.deepEqual(perDay, { "2026-11-30": 3, "2026-12-01": 3, "2026-12-02": 3, "2026-12-03": 1 });
 });
 
+test("Umstellung: wer gestern vor dem alten Tageswechsel geübt hat, behält die Serie (östlich von Greenwich, einmalig)", () => {
+  // Kuala Lumpur: zuletzt am 24.11. um 07:00 Ortszeit geübt = 23.11. in UTC; nach dem Update am 25.11. um 07:00
+  const kl = { ...fresh(), dayStreak: 5, lastDay: "2026-11-23", migrated: [] };
+  assert.equal(migrateWiederholen(kl, BOX, "2026-11-25", KL), true);
+  assert.equal(kl.lastDay, "2026-11-24");
+  touchStreak(kl, new Date("2026-11-24T23:00:00Z"), KL); // 25.11., 07:00
+  assert.deepEqual([kl.dayStreak, kl.lastDay], [6, "2026-11-25"]);
+  // ohne den Ausgleich wäre die Serie abgerissen
+  const ohne = { ...fresh(), dayStreak: 5, lastDay: "2026-11-23" };
+  touchStreak(ohne, new Date("2026-11-24T23:00:00Z"), KL);
+  assert.equal(ohne.dayStreak, 1);
+  // läuft nur einmal: nach der Umstellung reißt eine echte Pause von einem Tag die Serie wie gewohnt ab
+  const spaeter = { ...fresh(), dayStreak: 5, lastDay: "2026-11-23" };
+  assert.equal(migrateWiederholen(spaeter, BOX, "2026-11-25", KL), false);
+  assert.equal(spaeter.lastDay, "2026-11-23");
+  // drei Tage zurück bleibt ein Abriss; gestern und heute bleiben, wie sie sind
+  for (const [last, erwartet] of [["2026-11-22", "2026-11-22"], ["2026-11-24", "2026-11-24"], ["2026-11-25", "2026-11-25"], [null, null]]) {
+    const s = { ...fresh(), lastDay: last, migrated: [] };
+    migrateWiederholen(s, BOX, "2026-11-25", MEZ);
+    assert.equal(s.lastDay, erwartet);
+  }
+  // westlich von Greenwich (New York) und in UTC gibt es den Fall nicht: vorgestern bleibt vorgestern
+  for (const off of [NY, 0]) {
+    const s = { ...fresh(), dayStreak: 5, lastDay: "2026-11-23", migrated: [] };
+    migrateWiederholen(s, BOX, "2026-11-25", off);
+    assert.equal(s.lastDay, "2026-11-23");
+  }
+  // ohne Liste läuft nichts, auch der Ausgleich nicht
+  const ohneListe = { ...fresh(), lastDay: "2026-11-23", migrated: [] };
+  assert.equal(migrateWiederholen(ohneListe, null, "2026-11-25", KL), false);
+  assert.equal(ohneListe.lastDay, "2026-11-23");
+});
+
 test("load mit Liste: alter Stand bekommt die Umstellung einmal, danach wird nicht mehr neu gespeichert", () => {
   const old = { xp: 70, levels: { "noten-1": { stars: 3, best: 10, played: 1 }, "intervall-2": { stars: 2, best: 8, played: 1 } },
     migrated: [MIGRATION_INTERVALLE, MIGRATION_TONLEITERN, MIGRATION_NOTENWERTE] };

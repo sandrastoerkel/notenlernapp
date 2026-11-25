@@ -2677,6 +2677,24 @@ Cache wird erst in Schritt 13 hochgezählt). In der Oberfläche ändert sich nic
   Europe/Berlin über beide Umstellungen der Sommerzeit 2026); Serie über die Umstellung (alter UTC-Tag = gestern,
   heute, morgen; Kuala Lumpur, Bayern Winter und Sommer, New York): kein Abriss.
 
+**Prüfung (25.11.2026, Fable).** Bestanden nach einer Korrektur.
+- **Serie bei der Umstellung (Korrektur).** Die Annahme „östlich liegt der alte UTC-Tag höchstens einen Tag
+  zurück“ stimmt nur für eine Runde von heute. Wer **gestern** vor dem alten Tageswechsel geübt hat (Kuala Lumpur
+  vor 8 Uhr, Bayern vor 1 bzw. 2 Uhr), hat „vorgestern“ in `lastDay`; die Serie wäre beim ersten Üben nach dem
+  Update abgerissen. `migrateWiederholen(s, boxIds, heute, offsetMin)` setzt deshalb einmalig, nur östlich von
+  Greenwich (`offsetMin < 0`), ein `lastDay` von vorgestern auf gestern (`load` reicht `now.getTimezoneOffset()`
+  durch). Bewusst großzügig: Auch wer wirklich einen Tag ausgelassen hat, behält bei der Umstellung einmal die
+  Serie. Westlich von Greenwich gibt es den Fall nicht.
+- **Abweichungen des Umsetzers, beurteilt:** Lauf über 40 Tage mit und ohne Ferien getrennt – richtig, die
+  Erwartung im Plan (1, 4, 11, 25 **und** Ferien Tag 12 bis 26) widersprach sich. Zwei Ratestufen unter drei
+  fälligen → 5 + 5 – richtig (kein Urteil auf nur zwei Aufgaben; die dritte Stufe steht in der nächsten Runde
+  vorn). Marker `"wiederholen"` aus `migrateV1` genommen – richtig. `UMSTELLUNG_JE_TAG` als eigene Zahl mit
+  Test auf Gleichheit – in Ordnung. `zuletzt: null` bei Einträgen aus der Umstellung: Schritt 8 muss damit
+  umgehen (kein Datum anzeigen).
+- **Hingenommen:** Ein `lastDay` weit in der Zukunft (falsch gestellte Geräteuhr) friert die Serie ein, bis der
+  Tag erreicht ist. `notes[key].last` aus der Zeit vor Welle 11 bleibt ein UTC-Tag (höchstens ein Tag daneben,
+  für die Gewichtung in Schritt 9 ohne Belang). `level.guess` ist in den Paketen noch nicht gesetzt (Schritt 5).
+
 #### Schritt 5 – Voraussetzungen in allen Paketen
 
 - Alle fünf Pakete: `needs` je Stufe nach der Tabelle in 1 (wo die Voreinstellung dasselbe ergibt, ohne Feld),

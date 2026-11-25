@@ -125,9 +125,14 @@ export function migrateNotenwerte(s) {
 // UMSTELLUNG_JE_TAG Stufen, beginnend heute. Vorhandene Einträge bleiben. boxIds: IDs der Stufen ohne Hilfen in
 // der Reihenfolge der Pakete (store.js kennt die Pakete nicht; app.js übergibt sie). Ohne Liste läuft die
 // Umstellung nicht und der Marker wird nicht gesetzt. Gibt true zurück, wenn sie gelaufen ist.
-export function migrateWiederholen(s, boxIds, heute = today()) {
+// Dazu einmalig die Tagesserie (Wechsel von UTC auf Ortszeit): Östlich von Greenwich (offsetMin < 0) trägt eine
+// Runde vor dem alten Tageswechsel (Kuala Lumpur vor 8 Uhr, Bayern vor 1 bzw. 2 Uhr) in lastDay den Vortag. Wer
+// gestern früh geübt hat, hat deshalb „vorgestern“ im Stand – das gilt bei der Umstellung als gestern, damit die
+// Serie nicht abreißt (touchStreak zählt dann wie gewohnt weiter).
+export function migrateWiederholen(s, boxIds, heute = today(), offsetMin = new Date().getTimezoneOffset()) {
   const done = Array.isArray(s.migrated) ? s.migrated : [];
   if (done.includes(MIGRATION_WIEDERHOLEN) || !Array.isArray(boxIds)) return false;
+  if (offsetMin < 0 && s.lastDay === addDays(heute, -2)) s.lastDay = addDays(heute, -1);
   const rep = s.rep && typeof s.rep === "object" && !Array.isArray(s.rep) ? s.rep : {};
   let k = 0;
   for (const id of boxIds) {
@@ -144,8 +149,9 @@ export function migrateWiederholen(s, boxIds, heute = today()) {
 // Alle Umstellungen in der festen Reihenfolge; jede läuft (nicht mit || verketten, sonst liefe die zweite
 // beim ersten Laden nicht). true, wenn eine etwas geändert hat. migrateNotenwerte fasst nur notenwerte-* an
 // und steht nur der Ordnung halber als dritte; migrateWiederholen kommt zuletzt (braucht die neuen Stufen-IDs).
-export function migrateAll(s, boxIds, heute = today()) {
-  const a = migrateIntervalle(s), b = migrateTonleitern(s), c = migrateNotenwerte(s), d = migrateWiederholen(s, boxIds, heute);
+export function migrateAll(s, boxIds, heute = today(), offsetMin = new Date().getTimezoneOffset()) {
+  const a = migrateIntervalle(s), b = migrateTonleitern(s), c = migrateNotenwerte(s);
+  const d = migrateWiederholen(s, boxIds, heute, offsetMin);
   return a || b || c || d;
 }
 
@@ -162,13 +168,13 @@ export function load(storage = defaultStorage(), now = new Date(), boxIds = null
       // Marker nur aus dem gespeicherten Stand, nicht aus fresh(): ältere Stände haben keine
       const parsed = JSON.parse(raw);
       const s = Object.assign(fresh(), parsed, { migrated: Array.isArray(parsed.migrated) ? parsed.migrated : [] });
-      if (migrateAll(s, boxIds, today(now))) save(s, storage);
+      if (migrateAll(s, boxIds, today(now), now.getTimezoneOffset())) save(s, storage);
       return s;
     }
     const old = storage.getItem(KEY_V1);
     if (old) {
       const s = migrateV1(JSON.parse(old));
-      migrateAll(s, boxIds, today(now));
+      migrateAll(s, boxIds, today(now), now.getTimezoneOffset());
       save(s, storage);
       return s;
     }
@@ -205,8 +211,9 @@ export function dayDiff(a, b) {
 // Umstellung von UTC auf Ortszeit (Welle 11), die Serie reißt dabei nicht ab:
 // - westlich von Greenwich kann der alte UTC-Tag in lastDay einen Tag *nach* dem örtlichen Tag liegen; ein Tag in
 //   der Zukunft gilt als heute (nichts ändern), am Tag darauf zählt die Serie wie gewohnt weiter;
-// - östlich (Kuala Lumpur, Bayern) liegt der alte UTC-Tag höchstens einen Tag zurück und zählt als gestern
-//   (die Serie zählt dann einmalig einen Tag weiter).
+// - östlich (Kuala Lumpur, Bayern) liegt der alte UTC-Tag bei einer Runde von heute höchstens einen Tag zurück
+//   und zählt als gestern (die Serie zählt dann einmalig einen Tag weiter); eine Runde von gestern früh steht als
+//   „vorgestern“ im Stand – das gleicht migrateWiederholen beim ersten Laden einmalig aus.
 export function touchStreak(s, now = new Date(), offsetMin) {
   const t = today(now, offsetMin);
   if (s.lastDay === t) return s;
