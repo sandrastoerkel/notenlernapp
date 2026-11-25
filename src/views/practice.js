@@ -165,7 +165,7 @@ export function needsHtml(packs, levelId) {
 export function reasonText(packs, reason) {
   if (!reason) return "";
   const skill = skillOf(engine.findLevel(packs, reason.id).level);
-  const rest = { nie: "hast du hier noch nie geübt.", faellig: "ist wieder dran.", schwach: "lag zuletzt unter 8 von 10." }[reason.kind];
+  const rest = { nie: "hast du hier noch nicht geübt.", faellig: "ist wieder dran.", schwach: "lag zuletzt unter 8 von 10." }[reason.kind];
   return rest ? `Empfohlen: „${skill}“ ${rest}` : "";
 }
 
@@ -209,7 +209,10 @@ function startBasics(levelId, only) {
   const plan = basicsPlan(ctx.packs, levelId, RUNDE_GRUNDLAGEN, only);
   if (!plan.length) { ctx.state.current = levelId; return render(); }
   return playMixed("grundlagen", plan, MIXED_HEAD.grundlagen, basicsTitle(ctx.packs, levelId), (res) => {
-    afterBasics(ctx.state, levelId, res.correct, res.total, today());
+    // Der Merker gilt für alle Voraussetzungen: nach einer Runde mit nur einem Teil (Fehlermuster) bleibt die
+    // Empfehlung zu den übrigen stehen
+    const all = needsOf(ctx.packs, levelId);
+    if (!only || all.every((id) => [].concat(only).includes(id))) afterBasics(ctx.state, levelId, res.correct, res.total, today());
     ctx.save();
     showBasicsResult(res, levelId, only);
   });
@@ -289,7 +292,7 @@ export function gapGroups(gaps) {
   return out.map(({ key, ...g }) => g);
 }
 
-// „Intervalle, Stufe 2“, „Notenwerte, Stufen 3, 5 und 7“, „Intervalle, Stufe 4 und Noten lesen, Stufe 8“
+// „Intervalle, Stufe 2“, „Notenwerte, Stufen 3, 5 und 7“, „Intervalle, Stufe 4 und in Noten lesen, Stufe 8“
 export function placesText(packs, ids) {
   const byPack = [];
   for (const id of ids) {
@@ -297,7 +300,9 @@ export function placesText(packs, ids) {
     const x = byPack.find((b) => b.pack === pack);
     if (x) x.nos.push(level.no); else byPack.push({ pack, nos: [level.no] });
   }
-  return andList(byPack.map(({ pack, nos }) => `${pack.title}, ${nos.length > 1 ? "Stufen" : "Stufe"} ${andList(nos)}`));
+  // mehrere Pakete: „… und in …“, damit das „und“ in „Dreiklänge und Quintenzirkel“ nicht wie die Aufzählung liest
+  const parts = byPack.map(({ pack, nos }) => `${pack.title}, ${nos.length > 1 ? "Stufen" : "Stufe"} ${andList(nos)}`);
+  return parts.length < 2 ? parts.join("") : parts.slice(0, -1).join(", in ") + " und in " + parts[parts.length - 1];
 }
 
 // Satz zum Fehlermuster: „Dreimal lag der erste Schritt daneben (Notenstufen zählen). Das übst du in Intervalle,
@@ -319,7 +324,7 @@ export function openLabel(packs, pack, id, helps = false) {
   return engine.keepStufe(t.pack === pack ? `Stufe ${t.level.no} öffnen` : `${t.pack.title} ${t.level.no} öffnen`);
 }
 
-// Ergebniskarte einer normalen Runde, Teil „Grundlagen“ (rein, getestet): { first, gaps }
+// Ergebniskarte einer normalen Runde, Teil „Grundlagen“ (rein, getestet): { first, gaps, only }
 // first: „Grundlagen wiederholen“ als erster Knopf (weniger als 5 Richtige, die Stufe hat Voraussetzungen und es
 // gibt kein Fehlermuster – sonst bietet das Muster genau seine Grundlage an); gaps: [{ text, needs, helps, open }]
 // mit open = Stufe für „… öffnen“ bzw. „… mit Hilfen üben“ (nur bei genau einer Grundlage).
@@ -328,7 +333,10 @@ export function resultBasics(packs, pack, level, correct, log) {
   const groups = gapGroups(gapsOf(packs, level, log));
   const gaps = groups.map((g) => ({ text: gapText(packs, g), needs: g.needs, helps: g.helps, open: g.needs.length === 1 ? g.needs[0] : null }));
   const first = !gaps.length && correct < BASICS_BELOW && needsOf(packs, level.id).length > 0;
-  return { first, gaps };
+  // only: die Grundlagen aller Muster zusammen (ohne „mit Hilfen“), für EINEN Knopf „Grundlagen wiederholen“ –
+  // auch bei zwei Mustern nie zwei gleich beschriftete Knöpfe (Prüfung Schritt 7)
+  const only = [...new Set(gaps.filter((g) => !g.helps).flatMap((g) => g.needs))];
+  return { first, gaps, only };
 }
 
 const playUi = () => ({
@@ -349,6 +357,7 @@ function showResult(res) {
   const { correct: c, stars, gained, avg } = res;
   const { next, nextOpen, note } = resultInfo(ctx.state, pack, level, c);
   const basics = resultBasics(ctx.packs, pack, level, c, res.log || []);
+  const hasBasics = basics.first || basics.only.length > 0;
   $("#pPlay").hidden = true;
   $("#pHelps").hidden = true;
   $("#pResult").hidden = false;
@@ -361,21 +370,20 @@ function showResult(res) {
       ${note ? `<p class="unlock-line" id="rUnlock">${engine.keepStufe(note)}</p>` : ""}
       ${basics.gaps.map((g, i) => `<div class="gap stack">
         <p class="gap-line">${g.text}</p>
-        <div class="row" style="justify-content:center">
-          ${g.helps ? "" : `<button class="btn primary" data-gap-basics="${i}">${BASICS_SHORT}</button>`}
-          ${g.open ? `<button class="btn${g.helps ? " primary" : ""}" data-gap-open="${i}">${openLabel(ctx.packs, pack, g.open, g.helps)}</button>` : ""}
-        </div>
+        ${g.open ? `<div class="row" style="justify-content:center">
+          <button class="btn${g.helps && !hasBasics ? " primary" : ""}" data-gap-open="${i}">${openLabel(ctx.packs, pack, g.open, g.helps)}</button>
+        </div>` : ""}
       </div>`).join("")}
       <div class="row" style="justify-content:center">
-        ${basics.first ? `<button class="btn primary" id="rBasics">${BASICS_SHORT}</button>` : ""}
-        <button class="btn${basics.first || basics.gaps.length ? "" : " primary"}" id="rAgain">Nochmal</button>
+        ${hasBasics ? `<button class="btn primary" id="rBasics">${BASICS_SHORT}</button>` : ""}
+        <button class="btn${hasBasics || basics.gaps.length ? "" : " primary"}" id="rAgain">Nochmal</button>
         ${nextOpen ? `<button class="btn" id="rNext">Stufe ${next.no}</button>` : ""}
         <button class="btn ghost" id="rHome">Übersicht</button>
       </div>`;
   $("#rAgain").addEventListener("click", () => render());
-  if (basics.first) $("#rBasics").addEventListener("click", () => ctx.show("practice", { mode: "grundlagen", levelId: level.id }));
-  $("#pResult").querySelectorAll("[data-gap-basics]").forEach((b) => b.addEventListener("click", () =>
-    ctx.show("practice", { mode: "grundlagen", levelId: level.id, only: basics.gaps[+b.dataset.gapBasics].needs })));
+  // ein Knopf: nach einem Muster nur dessen Grundlage(n), sonst (unter 5 Richtigen) alle Voraussetzungen
+  if (hasBasics) $("#rBasics").addEventListener("click", () =>
+    ctx.show("practice", { mode: "grundlagen", levelId: level.id, only: basics.only.length ? basics.only : null }));
   $("#pResult").querySelectorAll("[data-gap-open]").forEach((b) => b.addEventListener("click", () => {
     ctx.state.current = basics.gaps[+b.dataset.gapOpen].open; ctx.save(); ctx.show("practice");
   }));

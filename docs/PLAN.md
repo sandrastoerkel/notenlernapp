@@ -2860,6 +2860,25 @@ ersetzt (Konsole/Playwright: `practice.open(arg)` = `ctx.show("practice", arg)`)
   (Texte der Start- und Ergebniskarte, `resultBasics`). `ueberlauf.mjs`: zwei Grundlagen-Runden über die
   Startkarte (Intervalle 3, Dreiklänge 1) und eine Ergebniskarte mit Muster (Intervalle 4, alles daneben).
 
+**Prüfung (25.11.2026, Fable): bestanden nach Korrektur** (Commit „Prüfung Schritt 7“):
+- **Ein Knopf „Grundlagen wiederholen“ je Ergebniskarte:** Bei zwei Mustern (z. B. Intervalle 5–7, beide Schritte
+  daneben) standen zwei gleich beschriftete Hauptknöpfe mit verschiedener Wirkung untereinander. Jetzt steht unter
+  jedem Satz nur „Stufe n öffnen“ bzw. „Stufe 3 mit Hilfen üben“ und in der Knopfzeile ein einziger Hauptknopf
+  „Grundlagen wiederholen“ für die Grundlagen aller Muster zusammen (`resultBasics().only`).
+- **Reihenfolge der Muster:** bei gleicher Zahl der erste Schritt vor dem zweiten (`gapsOf`; in Intervalle 5–7 stand
+  der zweite vorn, weil `intervall-2` dort nicht in `needsOf` steht).
+- **Merker `s.basics`** wird nur nach einer Runde über alle Voraussetzungen gesetzt; eine Runde nur zu einer
+  Grundlage (nach einem Muster) nimmt die Empfehlung zu den übrigen nicht weg.
+- **Wortlaut:** „… hast du hier noch nicht geübt.“ statt „noch nie“ (ruhiger, kein Vorwurf); mehrere Pakete in
+  einem Satz mit „und in“ („Das übst du in Dreiklänge und Quintenzirkel, Stufe 1 und in Intervalle, Stufe 4.“).
+- Tippfläche der Verweise in „Dafür brauchst du“ höher (6 px Innenabstand).
+- Geprüft: Sätze für alle 47 Stufen durchgespielt (erster Schritt, zweiter Schritt, beide), alte Stände ohne
+  `last`/`day`/`basics` (zählen mit `best`, `fresh()` ergänzt `basics`), `#pOrigin` `aria-live="polite"`.
+- Hinweise ohne Änderung: In einschrittigen Stufen löst jede Runde mit höchstens 7 Richtigen den Satz „Dreimal lag
+  die Antwort daneben …“ aus (so im Plan, Startwert 3; nach dem Test mit Kindern nachstellen). Mit Jahrgang (Schritt
+  11) sind Stufen offen, deren Grundlagen nie gespielt wurden: dort steht die Empfehlung auf vielen Startkarten, bis
+  eine Grundlagen-Runde mit höchstens einem Fehler gelaufen ist (so gewollt, nie Pflicht).
+
 #### Schritt 8 – Wiederholung über Tage: Karte „Heute“, Runde „Wiederholen“, Statistik
 
 - `views/home.js`, `index.html` (Karte `.hero`): reine Funktion `todayCard(state, packs, heute)` →
@@ -3229,6 +3248,10 @@ Gebaut wird jeweils die genannte Voreinstellung.
     Intervalle 4 und 6, Tonleitern 3, 5, 7, 9 und Dreiklänge 1–4, 6 zeigen aber Noten mit ♯/♭ im Bassschlüssel.
     Die Kanten stimmen trotzdem (Bassschlüssel über `noten-6`, Vorzeichen über `noten-7`). Vorschlag: im Paket
     „Noten lesen“ (nächste Welle) Vorzeichen auch im Bassschlüssel aufnehmen. (Prüfung Schritt 5)
+18. **Empfehlung auf der Startkarte, Wortlaut:** Gebaut ist „Empfohlen: „Noten mit Vorzeichen“ hast du hier noch
+    nicht geübt.“ / „… ist wieder dran.“ / „… lag zuletzt unter 8 von 10.“ Recht so, oder lieber ohne das Wort
+    „Empfohlen“, z. B. „Tipp: …“? Und: Wer „Intervalle“ beginnt, ohne „Noten lesen“ 3 hier gespielt zu haben,
+    sieht „Grundlagen wiederholen“ als Hauptknopf vor „Runde starten“ – in Ordnung? (Prüfung Schritt 7)
 
 ## Vorgabe für das Paket „Dreiklänge Schritt für Schritt“ (nach Welle 11): bis zum Dominantseptakkord
 

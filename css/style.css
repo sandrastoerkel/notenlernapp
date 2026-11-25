@@ -554,7 +554,7 @@ section { display: grid; gap: 14px; }
 .result .gap-line { margin: 0; padding: 8px 14px; border-radius: 12px; border: 1px solid var(--accent); color: var(--fg); font-weight: 700; }
 /* Startkarte: „Dafür brauchst du: …“ (jeder Eintrag ein Knopf im Textfluss) und der Grund der Empfehlung */
 .needs { margin: 0; color: var(--muted); }
-.needs .link { font: inherit; font-weight: 700; color: var(--accent); background: none; border: 0; padding: 2px 0; cursor: pointer;
+.needs .link { font: inherit; font-weight: 700; color: var(--accent); background: none; border: 0; padding: 6px 0; cursor: pointer;
   text-decoration: underline; text-underline-offset: 2px; text-align: left; overflow-wrap: anywhere; }
 .basics-why { margin: 0; font-weight: 700; }
 

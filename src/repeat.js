@@ -240,8 +240,8 @@ export function afterBasics(state, levelId, correct, total, heute) {
 // Fehlermuster einer normalen Runde in level (log aus engine: je Aufgabe { id, ok, oks }). Je Aufgabe mit Schritt i
 // daneben zählt jede Stufe aus stepNeedsOf(level, null, i) einmal; sagt die Stufe nichts je Schritt (einschrittige
 // Stufen), zählt eine Antwort daneben für needsOf als Ganzes. Eine Aufgabe zählt je Grundlage höchstens einmal.
-// Ergebnis: [{ need, count, step }] mit count >= LUECKE_AB, nach count absteigend, sonst in der Reihenfolge von
-// needsOf. step: Index des Schritts, wenn alle gezählten Fehler zu dieser Grundlage aus demselben Schritt einer
+// Ergebnis: [{ need, count, step }] mit count >= LUECKE_AB, nach count absteigend, bei gleicher Zahl nach dem
+// Schritt (erster vor zweitem), sonst in der Reihenfolge von needsOf. step: Index des Schritts, wenn alle gezählten Fehler zu dieser Grundlage aus demselben Schritt einer
 // Stufe mit stepNeeds kamen, sonst null („die Antwort“).
 // Sonderfall (docs/PLAN.md, Abschnitt 2, Intervalle 4): Ein Schritt ohne Grundlage (stepNeeds[i] = []) in einer
 // Stufe ohne Hilfen, deren Stufe direkt davor Hilfen hat, zählt für jene Stufe; der Eintrag trägt helps: true
@@ -274,8 +274,10 @@ export function gapsOf(packs, level, log) {
     });
   }
   const rank = (id) => { const k = whole.indexOf(id); return k < 0 ? whole.length : k; };
+  // bei gleicher Zahl der erste Schritt vor dem zweiten (Intervalle 5–7: intervall-2 steht nicht in needsOf)
+  const firstStep = (x) => { const st = [...x.steps].filter((v) => v !== null); return st.length ? Math.min(...st) : 99; };
   return [...map.values()].filter((x) => x.count >= LUECKE_AB)
-    .sort((a, b) => b.count - a.count || rank(a.need) - rank(b.need))
+    .sort((a, b) => b.count - a.count || firstStep(a) - firstStep(b) || rank(a.need) - rank(b.need))
     .map((x) => {
       const step = x.steps.size === 1 ? [...x.steps][0] : null;
       return x.helps ? { need: x.need, count: x.count, step, helps: true } : { need: x.need, count: x.count, step };
