@@ -501,8 +501,12 @@ section { display: grid; gap: 14px; }
 .stars { color: var(--gold); letter-spacing: 1px; font-size: 1rem; white-space: nowrap; }
 .stars .off { color: var(--line); }
 
-.hero { display: grid; grid-template-columns: 1fr auto; gap: 14px; align-items: center; }
+/* Karte „Heute“ ganz oben (Welle 11, Schritt 8): einspaltig, ohne die frühere Trefferquote (steht in der Statistik) */
+.hero { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; align-items: center; }
 .hero h1 { font-size: 1.6rem; }
+#homeSmall { margin: 0; }
+/* „↻ wieder dran“ an fälligen Stufen: Text, kein Warnton (kein Rot, kein Zähler) */
+.again { color: var(--accent); font-weight: 700; white-space: nowrap; }
 .big { font-family: var(--display); font-size: 2.2rem; font-weight: 700; line-height: 1; }
 /* Hinweis auf der Startkarte: Zeilenumbrüche im Text gelten (z. B. Tonleitern 8, Reihenfolge der Vorzeichen) */
 #pHint { white-space: pre-line; }
@@ -541,6 +545,12 @@ section { display: grid; gap: 14px; }
 .heat-acc .num { text-align: right; }
 .level-stat-end { gap: 8px; flex-wrap: nowrap; justify-content: flex-end; }
 @media (max-width: 480px) { .level-stat { grid-template-columns: 1fr auto; } .level-stat .bar { grid-column: 1 / -1; grid-row: 2; } }
+/* Karteikasten je Stufe (Welle 11, Schritt 8): fünf Kästchen, gefüllt bis zum Fach, dazu „zuletzt geübt am …“ */
+.level-stat-name { display: grid; gap: 2px; min-width: 0; }
+.box-line { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; }
+.box { display: inline-flex; gap: 3px; vertical-align: middle; }
+.box > i { width: 9px; height: 9px; border-radius: 2px; border: 1px solid var(--muted); background: transparent; }
+.box > i.on { background: var(--accent); border-color: var(--accent); }
 
 .timer { font-family: var(--display); font-size: 2.6rem; font-weight: 700; line-height: 1; }
 .timer.low { color: var(--bad); }
@@ -551,6 +561,9 @@ section { display: grid; gap: 14px; }
 .result .unlock-line { margin: 0; padding: 8px 14px; border-radius: 12px; background: var(--accent-soft); color: var(--fg); font-weight: 700; max-width: 34rem; }
 /* „Grundlagen wiederholen“ (Welle 11, Schritt 7): Fehlermuster auf der Ergebniskarte, eigener Satz mit Knöpfen */
 .result .gap { justify-items: center; gap: 8px; max-width: 34rem; }
+/* Ergebniskarte „Wiederholen“: je Stufe eine Zeile mit dem Urteil, bei „noch wacklig“ ein Knopf zum Üben */
+.result .review-item { justify-items: center; gap: 6px; max-width: 34rem; }
+.result .review-line { margin: 0; font-weight: 700; }
 .result .gap-line { margin: 0; padding: 8px 14px; border-radius: 12px; border: 1px solid var(--accent); color: var(--fg); font-weight: 700; }
 /* Startkarte: „Dafür brauchst du: …“ (jeder Eintrag ein Knopf im Textfluss) und der Grund der Empfehlung */
 .needs { margin: 0; color: var(--muted); }

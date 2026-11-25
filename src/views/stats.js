@@ -5,6 +5,7 @@ import { gName, helm } from "../music.js";
 import { staffSvg, noteSvg } from "../staff.js";
 import { status, recent, MIN_ANTWORTEN, QUOTE_SICHER, LANGSAM_SEK, FENSTER } from "../adapt.js";
 import { HEAT_NOTES, statKey } from "../packs/noten.js";
+import { inBox, dayText, FAECHER, ABSTAENDE } from "../repeat.js";
 
 const $ = (s) => document.querySelector(s);
 let ctx = null;
@@ -23,25 +24,43 @@ export function weakList(notes, limit = 6) {
   return list.map(([key, n]) => ({ key, bad: n.bad, ok: n.ok || 0, pct: Math.round((100 * n.bad) / max) }));
 }
 
-// Eine Zeile je Stufe aus state.levels ({ "noten-1": { stars, best, played } }).
+// Späterer von zwei Tagen ("JJJJ-MM-TT"), fehlende Angaben (null) zählen nicht; null, wenn keiner da ist
+const laterDay = (a, b) => [a, b].filter((d) => typeof d === "string" && d).sort().pop() || null;
+
+// Eine Zeile je Stufe aus state.levels ({ "noten-1": { stars, best, played, day } }).
 // best ist die beste Runde (richtige von 10), pct der Balken (best * 10).
-export function levelRow(level, entry) {
+// Karteikasten (Welle 11, Schritt 8; repEntry aus state.rep): fach 1 … 5 nur bei Stufen ohne Hilfen mit Eintrag,
+// sonst null; zuletzt = der spätere Tag aus der letzten Wiederholung (rep.zuletzt) und der letzten normalen Runde
+// (day). Einträge aus der Umstellung tragen zuletzt: null (noch nie wiederholt) – dann zählt nur day, und ohne
+// beides gibt es kein Datum.
+export function levelRow(level, entry, repEntry) {
   const e = entry || {};
   const played = e.played || 0, best = e.best || 0;
+  const r = repEntry && inBox(level) ? repEntry : null;
+  const fach = r ? Math.min(FAECHER, Math.max(1, Number.isInteger(r.fach) ? r.fach : 1)) : null;
   return {
     id: level.id, no: level.no, title: level.title,
     played, best, stars: e.stars || 0,
     pct: Math.max(0, Math.min(100, best * 10)),
+    fach, zuletzt: r ? laterDay(r.zuletzt, e.day) : null,
   };
 }
+
+// Fach als fünf Kästchen, gefüllt bis zum Fach (rein, getestet)
+export const boxHtml = (fach) => `<span class="box" role="img" aria-label="Fach ${fach} von ${FAECHER}">${
+  Array.from({ length: FAECHER }, (_, i) => `<i${i < fach ? ` class="on"` : ""}></i>`).join("")}</span>`;
+// „zuletzt geübt am 24.11.“ bzw. "" ohne Datum
+export const lastText = (day) => (day ? `zuletzt geübt am ${dayText(day)}` : "");
+// Erklärung über der Liste, wenn etwas im Kasten ist
+export const BOX_NOTE = `Kästchen: Fach im Wiederholungskasten. Fach 1 kommt nach einem Tag wieder, Fach ${FAECHER} nach ${ABSTAENDE[FAECHER - 1]} Tagen.`;
 
 // Stufen nach Paketen gruppiert, in der Reihenfolge der Registry.
 // Je Paket: Zeilen aller Stufen, Anzahl gespielter Stufen, Sterne gesamt und möglich.
 // Einträge in state.levels ohne passende Stufe (alte oder unbekannte IDs) werden übergangen.
-export function levelGroups(packs, levels) {
-  const st = levels || {};
+export function levelGroups(packs, levels, rep) {
+  const st = levels || {}, box = rep || {};
   return packs.map((p) => {
-    const rows = p.levels.map((l) => levelRow(l, st[l.id]));
+    const rows = p.levels.map((l) => levelRow(l, st[l.id], box[l.id]));
     return {
       id: p.id, title: p.title, rows,
       played: rows.filter((r) => r.played > 0).length,
@@ -149,8 +168,10 @@ export function render() {
   const weak = weakList(s.notes, 6);
   $("#sWeak").innerHTML = weak.length ? weak.map((w) => `<div class="list-row"><b>${w.key}</b><div class="bar"><i style="width:${w.pct}%"></i></div><span class="small muted num">${w.bad}× daneben</span></div>`).join("") : `<p class="muted">Noch nichts daneben. Das ist entweder sehr gut, oder du hast noch nicht geübt.</p>`;
   // Je Stufe: nach Paketen gruppiert; nie gespielte Stufen erscheinen gedämpft
-  $("#sLevels").innerHTML = levelGroups(ctx.packs, s.levels).map((g) => `<div class="stack level-group"><div class="row between"><p class="eyebrow">${g.title}</p><span class="small muted num">${g.played} / ${g.rows.length} gespielt · ${g.stars} / ${g.maxStars} Sterne</span></div>`
-    + g.rows.map((r) => `<div class="list-row level-stat${r.played ? "" : " muted"}"><span class="small">Stufe ${r.no} · ${r.title}</span><div class="bar ok"><i style="width:${r.pct}%"></i></div><span class="row level-stat-end"><span class="small muted num">${levelRowText(r)}</span>${starsHtml(r.stars)}</span></div>`).join("")
+  const groups = levelGroups(ctx.packs, s.levels, s.rep);
+  const anyBox = groups.some((g) => g.rows.some((r) => r.fach));
+  $("#sLevels").innerHTML = (anyBox ? `<p class="small muted">${BOX_NOTE}</p>` : "") + groups.map((g) => `<div class="stack level-group"><div class="row between"><p class="eyebrow">${g.title}</p><span class="small muted num">${g.played} / ${g.rows.length} gespielt · ${g.stars} / ${g.maxStars} Sterne</span></div>`
+    + g.rows.map((r) => `<div class="list-row level-stat${r.played ? "" : " muted"}"><span class="level-stat-name"><span class="small">Stufe ${r.no} · ${r.title}</span>${r.fach ? `<span class="small muted box-line">${boxHtml(r.fach)}${r.zuletzt ? `<span>${lastText(r.zuletzt)}</span>` : ""}</span>` : ""}</span><div class="bar ok"><i style="width:${r.pct}%"></i></div><span class="row level-stat-end"><span class="small muted num">${levelRowText(r)}</span>${starsHtml(r.stars)}</span></div>`).join("")
     + `</div>`).join("");
   // Zurücksetzen mit Rückfrage direkt in der Karte (wie in der ersten Fassung)
   $("#sResetRow").innerHTML = `<button class="btn ghost" id="sReset">Fortschritt zurücksetzen</button>`;

@@ -1,7 +1,9 @@
 // Üben: Startkarte der Stufe, Runde über engine.js, Ergebniskarte
-import { isUnlocked, unlockedBy, unlocks, today } from "../store.js";
+import { isUnlocked, unlockedBy, unlocks, today, starsFor } from "../store.js";
 import * as engine from "../engine.js";
-import { needsOf, skillOf, basicsPlan, basicsOffer, afterBasics, gapsOf, RUNDE_GRUNDLAGEN } from "../repeat.js";
+import { needsOf, skillOf, basicsPlan, basicsOffer, afterBasics, gapsOf, RUNDE_GRUNDLAGEN,
+  reviewPlan, applyReview, afterRound, dueText, inBox } from "../repeat.js";
+import { packShort } from "./home.js";
 
 const $ = (s) => document.querySelector(s);
 let ctx = null;
@@ -114,12 +116,12 @@ export function init(c) {
 
 // Startkarte der aktuellen Stufe (bricht eine laufende Runde ab). arg (optional, über ctx.show("practice", arg)):
 // { mode: "grundlagen", levelId, only } startet „Grundlagen wiederholen“ zur Stufe levelId (only: nur diese
-// Grundlage(n), nach einem Fehlermuster); { mode: "wiederholen", plan } startet eine Wiederholungsrunde aus plan
-// (VORLÄUFIG bis Schritt 8: ohne Karteikasten, nur für die Browserprüfung).
+// Grundlage(n), nach einem Fehlermuster); { mode: "wiederholen" } startet die Runde „Wiederholen“ aus dem
+// Karteikasten (repeat.reviewPlan; ist nichts fällig, geht es zur Startseite).
 export function render(arg) {
   engine.stop();
   if (arg && arg.mode === "grundlagen") return startBasics(arg.levelId || ctx.state.current, arg.only || null);
-  if (arg && arg.mode === "wiederholen" && Array.isArray(arg.plan)) return startReview(arg.plan);
+  if (arg && arg.mode === "wiederholen") return startReview();
   const { pack, level } = current();
   $("#pLevelNo").textContent = "Stufe " + level.no;
   $("#pLevelTitle").textContent = level.title;
@@ -218,9 +220,53 @@ function startBasics(levelId, only) {
   });
 }
 
-// VORLÄUFIG bis Schritt 8 (Karte „Heute“, reviewPlan, Urteil je Stufe): Wiederholungsrunde aus einem festen Plan
-function startReview(plan) {
-  return playMixed("wiederholen", plan, MIXED_HEAD.wiederholen, "Gemischte Runde", (res) => showReviewResult(res, plan));
+/* ---------- Runde „Wiederholen“ (Welle 11, Schritt 8) ---------- */
+
+// Kopf der Runde: „10 Aufgaben aus 3 Stufen“ (rein, getestet)
+export function reviewTitle(plan) {
+  const total = plan.reduce((a, e) => a + e.n, 0);
+  return `${total} Aufgaben aus ${plan.length === 1 ? "einer Stufe" : `${plan.length} Stufen`}`;
+}
+
+// Urteil je Stufe (v aus repeat.applyReview bzw. afterRound, rein, getestet):
+// „sitzt · wieder in 7 Tagen“, „noch wacklig · morgen noch einmal“, neu aufgenommen „neu im Kasten · morgen zum Wiederholen“
+export function verdictText(v) {
+  if (v.neu) return `neu im Kasten · ${dueText(v.inTagen)} zum Wiederholen`;
+  return v.sitzt ? `sitzt · wieder ${dueText(v.inTagen)}` : `noch wacklig · ${dueText(v.inTagen)} noch einmal`;
+}
+
+// Zeile der Ergebniskarte „Wiederholen“: „Intervalle 4 · sitzt · wieder in 7 Tagen“ (rein, getestet)
+export function reviewLine(packs, v) {
+  const { pack, level } = engine.findLevel(packs, v.id);
+  return `${packShort(pack)}\u00a0${level.no} · ${verdictText(v)}`;
+}
+
+// Knopf unter „noch wacklig“ (rein, getestet): die Stufe mit Hilfen direkt davor, falls es sie gibt („Stufe 4 mit
+// Hilfen üben“), sonst die Stufe selbst („Stufe 5 üben“). { id, label }
+export function practiceOffer(packs, id) {
+  const { pack, level } = engine.findLevel(packs, id);
+  const i = pack.levels.indexOf(level);
+  const before = i > 0 ? pack.levels[i - 1] : null;
+  if (before && !inBox(before)) return { id: before.id, label: engine.keepStufe(`Stufe ${before.no} mit Hilfen üben`) };
+  return { id: level.id, label: engine.keepStufe(`Stufe ${level.no} üben`) };
+}
+
+// Satz auf der Ergebniskarte einer normalen Runde (v aus repeat.afterRound oder null, rein, getestet)
+export function repeatNote(v) {
+  if (!v) return "";
+  if (v.neu) return "Neu im Kasten: kommt morgen zum Wiederholen wieder.";
+  return `Wiederholung: ${verdictText(v)}.`;
+}
+
+function startReview() {
+  const plan = reviewPlan(ctx.state, ctx.packs, today());
+  if (!plan.length) return ctx.show("home");
+  return playMixed("wiederholen", plan, MIXED_HEAD.wiederholen, reviewTitle(plan), (res) => {
+    // Urteil je Stufe in den Karteikasten (Fach weiter bzw. zurück); Sterne trägt die Runde bei keiner Stufe ein
+    const verdicts = applyReview(ctx.state, res.perLevel, today());
+    ctx.save();
+    showReviewResult(res, verdicts);
+  });
 }
 
 // Für die Konsole und die Browserprüfung (docs/screens/ueberlauf.mjs): ctx.show("practice", arg)
@@ -254,19 +300,33 @@ function showBasicsResult(res, levelId, only) {
   ctx.renderTop();
 }
 
-function showReviewResult(res, plan) {
+// Ergebniskarte „Wiederholen“: Sterne nur als Anzeige der Runde (starsFor wie beim Bonus, die Runde hat immer
+// RUNDE_WIEDERHOLEN Aufgaben), je Stufe das Urteil, bei „noch wacklig“ ein Knopf zum Üben; „Noch eine Wiederholung“
+// nur, wenn weiter etwas fällig ist
+function showReviewResult(res, verdicts) {
+  const stars = starsFor(res.correct);
+  const more = reviewPlan(ctx.state, ctx.packs, today()).length > 0;
+  const offers = verdicts.map((v) => (v.sitzt ? null : practiceOffer(ctx.packs, v.id)));
   $("#pPlay").hidden = true; $("#pHelps").hidden = true; $("#pOrigin").hidden = true;
   $("#pResult").hidden = false;
   $("#pResult").innerHTML = `
-      <p class="eyebrow">${MIXED_HEAD.wiederholen}</p>
+      <p class="eyebrow">Wiederholung beendet</p>
+      ${engine.starsHtml(stars)}
       <p class="big num">${res.correct} / ${res.total}</p>
+      <p class="muted">${engine.resultMessage(stars)}</p>
       <p class="small muted num">+${res.gained} XP</p>
-      ${res.perLevel.map((e) => `<p class="small">${perLevelLine(ctx.packs, e)}</p>`).join("")}
+      ${verdicts.map((v, i) => `<div class="review-item stack">
+        <p class="review-line">${reviewLine(ctx.packs, v)}</p>
+        ${offers[i] ? `<button class="btn" data-review-open="${i}">${offers[i].label}</button>` : ""}
+      </div>`).join("")}
       <div class="row" style="justify-content:center">
-        <button class="btn primary" id="rAgain">Nochmal</button>
-        <button class="btn ghost" id="rHome">Übersicht</button>
+        ${more ? `<button class="btn primary" id="rMore">Noch eine Wiederholung</button>` : ""}
+        <button class="btn${more ? " ghost" : " primary"}" id="rHome">Übersicht</button>
       </div>`;
-  $("#rAgain").addEventListener("click", () => ctx.show("practice", { mode: "wiederholen", plan }));
+  $("#pResult").querySelectorAll("[data-review-open]").forEach((b) => b.addEventListener("click", () => {
+    ctx.state.current = offers[+b.dataset.reviewOpen].id; ctx.save(); ctx.show("practice");
+  }));
+  if (more) $("#rMore").addEventListener("click", () => ctx.show("practice", { mode: "wiederholen" }));
   $("#rHome").addEventListener("click", () => ctx.show("home"));
   ctx.renderTop();
 }
@@ -358,6 +418,11 @@ function showResult(res) {
   const { next, nextOpen, note } = resultInfo(ctx.state, pack, level, c);
   const basics = resultBasics(ctx.packs, pack, level, c, res.log || []);
   const hasBasics = basics.first || basics.only.length > 0;
+  // Karteikasten (Welle 11, Schritt 8): neu geschaffte Stufe ohne Hilfen in Fach 1; eine fällige Stufe zählt wie
+  // eine Wiederholung; nicht fällig: nichts
+  const repeated = afterRound(ctx.state, level, c, today());
+  if (repeated) ctx.save();
+  const rnote = repeatNote(repeated);
   $("#pPlay").hidden = true;
   $("#pHelps").hidden = true;
   $("#pResult").hidden = false;
@@ -368,6 +433,7 @@ function showResult(res) {
       <p class="muted">${engine.resultMessage(stars)}</p>
       <p class="small muted num">${resultLine(pack, gained, avg)}</p>
       ${note ? `<p class="unlock-line" id="rUnlock">${engine.keepStufe(note)}</p>` : ""}
+      ${rnote ? `<p class="small" id="rRepeat">${rnote}</p>` : ""}
       ${basics.gaps.map((g, i) => `<div class="gap stack">
         <p class="gap-line">${g.text}</p>
         ${g.open ? `<div class="row" style="justify-content:center">

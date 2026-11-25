@@ -6,10 +6,11 @@
 //
 // Geprüft werden bei 320 px (dunkel) und 420 px (hell): Startseite, alle Stufen aller Pakete (Startkarte,
 // Aufgabe mit offenen Hilfen, nach jeder Antwort – abwechselnd richtig und daneben –, jede Vorführung Bild
-// für Bild), zwei gemischte Runden (Welle 11, Schritt 6: Start über practice.open({ mode: "wiederholen", plan }),
-// vorläufig bis Schritt 8; alle Aufgaben, abwechselnd richtig und daneben, dazu Herkunftszeile und keine Reste
-// der vorigen Eingabeart), zwei Runden „Grundlagen wiederholen“ über die Startkarte und eine Ergebniskarte mit
-// Fehlermuster (Schritt 7),
+// für Bild), zwei Runden „Wiederholen“ (Welle 11, Schritt 8: Karteikasten mit drei fälligen Stufen vorbereitet,
+// Karte „Heute“ mit „Wiederholung starten“ und „↻ wieder dran“, Start über die Karte, alle Aufgaben abwechselnd
+// richtig und daneben, dazu Herkunftszeile und keine Reste der vorigen Eingabeart, Ergebniskarte mit dem Urteil je
+// Stufe und „… üben“, danach die Karte „Heute“ ohne Fälliges), eine normale Runde ganz richtig („Neu im Kasten“),
+// zwei Runden „Grundlagen wiederholen“ über die Startkarte und eine Ergebniskarte mit Fehlermuster (Schritt 7),
 // „Lernen“ je Reiter und Schlüssel mit allen Vorführungen, Blitz und Statistik, zuletzt die Bestätigung beim Link der
 // Lehrkraft (setzen, ändern, entfernen) und der Hinweis bei einem Link, der nicht passt (Welle 11, Schritt 11).
 // In jedem Zustand zählt außerdem ein zweiter sichtbarer Knopf „Nächste Aufgabe“ als Treffer (W2, Welle 11).
@@ -123,12 +124,21 @@ const PICK = ([right, s]) => {
   return btns.findIndex((b) => !b.disabled && ok(b) === right);
 };
 const PACK = { noten: "noten", notenwerte: "notenwerte", tonleitern: "tonleitern", intervall: "intervalle", akkorde: "akkorde" };
-// Gemischte Runden (je drei Stufen, 4 + 3 + 3): Namensraster, Auswahlknöpfe, zwei Schritte; Buchstaben,
-// namesOnly, lange Auswahltexte
+// Runden „Wiederholen“ (je drei fällige Stufen, 4 + 3 + 3): Namensraster, Auswahlknöpfe, zwei Schritte;
+// Buchstaben, namesOnly, lange Auswahltexte
 const MIXED = [
-  [{ id: "noten-7", n: 4 }, { id: "notenwerte-5", n: 3 }, { id: "intervall-4", n: 3 }],
-  [{ id: "noten-3", n: 4 }, { id: "intervall-9", n: 3 }, { id: "akkorde-6", n: 3 }],
+  ["noten-7", "notenwerte-5", "intervall-4"],
+  ["noten-3", "intervall-9", "akkorde-6"],
 ];
+// läuft in der Seite: Karteikasten im gespeicherten Stand so setzen, dass genau ids fällig sind (am längsten fällig
+// zuerst; die erste mit zuletzt: null wie nach der Umstellung) und noten-8 erst in drei Tagen; danach neu laden
+const SETREP = async (ids) => {
+  const st = await import("./src/store.js");
+  const t = st.today(), s = JSON.parse(localStorage.getItem(st.KEY_V2));
+  s.rep = { "noten-8": { fach: 3, faellig: st.addDays(t, 3), zuletzt: t } };
+  ids.forEach((id, i) => { s.rep[id] = { fach: 2, faellig: st.addDays(t, -3 + i), zuletzt: i ? st.addDays(t, -6) : null }; });
+  localStorage.setItem(st.KEY_V2, JSON.stringify(s));
+};
 // läuft in der Seite: aktuelle Aufgabe der gemischten Runde für PICK bereitstellen und prüfen, dass Herkunftszeile
 // und Antwortbereich zur Stufe der Aufgabe passen (Fehlertext oder "")
 const MIXED_CUR = async () => {
@@ -219,10 +229,14 @@ async function run(browser, width, scheme) {
       await goOn();
     }
   }
-  // Gemischte Runden: jede Aufgabe, abwechselnd richtig und daneben (vorläufiger Start, Welle 11, Schritt 6)
-  for (const [k, plan] of MIXED.entries()) {
-    await pg.evaluate(async (p) => { (await import("./src/views/practice.js")).open({ mode: "wiederholen", plan: p }); }, plan);
-    await pg.waitForTimeout(250);
+  // Runden „Wiederholen“ über die Karte „Heute“ (Welle 11, Schritt 8): jede Aufgabe, abwechselnd richtig und daneben
+  for (const [k, ids] of MIXED.entries()) {
+    await pg.evaluate(SETREP, ids); await pg.reload(); await pg.waitForTimeout(600);
+    if (!(await vis("#homeReview"))) errs.push(`Wiederholen ${k + 1}: kein Knopf „Wiederholung starten“`);
+    const again = await pg.locator("#levelList .again").count();
+    if (again !== ids.length) errs.push(`Wiederholen ${k + 1}: ${again}× „wieder dran“ statt ${ids.length}×`);
+    await chk(`Wiederholen ${k + 1} Startseite „Heute“ fällig`);
+    await pg.click("#homeReview"); await pg.waitForTimeout(250);
     for (let rnd = 0; rnd < 12 && !(await vis("#pResult")); rnd++) {
       const w = `gemischt ${k + 1} Aufgabe ${rnd + 1}`, right = rnd % 2 === 0;
       const bad = await pg.evaluate(MIXED_CUR);
@@ -232,8 +246,35 @@ async function run(browser, width, scheme) {
       await goOn();
     }
     if (!(await vis("#pResult"))) errs.push(`gemischt ${k + 1}: keine Ergebniskarte`);
+    const lines = await pg.locator("#pResult .review-line").count();
+    if (lines !== ids.length) errs.push(`Wiederholen ${k + 1}: ${lines} Zeilen mit Urteil statt ${ids.length}`);
     await chk(`gemischt ${k + 1} Ergebnis`);
+    // „Stufe … mit Hilfen üben“ bzw. „Stufe … üben“ öffnet die Startkarte
+    if (await pg.locator("#pResult [data-review-open]").count()) {
+      await pg.locator("#pResult [data-review-open]").first().click(); await pg.waitForTimeout(250);
+      if (!(await vis("#pIntro"))) errs.push(`Wiederholen ${k + 1}: „… üben“ öffnet keine Startkarte`);
+      await chk(`Wiederholen ${k + 1} „… üben“ Startkarte`);
+    }
+    await pg.click('.tab[data-view="home"]'); await pg.waitForTimeout(200);
+    if (await vis("#homeReview")) errs.push(`Wiederholen ${k + 1}: nach der Runde noch „Wiederholung starten“`);
+    if (!/^Nächste Wiederholung: /.test(await pg.locator("#homeSmall").textContent())) errs.push(`Wiederholen ${k + 1}: keine Zeile „Nächste Wiederholung“`);
+    await chk(`Wiederholen ${k + 1} Startseite „Heute“ nicht fällig`);
   }
+  // Normale Runde ganz richtig in einer Stufe ohne Hilfen (noch nicht im Kasten): „Neu im Kasten“ auf der Ergebniskarte
+  await pg.evaluate(PATCH, ["noten", "noten-1"]);
+  await pg.click('.level[data-id="noten-1"]'); await pg.waitForTimeout(200);
+  await pg.click("#pStart"); await pg.waitForTimeout(250);
+  for (let rnd = 0; rnd < 12 && !(await vis("#pResult")); rnd++) {
+    await pg.evaluate(async () => { window.__qs = [(await import("./src/engine.js")).currentQuestion()]; });
+    const count = await pg.locator("#pCount").textContent();
+    await answerQuestion(`Kasten Aufgabe ${rnd + 1}`, true);
+    // nach „richtig“ geht es ohne Knopf weiter: warten, bis die nächste Aufgabe oder die Ergebniskarte da ist
+    await pg.waitForFunction((c) => document.querySelector("#pCount").textContent !== c
+      || !document.querySelector("#pResult").hidden, count, { timeout: 4000 }).catch(() => {});
+    await pg.waitForTimeout(100);
+  }
+  if (!(await vis("#rRepeat"))) errs.push("Noten lesen 1 ganz richtig: kein Satz „Neu im Kasten“");
+  await chk("Noten lesen 1 Ergebnis „Neu im Kasten“");
   // „Grundlagen wiederholen“ über die Startkarte (Welle 11, Schritt 7): Intervalle 3 (Ziffern, Namensraster) und
   // Dreiklänge 1 (zwei Schritte, Namensraster), jede Aufgabe abwechselnd richtig und daneben, dann „Zurück zu Stufe …“
   for (const lid of ["intervall-3", "akkorde-1"]) {
@@ -281,7 +322,10 @@ async function run(browser, width, scheme) {
   await pg.click('.tab[data-view="blitz"]'); await pg.waitForTimeout(300); await chk("Blitz Startkarte");
   await pg.click("#bStart"); await pg.waitForTimeout(300); await chk("Blitz Frage");
   await pg.locator("#bAnswers .btn").first().click(); await pg.waitForTimeout(150); await chk("Blitz nach Antwort");
-  await pg.click('.tab[data-view="stats"]'); await pg.waitForTimeout(400); await chk("Statistik");
+  await pg.click('.tab[data-view="stats"]'); await pg.waitForTimeout(400);
+  // Karteikasten (Welle 11, Schritt 8): Kästchen an den Stufen im Kasten, „zuletzt geübt am“ (nicht bei zuletzt: null)
+  if (!(await pg.locator("#sLevels .box").count())) errs.push("Statistik: keine Kästchen des Karteikastens");
+  await chk("Statistik");
   // Bestätigung beim Link der Lehrkraft (Welle 11, Schritt 11): Setzen, Setzen mit „Bisher“, Entfernen, Hinweis
   // bei einem Link, der nicht passt (Dialog und Leiste liegen außerhalb von <main>)
   const dlg = async (hash, where) => {

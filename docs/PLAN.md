@@ -2912,6 +2912,48 @@ ersetzt (Konsole/Playwright: `practice.open(arg)` = `ctx.show("practice", arg)`)
   die Ergebniskarte nennt je Stufe das Urteil, die Statistik die Fächer; nichts ist rot, kein Zähler für
   Versäumtes; kein Überlauf bei 320 px.
 
+**Umgesetzt (25.11.2026, Opus):** Commit siehe `git log` („Welle 11, Schritt 8“).
+- `views/home.js`: Karte „Heute“ über `todayCard(state, packs, heute)` → `{ title, line, review, cont, small }`
+  (drei Fälle wie oben); `index.html`: Knopf `#homeReview` „Wiederholung starten“ (Hauptknopf, wenn etwas fällig
+  ist; „Weiter üben“ dann normaler Knopf), Zeile `#homeSmall`; die große Trefferquote ist entfernt, `.hero`
+  einspaltig. „Weiter üben“/„Starten“ nennt Paket und Stufe (`continueText`). Stufenkarten: „↻ wieder dran“
+  (`againHtml`, Zeichen `aria-hidden`, Text sichtbar, Farbe `--accent`). Die Paketliste ist unverändert; die
+  Abschnitte mit Jahrgang („Jetzt dran“ …) kommen in Schritt 12 an derselben Stelle (Kommentar in `render`).
+- **Kurzname der Pakete** (neues optionales Feld `pack.short`, ARCHITEKTUR): „Notenwerte“, „Dreiklänge“. In
+  Aufzählungen („10 Aufgaben aus Dreiklänge 1 und Notenwerte 5“, Urteilszeilen, „Weiter üben: Dreiklänge,
+  Stufe 2“) liest das „und“ aus „Dreiklänge und Quintenzirkel“ sonst wie die Aufzählung. Die Statistik und die
+  Überschriften behalten den vollen Titel.
+- `views/practice.js`: `{ mode: "wiederholen" }` → `reviewPlan` → `makeMixed` → `startMixed` (der vorläufige
+  Start mit festem `plan` aus Schritt 6/7 ist entfernt; nichts fällig → Startseite). Kopf „Wiederholen“ /
+  `reviewTitle` („10 Aufgaben aus 3 Stufen“, „… aus einer Stufe“). Nach der Runde `applyReview` mit `perLevel`.
+  Ergebniskarte „Wiederholung beendet“: Sterne nur als Anzeige, „8 / 10“, Satz wie in der normalen Runde, XP, je
+  Stufe `reviewLine` („Intervalle 4 · sitzt · wieder in 7 Tagen“ / „… · noch wacklig · morgen noch einmal“), bei
+  „noch wacklig“ `practiceOffer` („Stufe 4 mit Hilfen üben“, wenn die Stufe direkt davor Hilfen hat, sonst
+  „Stufe 5 üben“). „Noch eine Wiederholung“ (Hauptknopf) nur, wenn danach noch etwas fällig ist, sonst ist
+  „Übersicht“ der Hauptknopf.
+- Normale Runde: `showResult` ruft `afterRound` und speichert; Satz `#rRepeat` (`repeatNote`): neu aufgenommen
+  „Neu im Kasten: kommt morgen zum Wiederholen wieder.“, fällige Stufe „Wiederholung: sitzt · wieder in 3 Tagen.“
+  bzw. „Wiederholung: noch wacklig · morgen noch einmal.“ (`verdictText` kennt dafür auch „neu im Kasten ·
+  morgen zum Wiederholen“).
+- `views/stats.js`: `levelRow(level, entry, repEntry)` mit `fach` (nur Stufen ohne Hilfen mit Eintrag; ungültige
+  Werte auf 1 … 5 begrenzt) und `zuletzt` = der spätere Tag aus `rep.zuletzt` und `levels[id].day`; **`zuletzt:
+  null` aus der Umstellung** zählt nicht, ohne beide Tage gibt es kein Datum. `boxHtml(fach)` (fünf Kästchen,
+  `role="img"`, „Fach 3 von 5“), `lastText` („zuletzt geübt am 24.11.“), Erklärung über der Liste nur, wenn etwas
+  im Kasten ist: „Kästchen: Fach im Wiederholungskasten. Fach 1 kommt nach einem Tag wieder, Fach 5 nach 30
+  Tagen.“ (der Plan nannte nur den zweiten Satz; ohne den ersten ist unklar, was die Kästchen sind).
+- **Bonus `starsFor` bei kurzen Runden (Hinweis Prüfung 6):** `reviewPlan` füllt immer `RUNDE_WIEDERHOLEN` = 10
+  Aufgaben (auch bei einer oder zwei Stufen), also gilt `starsFor` auf 10 Aufgaben wie in einer normalen Runde;
+  „Grundlagen wiederholen“ hat keinen Bonus. Keine Änderung nötig.
+- Tests: neu `test/views/home.test.js` (`todayCard` in drei Fällen mit Wortlaut und „und“, lange Pause ohne
+  Zähler, Kurznamen, `continueText`, „↻ wieder dran“, Ablauf `recordRound` → `afterRound` → morgen fällig →
+  `applyReview` → „in 3 Tagen“); `test/views/practice.test.js` (`reviewTitle`, `verdictText`, `reviewLine`,
+  `practiceOffer`, `repeatNote`); `test/views/stats.test.js` (`boxHtml`, `levelRow` mit Kasten und `zuletzt: null`).
+  Der Lauf über 40 Tage bleibt grün.
+- `ueberlauf.mjs`: zwei Runden „Wiederholen“ über die Karte „Heute“ (Kasten im Stand vorbereitet, je drei fällige
+  Stufen, eine mit `zuletzt: null`; geprüft: Knopf da, „wieder dran“ genau an den fälligen Stufen, Urteilszeilen,
+  „… üben“ öffnet die Startkarte, danach „Heute“ ohne Fälliges mit „Nächste Wiederholung“), eine normale Runde
+  ganz richtig („Neu im Kasten“), Statistik mit Kästchen; „Kasten leer“ ist die erste Startseite.
+
 #### Schritt 9 – Gewichtete Auswahl in Intervalle und Tonleitern, Gewicht nach Tagen
 
 - `src/adapt.js`: `TAGE_WIE_NEU = 7`; `weight(entry, heute)`: Eine „sichere“ Aufgabe, deren `last` mindestens

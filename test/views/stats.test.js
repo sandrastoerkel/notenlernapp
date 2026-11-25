@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { weakList, levelRow, levelGroups, levelRowText, heatRows, heatCell, heatAccList, heatX, HEAT_CLS, HEAT_LEGEND } from "../../src/views/stats.js";
+import { weakList, levelRow, levelGroups, levelRowText, heatRows, heatCell, heatAccList, heatX, HEAT_CLS, HEAT_LEGEND, boxHtml, lastText, BOX_NOTE } from "../../src/views/stats.js";
 import { N } from "../../src/music.js";
 import { PACKS } from "../../src/packs/index.js";
 
@@ -26,9 +26,9 @@ test("weakList: nur Einträge mit bad > 0, absteigend, begrenzt, Balken relativ"
 test("levelRow: Werte aus dem Zustand, fehlender Eintrag gilt als nicht gespielt", () => {
   const l = { id: "noten-3", no: 3, title: "Violinschlüssel mit Hilfslinien" };
   assert.deepEqual(levelRow(l, { stars: 2, best: 8, played: 5 }),
-    { id: "noten-3", no: 3, title: "Violinschlüssel mit Hilfslinien", played: 5, best: 8, stars: 2, pct: 80 });
+    { id: "noten-3", no: 3, title: "Violinschlüssel mit Hilfslinien", played: 5, best: 8, stars: 2, pct: 80, fach: null, zuletzt: null });
   assert.deepEqual(levelRow(l, undefined),
-    { id: "noten-3", no: 3, title: "Violinschlüssel mit Hilfslinien", played: 0, best: 0, stars: 0, pct: 0 });
+    { id: "noten-3", no: 3, title: "Violinschlüssel mit Hilfslinien", played: 0, best: 0, stars: 0, pct: 0, fach: null, zuletzt: null });
   assert.equal(levelRow(l, { best: 10, played: 1 }).pct, 100);
 });
 
@@ -116,4 +116,37 @@ test("heatAccList, heatCell, heatX, Legende", () => {
   // „neu“ grau (eigene Klasse), nicht das Blau aus „Lernen“
   assert.equal(HEAT_CLS.neu, "new");
   assert.ok(Object.values(HEAT_CLS).every((c) => c !== "ghost"));
+});
+
+// Welle 11, Schritt 8: Karteikasten in der Statistik
+test("boxHtml: fünf Kästchen, gefüllt bis zum Fach, mit Beschriftung für Bildschirmleser", () => {
+  for (let f = 1; f <= 5; f++) {
+    const h = boxHtml(f);
+    assert.equal((h.match(/<i/g) || []).length, 5);
+    assert.equal((h.match(/class="on"/g) || []).length, f);
+    assert.ok(h.includes(`role="img" aria-label="Fach ${f} von 5"`), h);
+  }
+  assert.equal(BOX_NOTE, "Kästchen: Fach im Wiederholungskasten. Fach 1 kommt nach einem Tag wieder, Fach 5 nach 30 Tagen.");
+});
+
+test("levelRow mit Karteikasten: Fach nur ohne Hilfen, „zuletzt geübt am“ aus Wiederholung oder Runde, null aus der Umstellung", () => {
+  const l = { id: "noten-3", no: 3, title: "T" }, h = { id: "intervall-3", no: 3, title: "H", helps: ["piano"] };
+  // Eintrag aus der Umstellung: zuletzt null, keine normale Runde mit Tag → kein Datum
+  let r = levelRow(l, { best: 9, played: 2 }, { fach: 1, faellig: "2026-11-26", zuletzt: null });
+  assert.equal(r.fach, 1); assert.equal(r.zuletzt, null); assert.equal(lastText(r.zuletzt), "");
+  // Umstellung, aber später eine normale Runde: deren Tag
+  r = levelRow(l, { best: 9, played: 3, day: "2026-11-24" }, { fach: 1, faellig: "2026-11-26", zuletzt: null });
+  assert.equal(r.zuletzt, "2026-11-24"); assert.equal(lastText(r.zuletzt), "zuletzt geübt am 24.11.");
+  // der spätere von beiden
+  r = levelRow(l, { best: 9, played: 3, day: "2026-11-20" }, { fach: 3, faellig: "2026-12-01", zuletzt: "2026-12-05" });
+  assert.equal(r.fach, 3); assert.equal(lastText(r.zuletzt), "zuletzt geübt am 5.12.");
+  // Stufe mit Hilfen: nie im Kasten; ohne Eintrag kein Fach; ungültiges Fach gilt als 1 bzw. höchstens 5
+  assert.equal(levelRow(h, { played: 1 }, { fach: 2, faellig: "2026-11-26", zuletzt: null }).fach, null);
+  assert.equal(levelRow(l, { played: 1 }).fach, null);
+  assert.equal(levelRow(l, {}, { fach: "x" }).fach, 1);
+  assert.equal(levelRow(l, {}, { fach: 9 }).fach, 5);
+  // levelGroups reicht state.rep durch
+  const g = levelGroups(PACKS, { "noten-3": { best: 8, played: 1 } }, { "noten-3": { fach: 2, faellig: "2026-11-28", zuletzt: "2026-11-25" } });
+  assert.equal(g[0].rows[2].fach, 2);
+  assert.equal(g[0].rows[0].fach, null);
 });

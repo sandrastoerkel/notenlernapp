@@ -960,6 +960,8 @@ export const mountBoard = (id) => (container) => {
 export default {
   id: "notenwerte",
   title: "Notenwerte und Pausen",
+  // Kurzname für Aufzählungen (Karte „Heute“, Ergebniskarte „Wiederholen“, Welle 11, Schritt 8)
+  short: "Notenwerte",
   subtitle: "Dauer, Schläge und Punktierung",
   levels,
   learn: [

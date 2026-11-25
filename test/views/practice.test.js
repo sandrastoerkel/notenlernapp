@@ -2,7 +2,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { startLabel, keysHint, lettersLabel, resultInfo, missingText, answersScroll, startHint, TWO_STEPS_NOTE, resultLine, avgText, perLevelLine, MIXED_HEAD,
-  BASICS_LABEL, needsHtml, reasonText, basicsTitle, countWord, gapGroups, placesText, gapText, openLabel, resultBasics } from "../../src/views/practice.js";
+  BASICS_LABEL, needsHtml, reasonText, basicsTitle, countWord, gapGroups, placesText, gapText, openLabel, resultBasics,
+  reviewTitle, verdictText, reviewLine, practiceOffer, repeatNote } from "../../src/views/practice.js";
 import { keepStufe, textOf } from "../../src/engine.js";
 import { PACKS } from "../../src/packs/index.js";
 import { lockText } from "../../src/views/home.js";
@@ -289,4 +290,28 @@ test("Ergebniskarte: „Grundlagen wiederholen“ zuerst unter 5 Richtigen, sons
   assert.deepEqual(r.gaps[0].needs, ["notenwerte-3", "notenwerte-5", "notenwerte-7", "notenwerte-9"]);
   assert.equal(r.gaps[0].open, null);
   assert.equal(r.gaps[0].text, `Viermal lag die Antwort daneben. Das übst du in Notenwerte und Pausen, Stufen${NB}3, 5, 7 und${NB}9.`);
+});
+
+// Welle 11, Schritt 8: Runde „Wiederholen“
+test("Runde „Wiederholen“: Kopf, Urteil je Stufe, Knopf bei „noch wacklig“, Satz nach einer normalen Runde", () => {
+  assert.equal(reviewTitle([{ id: "a", n: 4 }, { id: "b", n: 3 }, { id: "c", n: 3 }]), "10 Aufgaben aus 3 Stufen");
+  assert.equal(reviewTitle([{ id: "a", n: 5 }, { id: "b", n: 5 }]), "10 Aufgaben aus 2 Stufen");
+  assert.equal(reviewTitle([{ id: "a", n: 10 }]), "10 Aufgaben aus einer Stufe");
+  assert.equal(verdictText({ sitzt: true, fach: 3, inTagen: 7 }), "sitzt · wieder in 7 Tagen");
+  assert.equal(verdictText({ sitzt: false, fach: 1, inTagen: 1 }), "noch wacklig · morgen noch einmal");
+  assert.equal(verdictText({ sitzt: true, fach: 1, inTagen: 1, neu: true }), "neu im Kasten · morgen zum Wiederholen");
+  assert.equal(reviewLine(PACKS, { id: "intervall-4", sitzt: true, fach: 3, inTagen: 7 }), `Intervalle${NB}4 · sitzt · wieder in 7 Tagen`);
+  assert.equal(reviewLine(PACKS, { id: "tonleitern-5", sitzt: false, fach: 1, inTagen: 1 }), `Tonleitern${NB}5 · noch wacklig · morgen noch einmal`);
+  assert.equal(reviewLine(PACKS, { id: "akkorde-1", sitzt: true, fach: 5, inTagen: 30 }), `Dreiklänge${NB}1 · sitzt · wieder in 30 Tagen`);
+  // Stufe mit Hilfen direkt davor: „Stufe 4 mit Hilfen üben“; sonst die Stufe selbst
+  assert.deepEqual(practiceOffer(PACKS, "tonleitern-5"), { id: "tonleitern-4", label: `Stufe${NB}4 mit Hilfen üben` });
+  assert.deepEqual(practiceOffer(PACKS, "intervall-4"), { id: "intervall-3", label: `Stufe${NB}3 mit Hilfen üben` });
+  assert.deepEqual(practiceOffer(PACKS, "noten-7"), { id: "noten-7", label: `Stufe${NB}7 üben` });
+  assert.deepEqual(practiceOffer(PACKS, "notenwerte-3"), { id: "notenwerte-2", label: `Stufe${NB}2 mit Hilfen üben` });
+  assert.deepEqual(practiceOffer(PACKS, "akkorde-2"), { id: "akkorde-2", label: `Stufe${NB}2 üben` });
+  // Satz auf der Ergebniskarte einer normalen Runde
+  assert.equal(repeatNote(null), "");
+  assert.equal(repeatNote({ id: "noten-3", sitzt: true, fach: 1, inTagen: 1, neu: true }), "Neu im Kasten: kommt morgen zum Wiederholen wieder.");
+  assert.equal(repeatNote({ id: "noten-3", sitzt: true, fach: 2, inTagen: 3 }), "Wiederholung: sitzt · wieder in 3 Tagen.");
+  assert.equal(repeatNote({ id: "noten-3", sitzt: false, fach: 1, inTagen: 1 }), "Wiederholung: noch wacklig · morgen noch einmal.");
 });

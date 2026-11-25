@@ -467,6 +467,9 @@ export const circleHtml = (state) => `<div style="${WRAP}"><p class="eyebrow" st
 export default {
   id: "akkorde",
   title: "Dreiklänge und Quintenzirkel",
+  // Kurzname für Aufzählungen (Karte „Heute“, Ergebniskarte „Wiederholen“), damit das „und“ im Titel nicht wie
+  // die Aufzählung liest (Welle 11, Schritt 8)
+  short: "Dreiklänge",
   subtitle: "Dreiklangstypen, Umkehrungen, Stufen",
   levels,
   learn: [

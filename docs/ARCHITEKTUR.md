@@ -299,6 +299,7 @@ export default {
   id: "noten",                 // eindeutig, nur Kleinbuchstaben
   title: "Noten lesen",
   subtitle: "Violin- und Bassschlüssel",
+  short: "Noten lesen",        // optional, Kurzname für Aufzählungen („Heute“, „Wiederholen“); sonst title
   levels: [ /* Stufen in Reihenfolge */ ],
   learn: [ /* optionale Lerntafeln */ ],
   blitz: null,                 // optional, siehe unten
