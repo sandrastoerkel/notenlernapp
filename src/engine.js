@@ -573,8 +573,12 @@ function showQuestion(r) {
   r.step = 0; r.oks = []; r.answered = false;
   // Gemischte Runde: Eingabe für die Stufe dieser Aufgabe neu aufbauen, Herkunft über der Notenzeile
   if (r.mixed) {
+    // Die Knöpfe entstehen neu: Lag der Fokus auf einem Antwortknopf (Tastatur, Bildschirmleser), fiele er auf
+    // <body>. Er geht dann auf den Antwortbereich (tabindex="-1"), von dort führt Tab zu den neuen Antworten.
+    const had = focusWithin(ui.answers);
     setupAnswers(r, q.from); applyInput(r);
     if (ui.origin) ui.origin.textContent = originText(q.fromPack, q.from);
+    if (had && ui.answers && !ui.answers.hidden) focusEl(ui.answers, { preventScroll: true });
   }
   ui.staff.innerHTML = q.svg;
   ui.feedback.textContent = q.prompt || ""; ui.feedback.className = "feedback";

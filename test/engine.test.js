@@ -1323,6 +1323,33 @@ test("Gemischte Runde mit Vorliebe „Klaviatur“: Klaviatur bei Buchstaben-Stu
   } finally { stop(); mock.timers.reset(); }
 }));
 
+test("Gemischte Runde: Fokus auf einem Antwortknopf fällt beim Neuaufbau nicht auf <body>, sondern geht auf den Antwortbereich", () => withDoc(() => {
+  setMuted(true);
+  mock.timers.enable({ apis: ["setTimeout"] });
+  try {
+    const items = [mixedItem("noten-3"), mixedItem("notenwerte-5"), mixedItem("noten-3")];
+    const ui = mixedUi();
+    let focused = 0;
+    const doc = { body: {}, activeElement: null };
+    ui.answers.ownerDocument = doc; ui.answers.contains = (a) => a === "knopf";
+    ui.answers.focus = (o) => { focused++; assert.deepEqual(o, { preventScroll: true }); };
+    startMixed({ kind: "grundlagen", items }, ui, { state: fresh(), save() {}, onFinish() {} });
+    assert.equal(focused, 0, "zu Beginn kein Verschieben des Fokus");
+    // Antwort per Knopf mit Fokus (Tab + Enter), die Runde geht von selbst weiter
+    doc.activeElement = "knopf";
+    ui.answers.onclick({ target: letterTarget(items[0].answer) });
+    advance(ui);
+    assert.equal(ui.count.textContent, "2 / 3");
+    assert.equal(focused, 1);
+    // Fokus woanders (Maus, Tippen, Tastatur ohne Fokus): nichts verschieben
+    doc.activeElement = null;
+    clickChoice(ui, items[1].answer);
+    advance(ui);
+    assert.equal(ui.count.textContent, "3 / 3");
+    assert.equal(focused, 1);
+  } finally { stop(); mock.timers.reset(); }
+}));
+
 test("Normale Runde nach einer gemischten: Herkunftszeile verborgen, Hilfen wie bisher", () => {
   setMuted(true);
   mock.timers.enable({ apis: ["setTimeout"] });
