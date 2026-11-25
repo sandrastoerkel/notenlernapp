@@ -2357,6 +2357,26 @@ liegt:
 **Abnahme.** Intervalle 3 wie auf dem Bildschirmfoto (Hilfen offen, Vorführung offen): ein Knopf. Vorführung
 zu: ein Knopf unter den Antworten. In allen fünf Paketen bei 320 und 420 px kein Zustand mit zwei Knöpfen.
 
+**Umgesetzt (25.11.2026, Opus).** Wie geplant: `openDemo` verbirgt `ui.next`, es bleibt der Knopf am Ende der
+Vorführung (Voreinstellung aus Abschnitt 8, Punkt 2). Ergänzt, weil Sandra Handys (320 px, Hilfen unter den
+Antworten) und Tastatur ausdrücklich nannte:
+- **Fokus.** „Vorführen“ verschwindet beim Öffnen der Vorführung; hatte er den Fokus, geht er auf „Abspielen“.
+  Verschwindet der gedrückte Knopf „Nächste Aufgabe“ (unter den Antworten oder am Ende der Vorführung), geht der
+  Fokus auf den Antwortbereich (`#pAnswers`, jetzt `tabindex="-1"`), nicht auf `<body>`; bewusst nicht auf einen
+  Antwortknopf, damit Enter oder Leertaste nicht aus Versehen antworten. Ohne Fokus in diesem Bereich (Tippen,
+  Maus) wird nichts verschoben.
+- **Scrollen.** Wer am Ende der Vorführung weitergeht, stand vorher tief unten (bei 320 px lag die neue Notenzeile
+  365 px über dem Bildschirm). `resume` rückt die Notenzeile wieder ins Bild, wenn sie oben verdeckt ist
+  (`#pStaff { scroll-margin-top: 72px }` unter der Kopfleiste); sonst bleibt die Seite stehen.
+- Tests: „Nächste Aufgabe steht nur einmal da (alle Pakete)“ (alle 47 Stufen; 15 mit Vorführung: Notenwerte 1, 4,
+  6, 8; Intervalle 1, 3, 5, 8; Tonleitern 1, 2, 4, 6, 8, 10, 12), Fokus-Test, Prüfung von `tabindex` und
+  `scroll-margin-top`; bestehender Vorführ-Test um `ui.next.hidden` ergänzt. 377 Tests grün.
+- `docs/screens/ueberlauf.mjs` zählt sichtbare Knöpfe „Nächste Aufgabe“ (mehr als einer = Treffer) und geht bei
+  offener Vorführung über deren Knopf weiter: 320 px dunkel und 420 px hell je 0 Treffer, 0 Konsolenfehler. Mit
+  dem alten `engine.js` zeigt dieselbe Zählung bei Intervalle 3 zwei Knöpfe.
+- Keine Abweichung vom Plan; ein Fokus-Rahmen ohne `outline` war nicht möglich (Regel in `test/css.test.js`), der
+  Antwortbereich zeigt bei Tastaturbedienung den üblichen Rahmen in `--accent`.
+
 #### Schritt 1 – W1: Notenwerte – Dauer in Schlägen, ein Wortlaut
 
 **Befund.** „Wie viele Schläge im 4/4-Takt?“ lässt sich als „Wie viele Schläge hat der 4/4-Takt?“ lesen

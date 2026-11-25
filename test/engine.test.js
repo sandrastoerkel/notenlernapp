@@ -703,6 +703,7 @@ test("Ablauf: „Vorführen“ erst nach der Antwort, die Runde wartet, „Näch
     const box = ui.helpsBody.querySelector(".help-demo");
     assert.equal(box.hidden, false);
     assert.ok(box.innerHTML.includes(DEMO_NEXT));
+    assert.equal(ui.next.hidden, true, "„Nächste Aufgabe“ nur einmal: der Knopf unter den Antworten ist weg");
     const root = box.querySelector("[data-demo-root]");
     assert.ok(root.innerHTML.includes('<span class="small muted num demo-count">1 / 8</span>'));
     mock.timers.tick(DELAY_OK * 5);
@@ -721,6 +722,121 @@ test("Ablauf: „Vorführen“ erst nach der Antwort, die Runde wartet, „Näch
     ui.helps.open = false; ui.helps.ontoggle();
     assert.equal(ui.count.textContent, "3 / 10");
   } finally { stop(); mock.timers.reset(); }
+});
+
+// W2 (Welle 11): „Nächste Aufgabe“ steht zu jedem Zeitpunkt höchstens einmal da, in allen Stufen aller Pakete.
+// Beantwortet wird die erste Aufgabe daneben (wo möglich), Schritt für Schritt.
+function nextOnceRun(level) {
+  const qs = [];
+  const lv = { ...level, question: (p, c) => { const q = level.question(p, c); qs.push(q); return q; } };
+  const ui = { staff: fakeEl(), feedback: fakeEl(), count: fakeEl(), dots: fakeEl(), answers: fakeEl(), typed: fakeEl(), piano: fakeEl(), helps: fakeEl(), helpsBody: anyEl(), next: fakeEl() };
+  ui.next.hidden = true;
+  ui.feedback.append = () => {}; // Auflösung mit markierten Teilen (revealParts)
+  startRound(lv, ui, { state: fresh(), save() {}, onFinish() {} });
+  const q = qs[0];
+  const steps = q.steps ? q.steps.length : 1;
+  for (let s = 0; s < steps; s++) {
+    const set = choiceSet(q, s);
+    const right = (v) => (q.steps ? (v && typeof v === "object" ? same(N(v.letter, 4, v.acc), N(set.answer.letter, 4, set.answer.acc || 0)) : v === set.answer) : !!level.check(q, v));
+    let target;
+    if (level.input === "choices") {
+      const i = Math.max(0, set.choices.findIndex((c) => !right(c)));
+      target = ui.answers.querySelectorAll(".btn[data-choice]").find((b) => +b.dataset.choice === i);
+    } else {
+      const l = LETTERS.find((x) => !right({ letter: x, acc: 0 })) || "C";
+      target = { dataset: { letter: l, acc: "0" }, classList: { add() {}, remove() {} }, closest() { return this; } };
+    }
+    assert.ok(target, `${level.id}: Antwortknopf`);
+    ui.answers.onclick({ target });
+    if (s < steps - 1) {
+      mock.timers.tick(DELAY_STEP_OK);
+      if (!ui.next.hidden) { assert.equal(ui.next.textContent, NEXT_STEP); ui.next.onclick(); }
+    }
+  }
+  return { ui, q };
+}
+// Ersatz für document.createElement/createTextNode (Auflösung mit markierten Teilen), nur während der Tests unten
+const withDoc = (fn) => {
+  const had = "document" in globalThis;
+  if (!had) globalThis.document = { createElement: () => ({}), createTextNode: (t) => ({ t }) };
+  try { return fn(); } finally { if (!had) delete globalThis.document; }
+};
+const demoNexts = (html) => (String(html).match(/data-demo-next/g) || []).length;
+
+test("Nächste Aufgabe steht nur einmal da (alle Pakete)", () => withDoc(() => {
+  setMuted(true);
+  mock.timers.enable({ apis: ["setTimeout"] });
+  try {
+    let withDemo = 0, without = 0;
+    for (const pack of PACKS) for (const level of pack.levels) {
+      const { ui } = nextOnceRun(level);
+      const box = ui.helpsBody.querySelector(".help-demo");
+      assert.equal(demoNexts(ui.helpsBody.innerHTML), 0, `${level.id}: kein Knopf in den Hilfen`);
+      if (level.demo) {
+        withDemo++;
+        assert.equal(ui.count.textContent, "1 / 10", `${level.id}: wartet`);
+        assert.equal(ui.next.hidden, false, `${level.id}: vor „Vorführen“ der Knopf unter den Antworten`);
+        assert.equal(ui.next.textContent, DEMO_NEXT);
+        assert.equal(demoNexts(box.innerHTML), 0, `${level.id}: Vorführung noch zu`);
+        ui.helpsBody.onclick({ target: target("[data-demo-btn]") });
+        assert.equal(ui.next.hidden, true, `${level.id}: bei offener Vorführung kein Knopf unter den Antworten`);
+        assert.equal(demoNexts(box.innerHTML), 1, `${level.id}: genau ein Knopf am Ende der Vorführung`);
+        ui.helpsBody.onclick({ target: target("[data-demo-next]") });
+        assert.equal(ui.count.textContent, "2 / 10", `${level.id}: nächste Aufgabe`);
+        assert.equal(ui.next.hidden, true, `${level.id}: danach kein Knopf`);
+        assert.equal(demoNexts(ui.helpsBody.innerHTML), 0);
+      } else {
+        without++;
+        // daneben (bzw. Stufe mit Hilfen): ein Knopf unter den Antworten, keiner in den Hilfen
+        if (ui.count.textContent === "1 / 10") {
+          assert.equal(ui.next.hidden, false, `${level.id}: nach „daneben“ ist „Nächste Aufgabe“ da`);
+          assert.equal(ui.next.textContent, DEMO_NEXT);
+        }
+        assert.equal(demoNexts(box.innerHTML), 0, `${level.id}: keine Vorführung, kein zweiter Knopf`);
+        ui.helpsBody.onclick({ target: target("[data-demo-btn]") });
+        assert.equal(demoNexts(box.innerHTML), 0, `${level.id}: „Vorführen“ gibt es nicht`);
+      }
+      stop();
+    }
+    assert.equal(withDemo, 15, "Notenwerte 1, 4, 6, 8; Intervalle 1, 3, 5, 8; Tonleitern 1, 2, 4, 6, 8, 10, 12");
+    assert.ok(without > 0);
+  } finally { stop(); mock.timers.reset(); }
+}));
+
+test("Nächste Aufgabe: Fokus geht auf „Abspielen“ und danach auf den Antwortbereich, nie auf <body>", () => withDoc(() => {
+  setMuted(true);
+  mock.timers.enable({ apis: ["setTimeout"] });
+  try {
+    const level = intervalle.levels[2]; // intervall-3, Vorführung
+    const { ui } = nextOnceRun(level);
+    let focused = null;
+    const doc = { body: {}, activeElement: {} }; // Fokus auf „Vorführen“ (in den Hilfen)
+    ui.helpsBody.ownerDocument = doc;
+    const box = ui.helpsBody.querySelector(".help-demo");
+    box.querySelector('[data-act="play"]').focus = () => { focused = "play"; };
+    ui.answers.focus = (o) => { focused = "answers"; assert.deepEqual(o, { preventScroll: true }); };
+    ui.answers.hidden = false;
+    ui.helpsBody.onclick({ target: target("[data-demo-btn]") });
+    assert.equal(focused, "play", "„Vorführen“ verschwindet, der Fokus geht auf „Abspielen“");
+    ui.helpsBody.onclick({ target: target("[data-demo-next]") });
+    assert.equal(ui.count.textContent, "2 / 10");
+    assert.equal(focused, "answers", "„Nächste Aufgabe“ verschwindet, der Fokus geht auf den Antwortbereich");
+    // ohne Fokus in den Hilfen (Maus, Tippen): kein Verschieben des Fokus
+    stop();
+    const b = nextOnceRun(level); focused = null;
+    b.ui.helpsBody.ownerDocument = { body: {}, activeElement: null };
+    b.ui.answers.focus = () => { focused = "answers"; };
+    b.ui.helpsBody.onclick({ target: target("[data-demo-btn]") });
+    b.ui.helpsBody.onclick({ target: target("[data-demo-next]") });
+    assert.equal(focused, null);
+  } finally { stop(); mock.timers.reset(); }
+}));
+
+test("index.html und style.css: Antwortbereich als Fokusziel, Notenzeile mit Abstand zur Kopfleiste", () => {
+  const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
+  const css = readFileSync(new URL("../css/style.css", import.meta.url), "utf8");
+  assert.match(html, /<div class="answers" id="pAnswers" tabindex="-1">/);
+  assert.match(css, /#pStaff \{ scroll-margin-top: \d+px; \}/);
 });
 
 test("Ablauf: Stufe mit Hilfen wartet beliebig lange auf „Nächste Aufgabe“ (Knopf, Enter, Leertaste), die letzte Aufgabe beendet danach die Runde", () => {

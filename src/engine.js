@@ -586,17 +586,48 @@ function openDemo(r) {
   if (r.advanceId) { clearTimeout(r.advanceId); r.timers.delete(r.advanceId); }
   silenceTones(r);
   r.waiting = true;
+  const had = focusWithin(body);
   const box = body.querySelector(".help-demo");
   body.querySelectorAll(".help-grid, .help-head").forEach((el) => { el.hidden = true; });
   box.hidden = false;
   box.innerHTML = `<div data-demo-root></div><button class="btn primary wide" data-demo-next>${DEMO_NEXT}</button>`;
   r.demo = mountDemo(box.querySelector("[data-demo-root]"), r.level.demo(r.items[r.idx]));
+  // „Nächste Aufgabe“ nur einmal: Bei offener Vorführung gilt der Knopf am Ende der Vorführung (auf Handys
+  // stehen die Hilfen unter den Antworten; wer die Vorführung gesehen hat, ist dort). ui.next kommt erst mit
+  // der nächsten Antwort wieder.
+  if (r.ui.next) r.ui.next.hidden = true;
+  // Der Knopf „Vorführen“ ist jetzt verborgen: Hatte er den Fokus (Tastatur), geht er auf „Abspielen“
+  if (had) focusEl(box.querySelector('[data-act="play"]'));
 }
 
+// Fokus-Hilfen (ohne DOM, etwa in den Tests, bewirken sie nichts)
+function focusWithin(el) {
+  const a = el && el.ownerDocument && el.ownerDocument.activeElement;
+  return !!(a && a !== el.ownerDocument.body && (a === el || (el.contains && el.contains(a))));
+}
+function focusEl(el, opts) { if (el && typeof el.focus === "function") el.focus(opts); }
+
+// Weiter („Nächste Aufgabe“, „Weiter zu Schritt 2“, Enter, Leertaste, Zuklappen der Hilfen während der Vorführung)
 function resume(r) {
   if (!r.waiting || !r.advance) return;
+  // Der gedrückte Knopf verschwindet gleich (ui.next wird verborgen, die Hilfen werden neu aufgebaut)
+  const lost = focusWithin(r.ui.next) || focusWithin(r.ui.helpsBody);
   if (r.demo) r.demo.stop();
   r.advance();
+  if (run !== r) return; // Runde zu Ende: die Ergebniskarte übernimmt
+  // Auf Handys stehen die Hilfen unter den Antworten: Wer am Ende der Vorführung weitergeht, sieht sonst die
+  // neue Notenzeile nicht. Sie rückt wieder ins Bild (Abstand zur Kopfleiste: scroll-margin-top in style.css).
+  showStaff(r.ui.staff);
+  // Fokus nicht auf <body> fallen lassen: auf den Antwortbereich (tabindex="-1"), von dort führt Tab zu den
+  // Antworten. Kein Antwortknopf selbst, damit Enter oder Leertaste nicht aus Versehen antworten.
+  if (lost) focusEl([r.ui.answers, r.ui.piano].find((e) => e && !e.hidden), { preventScroll: true });
+}
+
+function showStaff(el) {
+  if (!el || typeof el.getBoundingClientRect !== "function" || typeof el.scrollIntoView !== "function") return;
+  const view = el.ownerDocument && el.ownerDocument.defaultView;
+  const margin = view ? parseFloat(view.getComputedStyle(el).scrollMarginTop) || 0 : 0;
+  if (el.getBoundingClientRect().top < margin) el.scrollIntoView({ block: "start" });
 }
 
 // Für Tests und die Browserprüfung: wartet die Runde gerade auf „Nächste Aufgabe“?

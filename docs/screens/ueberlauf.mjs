@@ -7,6 +7,7 @@
 // Geprüft werden bei 320 px (dunkel) und 420 px (hell): Startseite, alle Stufen aller Pakete (Startkarte,
 // Aufgabe mit offenen Hilfen, nach jeder Antwort – abwechselnd richtig und daneben –, jede Vorführung Bild
 // für Bild), „Lernen“ in beiden Schlüsseln mit allen Vorführungen, Blitz und Statistik.
+// In jedem Zustand zählt außerdem ein zweiter sichtbarer Knopf „Nächste Aufgabe“ als Treffer (W2, Welle 11).
 //
 // Playwright ist KEINE Abhängigkeit der App (siehe screenshots.mjs). Aufruf bei laufendem Server:
 //   python3 -m http.server 8080 &
@@ -92,6 +93,14 @@ const FIND = () => {
   return hits;
 };
 
+// läuft in der Seite: Zahl der sichtbaren Knöpfe „Nächste Aufgabe“ (unter den Antworten und am Ende der Vorführung)
+const NEXT_COUNT = () => [...document.querySelectorAll("button")].filter((b) => {
+  if (b.textContent.trim() !== "Nächste Aufgabe") return false;
+  for (let a = b; a && a.nodeType === 1; a = a.parentElement) { const s = getComputedStyle(a); if (s.display === "none" || s.visibility === "hidden") return false;
+    if (a.tagName === "DETAILS" && !a.open && a !== b) return false; }
+  const r = b.getBoundingClientRect(); return r.width > 0.5 && r.height > 0.5;
+}).length;
+
 // Stufe so einhängen, dass die gestellten Aufgaben in window.__qs stehen
 const PATCH = async ([pid, lid]) => {
   const m = await import("./src/packs/" + pid + ".js");
@@ -121,6 +130,9 @@ async function run(browser, width, scheme) {
     await pg.waitForTimeout(60);
     const hs = await pg.evaluate(FIND);
     if (await pg.evaluate("document.documentElement.scrollWidth > innerWidth")) hs.push({ el: "html", what: "Seite", frame: "Fenster", kind: "waagrechter Überlauf", links: 0, rechts: 0, text: "" });
+    // W2 (Welle 11): „Nächste Aufgabe“ höchstens einmal sichtbar
+    const nexts = await pg.evaluate(NEXT_COUNT);
+    if (nexts > 1) hs.push({ el: "button", what: "Knopf", frame: "Seite", kind: "doppelter Knopf „Nächste Aufgabe“", links: 0, rechts: 0, text: `${nexts}×` });
     for (const h of hs) {
       const k = [h.el, h.frame, h.what].join("|"), old = all.get(k);
       if (!old) all.set(k, { ...h, wo: [where] });
@@ -165,7 +177,9 @@ async function run(browser, width, scheme) {
         if (s < n - 1) { if (await vis("#pNext")) await pg.click("#pNext"); else await pg.waitForTimeout(900); await pg.waitForTimeout(200); }
       }
       if (rnd < 2 && (await vis("#pHelps"))) await demos("#pHelpsBody", w);
+      // weiter: bei offener Vorführung steht „Nächste Aufgabe“ nur am Ende der Vorführung (W2), sonst unter den Antworten
       for (let t = 0; t < 25 && !(await vis("#pResult")); t++) {
+        if (await vis("#pHelpsBody [data-demo-next]")) { await pg.click("#pHelpsBody [data-demo-next]"); break; }
         if (await vis("#pNext")) { await pg.click("#pNext"); break; }
         await pg.waitForTimeout(150);
       }
