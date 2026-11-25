@@ -151,8 +151,9 @@ function askKlasse(k) {
     ctx.save();
     show("home");
   };
-  if (dlg.open) dlg.close();
-  dlg.showModal();
+  // schon offen (zweiter Link bei offener Frage): nur der Inhalt wechselt. Kein close() – dessen Ereignis käme
+  // verspätet und nähme die neue Angabe aus der Adresszeile, bevor geantwortet ist
+  if (!dlg.open) dlg.showModal();
   $("#klasseYes").focus();
 }
 
