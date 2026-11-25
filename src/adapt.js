@@ -46,7 +46,31 @@ export function status(entry) {
   return "sicher";
 }
 
-export const weight = (entry) => GEWICHT[status(entry)];
+// Ab so vielen Tagen seit der letzten Antwort (last) zählt eine sichere Aufgabe wieder wie neu (Welle 11,
+// Schritt 9; Startwert, keine Forschungswerte): Was lange nicht dran war, kommt öfter wieder.
+export const TAGE_WIE_NEU = 7;
+
+// Ganze Tage von Tag a bis Tag b ("JJJJ-MM-TT"); null, wenn einer der Tage kein gültiger Tag ist.
+// Eigene kleine Fassung (wie dayDiff in store.js), weil store.js diese Datei einbindet.
+function tageSeit(a, b) {
+  const t = (day) => {
+    const m = typeof day === "string" ? /^(\d{4})-(\d{2})-(\d{2})$/.exec(day) : null;
+    return m ? Date.UTC(+m[1], +m[2] - 1, +m[3]) : NaN;
+  };
+  const d = Math.round((t(b) - t(a)) / 864e5);
+  return Number.isFinite(d) ? d : null;
+}
+
+// Gewicht eines Eintrags. Mit heute ("JJJJ-MM-TT") bekommt eine sichere Aufgabe, deren last mindestens
+// TAGE_WIE_NEU Tage zurückliegt, das Gewicht von „neu“; ohne heute (oder ohne gültiges last) wie bisher.
+export function weight(entry, heute) {
+  const st = status(entry);
+  if (st === "sicher" && heute && entry) {
+    const d = tageSeit(entry.last, heute);
+    if (d !== null && d >= TAGE_WIE_NEU) return GEWICHT.neu;
+  }
+  return GEWICHT[st];
+}
 
 // Anzahl der Schlüssel aus keys, deren Eintrag in notes unsicher ist
 export const countUnsure = (notes, keys) => keys.filter((k) => status((notes || {})[k]) === "unsicher").length;
@@ -66,4 +90,22 @@ export function pickWeighted(items, keyOf, notes, prev, rand = Math.random) {
     if (r < 0) return list[i];
   }
   return list[list.length - 1];
+}
+
+// Gewichtete Wahl aus einer schon gefilterten Liste cands (Welle 11, Schritt 9), ohne eigene Regel zu prev:
+// Die Regeln der Vorräte (nie dieselbe Aufgabe zweimal hintereinander, Gruppen, Anteile) wendet der Aufrufer
+// vorher an. keyOf liefert den statKey eines Kandidaten. Mit Wahrscheinlichkeit ANTEIL_ZUFALL (und immer ohne
+// notes) zählt nur baseOf, sonst baseOf · weight(notes[keyOf(c)], heute). baseOf (optional, sonst 1) ist das
+// Grundgewicht des Vorrats (z. B. die seltene Prime in „Intervalle“). rand liefert Zahlen in [0, 1).
+export function pickAmong(cands, keyOf, notes, rand = Math.random, heute, baseOf) {
+  if (!cands.length) return undefined;
+  const base = baseOf || (() => 1);
+  const useNotes = !!notes && rand() >= ANTEIL_ZUFALL;
+  const ws = cands.map((c) => base(c) * (useNotes ? weight(notes[keyOf(c)], heute) : 1));
+  let r = rand() * ws.reduce((a, b) => a + b, 0);
+  for (let i = 0; i < cands.length; i++) {
+    r -= ws[i];
+    if (r < 0) return cands[i];
+  }
+  return cands[cands.length - 1];
 }

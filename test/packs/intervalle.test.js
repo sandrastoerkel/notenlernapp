@@ -8,6 +8,7 @@ import intervalle, {
   HELP_TEXT, HELP_TEXT_1, VERDICTS, VERDICT_OK, VERDICT_NUM, VERDICT_MORE, VERDICT_LESS,
   buildSvg, buildRevealSvg, buildHeight, checkBuild, usualNote, upperNote, pairExtra, intervalSvg, describe,
   pairLayout, intervalBoard, PAIR_INNER, PAIR_OUTER, GROB_PROMPT, GROB_PROMPT_DOWN, demoKeysSvg,
+  numberStat, twoStepStat, buildStat, checkStat, adaptOf, pickItem,
 } from "../../src/packs/intervalle.js";
 import { PACKS } from "../../src/packs/index.js";
 import { N, dia, midi, gName, helm, intervalSemitones, lowerNote, semitonesFor, intervalNumber, intervalName, INTERVAL_NAMES, intervalLabel } from "../../src/music.js";
@@ -743,4 +744,128 @@ test("Welle 10, B15: Intervalltafel – Paare eng, Lücken weit, Trennstrich; Kn
   assert.equal(VERDICT_NUM, "anderes Intervall (Notenstufen)");
   assert.ok(L[9].hint.includes("anderes Intervall"));
   assert.ok(L[5].hint.includes("♮"), "Stufe 6 nennt das Auflösungszeichen");
+});
+
+/* ---------- Welle 11, Schritt 9: gewichtete Auswahl ---------- */
+
+const UNSICHER = { ok: 0, bad: 8, hist: "00000000", last: "2026-11-24" };
+const SICHER_HEUTE = { ok: 10, bad: 0, hist: "1111111111", last: "2026-11-25" };
+const HEUTE = "2026-11-25";
+// 200 Runden zu 10 Aufgaben (2000 Züge) mit Fortschritt notes, gezählt je statKey
+function zuege(l, notes, runden = 200) {
+  const count = {}, rounds = [];
+  for (let r = 0; r < runden; r++) {
+    const round = makeRound(l, 10, { notes, heute: HEUTE });
+    rounds.push(round);
+    for (const q of round) count[q.statKey] = (count[q.statKey] || 0) + 1;
+  }
+  return { count, rounds };
+}
+const pk = (q) => `${q.clef}:${dia(q.low)}/${q.low.acc}:${dia(q.high)}/${q.high.acc}`;
+
+test("Gewichtung: Alle Aufgaben einer Gruppe tragen denselben statKey ein (sonst wirkte sie nicht)", () => {
+  const same = (pool, groupOf, statOf, name) => {
+    const by = new Map();
+    for (const it of pool) {
+      const g = groupOf(it), k = statOf(it);
+      if (!by.has(g)) by.set(g, k);
+      assert.equal(by.get(g), k, `${name} ${g}`);
+    }
+  };
+  const byType = (it) => `${it.num}${it.quality}`;
+  same(POOL_1, (it) => it.num, numberStat, "1");
+  same(POOL_2, (it) => `${it.clef}${it.num}`, numberStat, "2");
+  for (const [i, p] of [POOL_3, POOL_4, POOL_5, POOL_6].entries()) same(p, byType, (it) => twoStepStat(it), String(i + 3));
+  same(POOL_7, byType, (it) => twoStepStat(it, true), "7");
+  same(BUILD_UP, byType, buildStat, "8/9 auf");
+  same(BUILD_DOWN, byType, buildStat, "9 ab");
+  for (const v of VERDICTS) same(POOL_10.filter((it) => it.verdict === v), byType, checkStat, `10 ${v}`);
+});
+
+test("Gewichtung: statKey der Frage = statKey der Aufgabe aus dem Vorrat", () => {
+  for (const it of POOL_3) assert.equal(twoStepQuestion(it, TYPES_RKG).statKey, twoStepStat(it));
+  for (const it of POOL_7) assert.equal(twoStepQuestion(it, TYPES_ALL, true).statKey, twoStepStat(it, true));
+  // für alle Stufen: jede gestellte Frage trägt einen statKey ein, den die Gewichtung kennt
+  const stats = [numberStat, numberStat, twoStepStat, twoStepStat, twoStepStat, twoStepStat, (it) => twoStepStat(it, true), buildStat, buildStat, checkStat];
+  const pools = [POOL_1, POOL_2, POOL_3, POOL_4, POOL_5, POOL_6, POOL_7, POOL_8, POOL_9, POOL_10];
+  L.forEach((l, i) => {
+    const known = new Set(pools[i].map((it) => stats[i](it)));
+    for (const q of makeRound(l, 40, { notes: {} })) assert.ok(known.has(q.statKey), `${l.id} ${q.statKey}`);
+  });
+});
+
+test("adaptOf: nur mit ctx.notes, heute aus ctx oder dem örtlichen Tag", () => {
+  assert.equal(adaptOf(undefined, numberStat), null);
+  assert.equal(adaptOf({ round: [] }, numberStat), null);
+  const w = adaptOf({ notes: {}, heute: HEUTE }, numberStat);
+  assert.equal(w.heute, HEUTE); assert.equal(w.statOf, numberStat);
+  assert.match(adaptOf({ notes: {} }, numberStat).heute, /^\d{4}-\d{2}-\d{2}$/);
+});
+
+test("Gewichtung: eine unsichere Aufgabe kommt in 2000 Zügen deutlich öfter, die Regeln bleiben", () => {
+  // je Stufe ein Intervall als unsicher, alle anderen sicher und heute geübt
+  const cases = [[0, "Terz (Violin)"], [1, "Quinte (Bass)"], [2, "große Terz"], [3, "kleine Sexte"], [4, "übermäßige Quarte"], [5, "verminderte Quinte"],
+    [6, "kleine Septime abwärts"], [7, "reine Quarte bauen"], [8, "große Sekunde abwärts bauen"], [9, "kleine Terz (Fehler)"]];
+  for (const [i, key] of cases) {
+    const l = L[i], base = zuege(l, {}, 60).count;
+    assert.ok(base[key] > 0, `${l.id}: ${key} kommt vor`);
+    const notes = Object.fromEntries(Object.keys(base).map((k) => [k, SICHER_HEUTE]));
+    notes[key] = UNSICHER;
+    const { count, rounds } = zuege(l, notes);
+    const keys = Object.keys(count), mean = 2000 / keys.length;
+    assert.ok(count[key] > 2 * mean, `${l.id}: ${key} ${count[key]} bei Mittel ${mean.toFixed(0)}`);
+    // Zufallsanteil: auch sichere Aufgaben kommen weiter
+    assert.equal(keys.length, Object.keys(base).length, `${l.id}: alle Aufgaben kommen weiter vor`);
+    for (const round of rounds) {
+      // Prime höchstens einmal je Runde, nie dieselbe Aufgabe zweimal hintereinander
+      assert.ok(round.filter((q) => intervalNumber(q.low, q.high) === 1).length <= 1, `${l.id} Prime`);
+      for (let j = 1; j < round.length; j++) {
+        const a = round[j - 1], b = round[j];
+        assert.ok(a.key || b.key ? a.key !== b.key : pk(a) !== pk(b), `${l.id} zweimal hintereinander`);
+      }
+    }
+  }
+});
+
+test("Gewichtung: Prime als unsicher bleibt höchstens einmal je Runde und selten", () => {
+  const notes = { "reine Prime": UNSICHER, "Prime (Violin)": UNSICHER };
+  for (const l of [L[0], L[2]]) {
+    const { count, rounds } = zuege(l, notes);
+    for (const round of rounds) assert.ok(round.filter((q) => intervalNumber(q.low, q.high) === 1).length <= 1, l.id);
+    const prime = count["reine Prime"] || count["Prime (Violin)"] || 0;
+    assert.ok(prime <= 200, `${l.id}: Prime ${prime}`);
+  }
+});
+
+test("Gewichtung: Stufe 9 und 10 behalten die Anteile von Richtung und Urteil", () => {
+  const notes = { "reine Quinte bauen": UNSICHER, "große Terz (Fehler)": UNSICHER };
+  const up = zuege(L[8], notes).rounds.flat().filter((q) => q.up).length;
+  assert.ok(up > 850 && up < 1150, `aufwärts ${up}`);
+  const ok = zuege(L[9], notes).rounds.flat().filter((q) => q.verdict === VERDICT_OK).length;
+  assert.ok(ok > 380 && ok < 640, `stimmt ${ok}`);
+});
+
+test("Gewichtung: was lange nicht dran war, kommt öfter (ab 7 Tagen wie neu)", () => {
+  const l = L[2], base = zuege(l, {}, 30).count;
+  const notes = Object.fromEntries(Object.keys(base).map((k) => [k, SICHER_HEUTE]));
+  notes["große Sexte"] = { ...SICHER_HEUTE, last: "2026-11-18" };
+  // 4000 Züge, erwartet etwa das 1,55-Fache des Mittels
+  const { count } = zuege(l, notes, 400), mean = 4000 / Object.keys(count).length;
+  assert.ok(count["große Sexte"] > 1.3 * mean, `${count["große Sexte"]} bei Mittel ${mean.toFixed(0)}`);
+  notes["große Sexte"] = { ...SICHER_HEUTE, last: "2026-11-19" };
+  const c6 = zuege(l, notes, 400).count["große Sexte"];
+  assert.ok(c6 < 1.3 * mean, `6 Tage: ${c6}`);
+});
+
+test("pickItem: mit w gewichtet, nie dieselbe wie prev", () => {
+  const w = { notes: { "Terz (Violin)": UNSICHER }, statOf: numberStat, heute: HEUTE };
+  let terz = 0, prev = null;
+  for (let i = 0; i < 2000; i++) {
+    const it = pickItem(POOL_1, prev, w);
+    if (prev) assert.notEqual(pk(it), pk(prev));
+    if (numberStat(it) === "Terz (Violin)") terz++;
+    prev = it;
+  }
+  const share = POOL_1.filter((it) => numberStat(it) === "Terz (Violin)").length / POOL_1.length;
+  assert.ok(terz > 1.3 * share * 2000, `Terz ${terz}, gleichverteilt ${(share * 2000).toFixed(0)}`);
 });

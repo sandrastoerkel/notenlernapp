@@ -9,6 +9,7 @@ import tonleitern, { oddQuestion, fitsKey, lowestY, LABEL_DESC,
   signStep, majorSinglePrompt, decisiveSign, keyWay, planTable, scaleDemo, stepDemo, keyDemo, minorDemo, buildSteps, stemNotes, sigDemoSvg,
   DEMO_STEPS_SCALE, DEMO_STEPS_KEY, DEMO_STEP_KEY_ONLY, DEMO_STEPS_MINOR, BOARDS, circleTable, HELP_TEXT_PLAN, PLAN_COLS, MINOR_VARIANTS, stemChoices, minorTonicOf, majorTonicOf, minorWay, PLAN, NO_SIGNS,
   PLAN_SHORT, PLAN_NOTE, PLAN_TEXT, sigWay, HELP_TEXT_MINOR, DECISIVE_PROMPT,
+  stepStat, gapStat, oddStat, sigStat, majorStat, minorStat, adaptOf, pickItem,
 } from "../../src/packs/tonleitern.js";
 import { PACKS } from "../../src/packs/index.js";
 import { N, dia, midi, pc, SEMI, LETTERS, gName, helm, majorScale, majorName, minorName, majorKeyFromKeySig, relativeMinor } from "../../src/music.js";
@@ -1029,5 +1030,100 @@ test("Abschlussprüfung Welle 10: Tonleitern 1–3 daneben mit Grund; Startkarte
   for (const no of [4, 12]) {
     const h = T.levels.find((x) => x.no === no).hint;
     assert.ok(h.startsWith("Zwei Schritte:\n1. ") && h.includes("\n2. ") && h.includes("Stammton = Note ohne Vorzeichen."), h);
+  }
+});
+
+/* ---------- Welle 11, Schritt 9: gewichtete Auswahl ---------- */
+
+const UNSICHER = { ok: 0, bad: 8, hist: "00000000", last: "2026-11-24" };
+const SICHER_HEUTE = { ok: 10, bad: 0, hist: "1111111111", last: "2026-11-25" };
+const HEUTE = "2026-11-25";
+const STATS = [stepStat, stepStat, stepStat, gapStat, gapStat, oddStat, oddStat, sigStat, sigStat, majorStat, majorStat, minorStat, minorStat];
+const POOLS = [ITEMS_1, ITEMS_2, ITEMS_3, ITEMS_4, ITEMS_5, ITEMS_6, ITEMS_7, ITEMS_8, ITEMS_9, ITEMS_10, ITEMS_11, ITEMS_12, ITEMS_13];
+function zuege(l, notes, runden = 200) {
+  const count = {}, rounds = [];
+  for (let r = 0; r < runden; r++) {
+    const round = makeRound(l, 10, { notes, heute: HEUTE });
+    rounds.push(round);
+    for (const q of round) count[q.statKey] = (count[q.statKey] || 0) + 1;
+  }
+  return { count, rounds };
+}
+
+test("Gewichtung: statKey der Frage = statKey der Aufgabe aus dem Vorrat (alle 13 Stufen)", () => {
+  assert.equal(L.length, POOLS.length);
+  L.forEach((l, i) => {
+    const known = new Set(POOLS[i].map(STATS[i]));
+    for (const q of makeRound(l, 60, { notes: {} })) {
+      assert.ok(known.has(q.statKey), `${l.id} ${q.statKey}`);
+      // q.key ist der Schlüssel der Aufgabe im Vorrat
+      const it = POOLS[i].find((x) => x.key === q.key);
+      assert.ok(it, `${l.id} ${q.key}`);
+      assert.equal(STATS[i](it), q.statKey, l.id);
+    }
+  });
+});
+
+test("adaptOf: nur mit ctx.notes", () => {
+  assert.equal(adaptOf(undefined, stepStat), null);
+  assert.equal(adaptOf({}, stepStat), null);
+  assert.equal(adaptOf({ notes: {}, heute: HEUTE }, stepStat).heute, HEUTE);
+});
+
+test("Gewichtung: eine unsichere Aufgabe kommt in 4000 Zügen deutlich öfter, nie zweimal hintereinander", () => {
+  for (const [i, l] of L.entries()) {
+    const base = zuege(l, {}, 400).count, keys = Object.keys(base);
+    // die erste Aufgabe des Vorrats als unsicher, alle anderen sicher und heute geübt
+    const key = STATS[i](POOLS[i][0]);
+    const notes = Object.fromEntries(keys.map((k) => [k, SICHER_HEUTE]));
+    notes[key] = UNSICHER;
+    const { count, rounds } = zuege(l, notes, 400);
+    // Vergleich mit derselben Zahl Züge ohne Gewichtung: Stufe 1 bis 4 ziehen Ganz und Halb mit festem Anteil,
+    // dort ist nicht jede Aufgabe gleich häufig. Erwartet etwa das 2- bis 3-Fache.
+    const ohne = base[key];
+    assert.ok(count[key] > 1.4 * ohne, `${l.id}: ${key} ${count[key]}, ohne Gewichtung etwa ${ohne.toFixed(0)}`);
+    for (const round of rounds) for (let j = 1; j < round.length; j++) {
+      const a = round[j - 1], b = round[j];
+      assert.ok(a.fifths !== undefined ? !(a.fifths === b.fifths && a.clef === b.clef) : a.key !== b.key, `${l.id} zweimal hintereinander`);
+    }
+  }
+});
+
+test("Gewichtung: Anteil der Halbtonschritte bleibt (Stufe 1 bis 4)", () => {
+  for (const [i, p] of [[0, HALF_P], [1, HALF_P], [2, HALF_P], [3, GAP_HALF_P]]) {
+    const l = L[i];
+    // ein Ganztonschritt unsicher: Ganz bekommt nicht mehr Anteil
+    const whole = POOLS[i].find((it) => !it.half);
+    const half = zuege(l, { [STATS[i](whole)]: UNSICHER }).rounds.flat().filter((q) => POOLS[i].find((x) => x.key === q.key).half).length;
+    assert.ok(Math.abs(half / 2000 - p) < 0.05, `${l.id}: Halbton ${half}`);
+  }
+});
+
+test("Gewichtung: was lange nicht dran war, kommt öfter (ab 7 Tagen wie neu)", () => {
+  const l = L[7], keys = [...new Set(ITEMS_8.map(sigStat))];
+  const notes = Object.fromEntries(keys.map((k) => [k, SICHER_HEUTE]));
+  const key = sigStat(ITEMS_8[2]);
+  notes[key] = { ...SICHER_HEUTE, last: "2026-11-10" };
+  const n7 = zuege(l, notes, 400).count[key], mean = 4000 / keys.length;
+  assert.ok(n7 > 1.3 * mean, `${n7} bei Mittel ${mean.toFixed(0)}`);
+  notes[key] = { ...SICHER_HEUTE, last: "2026-11-19" };
+  const n6 = zuege(l, notes, 400).count[key];
+  assert.ok(n6 < 1.3 * mean, `6 Tage: ${n6}`);
+});
+
+test("pickItem und pickStep: ohne w wie bisher, mit w nie dieselbe wie prev", () => {
+  const w = { notes: { [gapStat(ITEMS_5[0])]: UNSICHER }, statOf: gapStat, heute: HEUTE };
+  let prev = null;
+  for (let i = 0; i < 500; i++) {
+    const it = pickItem(ITEMS_5, prev, w);
+    if (prev) assert.notEqual(it.key, prev.key);
+    prev = it;
+  }
+  prev = null;
+  const ws = { notes: { [stepStat(ITEMS_1[0])]: UNSICHER }, statOf: stepStat, heute: HEUTE };
+  for (let i = 0; i < 500; i++) {
+    const it = pickStep(ITEMS_1, prev, Math.random, HALF_P, ws);
+    if (prev) assert.notEqual(it.key, prev.key);
+    prev = it;
   }
 });

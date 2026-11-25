@@ -2861,6 +2861,31 @@ der vorigen Aufgabe.
   Dieser Schritt ist von den anderen unabhängig; zeigt die Prüfung Nebenwirkungen in den Vorräten, wird er
   zurückgenommen, ohne dass etwas anderes davon abhängt.
 
+**Umgesetzt (25.11.2026, Opus):** Commit siehe `git log` („Welle 11, Schritt 9“). `adapt.js`: `TAGE_WIE_NEU = 7`,
+`weight(entry, heute)` (nur „sicher“ wird nach 7 Tagen wie „neu“; fehlendes, beschädigtes oder künftiges `last` ändert
+nichts), `pickAmong(cands, keyOf, notes, rand, heute, baseOf)`. Die Pakete bekommen je Stufe eine Funktion, die den
+`statKey` einer Aufgabe aus dem Vorrat liefert (`numberStat`, `twoStepStat`, `buildStat`, `checkStat`; `stepStat`,
+`gapStat`, `oddStat`, `sigStat`, `majorStat`, `minorStat`); die Fragen tragen genau diese Texte ein (Tests gleichen
+beides ab). `heute` kommt aus `ctx.heute` (Tests) oder `today()` aus `store.js`. Entscheidungen und Abweichungen:
+- **Intervalle: gewichtet wird die Gruppe, nicht der Zug in der Gruppe.** Alle Aufgaben einer Gruppe (Zahl bzw.
+  Intervall) tragen denselben `statKey` ein (Test); eine Gewichtung erst im Zug innerhalb der Gruppe hätte nichts
+  bewirkt. Deshalb wählt `pickBy` die Gruppe mit `pickAmong` und dem Grundgewicht als `baseOf` (1, Prime
+  `PRIME_WEIGHT`), der Zug in der Gruppe bleibt gleichverteilt. Ohne Fortschritt und im Zufallsanteil (30 %) sind die
+  Gruppen wie bisher gleich häufig (Prime seltener); mit Fortschritt kommt ein unsicheres Intervall etwa 2,6- bis
+  3-mal so oft wie das Mittel. Davor bleiben: Prime höchstens einmal je Runde, nie dieselbe Aufgabe zweimal
+  hintereinander, Richtung in Stufe 9 und Urteil in Stufe 10 je gleich wahrscheinlich (Tests).
+- **Tonleitern 10 bis 13 (`pickKey`) gewichten auch**, obwohl der Plan nur `pickItem` und `pickStep` nennt: Sie
+  schreiben `statKey`s („Dur zu …“, „Moll zu …“), und Abschnitt 3 will alle Stufen mit `statKey` gewichten.
+  `pickStep` (Stufe 1–4) wählt erst Ganz oder Halb mit dem festen Anteil (`HALF_P`, `GAP_HALF_P`, Test), dann
+  gewichtet in der Liste.
+- `baseOf` ist ein sechster, freiwilliger Parameter von `pickAmong` (für die seltene Prime).
+- `okTextsMax` gibt `notes: {}` mit; dann sind alle Gewichte gleich (alles „neu“), die Verteilung ist dieselbe wie
+  vorher, nur die Zufallsfolge eine andere.
+- Browser (Playwright, 420 px hell und 320 px dunkel): je fünf Runden Intervalle 4 und Tonleitern 5, keine
+  Konsolenfehler, nie dieselbe Aufgabe zweimal hintereinander, Prime höchstens einmal je Runde. Keine Änderung an
+  Oberfläche oder Texten, deshalb keine Überlauf-Prüfung nötig.
+- Rücknahme: den Commit zurücknehmen; nichts anderes hängt davon ab.
+
 #### Schritt 10 – QR-Code-Modul (`src/qr.js`)
 
 Eigener kleiner Encoder, keine Abhängigkeit, kein Netz, rein (ohne DOM); die Datei kommt in `PRECACHE` und läuft

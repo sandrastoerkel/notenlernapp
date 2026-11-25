@@ -13,6 +13,8 @@ import {
 import { staffSvg, noteSvg, pianoSvg, BOTTOM, S, H } from "../staff.js";
 import { tileTable } from "../grid.js";
 import { demoHtml, mountDemo, COUNT_RULE } from "../demo.js";
+import { pickAmong } from "../adapt.js";
+import { today } from "../store.js";
 
 const CLEF_SHORT = { treble: "Violin", bass: "Bass" };
 // Zwei ganze Noten nebeneinander, 60 Einheiten (5 Linienabstände) von Kopfmitte zu Kopfmitte: das
@@ -38,12 +40,19 @@ export function upperNote(low, num, quality) {
 
 const pairKey = (it) => `${it.clef}:${dia(it.low)}/${it.low.acc}:${dia(it.high)}/${it.high.acc}`;
 
-// Zufällige Aufgabe, nie dieselbe wie prev (gleiche Noten im gleichen Schlüssel)
-export function pickItem(items, prev) {
+// Zufällige Aufgabe, nie dieselbe wie prev (gleiche Noten im gleichen Schlüssel).
+// Mit w ({ notes, statOf, heute }, siehe adaptOf) gewichtet nach dem Fortschritt (Welle 11, Schritt 9).
+export function pickItem(items, prev, w = null) {
   const cand = prev ? items.filter((it) => pairKey(it) !== pairKey(prev)) : items;
   const list = cand.length ? cand : items;
+  if (w) return pickAmong(list, w.statOf, w.notes, w.rand, w.heute);
   return list[Math.floor(Math.random() * list.length)];
 }
+
+// Gewichtete Auswahl (Welle 11, Schritt 9): nur mit ctx.notes (Fortschritt je statKey), sonst null und alles
+// wie bisher. statOf liefert den statKey, den die Frage zu einer Aufgabe des Vorrats einträgt; heute aus ctx
+// (Tests) oder der örtliche Tag.
+export const adaptOf = (ctx, statOf) => (ctx && ctx.notes ? { notes: ctx.notes, statOf, heute: ctx.heute || today(), rand: ctx.rand } : null);
 
 // Auflösungszeichen (Welle 10, A3): Ein Vorzeichen gilt bis zum Taktstrich für alle folgenden Noten an
 // derselben Stelle der Zeile. Steht nach des' ein d', braucht d' ein ♮. Das betrifft nur die übermäßige
@@ -128,16 +137,22 @@ export const POOL_7 = qualityPool("treble", TYPES_NO_PRIME);
 // nie dieselbe wie prev. Ohne passende Aufgabe wird neu gezogen.
 // Prime (rein und übermäßig) selten: Gewicht PRIME_WEIGHT statt 1 und höchstens einmal pro Runde
 // (Sandra, 20.11.2026: „es wird ständig die reine Prime gestellt“). round: bisherige Aufgaben der Runde.
+// Mit w (adaptOf, Welle 11, Schritt 9) wird die Gruppe nach dem Fortschritt gewichtet: Grundgewicht (1 bzw.
+// PRIME_WEIGHT) mal Gewicht des statKeys der Gruppe (adapt.js, mit Zufallsanteil). Alle Aufgaben einer Gruppe
+// tragen denselben statKey ein (test/packs/intervalle.test.js), deshalb wirkt die Gewichtung hier und nicht
+// erst beim Zug innerhalb der Gruppe. Alle Regeln davor bleiben (Prime höchstens einmal, nie dieselbe wie prev).
 export const PRIME_WEIGHT = 0.25;
 const isPrime = (q) => !!q && (q.num === 1 || (q.low && q.high && intervalNumber(q.low, q.high) === 1));
-function pickBy(pool, prev, groupOf, keyOf = pairKey, round = []) {
+function pickBy(pool, prev, groupOf, keyOf = pairKey, round = [], w = null) {
   const primeDone = round.some(isPrime);
   const usable = primeDone ? pool.filter((it) => it.num !== 1) : pool;
   if (usable.length) pool = usable;
   const groups = [...new Set(pool.map(groupOf))];
   const weightOf = (g) => (pool.find((it) => groupOf(it) === g).num === 1 ? PRIME_WEIGHT : 1);
   const total = groups.reduce((sum, g) => sum + weightOf(g), 0);
+  const repOf = (g) => pool.find((it) => groupOf(it) === g);
   const drawGroup = () => {
+    if (w) return pickAmong(groups, (g) => w.statOf(repOf(g)), w.notes, w.rand, w.heute, weightOf);
     let r = Math.random() * total;
     for (const g of groups) { r -= weightOf(g); if (r < 0) return g; }
     return groups[groups.length - 1];
@@ -177,6 +192,14 @@ export function stepsText(a, b) {
 // Acht Knöpfe Prime … Oktave in zwei Reihen zu vier; Ziffern 1 bis 8 auf der Tastatur
 const NUMBER_SET = { choices: INTERVAL_NAMES, cols: 4, digits: true };
 
+// statKey einer Aufgabe, ohne die Frage zu bauen (für die Gewichtung, Welle 11, Schritt 9); die Fragen
+// tragen genau diesen Text ein
+export const numberStat = (it) => `${INTERVAL_NAMES[intervalNumber(it.low, it.high) - 1]} (${CLEF_SHORT[it.clef]})`;
+export const twoStepStat = (it, down = false) => (down ? `${intervalName(it.low, it.high)} abwärts` : intervalName(it.low, it.high));
+const downStat = (it) => twoStepStat(it, true);
+export const buildStat = (it) => `${intervalLabel(it.num, it.quality)}${it.up ? "" : " abwärts"} bauen`;
+export const checkStat = (it) => `${intervalLabel(it.num, it.quality)} (Fehler)`;
+
 function numberQuestion(it) {
   const num = intervalNumber(it.low, it.high), answer = INTERVAL_NAMES[num - 1], frame = frameText(it.low, it.high);
   return {
@@ -189,7 +212,7 @@ function numberQuestion(it) {
     play: [it.low, it.high],
     low: it.low, high: it.high, clef: it.clef,
     helpMarks: [it.low, it.high],
-    statKey: `${answer} (${CLEF_SHORT[it.clef]})`,
+    statKey: numberStat(it),
   };
 }
 
@@ -226,7 +249,7 @@ export function twoStepQuestion(it, types, down = false) {
     play: [first, second],
     low: it.low, high: it.high, clef: it.clef, down, num, quality: it.quality,
     helpMarks: [it.low, it.high],
-    statKey: down ? `${answer} abwärts` : answer,
+    statKey: twoStepStat(it, down),
   };
 }
 
@@ -270,9 +293,9 @@ export const POOL_9 = [...BUILD_UP, ...BUILD_DOWN];
 const buildKey = (it) => `${dia(it.given)}/${it.given.acc}:${it.num}${it.quality}:${it.up}`;
 
 // Stufe 9: Richtung gleich wahrscheinlich, dann das Intervall, dann die Aufgabe
-function pickBuild9(prev, round = []) {
+function pickBuild9(prev, round = [], w = null) {
   const up = Math.random() < 0.5;
-  return pickBy(up ? BUILD_UP : BUILD_DOWN, prev, byType, buildKey, round);
+  return pickBy(up ? BUILD_UP : BUILD_DOWN, prev, byType, buildKey, round, w);
 }
 
 function buildQuestion(it) {
@@ -292,7 +315,7 @@ function buildQuestion(it) {
     // Hilfe: nur die gegebene Note ist auf der Klaviatur markiert
     helpMarks: [it.given],
     key: buildKey(it),
-    statKey: `${label}${it.up ? "" : " abwärts"} bauen`,
+    statKey: buildStat(it),
   };
 }
 
@@ -348,9 +371,9 @@ export const POOL_10 = checkPool();
 const checkKey = (it) => `${dia(it.low)}/${it.low.acc}:${it.num}${it.quality}:${dia(it.shown)}/${it.shown.acc}`;
 
 // Erst das Urteil (jedes gleich wahrscheinlich, also etwa ein Viertel „stimmt“), dann das Intervall, dann die Aufgabe
-function pickCheck(pool, prev, round = []) {
+function pickCheck(pool, prev, round = [], w = null) {
   const verdict = VERDICTS[Math.floor(Math.random() * VERDICTS.length)];
-  return pickBy(pool.filter((it) => it.verdict === verdict), prev, byType, checkKey, round);
+  return pickBy(pool.filter((it) => it.verdict === verdict), prev, byType, checkKey, round, w);
 }
 
 function checkQuestion(it) {
@@ -368,7 +391,7 @@ function checkQuestion(it) {
     play: [it.low, it.shown],
     low: it.low, high: it.shown, shown: it.shown, right: it.right, num: it.num, quality: it.quality, verdict: it.verdict, clef: it.clef,
     key: checkKey(it),
-    statKey: `${label} (Fehler)`,
+    statKey: checkStat(it),
   };
 }
 
@@ -562,7 +585,7 @@ const levels = [
     hint: "Zähle die Notenstufen von der unteren zur oberen Note, beide mitgezählt: c'–e' sind c, d, e, also 3 Stufen → Terz. Klaviatur und Tabelle findest du unter „Hilfen“.",
     items: POOL_1,
     example: intervalSvg(find(POOL_1, N("C", 4), N("E", 4))),
-    question(prev, ctx) { return numberQuestion(pickBy(POOL_1, prev, byNum, pairKey, roundOf(ctx))); },
+    question(prev, ctx) { return numberQuestion(pickBy(POOL_1, prev, byNum, pairKey, roundOf(ctx), adaptOf(ctx, numberStat))); },
     digits: true,
     ...withHelps("grob", HELP_TEXT_1),
   },
@@ -572,7 +595,7 @@ const levels = [
     hint: "Wie in Stufe 1, jetzt ohne Hilfen und auch im Bassschlüssel. Liegen beide Noten auf Linien oder beide in Zwischenräumen, ist die Zahl ungerade.",
     items: POOL_2,
     example: intervalSvg(find(POOL_2, N("G", 2), N("D", 3))),
-    question(prev, ctx) { return numberQuestion(pickBy(POOL_2, prev, (it) => `${it.clef}${it.num}`, pairKey, roundOf(ctx))); },
+    question(prev, ctx) { return numberQuestion(pickBy(POOL_2, prev, (it) => `${it.clef}${it.num}`, pairKey, roundOf(ctx), adaptOf(ctx, numberStat))); },
     digits: true,
   },
   {
@@ -582,7 +605,7 @@ const levels = [
     items: POOL_3,
     example: intervalSvg(find(POOL_3, N("E", 4), N("G", 4))),
     twoSteps: true,
-    question(prev, ctx) { return twoStepQuestion(pickBy(POOL_3, prev, byType, pairKey, roundOf(ctx)), TYPES_RKG); },
+    question(prev, ctx) { return twoStepQuestion(pickBy(POOL_3, prev, byType, pairKey, roundOf(ctx), adaptOf(ctx, twoStepStat)), TYPES_RKG); },
     digits: true,
     ...withHelps("rkg"),
   },
@@ -593,7 +616,7 @@ const levels = [
     items: POOL_4,
     example: intervalSvg(find(POOL_4, N("A", 2), N("C", 3))),
     twoSteps: true,
-    question(prev, ctx) { return twoStepQuestion(pickBy(POOL_4, prev, byType, pairKey, roundOf(ctx)), TYPES_RKG); },
+    question(prev, ctx) { return twoStepQuestion(pickBy(POOL_4, prev, byType, pairKey, roundOf(ctx), adaptOf(ctx, twoStepStat)), TYPES_RKG); },
     digits: true,
   },
   {
@@ -603,7 +626,7 @@ const levels = [
     items: POOL_5,
     example: intervalSvg(find(POOL_5, N("F", 4), N("H", 4))),
     twoSteps: true,
-    question(prev, ctx) { return twoStepQuestion(pickBy(POOL_5, prev, byType, pairKey, roundOf(ctx)), TYPES_ALL); },
+    question(prev, ctx) { return twoStepQuestion(pickBy(POOL_5, prev, byType, pairKey, roundOf(ctx), adaptOf(ctx, twoStepStat)), TYPES_ALL); },
     digits: true,
     ...withHelps("all"),
   },
@@ -614,7 +637,7 @@ const levels = [
     items: POOL_6,
     example: intervalSvg(find(POOL_6, N("E", 3, -1), N("F", 3, 1))),
     twoSteps: true,
-    question(prev, ctx) { return twoStepQuestion(pickBy(POOL_6, prev, byType, pairKey, roundOf(ctx)), TYPES_ALL); },
+    question(prev, ctx) { return twoStepQuestion(pickBy(POOL_6, prev, byType, pairKey, roundOf(ctx), adaptOf(ctx, twoStepStat)), TYPES_ALL); },
     digits: true,
   },
   {
@@ -624,7 +647,7 @@ const levels = [
     items: POOL_7,
     example: pairSvg("treble", N("G", 4), N("E", 4)),
     twoSteps: true,
-    question(prev, ctx) { return twoStepQuestion(pickBy(POOL_7, prev, byType, pairKey, roundOf(ctx)), TYPES_ALL, true); },
+    question(prev, ctx) { return twoStepQuestion(pickBy(POOL_7, prev, byType, pairKey, roundOf(ctx), adaptOf(ctx, downStat)), TYPES_ALL, true); },
     digits: true,
   },
   {
@@ -636,7 +659,7 @@ const levels = [
     namesOnly: true,
     items: POOL_8,
     example: buildSvg(POOL_8.find((it) => same(it.given, N("E", 4)) && it.num === 3 && it.quality === "groß")),
-    question(prev, ctx) { return buildQuestion(pickBy(POOL_8, prev, byType, buildKey, roundOf(ctx))); },
+    question(prev, ctx) { return buildQuestion(pickBy(POOL_8, prev, byType, buildKey, roundOf(ctx), adaptOf(ctx, buildStat))); },
     check: checkBuild,
     ...withHelps("all"),
   },
@@ -649,7 +672,7 @@ const levels = [
     namesOnly: true,
     items: POOL_9,
     example: buildSvg(BUILD_DOWN.find((it) => same(it.given, N("G", 4)) && it.num === 3 && it.quality === "klein")),
-    question(prev, ctx) { return buildQuestion(pickBuild9(prev, roundOf(ctx))); },
+    question(prev, ctx) { return buildQuestion(pickBuild9(prev, roundOf(ctx), adaptOf(ctx, buildStat))); },
     check: checkBuild,
   },
   {
@@ -658,7 +681,7 @@ const levels = [
     hint: "Jemand hat ein Intervall gebaut, auch verminderte und übermäßige. Prüfe in zwei Schritten: Stimmt die Zahl? Zähle die Notenstufen – passt sie nicht, ist es ein anderes Intervall. Stimmt sie, zähle die Halbtöne: einer zu viel, einer zu wenig oder genau richtig?",
     items: POOL_10,
     example: intervalSvg({ clef: "treble", low: N("E", 4), high: N("G", 4) }),
-    question(prev, ctx) { return checkQuestion(pickCheck(POOL_10, prev, roundOf(ctx))); },
+    question(prev, ctx) { return checkQuestion(pickCheck(POOL_10, prev, roundOf(ctx), adaptOf(ctx, checkStat))); },
   },
 ].map((l, i) => ({ id: "intervall-" + (i + 1), no: i + 1, input: "choices", check, ...l, ...(VORAUSSETZUNGEN[i + 1] || {}) }));
 

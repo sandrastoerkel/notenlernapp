@@ -12,6 +12,8 @@ import { staffSvg, noteSvg, pianoSvg, keySigPos, TOP, S } from "../staff.js";
 import { tileTable } from "../grid.js";
 import { demoHtml, mountDemo, COUNT_RULE } from "../demo.js";
 import { spruch, wahlHtml, showHtml, esc } from "../sprueche.js";
+import { pickAmong } from "../adapt.js";
+import { today } from "../store.js";
 
 const CLEF_SHORT = { treble: "Violin", bass: "Bass" };
 
@@ -157,12 +159,19 @@ const shuffle = (list) => {
   return a;
 };
 
-// Zufällige Aufgabe, nie dieselbe wie prev (Vergleich über key)
-export function pickItem(items, prev) {
+// Zufällige Aufgabe, nie dieselbe wie prev (Vergleich über key).
+// Mit w ({ notes, statOf, heute }, siehe adaptOf) gewichtet nach dem Fortschritt (Welle 11, Schritt 9).
+export function pickItem(items, prev, w = null) {
   const cand = prev ? items.filter((it) => it.key !== prev.key) : items;
   const list = cand.length ? cand : items;
+  if (w) return pickAmong(list, w.statOf, w.notes, w.rand || Math.random, w.heute);
   return list[Math.floor(Math.random() * list.length)];
 }
+
+// Gewichtete Auswahl (Welle 11, Schritt 9): nur mit ctx.notes (Fortschritt je statKey), sonst null und alles
+// wie bisher. statOf liefert den statKey, den die Frage zu einer Aufgabe des Vorrats einträgt; heute aus ctx
+// (Tests) oder der örtliche Tag.
+export const adaptOf = (ctx, statOf) => (ctx && ctx.notes ? { notes: ctx.notes, statOf, heute: ctx.heute || today(), rand: ctx.rand } : null);
 
 const scalePlay = (notes) => notes.map((note) => ({ note, beats: 0.5 }));
 const degree = (i) => `${i + 1}. Stufe`;
@@ -205,11 +214,13 @@ export const ITEMS_1 = [...stepPool("treble", ["C"]), ...stepPool("bass", ["C"])
 export const ITEMS_2 = stepPool("treble", ["G", "D", "F", "B"]);
 export const ITEMS_3 = [...stepPool("treble", KEYS_4), ...stepPool("bass", KEYS_4)];
 
-// Halbtöne mit Wahrscheinlichkeit p (Stufe 1–3: 0,4, sonst kämen sie nur 2 von 7 Mal; Stufe 4: 1/3)
-export function pickStep(items, prev, rnd = Math.random, p = HALF_P) {
+// Halbtöne mit Wahrscheinlichkeit p (Stufe 1–3: 0,4, sonst kämen sie nur 2 von 7 Mal; Stufe 4: 1/3).
+// Mit w (adaptOf) wird danach innerhalb von Ganz bzw. Halb gewichtet; der Anteil p bleibt.
+export function pickStep(items, prev, rnd = Math.random, p = HALF_P, w = null) {
   const half = rnd() < p;
   const cand = items.filter((it) => it.half === half && (!prev || it.key !== prev.key));
-  return cand.length ? cand[Math.floor(rnd() * cand.length)] : pickItem(items, prev);
+  if (cand.length && w) return pickAmong(cand, w.statOf, w.notes, w.rand || rnd, w.heute);
+  return cand.length ? cand[Math.floor(rnd() * cand.length)] : pickItem(items, prev, w);
 }
 
 // Unterstes C der Hilfe-Klaviatur (q.helpFrom, engine.js): das C auf oder unter dem Grundton
@@ -217,6 +228,15 @@ export const helpFromOf = (tonic) => 12 * Math.floor(midi(tonic) / 12);
 
 export const STEP_REASON_WHOLE = "2 Halbtöne, dazwischen liegt eine Taste";
 export const STEP_REASON_HALF = "1 Halbton, keine Taste dazwischen";
+// statKeys einer Aufgabe, ohne die Frage zu bauen (für die Gewichtung, Welle 11, Schritt 9); die Fragen
+// tragen genau diese Texte ein
+export const stepStat = (it) => `${it.half ? "Halbton" : "Ganzton"} ${low(it.notes[it.i])}–${low(it.notes[it.i + 1])}`;
+export const gapStat = (it) => `${keyName(it.notes[0])}, ${degree(it.i)} (Lücke)`;
+export const oddStat = (it) => `${keyName(it.notes[0])}, ${degree(it.i)} (Suchen)`;
+export const sigStat = (it) => `Vorzeichen von ${keyName(it.notes[0])}`;
+export const majorStat = (it) => `Dur zu ${keyStat(it)}`;
+export const minorStat = (it) => `Moll zu ${majorName(it.fifths)}`;
+
 function stepQuestion(it) {
   const a = it.notes[it.i], b = it.notes[it.i + 1];
   const answer = it.half ? STEP_HALF : STEP_WHOLE;
@@ -234,7 +254,7 @@ function stepQuestion(it) {
     play: [a, b],
     clef: it.clef, notes: it.notes, i: it.i,
     helpMarks: [a, b], helpFrom: helpFromOf(it.notes[0]),
-    statKey: `${it.half ? "Halbton" : "Ganzton"} ${low(a)}–${low(b)}`,
+    statKey: stepStat(it),
   };
 }
 
@@ -294,7 +314,7 @@ export function gapStepQuestion(it) {
     play: scalePlay(it.notes),
     clef: it.clef, notes: it.notes, i: it.i,
     helpMarks: it.notes.filter((_, j) => j !== it.i), helpFrom: helpFromOf(it.notes[0]),
-    statKey: `${key}, ${degree(it.i)} (Lücke)`,
+    statKey: gapStat(it),
   };
 }
 
@@ -312,7 +332,7 @@ function gapQuestion(it) {
     reveal: `Richtig wäre: ${gName(n)} (${where}). ${way.text}.`,
     play: scalePlay(it.notes),
     clef: it.clef, notes: it.notes, i: it.i,
-    statKey: `${where} (Lücke)`,
+    statKey: gapStat(it),
   };
 }
 
@@ -375,7 +395,7 @@ export function oddQuestion(it) {
     clef: it.clef, notes: it.notes, shown: it.shown, i: it.i,
     // Hilfe: alle Noten, wie sie dastehen (auch die unpassende)
     helpMarks: it.shown, helpFrom: helpFromOf(it.notes[0]),
-    statKey: `${key}, ${degree(it.i)} (Suchen)`,
+    statKey: oddStat(it),
   };
 }
 
@@ -417,7 +437,7 @@ function sigQuestion(it) {
     play: scalePlay(it.notes),
     clef: it.clef, notes: it.notes, fifths: it.fifths,
     helpMarks: it.notes, helpFrom: helpFromOf(it.notes[0]),
-    statKey: `Vorzeichen von ${key}`,
+    statKey: sigStat(it),
   };
 }
 
@@ -478,8 +498,9 @@ export function minorChoices(fifths) {
 
 const keySvg = (it) => staffSvg(it.clef, "", { keySig: it.fifths });
 const keyStat = (it) => `${sigText(it.fifths)} (${CLEF_SHORT[it.clef]})`;
-const pickKey = (pool, prev) => {
+const pickKey = (pool, prev, w = null) => {
   const cand = prev ? pool.filter((it) => !(it.fifths === prev.fifths && it.clef === prev.clef)) : pool;
+  if (w) return pickAmong(cand, w.statOf, w.notes, w.rand || Math.random, w.heute);
   return cand[Math.floor(Math.random() * cand.length)];
 };
 
@@ -538,7 +559,7 @@ export function majorStepQuestion(it) {
     ...(single ? {} : { partial: `Die Tonart stimmt, das Vorzeichen nicht: ${way}.` }),
     clef: it.clef, fifths: it.fifths,
     helpMarks: [], helpFrom: 60,
-    statKey: `Dur zu ${keyStat(it)}`,
+    statKey: majorStat(it),
   };
 }
 
@@ -555,7 +576,7 @@ function majorQuestion(it) {
     reveal: plain ? `${sigSentence(it.fifths)} ${answer}.` : `${sigSentence(it.fifths)} ${answer} (${lowerFirst(way)}).`,
     choices: keyChoices(it.fifths, majorName),
     clef: it.clef, fifths: it.fifths,
-    statKey: `Dur zu ${keyStat(it)}`,
+    statKey: majorStat(it),
   };
 }
 
@@ -616,7 +637,7 @@ export function minorStepQuestion(it) {
     clef: it.clef, fifths: it.fifths,
     // Hilfe: nur der Dur-Grundton (steht schon in der Frage), zweigestrichene Oktave, Klaviatur ab c'
     helpMarks: [majorTonicOf(it.fifths)], helpFrom: 60,
-    statKey: `Moll zu ${major}`,
+    statKey: minorStat(it),
   };
 }
 
@@ -634,7 +655,7 @@ function minorQuestion(it) {
     reveal: `Die parallele Molltonart zu ${major} ist ${answer} (Terz abwärts: ${below}).`,
     choices: minorChoices(it.fifths),
     clef: it.clef, fifths: it.fifths,
-    statKey: `Moll zu ${major}`,
+    statKey: minorStat(it),
   };
 }
 
@@ -997,7 +1018,7 @@ const levels = [
     hint: "In C-Dur liegen die Halbtonschritte zwischen e und f und zwischen h und c, also zwischen der 3. und 4. und der 7. und 8. Stufe der Tonleiter. Auf der Klaviatur: Dort liegt keine schwarze Taste dazwischen.",
     items: ITEMS_1,
     example: stepQuestion(find(ITEMS_1, "treble:C:2")).svg,
-    question(prev) { return stepQuestion(pickStep(ITEMS_1, prev)); },
+    question(prev, ctx) { return stepQuestion(pickStep(ITEMS_1, prev, Math.random, HALF_P, adaptOf(ctx, stepStat))); },
     ...planHelps(STEP_DEMO),
   },
   {
@@ -1006,7 +1027,7 @@ const levels = [
     hint: "Jede Dur-Tonleiter hat denselben Bauplan: Ganz – Ganz – Halb – Ganz – Ganz – Ganz – Halb. Die Halbtöne liegen immer zwischen der 3. und 4. und der 7. und 8. Stufe der Tonleiter. Achte auf die Vorzeichen: In D-Dur ist e'–fis' ein Ganzton, fis'–g' ein Halbton.",
     items: ITEMS_2,
     example: stepQuestion(find(ITEMS_2, "treble:D:2")).svg,
-    question(prev) { return stepQuestion(pickStep(ITEMS_2, prev)); },
+    question(prev, ctx) { return stepQuestion(pickStep(ITEMS_2, prev, Math.random, HALF_P, adaptOf(ctx, stepStat))); },
     ...planHelps(STEP_DEMO),
   },
   {
@@ -1015,7 +1036,7 @@ const levels = [
     hint: "Jetzt alle neun Tonarten bis 4 Vorzeichen, in beiden Schlüsseln und ohne Hilfen. Zähle die Halbtöne zwischen den beiden Noten und achte auf die Vorzeichen: In Es-Dur ist g'–as' ein Halbton.",
     items: ITEMS_3,
     example: stepQuestion(find(ITEMS_3, "bass:A:2")).svg,
-    question(prev) { return stepQuestion(pickStep(ITEMS_3, prev)); },
+    question(prev, ctx) { return stepQuestion(pickStep(ITEMS_3, prev, Math.random, HALF_P, adaptOf(ctx, stepStat))); },
   },
   {
     title: "Welcher Ton fehlt?",
@@ -1024,7 +1045,7 @@ const levels = [
     hint: "Zwei Schritte:\n1. Bauplan: Zähle ab dem Grundton, welcher Schritt zur Lücke führt – Ganz oder Halb?\n2. Klaviatur: Welcher Ton liegt so viele Halbtöne über der Note davor?\nZur Wahl stehen der Stammton und seine Formen mit ♯ oder ♭.\nStammton = Note ohne Vorzeichen.",
     items: ITEMS_4,
     example: gapStepQuestion(find(ITEMS_4, "treble:G:6")).svg,
-    question(prev) { return gapStepQuestion(pickStep(ITEMS_4, prev, Math.random, GAP_HALF_P)); },
+    question(prev, ctx) { return gapStepQuestion(pickStep(ITEMS_4, prev, Math.random, GAP_HALF_P, adaptOf(ctx, gapStat))); },
     ...planHelps(SCALE_DEMO),
   },
   {
@@ -1035,7 +1056,7 @@ const levels = [
     acc: true,
     items: ITEMS_5,
     example: gapQuestion(find(ITEMS_5, "bass:E:3")).svg,
-    question(prev) { return gapQuestion(pickItem(ITEMS_5, prev)); },
+    question(prev, ctx) { return gapQuestion(pickItem(ITEMS_5, prev, adaptOf(ctx, gapStat))); },
     check: checkGap,
   },
   {
@@ -1044,7 +1065,7 @@ const levels = [
     hint: "Bei einer Note fehlt ein Vorzeichen oder es steht eines zu viel. Prüfe Schritt für Schritt: Was verlangt der Bauplan, und wie viele Halbtöne sind es auf der Klaviatur?",
     items: ITEMS_6,
     example: oddQuestion(find(ITEMS_6, "treble:G:6:-1")).svg,
-    question(prev) { return oddQuestion(pickItem(ITEMS_6, prev)); },
+    question(prev, ctx) { return oddQuestion(pickItem(ITEMS_6, prev, adaptOf(ctx, oddStat))); },
     ...planHelps(SCALE_DEMO),
   },
   {
@@ -1053,7 +1074,7 @@ const levels = [
     hint: "Bei einer Note fehlt ein Vorzeichen oder es steht eines zu viel. Prüfe die Schritte von Note zu Note: Halbtöne gehören nur zwischen die 3. und 4. und die 7. und 8. Stufe der Tonleiter.",
     items: ITEMS_7,
     example: oddQuestion(find(ITEMS_7, "bass:D:2:-1")).svg,
-    question(prev) { return oddQuestion(pickItem(ITEMS_7, prev)); },
+    question(prev, ctx) { return oddQuestion(pickItem(ITEMS_7, prev, adaptOf(ctx, oddStat))); },
   },
   {
     title: "Tonleiter und Vorzeichen",
@@ -1061,7 +1082,7 @@ const levels = [
     hint: (ctx) => `Die Vorzeichen einer Tonart stehen vorne hinter dem Schlüssel, in fester Reihenfolge:\n♯: Fis – Cis – Gis – Dis\n♭: B – Es – As – Des\n${orderHint(ctx)}\nDer Grundton steht zweimal da, sein Vorzeichen zählt nur einmal.`,
     items: ITEMS_8,
     example: sigQuestion(find(ITEMS_8, "treble:D")).svg,
-    question(prev) { return sigQuestion(pickItem(ITEMS_8, prev)); },
+    question(prev, ctx) { return sigQuestion(pickItem(ITEMS_8, prev, adaptOf(ctx, sigStat))); },
     ...planHelps(SCALE_DEMO),
     helpText: (ctx) => `${HELP_TEXT_PLAN} Reihenfolge der Vorzeichen: ♯ Fis – Cis – Gis – Dis („${esc(sp(ctx, "kreuze"))}“), ♭ B – Es – As – Des („${esc(sp(ctx, "bes"))}“).`,
   },
@@ -1071,7 +1092,7 @@ const levels = [
     hint: "Dasselbe in beiden Schlüsseln, ohne Hilfen. Die Reihenfolge bleibt: Kreuze Fis, Cis, Gis, Dis, Be B, Es, As, Des. Der Grundton steht zweimal da, sein Vorzeichen zählt nur einmal.",
     items: ITEMS_9,
     example: sigQuestion(find(ITEMS_9, "bass:Es")).svg,
-    question(prev) { return sigQuestion(pickItem(ITEMS_9, prev)); },
+    question(prev, ctx) { return sigQuestion(pickItem(ITEMS_9, prev, adaptOf(ctx, sigStat))); },
   },
   {
     title: "Tonart aus den Vorzeichen",
@@ -1080,7 +1101,7 @@ const levels = [
     hint: (ctx) => `Zwei Schritte:\n1. Das entscheidende Vorzeichen: bei Kreuzen das letzte, bei Be das vorletzte.\n2. Die Tonart: einen Halbton über dem letzten Kreuz (Fis → G-Dur), bei Be das vorletzte selbst (B, Es → B-Dur).\nEin einzelnes Be: F-Dur.\n${orderLines(ctx)}`,
     items: ITEMS_10,
     example: keySvg({ clef: "treble", fifths: 4 }),
-    question(prev) { return majorStepQuestion(pickKey(ITEMS_10, prev)); },
+    question(prev, ctx) { return majorStepQuestion(pickKey(ITEMS_10, prev, adaptOf(ctx, majorStat))); },
     ...keyHelps(),
   },
   {
@@ -1089,7 +1110,7 @@ const levels = [
     hint: (ctx) => `Bei Kreuzen liegt der Grundton einen Halbton über dem letzten Kreuz (Fis → G-Dur). Bei Be-Vorzeichen ist das vorletzte Be der Grundton (B, Es → B-Dur); ein einzelnes Be steht für F-Dur.\nTonarten ♯: „${sp(ctx, "kreuz-tonarten")}“, ♭: „${sp(ctx, "be-tonarten")}“.`,
     items: ITEMS_11,
     example: keySvg({ clef: "treble", fifths: 3 }),
-    question(prev) { return majorQuestion(pickKey(ITEMS_11, prev)); },
+    question(prev, ctx) { return majorQuestion(pickKey(ITEMS_11, prev, adaptOf(ctx, majorStat))); },
   },
   {
     title: "Parallele Molltonart",
@@ -1098,7 +1119,7 @@ const levels = [
     hint: "Zwei Schritte:\n1. Terz abwärts: drei Notenstufen, der Dur-Grundton zählt als 1 (Es, D, C). Das ergibt den Stammton.\n2. Drei Halbtöne abwärts: So bekommt der Stammton sein Vorzeichen.\nZusammen ist das eine kleine Terz abwärts.\nStammton = Note ohne Vorzeichen. Moll wird klein geschrieben.",
     items: ITEMS_12,
     example: keySvg({ clef: "treble", fifths: -3 }),
-    question(prev) { return minorStepQuestion(pickKey(ITEMS_12, prev)); },
+    question(prev, ctx) { return minorStepQuestion(pickKey(ITEMS_12, prev, adaptOf(ctx, minorStat))); },
     ...minorHelps(),
   },
   {
@@ -1107,7 +1128,7 @@ const levels = [
     hint: "Die parallele Molltonart hat dieselben Vorzeichen. Ihr Grundton liegt eine kleine Terz unter dem Dur-Grundton: C-Dur → a-Moll, Es-Dur → c-Moll. Moll wird klein geschrieben.",
     items: ITEMS_13,
     example: keySvg({ clef: "bass", fifths: -3 }),
-    question(prev) { return minorQuestion(pickKey(ITEMS_13, prev)); },
+    question(prev, ctx) { return minorQuestion(pickKey(ITEMS_13, prev, adaptOf(ctx, minorStat))); },
   },
 ].map((l, i) => ({ id: "tonleitern-" + (i + 1), no: i + 1, input: "choices", check, ...l, ...(VORAUSSETZUNGEN[i + 1] || {}) }));
 

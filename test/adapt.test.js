@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  status, recent, weight, pickWeighted, countUnsure, MIN_ANTWORTEN, QUOTE_SICHER, LANGSAM_SEK, ANTEIL_ZUFALL, GEWICHT,
+  status, recent, weight, pickWeighted, pickAmong, TAGE_WIE_NEU, countUnsure, MIN_ANTWORTEN, QUOTE_SICHER, LANGSAM_SEK, ANTEIL_ZUFALL, GEWICHT,
   FENSTER, ZEIT_DECKEL, MIN_ZEITEN,
 } from "../src/adapt.js";
 
@@ -132,4 +132,55 @@ test("countUnsure", () => {
   const notes = { a: { ok: 1, bad: 9 }, b: SICHER, c: { ok: 2, bad: 4 }, x: { ok: 0, bad: 10 } };
   assert.equal(countUnsure(notes, ["a", "b", "c", "d"]), 2);
   assert.equal(countUnsure(undefined, ["a"]), 0);
+});
+
+/* ---------- Welle 11, Schritt 9: Gewicht nach Tagen, pickAmong ---------- */
+
+test("weight mit Datum: sicher bis 6 Tage, ab TAGE_WIE_NEU (7) wie neu", () => {
+  assert.equal(TAGE_WIE_NEU, 7);
+  const sicher = (last) => ({ ok: 8, bad: 0, last });
+  assert.equal(weight(sicher("2026-11-19"), "2026-11-25"), GEWICHT.sicher, "6 Tage");
+  assert.equal(weight(sicher("2026-11-18"), "2026-11-25"), GEWICHT.neu, "7 Tage");
+  assert.equal(weight(sicher("2026-10-01"), "2026-11-25"), GEWICHT.neu, "viele Tage");
+  // über den Monats- und Jahreswechsel
+  assert.equal(weight(sicher("2026-12-28"), "2027-01-04"), GEWICHT.neu);
+  assert.equal(weight(sicher("2026-12-29"), "2027-01-04"), GEWICHT.sicher);
+  // ohne heute wie bisher
+  assert.equal(weight(sicher("2026-01-01")), GEWICHT.sicher);
+  // nur sichere Aufgaben: unsicher, langsam und neu behalten ihr Gewicht
+  assert.equal(weight({ ok: 0, bad: 8, last: "2026-01-01" }, "2026-11-25"), GEWICHT.unsicher);
+  assert.equal(weight({ ok: 8, bad: 0, sec: 40, timed: 8, last: "2026-01-01" }, "2026-11-25"), GEWICHT.langsam);
+  assert.equal(weight(undefined, "2026-11-25"), GEWICHT.neu);
+  // fehlendes oder beschädigtes last, last in der Zukunft: sicher
+  for (const last of [undefined, null, 5, "gestern", "2026-13-45x", "2026-11-30"]) assert.equal(weight(sicher(last), "2026-11-25"), GEWICHT.sicher, String(last));
+});
+
+test("pickAmong: fester Zufall, keine Regel zu prev, Grundgewicht", () => {
+  const notes = { a: SICHER, b: SICHER, c: { ok: 0, bad: 10 }, d: SICHER };
+  // 0,5 ≥ 0,3: gewichtet; Gewichte 1, 1, 4, 1 (Summe 7); 0,5 · 7 = 3,5 fällt auf c
+  assert.equal(pickAmong(ITEMS, keyOf, notes, seq(0.5, 0.5)).k, "c");
+  // 0,1 < 0,3: gleichverteilt; 0,9 · 4 = 3,6 → d
+  assert.equal(pickAmong(ITEMS, keyOf, notes, seq(0.1, 0.9)).k, "d");
+  // ohne notes gleichverteilt (ein Zug für die Wahl): 0,6 · 4 = 2,4 → c
+  assert.equal(pickAmong(ITEMS, keyOf, null, seq(0.6)).k, "c");
+  // kein Ausschluss: eine einzige Aufgabe kommt immer
+  assert.equal(pickAmong([ITEMS[0]], keyOf, notes, seq(0.5, 0.5)).k, "a");
+  assert.equal(pickAmong([], keyOf, notes), undefined);
+  // Grundgewicht: Gewicht 0 kommt nie, auch im Zufallsanteil
+  const base = (it) => (it.k === "c" ? 0 : 1);
+  for (const r of [0.1, 0.5]) for (const z of [0, 0.4, 0.9999]) assert.notEqual(pickAmong(ITEMS, keyOf, notes, seq(r, z), undefined, base).k, "c");
+  // Tage: a ist sicher, aber 10 Tage her (Gewicht 2 statt 1); Gewichte 2, 1, 1, 1 (Summe 5); 0,3 · 5 = 1,5 → a
+  const alt = { a: { ...SICHER, last: "2026-11-15" }, b: { ...SICHER, last: "2026-11-25" }, c: SICHER, d: SICHER };
+  assert.equal(pickAmong(ITEMS, keyOf, alt, seq(0.5, 0.3), "2026-11-25").k, "a");
+  // ohne heute zählt last nicht: Gewichte 1, 1, 1, 1; 0,3 · 4 = 1,2 → b
+  assert.equal(pickAmong(ITEMS, keyOf, alt, seq(0.5, 0.3)).k, "b");
+});
+
+test("pickAmong: lange nicht Geübtes und Unsicheres kommen öfter, Zufallsanteil bleibt", () => {
+  const notes = { a: { ...SICHER, last: "2026-11-01" }, b: { ...SICHER, last: "2026-11-24" }, c: { ...SICHER, last: "2026-11-24" }, d: { ...SICHER, last: "2026-11-24" } };
+  const count = { a: 0, b: 0, c: 0, d: 0 }, rand = lcg(7);
+  for (let i = 0; i < 4000; i++) count[pickAmong(ITEMS, keyOf, notes, rand, "2026-11-25").k]++;
+  // erwartet: a 0,3/4 + 0,7 · 2/5 = 0,355; die anderen je 0,215
+  assert.ok(count.a > 1250 && count.a < 1600, `a=${count.a}`);
+  for (const k of ["b", "c", "d"]) assert.ok(count[k] > 700 && count[k] < 1050, `${k}=${count[k]}`);
 });
