@@ -6,6 +6,7 @@ import {
   migrateIntervalle, MIGRATION_INTERVALLE, migrateTonleitern, MIGRATION_TONLEITERN, RENAMED_TONLEITERN, migrateAll,
   migrateNotenwerte, MIGRATION_NOTENWERTE, RENAMED_NOTENWERTE,
   MIGRATION_WIEDERHOLEN, UMSTELLUNG_JE_TAG, migrateWiederholen, localDay, addDays, dayDiff,
+  recordMixedRound, MIXED_KINDS,
 } from "../src/store.js";
 import noten from "../src/packs/noten.js";
 import intervalle from "../src/packs/intervalle.js";
@@ -844,4 +845,25 @@ test("load mit Liste: alter Stand bekommt die Umstellung einmal, danach wird nic
   const empty = memStorage();
   assert.deepEqual(load(empty, now, BOX), fresh());
   assert.equal(empty.data[KEY_V2], undefined);
+});
+
+test("recordMixedRound: XP je Art, Tagesserie, kein Eintrag in s.levels (Welle 11, Schritt 6)", () => {
+  assert.deepEqual(MIXED_KINDS, ["wiederholen", "grundlagen"]);
+  const s = fresh();
+  s.levels["noten-3"] = { stars: 2, best: 8, played: 3 };
+  const before = JSON.stringify(s.levels);
+  const day = new Date(2026, 10, 25, 12, 0);
+  // „wiederholen“: wie eine normale Runde, 10 je richtige Antwort und 20 · Sterne (9 Richtige: 3 Sterne)
+  assert.equal(recordMixedRound(s, "wiederholen", 9, 10, day).gained, 9 * 10 + 3 * 20);
+  assert.equal(recordMixedRound(s, "wiederholen", 6, 10, day).gained, 60 + 20);
+  assert.equal(recordMixedRound(s, "wiederholen", 4, 10, day).gained, 40);
+  // „grundlagen“: nur 10 je richtige Antwort
+  assert.equal(recordMixedRound(s, "grundlagen", 6, 6, day).gained, 60);
+  assert.equal(s.xp, 150 + 80 + 40 + 60);
+  assert.equal(JSON.stringify(s.levels), before, "keine Sterne, keine beste Runde, keine Freischaltung");
+  assert.equal(s.dayStreak, 1); assert.equal(s.lastDay, today(day));
+  // am nächsten Tag zählt die Serie weiter
+  recordMixedRound(s, "grundlagen", 0, 6, new Date(2026, 10, 26, 9, 0));
+  assert.equal(s.dayStreak, 2);
+  assert.throws(() => recordMixedRound(s, "blitz", 3, 10, day), /Unbekannte Art/);
 });

@@ -11,10 +11,13 @@
 // Seit Welle 10: Nach einer danebenliegenden Antwort wartet jede Stufe auf „Nächste Aufgabe“ (waitsAfter),
 // nach einem danebenliegenden ersten Schritt erscheint „Weiter zu Schritt 2“. Teilerfolg (nur Schritt 1
 // daneben, q.partial) bekommt die Klasse part statt bad und zählt weiter als daneben.
+// Seit Welle 11 (Schritt 6): gemischte Runden („Wiederholen“, „Grundlagen wiederholen“). Jede Aufgabe trägt
+// ihre Herkunft (q.from = Stufe, q.fromPack = Paket); Eingabe, Prüfung, Ziffern und Namensraster richten sich
+// dann nach der Aufgabe, nicht nach einer Stufe der Runde (cur). Keine Hilfen, kein „Vorführen“, keine Sterne.
 // Oben stehen reine Hilfsfunktionen (getestet in test/engine.test.js), unten der DOM-Teil.
 import { LETTERS, NAME_ACCS, N, gName, parseNoteName, midi } from "./music.js";
 import { pianoSvg } from "./staff.js";
-import { recordRound, recordAnswer } from "./store.js";
+import { recordRound, recordAnswer, recordMixedRound, MIXED_KINDS } from "./store.js";
 import { play, playChord, isMuted } from "./audio.js";
 import { mountDemo, stopDemos } from "./demo.js";
 
@@ -73,6 +76,59 @@ export function findLevel(packs, id) {
 export function nextLevel(pack, level) {
   const i = pack.levels.findIndex((l) => l.id === level.id);
   return i >= 0 ? pack.levels[i + 1] || null : null;
+}
+
+// Gemischte Runde (Welle 11, Schritt 6), rein. plan = [{ id, n }]: Jede Stufe erzeugt n Aufgaben
+// (level.question(prev, ctx), prev und ctx.round innerhalb der Stufe, damit Regeln wie „Prime höchstens einmal“
+// und „nie dieselbe Aufgabe zweimal hintereinander“ je Stufe gelten). Jede Aufgabe ist eine flache Kopie mit
+// q.from (Stufe) und q.fromPack (Paket); die Aufgabe selbst bleibt unverändert (Pakete dürfen Aufgaben
+// wiederverwenden). Danach gemischt: nie zwei Aufgaben derselben Stufe hintereinander, solange es anders geht
+// (immer die Stufe mit den meisten übrigen Aufgaben außer der zuletzt gezogenen; Gleichstand per rand).
+// Eine unbekannte ID ist ein Fehler (findLevel fiele still auf die erste Stufe zurück).
+export function makeMixed(packs, plan, ctx, rand = Math.random) {
+  const groups = [];
+  for (const { id, n } of plan || []) {
+    if (!(n > 0)) continue;
+    const pack = packs.find((p) => p.levels.some((l) => l.id === id));
+    if (!pack) throw new Error(`Unbekannte Stufe: ${id}`);
+    const level = pack.levels.find((l) => l.id === id);
+    let g = groups.find((x) => x.level === level);
+    if (!g) { g = { level, pack, round: [], qs: [] }; groups.push(g); }
+    const c = Object.assign({}, ctx, { round: g.round });
+    for (let i = 0; i < n; i++) {
+      const q = level.question(g.round.length ? g.round[g.round.length - 1] : null, c);
+      g.round.push(q);
+      g.qs.push(Object.assign({}, q, { from: level, fromPack: pack }));
+    }
+  }
+  const out = [];
+  let last = -1;
+  while (groups.some((g) => g.qs.length)) {
+    let cand = groups.map((g, i) => i).filter((i) => groups[i].qs.length && i !== last);
+    if (!cand.length) cand = [last];
+    const max = Math.max(...cand.map((i) => groups[i].qs.length));
+    const top = cand.filter((i) => groups[i].qs.length === max);
+    const i = top[Math.min(top.length - 1, Math.floor(rand() * top.length))];
+    out.push(groups[i].qs.shift());
+    last = i;
+  }
+  return out;
+}
+
+// Herkunftszeile über der Notenzeile in der gemischten Runde: „Intervalle · Stufe 4“ (rein, getestet;
+// „Stufe 4“ bricht nicht um)
+export const originText = (pack, level) => keepStufe(`${pack ? pack.title : ""} · Stufe ${level.no}`.replace(/^ · /, ""));
+
+// Ergebnis je Stufe aus dem Rundenprotokoll (rein): [{ id, n, ok }], zuerst in der Reihenfolge von order
+// (IDs des Plans), weitere Stufen in der Reihenfolge ihres ersten Auftretens
+export function perLevelOf(log, order = []) {
+  const map = new Map(order.map((id) => [id, { id, n: 0, ok: 0 }]));
+  for (const e of log) {
+    if (!map.has(e.id)) map.set(e.id, { id: e.id, n: 0, ok: 0 });
+    const x = map.get(e.id);
+    x.n++; if (e.ok) x.ok++;
+  }
+  return [...map.values()].filter((x) => x.n > 0);
 }
 
 // Antwort zählen; mit q.statKey auch je Aufgabe, sec (optional) ist die Antwortzeit in Sekunden.
@@ -347,6 +403,9 @@ export const svgResultClass = (q, ok, part = false) => (q.keepRow || part ? "" :
 
 let run = null; // laufende Runde
 
+// Stufe der aktuellen Aufgabe: in der gemischten Runde die Herkunft der Aufgabe, sonst die Stufe der Runde
+const cur = (r) => (r.mixed ? r.items[r.idx].from : r.level);
+
 const all = (root, sel) => (root ? Array.from(root.querySelectorAll(sel)) : []);
 
 function later(r, fn, ms) {
@@ -383,7 +442,8 @@ function showTyped(r, text) {
 // Eingabeart während der Runde wechseln (Buchstaben oder Klaviatur)
 export function setInput(pref) {
   if (!run) return;
-  run.input = effectiveInput(run.level.input, pref, !!run.level.namesOnly);
+  const level = cur(run);
+  run.input = effectiveInput(level.input, pref, !!level.namesOnly);
   applyInput(run);
 }
 
@@ -392,38 +452,84 @@ function applyInput(r) {
   const keys = r.input === "keys";
   if (answers) answers.hidden = keys;
   // Getippte Namen gehen auch bei der Klaviatur; die Zeile gibt es nur bei Stufen mit Namensraster
-  if (typed) typed.hidden = !usesNames(r.level);
+  if (typed) typed.hidden = !usesNames(cur(r));
   if (piano) piano.hidden = !keys;
 }
 
 // Runde starten.
-// ui: { staff, feedback, count, dots, answers, typed, piano, helps, helpsTitle, helpsBody, next } (DOM-Elemente; typed zeigt den
+// ui: { staff, feedback, count, dots, answers, typed, piano, helps, helpsTitle, helpsBody, next, origin } (DOM-Elemente; typed zeigt den
 // getippten Namen, helps ist der aufklappbare Bereich <details>, helpsTitle (optional) sein <summary>, helpsBody sein Inhalt, next der Knopf
-// „Nächste Aufgabe“ unter den Antworten, sichtbar nur, solange eine Stufe mit Hilfen wartet)
-// hooks: { state, save, onFinish({ correct, total, stars, gained, avg, results }) }
+// „Nächste Aufgabe“ unter den Antworten, sichtbar nur, solange eine Stufe mit Hilfen wartet; origin (optional) die Herkunftszeile
+// der gemischten Runde, in der normalen Runde verborgen)
+// hooks: { state, save, onFinish({ correct, total, stars, gained, avg, results, log }) }
+// log (seit Welle 11, für die Fehlermuster): je Aufgabe { id, ok, oks } – Stufe, Ergebnis, Ergebnis je Schritt
 export function startRound(level, ui, hooks) {
   stop();
-  const r = {
-    level, ui, hooks, items: makeRound(level, ROUND_LENGTH, { notes: hooks.state.notes, state: hooks.state }), idx: 0, correct: 0, results: [], marks: [], times: [],
-    locked: false, buf: "", t0: 0, timers: new Set(), tones: new Set(),
-    input: effectiveInput(level.input, hooks.state.input, !!level.namesOnly),
+  const r = newRun(ui, hooks, makeRound(level, ROUND_LENGTH, { notes: hooks.state.notes, state: hooks.state }));
+  r.level = level;
+  begin(r);
+}
+
+// Gemischte Runde starten (Welle 11, Schritt 6). spec = { kind: "wiederholen" | "grundlagen", items, plan? }:
+// items aus makeMixed (jede Aufgabe mit q.from), plan (optional) die [{ id, n }] dazu, ordnet perLevel.
+// Keine Hilfen und kein „Vorführen“; die Eingabe wird je Aufgabe neu aufgebaut. Ende über
+// store.recordMixedRound (keine Sterne, kein Eintrag in s.levels); onFinish bekommt
+// { kind, correct, total, gained, avg, results, perLevel: [{ id, n, ok }], log }.
+export function startMixed(spec, ui, hooks) {
+  if (!spec || !MIXED_KINDS.includes(spec.kind)) throw new Error(`Unbekannte Art der Runde: ${spec && spec.kind}`);
+  if (!Array.isArray(spec.items) || !spec.items.length || spec.items.some((q) => !q || !q.from)) throw new Error("Gemischte Runde ohne Aufgaben bzw. ohne q.from");
+  stop();
+  const r = newRun(ui, hooks, spec.items.slice());
+  r.mixed = true; r.kind = spec.kind; r.level = null;
+  r.order = (spec.plan || []).map((p) => p.id);
+  begin(r);
+}
+
+function newRun(ui, hooks, items) {
+  return {
+    ui, hooks, items, idx: 0, correct: 0, results: [], marks: [], times: [], log: [],
+    locked: false, buf: "", t0: 0, timers: new Set(), tones: new Set(), input: "letters",
   };
-  run = r;
+}
+
+// Antwortbereich für eine Stufe aufbauen (Buchstaben, Namensraster, Auswahlknöpfe, Klaviatur) und die
+// Eingabeart setzen. Normale Runde: einmal zu Beginn; gemischte Runde: vor jeder Aufgabe, damit von der
+// vorigen Aufgabe nichts übrig bleibt (Klassen, Knöpfe, Spalten).
+function setupAnswers(r, level) {
+  const { ui } = r;
+  r.input = effectiveInput(level.input, r.hooks.state.input, !!level.namesOnly);
   // Entscheidung „wartet nach richtig?“ für die Stufe schon jetzt rechnen (Stichprobe, gemerkt), nicht erst nach
   // der ersten Antwort
   if (!hasHelps(level)) okWaits(level);
-  if (ui.answers) ui.answers.classList.remove("choices", "short", "names", "cols");
-  // Hilfen: nur bei Stufen mit helps; zu Beginn der Runde zugeklappt, danach bleibt der Bereich, wie du
-  // ihn gelassen hast (auf oder zu), der Inhalt wechselt mit jeder Aufgabe
-  if (ui.helps) { ui.helps.hidden = !hasHelps(level); ui.helps.open = false; }
-  if (ui.helpsTitle && hasHelps(level)) ui.helpsTitle.textContent = helpsTitle(level);
-  if (r.level.input === "choices") {
+  if (ui.answers) {
+    ui.answers.classList.remove("choices", "short", "names", "cols");
+    if (r.mixed && ui.answers.style) ui.answers.style.removeProperty("--cols");
+  }
+  if (level.input === "choices") {
     if (ui.answers) ui.answers.innerHTML = "";
   } else {
     if (ui.answers) ui.answers.innerHTML = usesNames(level) ? namesHtml() : lettersHtml();
     if (ui.answers) ui.answers.classList.toggle("names", usesNames(level));
     if (ui.piano) ui.piano.innerHTML = pianoSvg();
   }
+}
+
+function begin(r) {
+  const { ui } = r;
+  run = r;
+  if (r.mixed) {
+    // Gemischte Runde: ohne Hilfen (es kommen nur Stufen ohne Hilfen vor), Eingabe je Aufgabe in showQuestion
+    if (ui.helps) { ui.helps.hidden = true; ui.helps.open = false; }
+    if (ui.helpsBody) ui.helpsBody.innerHTML = "";
+  } else {
+    const { level } = r;
+    // Hilfen: nur bei Stufen mit helps; zu Beginn der Runde zugeklappt, danach bleibt der Bereich, wie du
+    // ihn gelassen hast (auf oder zu), der Inhalt wechselt mit jeder Aufgabe
+    if (ui.helps) { ui.helps.hidden = !hasHelps(level); ui.helps.open = false; }
+    if (ui.helpsTitle && hasHelps(level)) ui.helpsTitle.textContent = helpsTitle(level);
+    setupAnswers(r, level);
+  }
+  if (ui.origin) { ui.origin.hidden = !r.mixed; ui.origin.textContent = ""; }
   // Ereignisse per Delegation; Zuweisung ersetzt die Handler der vorigen Runde
   if (ui.answers) ui.answers.onclick = (e) => {
     const b = e.target.closest(".btn");
@@ -437,19 +543,20 @@ export function startRound(level, ui, hooks) {
   };
   // Vorführung in den Hilfen: „Vorführen“ (nach der Antwort) hält die Runde an, „Nächste Aufgabe“ geht weiter
   if (ui.helpsBody) ui.helpsBody.onclick = (e) => {
-    if (run !== r) return;
+    if (run !== r || r.mixed) return;
     if (e.target.closest("[data-demo-btn]")) openDemo(r);
     else if (e.target.closest("[data-demo-next]")) resume(r);
   };
   // Zuklappen der Hilfen während der Vorführung: weiter zur nächsten Aufgabe
   if (ui.helps) ui.helps.ontoggle = () => { if (run === r && r.waiting && r.demo && !ui.helps.open) resume(r); };
   if (ui.next) { ui.next.hidden = true; ui.next.onclick = () => { if (run === r) resume(r); }; }
-  applyInput(r); showQuestion(r);
+  if (!r.mixed) applyInput(r);
+  showQuestion(r);
 }
 
 function showChoices(r) {
   const { ui } = r, set = choiceSet(r.items[r.idx], r.step);
-  if (r.level.input !== "choices" || !ui.answers) return;
+  if (cur(r).input !== "choices" || !ui.answers) return;
   ui.answers.innerHTML = choicesHtml(set.choices);
   const cls = setClass(set);
   ui.answers.classList.add("choices");
@@ -464,11 +571,20 @@ function showChoices(r) {
 function showQuestion(r) {
   const q = r.items[r.idx], { ui } = r;
   r.step = 0; r.oks = []; r.answered = false;
+  // Gemischte Runde: Eingabe für die Stufe dieser Aufgabe neu aufbauen, Herkunft über der Notenzeile
+  if (r.mixed) {
+    // Die Knöpfe entstehen neu: Lag der Fokus auf einem Antwortknopf (Tastatur, Bildschirmleser), fiele er auf
+    // <body>. Er geht dann auf den Antwortbereich (tabindex="-1"), von dort führt Tab zu den neuen Antworten.
+    const had = focusWithin(ui.answers);
+    setupAnswers(r, q.from); applyInput(r);
+    if (ui.origin) ui.origin.textContent = originText(q.fromPack, q.from);
+    if (had && ui.answers && !ui.answers.hidden) focusEl(ui.answers, { preventScroll: true });
+  }
   ui.staff.innerHTML = q.svg;
   ui.feedback.textContent = q.prompt || ""; ui.feedback.className = "feedback";
   if (ui.count) ui.count.textContent = `${r.idx + 1} / ${r.items.length}`;
   if (ui.dots) ui.dots.innerHTML = dotsHtml(r.marks, r.idx, r.items.length);
-  if (ui.helpsBody && hasHelps(r.level)) ui.helpsBody.innerHTML = helpsHtml(r.level, q, { state: r.hooks.state });
+  if (!r.mixed && ui.helpsBody && hasHelps(r.level)) ui.helpsBody.innerHTML = helpsHtml(r.level, q, { state: r.hooks.state });
   showChoices(r);
   all(ui.answers, ".btn").concat(all(ui.piano, "rect")).forEach(clearMark);
   r.buf = ""; showTyped(r, "");
@@ -513,7 +629,7 @@ function answer(r, value, el) {
   if (run !== r || r.locked) return;
   const q = r.items[r.idx];
   if (q.steps) return answerStep(r, value, el);
-  const ok = !!r.level.check(q, value);
+  const ok = !!cur(r).check(q, value);
   if (el) markAnswer(el, ok ? "ok" : "bad");
   if (!ok) markRight(r, q);
   finishQuestion(r, ok, feedbackText(q, ok));
@@ -526,6 +642,7 @@ function finishQuestion(r, ok, text, part = false) {
   r.locked = true; r.answered = true;
   const sec = (performance.now() - r.t0) / 1000;
   r.results.push(ok); r.marks.push(part ? "part" : ok); r.times.push(sec);
+  r.log.push({ id: cur(r).id, ok, oks: q.steps ? r.oks.slice() : [ok] });
   if (ok) r.correct++;
   countAnswer(hooks.state, q, ok, sec);
   hooks.save();
@@ -558,7 +675,7 @@ function finishQuestion(r, ok, text, part = false) {
   };
   // Stufen mit Hilfen, jede Antwort daneben und richtige Antworten mit langem Text: kein Zeitgeber, die Runde
   // wartet auf „Nächste Aufgabe“ (auch nach der letzten Aufgabe)
-  if (waitsAfter(r.level, ok, text)) {
+  if (waitsAfter(cur(r), ok, text)) {
     r.waiting = true;
     if (ui.next) { ui.next.textContent = DEMO_NEXT; ui.next.hidden = false; }
     return;
@@ -570,6 +687,7 @@ function finishQuestion(r, ok, text, part = false) {
 // data-after-answer (z. B. die Zeichen-Spalte der Pausen-Tabelle) erscheinen erst jetzt.
 function demoReady(r) {
   const body = r.ui.helpsBody;
+  if (r.mixed) return;
   if (body) body.querySelectorAll("[data-after-answer]").forEach((e) => { e.hidden = false; });
   if (!body || !r.level.demo) return;
   const b = body.querySelector("[data-demo-btn]");
@@ -582,7 +700,7 @@ function demoReady(r) {
 // Klaviatur und Tabelle weichen der Vorführung
 function openDemo(r) {
   const body = r.ui.helpsBody;
-  if (!r.answered || !r.advance || r.demo || !r.level.demo || !body) return;
+  if (r.mixed || !r.answered || !r.advance || r.demo || !r.level.demo || !body) return;
   if (r.advanceId) { clearTimeout(r.advanceId); r.timers.delete(r.advanceId); }
   silenceTones(r);
   r.waiting = true;
@@ -632,13 +750,23 @@ function showStaff(el) {
 
 // Für Tests und die Browserprüfung: wartet die Runde gerade auf „Nächste Aufgabe“?
 export const isWaiting = () => !!(run && run.waiting);
+// Für Tests und die Browserprüfung: die aktuelle Aufgabe (oder null)
+export const currentQuestion = () => (run ? run.items[run.idx] || null : null);
 
 function finish(r) {
   const { hooks } = r;
-  const { stars, gained } = recordRound(hooks.state, r.level.id, r.correct);
-  hooks.save();
   const avg = r.times.reduce((a, b) => a + b, 0) / r.times.length;
-  const result = { correct: r.correct, total: r.items.length, stars, gained, avg, results: r.results.slice() };
+  const log = r.log.map((e) => ({ ...e, oks: e.oks.slice() }));
+  let result;
+  if (r.mixed) {
+    // Keine Sterne, keine beste Runde, keine Freischaltung; Erfahrungspunkte und Tagesserie wie vereinbart
+    const { gained } = recordMixedRound(hooks.state, r.kind, r.correct, r.items.length);
+    result = { kind: r.kind, correct: r.correct, total: r.items.length, gained, avg, results: r.results.slice(), perLevel: perLevelOf(log, r.order), log };
+  } else {
+    const { stars, gained } = recordRound(hooks.state, r.level.id, r.correct);
+    result = { correct: r.correct, total: r.items.length, stars, gained, avg, results: r.results.slice(), log };
+  }
+  hooks.save();
   stop();
   if (hooks.onFinish) hooks.onFinish(result);
 }
@@ -667,7 +795,8 @@ export function handleKey(e) {
     return true;
   }
   if (run.locked) return false;
-  if (r.level.input === "choices") {
+  const level = cur(r);
+  if (level.input === "choices") {
     // Ziffern bei Knopfsätzen mit digits (Prime … Oktave)
     const set = choiceSet(r.items[r.idx], r.step), i = digitAction(e, set);
     if (i === null) return false;
@@ -675,7 +804,7 @@ export function handleKey(e) {
     answer(r, set.choices[i], all(r.ui.answers, ".btn[data-choice]")[i]);
     return true;
   }
-  if (usesNames(r.level)) {
+  if (usesNames(level)) {
     const k = nameKey(r.buf, e);
     if (!k) return false;
     e.preventDefault();
