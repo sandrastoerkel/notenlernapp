@@ -560,7 +560,8 @@ Ziffern etwa 6; Zeilenhöhe bleibt 122). Nur nach der Antwort (`revealSvg` der S
 Vorführung 3, nie im Fragebild. Die Zählleiste im Ergebnis setzt alle acht Silben, ohne Klammern nur dort, wo eine
 Note beginnt. Wortlaut der Dauer (Welle 11, W1): Jede Frage nach der Dauer heißt `beatsPrompt(e)` – „Wie viele
 Schläge dauert diese Note? (1 Schlag = 1 Viertelnote)“ bzw. „… diese Pause? …“ (`BEAT_UNIT`, geschützte
-Leerzeichen); Hinweise und Lerntafel nennen `BEAT_RULE`. In den Stufen 1–3 stehen Rückmeldungen und Vorführung 1
+Leerzeichen); Hinweise und Lerntafel nennen `BEAT_RULE`. Die Hinweise der Stufen 1–3 enden mit `BEAT_NOTE`
+(„Die Rückmeldung nennt auch die Dauer (1 Schlag = 1 Viertelnote).“), das erste Bild der Vorführung fragt wie die Aufgabe. In den Stufen 1–3 stehen Rückmeldungen und Vorführung 1
 mit „(dauert ½ Schlag)“ (`DAUERT`), in den Stufen 5, 7, 9 „Achtelnote = ½ Schlag“. „Schläge im 4/4-Takt“ kommt in
 keinem Text mehr vor; „Ein 4/4-Takt hat vier Schläge“ bleibt dort, wo der ganze Takt gemeint ist (Stufen 8, 9).
 Stufe 6: Frage `PROMPT_6` und Texte nach Schritt 1 gleich mit und ohne Punkt; den Punkt nennt erst `dotWay`.

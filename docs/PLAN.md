@@ -2460,6 +2460,14 @@ nicht, nur auf dem Bildschirmfoto sichtbar). Spalten jetzt 38 % · 35 % · 27 %,
 6 px: Der Kopf passt in zwei Zeilen, und „Sechzehntel-pause“ trennt jetzt am weichen Trennzeichen statt wie bisher
 „Sechzehnte|lpause“.
 
+**Prüfung (25.11.2026, Fable): bestanden nach Korrektur.** Wortlaut für Noten, Pausen und punktierte Werte eindeutig
+und richtig; Lerntafel 38/35/27 % bei 320 px dunkel/hell und 420 px hell angesehen (Kopf in zwei Zeilen, nichts
+ragt über). Korrigiert: (1) Die Stufen 1–3 nennen „dauert ½ Schlag“ in der Rückmeldung, ohne dass die Einheit
+irgendwo steht (seit „im 4/4-Takt“ entfiel; die Notenzeile dieser Stufen zeigt keine Taktangabe) – ihre Hinweise
+enden jetzt mit „Die Rückmeldung nennt auch die Dauer (1 Schlag = 1 Viertelnote).“ (`BEAT_NOTE`). (2) Vorführung,
+erstes Bild: „Wie viele Schläge dauert diese Note? …“ bzw. „… diese Pause? …“ wie die Aufgabe, statt „dauert das“.
+(3) Hinweis Stufe 6: „… dann die Dauer.“ statt „dann die Schläge“ (wie Marke „2 · Dauer“ und Stufe 4).
+
 #### Schritt 2 – W3: „Lernen“ mit Reitern
 
 **Heute** (`src/views/learn.js`, `index.html` Zeilen 103–128): oben die Schlüsselwahl, die Notenzeile zum

@@ -228,6 +228,8 @@ const beatsNb = (e) => beatsLabel(beatsOf(e)).replace(" ", "\u00a0");
 // BEAT_UNIT steht in Klammern hinter jeder Frage nach der Dauer (geschützte Leerzeichen: die Klammer bricht
 // nicht auseinander), BEAT_RULE in Hinweisen und Lerntafel.
 export const BEAT_UNIT = "1\u00a0Schlag\u00a0=\u00a01\u00a0Viertelnote";
+// Stufen 1–3 nennen die Dauer nur in der Rückmeldung („dauert ½ Schlag“); die Einheit steht im Hinweis der Startkarte
+export const BEAT_NOTE = `Die Rückmeldung nennt auch die Dauer (${BEAT_UNIT}).`;
 export const BEAT_RULE = "Gezählt wird in Schlägen: Im 4/4-Takt ist ein Schlag so lang wie eine Viertelnote.";
 // Frage nach der Dauer (Stufen 4 Schritt 2, 5, 6 Schritt 2, 7 und 10): „Wie viele Schläge dauert diese Note?
 // (1 Schlag = 1 Viertelnote)“ bzw. „… diese Pause? …“
@@ -636,7 +638,7 @@ export function beatsDemo(e) {
   const base = baseOf(e), bb = beatsOf(base), name = nameOf(e), baseName = nameOf(base);
   const pyr = (opts) => pyramidSvg(opts);
   const frames = [
-    { step: 0, text: `Wie viele Schläge dauert das? Erst der Notenwert, dann die Dauer (${BEAT_UNIT}).`, body: say(beatsStaff(e, 0), pyr()) },
+    { step: 0, text: `Wie viele Schläge dauert diese ${e.rest ? "Pause" : "Note"}? Erst der Notenwert, dann die Dauer (${BEAT_UNIT}).`, body: say(beatsStaff(e, 0), pyr()) },
     { step: 1, text: e.dot ? `Ohne den Punkt: ${baseName}` : `Das ist eine ${name}.`, body: say(beatsStaff(e, 1), pyr()) },
     {
       step: 2,
@@ -771,20 +773,20 @@ function ask(it) { return Object.assign(it.make(), { key: it.key }); }
 
 const RAW = [
   { twoSteps: true, title: "Notenwerte erkennen", subtitle: "5 Notenwerte · zwei Schritte · mit Hilfen", items: ITEMS_1, example: singleSvg(el(2), false),
-    hint: "Zwei Schritte: 1. der Kopf – hohl oder schwarz? 2. Hals und Fähnchen.\nHohl ohne Hals: ganze Note\nHohl mit Hals: halbe Note\nSchwarz ohne Fähnchen: Viertelnote\nSchwarz, 1 Fähnchen: Achtelnote\nSchwarz, 2 Fähnchen: Sechzehntelnote" },
+    hint: "Zwei Schritte: 1. der Kopf – hohl oder schwarz? 2. Hals und Fähnchen.\nHohl ohne Hals: ganze Note\nHohl mit Hals: halbe Note\nSchwarz ohne Fähnchen: Viertelnote\nSchwarz, 1 Fähnchen: Achtelnote\nSchwarz, 2 Fähnchen: Sechzehntelnote\n" + BEAT_NOTE },
   { title: "Pausen erkennen", subtitle: "5 Pausenwerte · mit Hilfen", items: ITEMS_2, example: singleSvg(el(4, false, true), false),
-    hint: `Ganze und halbe Pause sind ein ${REST_SHAPE}: Die ganze Pause ${WHOLE_REST_PLACE}, die halbe Pause ${HALF_REST_PLACE}. Die Achtelpause hat einen Haken, die Sechzehntelpause zwei.` },
+    hint: `Ganze und halbe Pause sind ein ${REST_SHAPE}: Die ganze Pause ${WHOLE_REST_PLACE}, die halbe Pause ${HALF_REST_PLACE}. Die Achtelpause hat einen Haken, die Sechzehntelpause zwei. ${BEAT_NOTE}` },
   // autoNext (Nachprüfung): Stufen 3 und 10 laufen nach „richtig“ weiter wie die Stufen 5, 7, 9. Nur der Text
   // „Richtig! Sechzehntelpause (dauert ¼ Schlag)“ (43 Zeichen) liegt inzwischen unter AUTO_OK_MAX (45); die
   // Festlegung bleibt trotzdem, damit ein längerer Name die Stufe nicht nach jeder richtigen Antwort warten lässt.
   { autoNext: true, title: "Noten und Pausen erkennen ohne Hilfen", subtitle: "5 Notenwerte und 5 Pausen", items: ITEMS_3, example: singleSvg(el(8, false, true), false),
-    hint: "Noten und Pausen gemischt, ohne Hilfen. Bei Noten erst der Kopf, dann Hals und Fähnchen; bei Pausen Form und Lage." },
+    hint: "Noten und Pausen gemischt, ohne Hilfen. Bei Noten erst der Kopf, dann Hals und Fähnchen; bei Pausen Form und Lage. " + BEAT_NOTE },
   { twoSteps: true, title: "Dauer in Schlägen", subtitle: "Noten und Pausen · zwei Schritte · mit Hilfen", items: ITEMS_4, example: singleSvg(el(8), true),
     hint: `Zwei Schritte: Erst den Notenwert erkennen, dann seine Dauer ablesen. ${BEAT_RULE} Eine Pause dauert so lang wie die Note mit demselben Wert.` },
   { title: "Dauer in Schlägen ohne Hilfen", subtitle: "Noten und Pausen", items: ITEMS_5, example: singleSvg(el(16, false, true), true),
     hint: `${BEAT_RULE} Die ganze Note dauert 4 Schläge, die halbe 2, die Achtel ½ Schlag, die Sechzehntel ¼ Schlag. Eine Pause dauert so lang wie die Note mit demselben Wert.` },
   { twoSteps: true, title: "Punktierungen", subtitle: "Punktierte halbe, Viertel und Achtel · zwei Schritte · mit Hilfen", items: ITEMS_6, pool: POOL_6, example: singleSvg(el(4, true), true),
-    hint: "Zwei Schritte: Erst der Notenwert ohne den Punkt, dann die Schläge. Der Punkt verlängert eine Note um die Hälfte ihres Wertes: punktierte Viertel 1 + ½ = 1½ Schläge." },
+    hint: "Zwei Schritte: Erst der Notenwert ohne den Punkt, dann die Dauer. Der Punkt verlängert eine Note um die Hälfte ihres Wertes: punktierte Viertel 1 + ½ = 1½ Schläge." },
   { title: "Punktierungen ohne Hilfen", subtitle: "Punktierte halbe, Viertel und Achtel", items: ITEMS_7, pool: POOL_7, example: singleSvg(el(2, true), true),
     hint: "Der Punkt verlängert eine Note um die Hälfte ihres Wertes: punktierte halbe 2 + 1 = 3 Schläge, punktierte Viertel 1 + ½ = 1½, punktierte Achtel ½ + ¼ = ¾." },
   { twoSteps: true, title: "Takt füllen", subtitle: `4/4-Takt mit Lücke · zwei Schritte · mit Hilfen · ${ITEMS_8.length} Aufgaben`, items: ITEMS_8, example: barSvg(parseBar("4. 8 r4 4"), 2),

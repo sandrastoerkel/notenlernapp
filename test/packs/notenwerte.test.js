@@ -698,7 +698,7 @@ test("Vorführung „So bestimmst du die Dauer“: 4 Bilder, mit Punkt 5, die gr
     assert.deepEqual(r.tones, e.rest ? [] : [PITCH]);
   }
   assert.deepEqual(beatsDemo(parseBar("4.")[0]).frames.map((f) => nb(f.text || f.result.title)), [
-    "Wie viele Schläge dauert das? Erst der Notenwert, dann die Dauer (1 Schlag = 1 Viertelnote).", "Ohne den Punkt: Viertelnote", "Viertelnote = 1 Schlag",
+    "Wie viele Schläge dauert diese Note? Erst der Notenwert, dann die Dauer (1 Schlag = 1 Viertelnote).", "Ohne den Punkt: Viertelnote", "Viertelnote = 1 Schlag",
     "Punkt: die Hälfte dazu · 1 + ½ = 1½", "Punktierte Viertelnote = 1½ Schläge",
   ]);
   assert.equal(nb(beatsDemo(parseBar("r8")[0]).frames[2].text), "Achtelpause = ½ Schlag, so lang wie die Achtelnote");
@@ -1107,6 +1107,11 @@ test("Dauer in Schlägen: kein Text nennt „Schläge im 4/4“, jede Frage nach
   assert.deepEqual(DEMO_STEPS_BEATS, ["1 · Notenwert", "2 · Dauer"]);
   assert.equal(L[3].title, "Dauer in Schlägen");
   assert.equal(L[4].title, "Dauer in Schlägen ohne Hilfen");
+  // Prüfung Schritt 1: Die Stufen 1–3 nennen „dauert ½ Schlag“ nur in der Rückmeldung – die Einheit steht im Hinweis
+  for (const l of [L[0], L[1], L[2]]) assert.ok(nb(l.hint).endsWith("Die Rückmeldung nennt auch die Dauer (1 Schlag = 1 Viertelnote)."), l.title);
+  // Vorführung fragt wie die Aufgabe: „diese Note“ bzw. „diese Pause“
+  assert.ok(nb(beatsDemo(parseBar("r8")[0]).frames[0].text).startsWith("Wie viele Schläge dauert diese Pause? "));
+  assert.ok(nb(L[5].hint).includes("dann die Dauer."));
 
   // Fragen nach der Dauer: Stufe 4 Schritt 2, Stufe 5, Stufe 6 Schritt 2, Stufe 7 (Dauer), Stufe 10
   const want = (q) => `Wie viele Schläge dauert diese ${q.el.rest ? "Pause" : "Note"}? (1 Schlag = 1 Viertelnote)`;
