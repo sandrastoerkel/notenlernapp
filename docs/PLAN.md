@@ -3111,6 +3111,15 @@ Gebaut wird jeweils die genannte Voreinstellung.
 13. **Nach dem Update:** Schon geschaffte Stufen kommen in Fach 1, je Tag drei, beginnend am ersten Tag.
 14. **QR-Code:** Bitte vor dem Push einmal mit der Handykamera scannen (Tafel/Beamer und Bildschirm).
 15. **Dominantseptakkord** (nächster Abschnitt): die markierten Punkte.
+16. **Parallele Molltonart (Tonleitern 12/13), zweiter Schritt:** Gebaut ist „Ganz- und Halbtonschritte“
+    (`tonleitern-3`) als Grundlage für „drei Halbtöne abwärts“. Seit „Intervalle“ vor „Tonleitern“ steht, träfe
+    „Intervalle rein, klein, groß“ (`intervall-4`: kleine Terz = 3 Halbtöne) die Sache genauer, ist aber die
+    schwerere Stufe (alle Intervalle, Vorzeichen). So lassen oder umhängen? (Prüfung Schritt 5)
+17. **Vorzeichen im Bassschlüssel werden nirgends eigens geübt** (am Vorrat geprüft, je 600 Aufgaben):
+    „Noten mit Vorzeichen“ (`noten-7`) und der Vorzeichen-Anteil von `noten-8` stehen nur im Violinschlüssel;
+    Intervalle 4 und 6, Tonleitern 3, 5, 7, 9 und Dreiklänge 1–4, 6 zeigen aber Noten mit ♯/♭ im Bassschlüssel.
+    Die Kanten stimmen trotzdem (Bassschlüssel über `noten-6`, Vorzeichen über `noten-7`). Vorschlag: im Paket
+    „Noten lesen“ (nächste Welle) Vorzeichen auch im Bassschlüssel aufnehmen. (Prüfung Schritt 5)
 
 ## Vorgabe für das Paket „Dreiklänge Schritt für Schritt“ (nach Welle 11): bis zum Dominantseptakkord
 
