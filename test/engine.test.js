@@ -633,7 +633,8 @@ test("Ablauf zweischrittig: richtig/richtig, Zahl daneben/dann Qualität, einmal
     assert.equal(res.correct, 8); assert.equal(res.total, 10);
     assert.deepEqual(res.results.slice(0, 3), [true, false, false], "Teilerfolg zählt als daneben");
     assert.equal(r.state.answered, 10);
-    assert.deepEqual(r.state.levels["intervall-5"], { stars: 2, best: 8, played: 1 });
+    const { day, ...lv5 } = r.state.levels["intervall-5"];
+    assert.deepEqual(lv5, { stars: 2, best: 8, played: 1, last: 8 }); assert.match(day, /^\d{4}-\d\d-\d\d$/);
     // Rundenprotokoll (Welle 11, Schritt 6): je Aufgabe Stufe, Ergebnis und Ergebnis je Schritt
     assert.equal(res.log.length, 10);
     assert.deepEqual(res.log.slice(0, 3), [

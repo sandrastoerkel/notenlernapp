@@ -70,7 +70,7 @@
       </div>
     </div>
 
-    <p class="small muted origin" id="pOrigin" hidden></p>
+    <p class="small muted origin" id="pOrigin" aria-live="polite" hidden></p>
     <div class="card staff-card" id="pStaff"></div>
 
     <details class="card helps" id="pHelps" hidden>
@@ -81,7 +81,10 @@
     <div id="pIntro" class="card soft stack">
       <p id="pHint" class="muted"></p>
       <p class="small muted" id="pKeys">Tastatur: <span class="kbd">C</span> <span class="kbd">D</span> <span class="kbd">E</span> … <span class="kbd">H</span></p>
+      <p class="small needs" id="pNeeds" hidden></p>
+      <p class="basics-why" id="pBasicsWhy" hidden></p>
       <button class="btn primary wide" id="pStart">Runde starten · 10 Aufgaben</button>
+      <button class="btn ghost wide" id="pBasics" hidden>Grundlagen wiederholen&nbsp;·&nbsp;6&nbsp;Aufgaben</button>
     </div>
 
     <div id="pPlay" class="stack" hidden>

@@ -387,7 +387,8 @@ test("recordRound: Sterne, XP, Bestwerte", () => {
   assert.deepEqual(recordRound(s, "noten-1", 10, now), { stars: 3, gained: 160 });
   assert.deepEqual(recordRound(s, "noten-1", 8, now), { stars: 2, gained: 120 });
   assert.deepEqual(recordRound(s, "noten-1", 0, now), { stars: 0, gained: 0 });
-  assert.deepEqual(s.levels["noten-1"], { stars: 3, best: 10, played: 3 });
+  // seit Welle 11, Schritt 7: last (Richtige der letzten Runde) und day (örtlicher Tag)
+  assert.deepEqual(s.levels["noten-1"], { stars: 3, best: 10, played: 3, last: 0, day: today(now) });
   assert.equal(s.xp, 280);
   assert.equal(s.dayStreak, 1);
 });

@@ -172,3 +172,112 @@ export function dayText(day) {
   const [, m, d] = String(day).split("-").map(Number);
   return `${d}.${m}.`;
 }
+
+/* ---------- „Grundlagen wiederholen“ und Fehlermuster (Welle 11, Schritt 7) ----------
+Eine kurze Runde aus den direkten Voraussetzungen einer Stufe (gemischte Runde, engine.startMixed, Art
+"grundlagen"): ohne Hilfen, ohne Sterne, ohne Freischaltung, der Karteikasten ändert sich nicht. Angeboten auf
+der Startkarte jeder Stufe mit Voraussetzungen (basicsOffer) und auf der Ergebniskarte einer normalen Runde
+(weniger als 5 Richtige oder ein Fehlermuster, gapsOf). Nie Pflicht. */
+
+// Ab so vielen Fehlern zu derselben Grundlage in einer normalen Runde nennt die Ergebniskarte das Muster
+export const LUECKE_AB = 3;
+// „zuletzt unter 8 von 10“: Grenze wie bei der Freischaltung
+const GUT = 8;
+
+// Plan der Runde „Grundlagen wiederholen“ zur Stufe levelId: [{ id, n }] aus needsOf, n Aufgaben gleich verteilt,
+// der Rest an die ersten (6 → 6 / 3+3 / 2+2+2 / 2+2+1+1). only (optional): nur diese Grundlage(n), Stufen-ID oder
+// Liste (Angebot nach einem Fehlermuster). Leer, wenn es keine Voraussetzungen gibt.
+export function basicsPlan(packs, levelId, n = RUNDE_GRUNDLAGEN, only = null) {
+  const ids = only ? [].concat(only).filter((id) => levelOf(packs, id)) : needsOf(packs, levelId);
+  if (!ids.length) return [];
+  const shares = split(n, ids.length);
+  return ids.map((id, i) => ({ id, n: shares[i] })).filter((e) => e.n > 0);
+}
+
+// Warum eine Voraussetzung empfohlen wird ("nie" | "faellig" | "schwach") oder null. seit (optional): Tag der letzten
+// Grundlagen-Runde mit höchstens einem Fehler; dann zählt nur ein Auslöser, der danach neu zutraf:
+// - „nie gespielt“ kann danach nicht neu zutreffen (die Grundlagen-Runde trägt keine Runde in s.levels ein);
+// - „wieder dran“ nur, wenn die Stufe erst nach jenem Tag fällig wurde (faellig > seit);
+// - „unter 8 von 10“ nur, wenn die letzte normale Runde der Stufe nach jenem Tag lag (day > seit). Gezählt wird
+//   in ganzen Tagen: eine schwache Runde am selben Tag wie die Grundlagen-Runde weckt die Empfehlung nicht.
+// „zuletzt“ ist level.last (seit Welle 11, Schritt 7); ältere Stände ohne last zählen mit der besten Runde.
+// Eine über den Jahrgang geöffnete, nie gespielte Stufe zählt als „nie gespielt“.
+function needTrigger(state, id, heute, seit) {
+  const st = (state.levels || {})[id] || {};
+  const e = (state.rep || {})[id];
+  if (!((st.played || 0) > 0)) return seit ? null : "nie";
+  if (e && typeof e.faellig === "string" && e.faellig <= heute && (!seit || e.faellig > seit)) return "faellig";
+  const last = typeof st.last === "number" ? st.last : st.best || 0;
+  if (last < GUT && (!seit || (typeof st.day === "string" && st.day > seit))) return "schwach";
+  return null;
+}
+
+// Angebot „Grundlagen wiederholen“ auf der Startkarte von levelId: { show, recommend, reason }.
+// show: die Stufe hat Voraussetzungen. recommend: eine Voraussetzung wurde nie gespielt, ist fällig (Karteikasten)
+// oder lag zuletzt unter 8 von 10 – und seit der letzten Grundlagen-Runde zu dieser Stufe mit höchstens einem
+// Fehler (state.basics[levelId], Tag) traf kein Auslöser neu zu (needTrigger). reason: { kind, id } zur ersten
+// solchen Voraussetzung (Reihenfolge von needsOf) oder null.
+export function basicsOffer(state, packs, levelId, heute) {
+  const needs = needsOf(packs, levelId);
+  const seit = state.basics && typeof state.basics === "object" ? state.basics[levelId] || null : null;
+  for (const id of needs) {
+    const kind = needTrigger(state, id, heute, seit);
+    if (kind) return { show: true, recommend: true, reason: { kind, id } };
+  }
+  return { show: needs.length > 0, recommend: false, reason: null };
+}
+
+// Nach einer Grundlagen-Runde zu levelId: mit höchstens einem Fehler den Merker state.basics[levelId] = heute setzen
+// (die Empfehlung verschwindet, bis ein Auslöser neu zutrifft). Gibt true zurück, wenn der Merker gesetzt wurde.
+// state.basics zählt zum Fortschritt (store.reset löscht ihn).
+export function afterBasics(state, levelId, correct, total, heute) {
+  if (total - correct > 1) return false;
+  if (!state.basics || typeof state.basics !== "object" || Array.isArray(state.basics)) state.basics = {};
+  state.basics[levelId] = heute;
+  return true;
+}
+
+// Fehlermuster einer normalen Runde in level (log aus engine: je Aufgabe { id, ok, oks }). Je Aufgabe mit Schritt i
+// daneben zählt jede Stufe aus stepNeedsOf(level, null, i) einmal; sagt die Stufe nichts je Schritt (einschrittige
+// Stufen), zählt eine Antwort daneben für needsOf als Ganzes. Eine Aufgabe zählt je Grundlage höchstens einmal.
+// Ergebnis: [{ need, count, step }] mit count >= LUECKE_AB, nach count absteigend, sonst in der Reihenfolge von
+// needsOf. step: Index des Schritts, wenn alle gezählten Fehler zu dieser Grundlage aus demselben Schritt einer
+// Stufe mit stepNeeds kamen, sonst null („die Antwort“).
+// Sonderfall (docs/PLAN.md, Abschnitt 2, Intervalle 4): Ein Schritt ohne Grundlage (stepNeeds[i] = []) in einer
+// Stufe ohne Hilfen, deren Stufe direkt davor Hilfen hat, zählt für jene Stufe; der Eintrag trägt helps: true
+// („Stufe 3 mit Hilfen üben“ statt „Grundlagen wiederholen“).
+export function gapsOf(packs, level, log) {
+  if (!level) return [];
+  const pos = position(packs, level.id);
+  const before = pos && pos[1] > 0 ? packs[pos[0]].levels[pos[1] - 1] : null;
+  const helpsFallback = inBox(level) && before && !inBox(before) ? before.id : null;
+  const whole = needsOf(packs, level.id);
+  const map = new Map();
+  // seen: Grundlagen, die für diese Aufgabe schon gezählt sind (dann nur den Schritt vermerken)
+  let seen = new Set();
+  const add = (need, step, helps) => {
+    if (!map.has(need)) map.set(need, { need, count: 0, steps: new Set(), helps });
+    const x = map.get(need);
+    if (!seen.has(need)) { seen.add(need); x.count++; }
+    x.steps.add(step);
+  };
+  for (const e of log || []) {
+    if (!e || e.id !== level.id || e.ok) continue;
+    const oks = Array.isArray(e.oks) && e.oks.length ? e.oks : [false];
+    seen = new Set();
+    oks.forEach((ok, i) => {
+      if (ok) return;
+      const sn = stepNeedsOf(level, null, i);
+      if (sn === null) { for (const n of whole) add(n, null, false); return; }
+      if (!sn.length && helpsFallback) { add(helpsFallback, i, true); return; }
+      for (const n of sn) add(n, i, false);
+    });
+  }
+  const rank = (id) => { const k = whole.indexOf(id); return k < 0 ? whole.length : k; };
+  return [...map.values()].filter((x) => x.count >= LUECKE_AB)
+    .sort((a, b) => b.count - a.count || rank(a.need) - rank(b.need))
+    .map((x) => {
+      const step = x.steps.size === 1 ? [...x.steps][0] : null;
+      return x.helps ? { need: x.need, count: x.count, step, helps: true } : { need: x.need, count: x.count, step };
+    });
+}

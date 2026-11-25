@@ -1,7 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { startLabel, keysHint, lettersLabel, resultInfo, missingText, answersScroll, startHint, TWO_STEPS_NOTE, resultLine, avgText, perLevelLine, MIXED_HEAD } from "../../src/views/practice.js";
+import { startLabel, keysHint, lettersLabel, resultInfo, missingText, answersScroll, startHint, TWO_STEPS_NOTE, resultLine, avgText, perLevelLine, MIXED_HEAD,
+  BASICS_LABEL, needsHtml, reasonText, basicsTitle, countWord, gapGroups, placesText, gapText, openLabel, resultBasics } from "../../src/views/practice.js";
 import { keepStufe, textOf } from "../../src/engine.js";
 import { PACKS } from "../../src/packs/index.js";
 import { lockText } from "../../src/views/home.js";
@@ -125,7 +126,7 @@ test("Tastatur-Hinweis: Ziffern bei Stufen mit digits", () => {
 test("Hilfen: nur während der Runde, eigener Bereich unter der Notenzeile", () => {
   const src = readFileSync(new URL("../../src/views/practice.js", import.meta.url), "utf8");
   assert.match(src, /helps: \$\("#pHelps"\), helpsTitle: \$\("#pHelps summary"\), helpsBody: \$\("#pHelpsBody"\)/);
-  assert.equal((src.match(/\$\("#pHelps"\)\.hidden = true/g) || []).length, 3, "render, Ergebniskarte und Ergebniskarte der gemischten Runde (Welle 11)");
+  assert.equal((src.match(/\$\("#pHelps"\)\.hidden = true/g) || []).length, 4, "render, Ergebniskarte, Ergebniskarten „Grundlagen wiederholen“ und „Wiederholen“ (Welle 11)");
   const html = readFileSync(new URL("../../index.html", import.meta.url), "utf8");
   const i = html.indexOf('id="pStaff"'), j = html.indexOf('id="pHelps"'), k = html.indexOf('id="pIntro"'), p = html.indexOf('id="pPiano"');
   assert.ok(i < j && j < k && k < p, "Hilfen zwischen Notenzeile und Startkarte, getrennt von #pPiano");
@@ -213,4 +214,73 @@ test("index.html: Herkunftszeile #pOrigin über der Notenzeile, zu Beginn verbor
   const i = html.indexOf('id="pOrigin"'), j = html.indexOf('id="pStaff"');
   assert.ok(i > 0 && i < j, "vor #pStaff");
   assert.match(html.slice(html.lastIndexOf("<", i), html.indexOf(">", i) + 1), /hidden/);
+});
+
+/* ---------- „Grundlagen wiederholen“ (Welle 11, Schritt 7) ---------- */
+const NB = " ";
+
+test("Startkarte: „Dafür brauchst du: …“ mit Knöpfen, Knopf und Grund der Empfehlung", () => {
+  assert.equal(BASICS_LABEL, `Grundlagen wiederholen${NB}·${NB}6${NB}Aufgaben`);
+  assert.equal(needsHtml(PACKS, "noten-1"), "");
+  const h = needsHtml(PACKS, "intervall-3");
+  assert.ok(h.startsWith("Dafür brauchst du: "), h);
+  assert.deepEqual([...h.matchAll(/data-need="([^"]+)"/g)].map((m) => m[1]), ["intervall-2", "noten-7"]);
+  assert.equal(h.replace(/<[^>]+>/g, ""), "Dafür brauchst du: Notenstufen zählen (Prime bis Oktave) · Noten mit Vorzeichen");
+  assert.ok(/<button type="button" class="link"/.test(h));
+  assert.equal(reasonText(PACKS, { kind: "nie", id: "noten-7" }), "Empfohlen: „Noten mit Vorzeichen“ hast du hier noch nie geübt.");
+  assert.equal(reasonText(PACKS, { kind: "faellig", id: "noten-7" }), "Empfohlen: „Noten mit Vorzeichen“ ist wieder dran.");
+  assert.equal(reasonText(PACKS, { kind: "schwach", id: "intervall-2" }), "Empfohlen: „Notenstufen zählen (Prime bis Oktave)“ lag zuletzt unter 8 von 10.");
+  assert.equal(reasonText(PACKS, null), "");
+  assert.equal(basicsTitle(PACKS, "intervall-3"), `für Intervalle, Stufe${NB}3`);
+  assert.equal(MIXED_HEAD.grundlagen, "Grundlagen wiederholen");
+  // Wortwahl: kein Druck („wieder dran“, nicht „überfällig“)
+  for (const k of ["nie", "faellig", "schwach"]) assert.ok(!/überfällig|musst|Pflicht/.test(reasonText(PACKS, { kind: k, id: "noten-7" })));
+});
+
+test("Ergebniskarte: Zahlwörter, Orte, Satz zum Fehlermuster, Knöpfe", () => {
+  assert.deepEqual([3, 4, 5, 6, 7, 8, 9, 10].map(countWord),
+    ["Dreimal", "Viermal", "Fünfmal", "Sechsmal", "Siebenmal", "Achtmal", "Neunmal", "Zehnmal"]);
+  assert.equal(placesText(PACKS, ["intervall-2"]), "Intervalle, Stufe 2");
+  assert.equal(placesText(PACKS, ["notenwerte-3", "notenwerte-5", "notenwerte-7"]), "Notenwerte und Pausen, Stufen 3, 5 und 7");
+  assert.equal(placesText(PACKS, ["intervall-2", "tonleitern-3"]), "Intervalle, Stufe 2 und Tonleitern, Stufe 3");
+  // Beispiel aus docs/PLAN.md
+  assert.equal(gapText(PACKS, { needs: ["intervall-2"], count: 3, step: 0 }),
+    `Dreimal lag der erste Schritt daneben (Notenstufen zählen). Das übst du in Intervalle, Stufe${NB}2.`);
+  assert.equal(gapText(PACKS, { needs: ["noten-7"], count: 4, step: 1 }),
+    `Viermal lag der zweite Schritt daneben (Noten mit Vorzeichen). Das übst du in Noten lesen, Stufe${NB}7.`);
+  assert.equal(gapText(PACKS, { needs: ["noten-3"], count: 5, step: null }),
+    `Fünfmal lag die Antwort daneben. Das übst du in Noten lesen, Stufe${NB}3.`);
+  assert.equal(gapText(PACKS, { needs: ["intervall-3"], count: 3, step: 1, helps: true }),
+    `Dreimal lag der zweite Schritt daneben. Mit Hilfen übst du das in Stufe${NB}3.`);
+  assert.equal(gapText(PACKS, { needs: ["notenwerte-5", "notenwerte-7"], count: 3, step: 0 }),
+    `Dreimal lag der erste Schritt daneben. Das übst du in Notenwerte und Pausen, Stufen${NB}5 und${NB}7.`);
+  assert.equal(openLabel(PACKS, intervalle, "intervall-2"), `Stufe${NB}2 öffnen`);
+  assert.equal(openLabel(PACKS, intervalle, "noten-7"), `Noten lesen 7 öffnen`);
+  assert.equal(openLabel(PACKS, intervalle, "intervall-3", true), `Stufe${NB}3 mit Hilfen üben`);
+  // gleiche Zahl und gleicher Schritt: ein Satz
+  assert.deepEqual(gapGroups([{ need: "a", count: 3, step: null }, { need: "b", count: 3, step: null }, { need: "c", count: 4, step: 0 }]),
+    [{ needs: ["a", "b"], count: 3, step: null, helps: false }, { needs: ["c"], count: 4, step: 0, helps: false }]);
+});
+
+test("Ergebniskarte: „Grundlagen wiederholen“ zuerst unter 5 Richtigen, sonst das Fehlermuster", () => {
+  const log = (id, list) => list.map((oks) => ({ id, ok: oks.every(Boolean), oks }));
+  const iv4 = lv(intervalle, 4);
+  // unter 5, ohne Muster: Grundlagen-Knopf als erster
+  let r = resultBasics(PACKS, intervalle, iv4, 4, log("intervall-4", [[false, true], [true, false], [true, true]]));
+  assert.deepEqual(r, { first: true, gaps: [] });
+  assert.equal(resultBasics(PACKS, intervalle, iv4, 5, []).first, false);
+  // Stufe ohne Voraussetzungen: kein Knopf
+  assert.equal(resultBasics(PACKS, noten, lv(noten, 1), 0, log("noten-1", Array(10).fill([false]))).first, false);
+  // mit Muster: genau diese Grundlage, kein zweiter allgemeiner Knopf
+  r = resultBasics(PACKS, intervalle, iv4, 3, log("intervall-4", [[false, true], [false, true], [false, false], [true, false], [true, false]]));
+  assert.equal(r.first, false);
+  assert.deepEqual(r.gaps.map((g) => [g.needs, g.helps, g.open]), [[["intervall-2"], false, "intervall-2"], [["intervall-3"], true, "intervall-3"]]);
+  assert.equal(r.gaps[0].text, `Dreimal lag der erste Schritt daneben (Notenstufen zählen). Das übst du in Intervalle, Stufe${NB}2.`);
+  // mehrere Grundlagen in einem Satz: kein Knopf „… öffnen“
+  const nw10 = PACKS.find((p) => p.id === "notenwerte").levels[9];
+  r = resultBasics(PACKS, PACKS[1], nw10, 6, log("notenwerte-10", [[false], [false], [false], [false]]));
+  assert.equal(r.gaps.length, 1);
+  assert.deepEqual(r.gaps[0].needs, ["notenwerte-3", "notenwerte-5", "notenwerte-7", "notenwerte-9"]);
+  assert.equal(r.gaps[0].open, null);
+  assert.equal(r.gaps[0].text, `Viermal lag die Antwort daneben. Das übst du in Notenwerte und Pausen, Stufen${NB}3, 5, 7 und${NB}9.`);
 });

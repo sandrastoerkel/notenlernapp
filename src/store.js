@@ -30,6 +30,9 @@ export const fresh = () => ({
   // Jahrgang über den Lehrkraft-Link (Welle 11, Schritt 11): null oder { jahrgang, zweig, dran }. Einstellung der
   // Lehrkraft, kein Fortschritt: bleibt beim Zurücksetzen erhalten.
   klasse: null,
+  // „Grundlagen wiederholen“ (Welle 11, Schritt 7, repeat.js afterBasics): je Stufe der Tag der letzten
+  // Grundlagen-Runde mit höchstens einem Fehler. Fortschritt: wird beim Zurücksetzen gelöscht.
+  basics: {},
 });
 
 // Alte Daten (Stufen 1 bis 8 als Zahl) in das Format mit Stufen-IDs übernehmen
@@ -256,11 +259,13 @@ export function isUnlocked(s, pack, levelId) {
 
 export const starsFor = (c) => (c >= 9 ? 3 : c >= 7 ? 2 : c >= 5 ? 1 : 0);
 
-// Ergebnis einer Runde (10 Aufgaben) eintragen; zählt auch die Tage in Folge
+// Ergebnis einer Runde (10 Aufgaben) eintragen; zählt auch die Tage in Folge. Seit Welle 11 (Schritt 7) auch
+// last (Richtige der letzten Runde) und day (ihr örtlicher Tag) für „zuletzt unter 8 von 10“ (repeat.basicsOffer).
 export function recordRound(s, levelId, correct, now = new Date()) {
   const stars = starsFor(correct);
   const st = s.levels[levelId] || { stars: 0, best: 0, played: 0 };
   st.played++; st.best = Math.max(st.best, correct); st.stars = Math.max(st.stars, stars);
+  st.last = correct; st.day = today(now);
   s.levels[levelId] = st;
   const gained = correct * 10 + stars * 20;
   s.xp += gained;

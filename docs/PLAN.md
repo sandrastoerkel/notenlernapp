@@ -2824,6 +2824,42 @@ Richtige (kürzere Runden kleinerer Bonus, in 8 im Blick); `ueberlauf.mjs` dauer
 - Abnahme: Startkarte von Intervalle 3 und Tonleitern 12 bei 320 px ohne Überlauf; Grundlagen-Runde zu
   Dreiklänge 1 (aus `intervall-4` und `noten-8`) läuft; nach der Runde ist die Empfehlung weg.
 
+**Umgesetzt (25.11.2026, Opus):** Commit siehe `git log` („Welle 11, Schritt 7“). `repeat.js`: `LUECKE_AB = 3`,
+`basicsPlan` (gleich verteilt, Rest an die ersten: 6 / 3+3 / 2+2+2 / 2+2+1+1; `only` als ID oder Liste),
+`basicsOffer`, `afterBasics` (Merker `s.basics`), `gapsOf`. `practice.js`: Startkarte mit `#pNeeds`,
+`#pBasicsWhy`, `#pBasics`; `render(arg)` mit `mode: "grundlagen"` (und vorläufig `mode: "wiederholen"` mit festem
+`plan` bis Schritt 8, nur für die Browserprüfung); der vorläufige Start `practice.startMixed` aus Schritt 6 ist
+ersetzt (Konsole/Playwright: `practice.open(arg)` = `ctx.show("practice", arg)`). Ergebniskarten normal (Muster,
+„Grundlagen wiederholen“ unter 5) und „Grundlagen wiederholt“. Entscheidungen:
+- **„zuletzt unter 8 von 10“** braucht die letzte Runde: `recordRound` trägt seit diesem Schritt `last` (Richtige
+  der letzten Runde) und `day` (örtlicher Tag) in `s.levels[id]` ein; ältere Stände ohne `last` zählen mit `best`.
+- **„kein Auslöser neu zutraf“** (Merker = Tag der letzten Grundlagen-Runde mit höchstens einem Fehler): „nie
+  gespielt“ kann danach nicht neu zutreffen (die Grundlagen-Runde trägt nichts in `s.levels` ein, sonst käme die
+  Empfehlung sofort wieder); „wieder dran“ nur, wenn `faellig` nach dem Merker liegt; „unter 8“ nur bei einer
+  normalen Runde an einem späteren Tag (Tagesgenauigkeit, weil der Merker laut Plan ein Tag ist). Der Merker gilt
+  je Stufe und zählt zum Fortschritt (`fresh().basics = {}`, Zurücksetzen löscht ihn).
+- **Fehlermuster:** je Aufgabe zählt jede Grundlage höchstens einmal; `step` nur, wenn alle Fehler zu dieser
+  Grundlage aus demselben Schritt kamen (sonst „Dreimal lag die Antwort daneben.“, z. B. Notenwerte 8 mit beiden
+  Schritten). Gleiche Zahl und gleicher Schritt werden zu einem Satz zusammengefasst (einschrittige Stufen mit
+  mehreren Voraussetzungen, z. B. Notenwerte 10: „… Das übst du in Notenwerte und Pausen, Stufen 3, 5, 7 und 9.“);
+  „… öffnen“ nur bei genau einer Grundlage. Die Klammer nennt den `skill` ohne eigene Klammer („Notenstufen
+  zählen“). Intervalle 4, zweiter Schritt: allgemeine Regel „Schritt ohne Grundlage (`stepNeeds[i] = []`) in einer
+  Stufe ohne Hilfen, deren Stufe davor Hilfen hat“ → `{ need: "intervall-3", helps: true }`, Satz „Mit Hilfen übst
+  du das in Stufe 3.“ und Knopf „Stufe 3 mit Hilfen üben“; trifft am Vorrat nur Intervalle 4. In gemischten
+  Runden keine Muster (Abschnitt 7).
+- **Ergebniskarte:** Gibt es ein Muster, bietet es genau seine Grundlage an; der allgemeine Knopf „Grundlagen
+  wiederholen“ (unter 5 Richtigen) entfällt dann, damit nicht zwei gleich beschriftete Knöpfe Verschiedenes tun.
+- **Startkarte:** Mit Empfehlung ist „Grundlagen wiederholen“ der Hauptknopf und „Runde starten“ ein normaler
+  Knopf darunter; sonst umgekehrt (`btn ghost`). Die Knöpfe in „Dafür brauchst du“ öffnen die Startkarte jener
+  Stufe auch dann, wenn sie auf der Startseite noch zu ist (Voraussetzung, Leitsatz „nichts wird gesperrt“;
+  `isUnlocked` unverändert).
+- **Herkunftszeile `#pOrigin`:** `aria-live="polite"`; die Engine setzt den Text nur, wenn er sich ändert, also
+  sagt ein Bildschirmleser die Stufe an, wenn sie (und damit die Eingabeart) wechselt.
+- Tests: `test/repeat.test.js` (`basicsPlan` für 1–4 Voraussetzungen und jede Stufe, `basicsOffer` mit jedem
+  Auslöser, Verschwinden und Wiederkehr, `gapsOf` mit den Mustern aus 2), `test/views/practice.test.js`
+  (Texte der Start- und Ergebniskarte, `resultBasics`). `ueberlauf.mjs`: zwei Grundlagen-Runden über die
+  Startkarte (Intervalle 3, Dreiklänge 1) und eine Ergebniskarte mit Muster (Intervalle 4, alles daneben).
+
 #### Schritt 8 – Wiederholung über Tage: Karte „Heute“, Runde „Wiederholen“, Statistik
 
 - `views/home.js`, `index.html` (Karte `.hero`): reine Funktion `todayCard(state, packs, heute)` →

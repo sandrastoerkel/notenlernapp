@@ -577,7 +577,10 @@ function showQuestion(r) {
     // <body>. Er geht dann auf den Antwortbereich (tabindex="-1"), von dort führt Tab zu den neuen Antworten.
     const had = focusWithin(ui.answers);
     setupAnswers(r, q.from); applyInput(r);
-    if (ui.origin) ui.origin.textContent = originText(q.fromPack, q.from);
+    // #pOrigin ist aria-live="polite" (Entscheidung Schritt 7): Bildschirmleser sagen die Herkunft an, wenn die
+    // Stufe wechselt – dann wechselt auch die Eingabeart. Gleicher Text wird nicht neu gesetzt (keine Ansage).
+    const o = originText(q.fromPack, q.from);
+    if (ui.origin && ui.origin.textContent !== o) ui.origin.textContent = o;
     if (had && ui.answers && !ui.answers.hidden) focusEl(ui.answers, { preventScroll: true });
   }
   ui.staff.innerHTML = q.svg;

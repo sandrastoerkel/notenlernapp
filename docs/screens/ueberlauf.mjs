@@ -6,8 +6,10 @@
 //
 // Geprüft werden bei 320 px (dunkel) und 420 px (hell): Startseite, alle Stufen aller Pakete (Startkarte,
 // Aufgabe mit offenen Hilfen, nach jeder Antwort – abwechselnd richtig und daneben –, jede Vorführung Bild
-// für Bild), zwei gemischte Runden (Welle 11, Schritt 6: vorläufiger Start über practice.startMixed, alle
-// Aufgaben, abwechselnd richtig und daneben, dazu Herkunftszeile und keine Reste der vorigen Eingabeart),
+// für Bild), zwei gemischte Runden (Welle 11, Schritt 6: Start über practice.open({ mode: "wiederholen", plan }),
+// vorläufig bis Schritt 8; alle Aufgaben, abwechselnd richtig und daneben, dazu Herkunftszeile und keine Reste
+// der vorigen Eingabeart), zwei Runden „Grundlagen wiederholen“ über die Startkarte und eine Ergebniskarte mit
+// Fehlermuster (Schritt 7),
 // „Lernen“ je Reiter und Schlüssel mit allen Vorführungen, Blitz und Statistik.
 // In jedem Zustand zählt außerdem ein zweiter sichtbarer Knopf „Nächste Aufgabe“ als Treffer (W2, Welle 11).
 //
@@ -218,7 +220,7 @@ async function run(browser, width, scheme) {
   }
   // Gemischte Runden: jede Aufgabe, abwechselnd richtig und daneben (vorläufiger Start, Welle 11, Schritt 6)
   for (const [k, plan] of MIXED.entries()) {
-    await pg.evaluate(async (p) => { (await import("./src/views/practice.js")).startMixed("wiederholen", p); }, plan);
+    await pg.evaluate(async (p) => { (await import("./src/views/practice.js")).open({ mode: "wiederholen", plan: p }); }, plan);
     await pg.waitForTimeout(250);
     for (let rnd = 0; rnd < 12 && !(await vis("#pResult")); rnd++) {
       const w = `gemischt ${k + 1} Aufgabe ${rnd + 1}`, right = rnd % 2 === 0;
@@ -231,6 +233,38 @@ async function run(browser, width, scheme) {
     if (!(await vis("#pResult"))) errs.push(`gemischt ${k + 1}: keine Ergebniskarte`);
     await chk(`gemischt ${k + 1} Ergebnis`);
   }
+  // „Grundlagen wiederholen“ über die Startkarte (Welle 11, Schritt 7): Intervalle 3 (Ziffern, Namensraster) und
+  // Dreiklänge 1 (zwei Schritte, Namensraster), jede Aufgabe abwechselnd richtig und daneben, dann „Zurück zu Stufe …“
+  for (const lid of ["intervall-3", "akkorde-1"]) {
+    await pg.click('.tab[data-view="home"]'); await pg.waitForTimeout(120);
+    await pg.click(`.level[data-id="${lid}"]`); await pg.waitForTimeout(200);
+    if (!(await vis("#pNeeds")) || !(await vis("#pBasics"))) errs.push(`${lid}: kein Angebot „Grundlagen wiederholen“`);
+    await chk(`${lid} Startkarte mit Grundlagen`);
+    await pg.click("#pBasics"); await pg.waitForTimeout(250);
+    for (let rnd = 0; rnd < 8 && !(await vis("#pResult")); rnd++) {
+      const w = `Grundlagen ${lid} Aufgabe ${rnd + 1}`, right = rnd % 2 === 0;
+      const bad = await pg.evaluate(MIXED_CUR);
+      if (bad) errs.push(`${w}: ${bad}`);
+      await chk(`${w} Frage`);
+      await answerQuestion(w, right);
+      await goOn();
+    }
+    if (!(await vis("#pResult"))) errs.push(`Grundlagen ${lid}: keine Ergebniskarte`);
+    await chk(`Grundlagen ${lid} Ergebnis`);
+    await pg.click("#rBack"); await pg.waitForTimeout(250); await chk(`Grundlagen ${lid} zurück zur Startkarte`);
+  }
+  // Ergebniskarte mit Fehlermuster (Welle 11, Schritt 7): Intervalle 4, jede Antwort daneben
+  await pg.click('.tab[data-view="home"]'); await pg.waitForTimeout(120);
+  await pg.evaluate(PATCH, ["intervalle", "intervall-4"]);
+  await pg.click('.level[data-id="intervall-4"]'); await pg.waitForTimeout(200);
+  await pg.click("#pStart"); await pg.waitForTimeout(250);
+  for (let rnd = 0; rnd < 12 && !(await vis("#pResult")); rnd++) {
+    // die Runde erzeugt alle Aufgaben vorab: für PICK die aktuelle Aufgabe nehmen, nicht die zuletzt erzeugte
+    await pg.evaluate(async () => { window.__qs = [(await import("./src/engine.js")).currentQuestion()]; });
+    await answerQuestion(`Muster Aufgabe ${rnd + 1}`, false); await goOn();
+  }
+  if (!(await vis("#pResult .gap-line"))) errs.push("Intervalle 4 ganz daneben: kein Fehlermuster auf der Ergebniskarte");
+  await chk("Intervalle 4 Ergebnis mit Fehlermuster");
   // „Lernen“ je Reiter (Welle 11, W3) und, wo die Schlüsselwahl sichtbar ist, je Schlüssel, mit allen Vorführungen
   await pg.click('.tab[data-view="learn"]'); await pg.waitForTimeout(300);
   const ltabs = await pg.evaluate("[...document.querySelectorAll('#lTabs [role=tab]')].map((e) => e.dataset.tab)");

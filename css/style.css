@@ -545,6 +545,14 @@ section { display: grid; gap: 14px; }
 .result .stars { font-size: 2rem; }
 /* Freischalt-Zeile der Ergebniskarte (Welle 10, A7): eigene, gut lesbare Zeile, nicht im kleinen grauen Text */
 .result .unlock-line { margin: 0; padding: 8px 14px; border-radius: 12px; background: var(--accent-soft); color: var(--fg); font-weight: 700; max-width: 34rem; }
+/* „Grundlagen wiederholen“ (Welle 11, Schritt 7): Fehlermuster auf der Ergebniskarte, eigener Satz mit Knöpfen */
+.result .gap { justify-items: center; gap: 8px; max-width: 34rem; }
+.result .gap-line { margin: 0; padding: 8px 14px; border-radius: 12px; border: 1px solid var(--accent); color: var(--fg); font-weight: 700; }
+/* Startkarte: „Dafür brauchst du: …“ (jeder Eintrag ein Knopf im Textfluss) und der Grund der Empfehlung */
+.needs { margin: 0; color: var(--muted); }
+.needs .link { font: inherit; font-weight: 700; color: var(--accent); background: none; border: 0; padding: 2px 0; cursor: pointer;
+  text-decoration: underline; text-underline-offset: 2px; text-align: left; overflow-wrap: anywhere; }
+.basics-why { margin: 0; font-weight: 700; }
 
 .tabs {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 9;

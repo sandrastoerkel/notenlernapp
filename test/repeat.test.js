@@ -5,6 +5,7 @@ import {
   ABSTAENDE, FAECHER, RUNDE_WIEDERHOLEN, RUNDE_GRUNDLAGEN, MAX_STUFEN, MIN_AUFGABEN_RATEN,
   inBox, boxIds, enter, due, nextDue, reviewPlan, passed, applyReview, afterRound, dueText, dayText,
   needsOf, stepNeedsOf, skillOf, needsText,
+  basicsPlan, basicsOffer, afterBasics, gapsOf, LUECKE_AB,
 } from "../src/repeat.js";
 import { fresh, addDays, UMSTELLUNG_JE_TAG } from "../src/store.js";
 import { PACKS } from "../src/packs/index.js";
@@ -367,4 +368,148 @@ test("guess: genau die Stufen mit zwei Antwortknöpfen (Tonleitern 1–3, Dreikl
   // in der Runde „Wiederholen“ bekommt Dreiklänge 1 den größten Anteil
   assert.deepEqual(reviewPlan(dueOn(["noten-3", "intervall-2", "akkorde-1"]), PACKS, T),
     [{ id: "noten-3", n: 3 }, { id: "intervall-2", n: 3 }, { id: "akkorde-1", n: 4 }]);
+});
+
+/* ---------- „Grundlagen wiederholen“ und Fehlermuster (Welle 11, Schritt 7) ---------- */
+
+test("basicsPlan: 6 Aufgaben gleich verteilt für 1, 2, 3, 4 Voraussetzungen; only; ohne Voraussetzungen leer", () => {
+  assert.equal(RUNDE_GRUNDLAGEN, 6);
+  assert.deepEqual(basicsPlan(PACKS, "intervall-1"), [{ id: "noten-3", n: 6 }]);
+  assert.deepEqual(basicsPlan(PACKS, "akkorde-1"), [{ id: "intervall-4", n: 3 }, { id: "noten-8", n: 3 }]);
+  assert.deepEqual(basicsPlan(PACKS, "noten-8"), [{ id: "noten-3", n: 2 }, { id: "noten-6", n: 2 }, { id: "noten-7", n: 2 }]);
+  assert.deepEqual(basicsPlan(PACKS, "notenwerte-10"),
+    [{ id: "notenwerte-3", n: 2 }, { id: "notenwerte-5", n: 2 }, { id: "notenwerte-7", n: 1 }, { id: "notenwerte-9", n: 1 }]);
+  assert.deepEqual(basicsPlan(PACKS, "intervall-4", 6, "intervall-2"), [{ id: "intervall-2", n: 6 }]);
+  assert.deepEqual(basicsPlan(PACKS, "tonleitern-13", 6, ["intervall-2", "tonleitern-3"]), [{ id: "intervall-2", n: 3 }, { id: "tonleitern-3", n: 3 }]);
+  assert.deepEqual(basicsPlan(PACKS, "noten-1"), []);
+  assert.deepEqual(basicsPlan(PACKS, "gibt-es-nicht"), []);
+  // jede Stufe mit Voraussetzungen: zusammen 6 Aufgaben, nur Stufen ohne Hilfen
+  for (const l of PACKS.flatMap((p) => p.levels)) {
+    const plan = basicsPlan(PACKS, l.id);
+    if (!needsOf(PACKS, l.id).length) { assert.deepEqual(plan, [], l.id); continue; }
+    assert.equal(plan.reduce((a, e) => a + e.n, 0), 6, l.id);
+    assert.ok(plan.every((e) => inBox(level(e.id))), l.id);
+  }
+});
+
+const played = (s, id, last, day = "2026-11-20", best = Math.max(last, 0)) => { s.levels[id] = { stars: 0, best, played: 1, last, day }; };
+
+test("basicsOffer: show bei Voraussetzungen; Empfehlung bei nie gespielt, fällig, zuletzt unter 8", () => {
+  assert.deepEqual(basicsOffer(fresh(), PACKS, "noten-1", T), { show: false, recommend: false, reason: null });
+  // nie gespielt (auch eine über den Jahrgang geöffnete Stufe zählt so)
+  let s = fresh();
+  assert.deepEqual(basicsOffer(s, PACKS, "akkorde-1", T), { show: true, recommend: true, reason: { kind: "nie", id: "intervall-4" } });
+  played(s, "intervall-4", 9);
+  assert.deepEqual(basicsOffer(s, PACKS, "akkorde-1", T).reason, { kind: "nie", id: "noten-8" });
+  played(s, "noten-8", 8);
+  assert.deepEqual(basicsOffer(s, PACKS, "akkorde-1", T), { show: true, recommend: false, reason: null });
+  // zuletzt unter 8 (last), nicht die beste Runde
+  played(s, "noten-8", 6, "2026-11-21", 10);
+  assert.deepEqual(basicsOffer(s, PACKS, "akkorde-1", T).reason, { kind: "schwach", id: "noten-8" });
+  // ältere Stände ohne last: die beste Runde zählt
+  s.levels["noten-8"] = { stars: 1, best: 7, played: 2 };
+  assert.deepEqual(basicsOffer(s, PACKS, "akkorde-1", T).reason, { kind: "schwach", id: "noten-8" });
+  s.levels["noten-8"] = { stars: 2, best: 8, played: 2 };
+  assert.equal(basicsOffer(s, PACKS, "akkorde-1", T).recommend, false);
+  // fällig im Karteikasten
+  s.rep = { "intervall-4": { fach: 2, faellig: T, zuletzt: "2026-11-22" } };
+  assert.deepEqual(basicsOffer(s, PACKS, "akkorde-1", T).reason, { kind: "faellig", id: "intervall-4" });
+  s.rep["intervall-4"].faellig = addDays(T, 1);
+  assert.equal(basicsOffer(s, PACKS, "akkorde-1", T).recommend, false);
+});
+
+test("basicsOffer und afterBasics: Empfehlung verschwindet nach einer Runde mit höchstens einem Fehler und kommt wieder", () => {
+  const s = fresh();
+  played(s, "intervall-4", 9);
+  // noten-8 nie gespielt → empfohlen
+  assert.equal(basicsOffer(s, PACKS, "akkorde-1", T).recommend, true);
+  // zwei Fehler: kein Merker
+  assert.equal(afterBasics(s, "akkorde-1", 4, 6, T), false);
+  assert.equal(s.basics["akkorde-1"], undefined);
+  assert.equal(basicsOffer(s, PACKS, "akkorde-1", T).recommend, true);
+  // ein Fehler: Merker, Empfehlung weg (auch wenn noten-8 weiter nie in einer normalen Runde lag)
+  assert.equal(afterBasics(s, "akkorde-1", 5, 6, T), true);
+  assert.equal(s.basics["akkorde-1"], T);
+  assert.deepEqual(basicsOffer(s, PACKS, "akkorde-1", T), { show: true, recommend: false, reason: null });
+  // nur für diese Stufe: akkorde-2 (braucht akkorde-1, nie gespielt) bleibt empfohlen
+  assert.equal(basicsOffer(s, PACKS, "akkorde-2", T).recommend, true);
+  // schwache Runde am selben Tag weckt nichts, am nächsten Tag schon
+  played(s, "intervall-4", 5, T, 9);
+  assert.equal(basicsOffer(s, PACKS, "akkorde-1", T).recommend, false);
+  played(s, "intervall-4", 5, addDays(T, 1), 9);
+  assert.deepEqual(basicsOffer(s, PACKS, "akkorde-1", addDays(T, 1)).reason, { kind: "schwach", id: "intervall-4" });
+  // neue Grundlagen-Runde ohne Fehler am Tag darauf: wieder weg
+  afterBasics(s, "akkorde-1", 6, 6, addDays(T, 1));
+  assert.equal(basicsOffer(s, PACKS, "akkorde-1", addDays(T, 1)).recommend, false);
+  // fällig: schon am Tag des Merkers fällig zählt nicht neu, später fällig schon
+  s.rep = { "intervall-4": { fach: 1, faellig: addDays(T, 1), zuletzt: T } };
+  assert.equal(basicsOffer(s, PACKS, "akkorde-1", addDays(T, 3)).recommend, false);
+  s.rep["intervall-4"].faellig = addDays(T, 3);
+  assert.deepEqual(basicsOffer(s, PACKS, "akkorde-1", addDays(T, 3)).reason, { kind: "faellig", id: "intervall-4" });
+  // Zurücksetzen löscht den Merker (Fortschritt)
+  assert.deepEqual(fresh().basics, {});
+});
+
+// Rundenprotokoll wie engine.finish: je Aufgabe { id, ok, oks }
+const entry = (id, oks) => ({ id, ok: oks.every(Boolean), oks });
+const logOf = (id, list) => list.map((oks) => entry(id, oks));
+
+test("gapsOf: Muster aus docs/PLAN.md, Abschnitt 2 (echte Stufen)", () => {
+  assert.equal(LUECKE_AB, 3);
+  const g = (id, list) => gapsOf(PACKS, level(id), logOf(id, list));
+  const F = [false, true], S = [true, false], B = [false, false], OK = [true, true];
+  // Intervalle 4: Schritt 1 daneben → intervall-2; erst ab drei Fehlern
+  assert.deepEqual(g("intervall-4", [F, F, OK, OK]), []);
+  assert.deepEqual(g("intervall-4", [F, F, F, OK]), [{ need: "intervall-2", count: 3, step: 0 }]);
+  // Aufgaben mit nur einem Schritt (Prime, Quarte …) zählen für Schritt 1
+  assert.deepEqual(g("intervall-4", [F, [false], [false]]), [{ need: "intervall-2", count: 3, step: 0 }]);
+  // Intervalle 4, Schritt 2 daneben: keine Grundlage, sondern Stufe 3 mit Hilfen
+  assert.deepEqual(g("intervall-4", [S, S, S, B]), [{ need: "intervall-3", count: 4, step: 1, helps: true }]);
+  // Intervalle 3 hat die Hilfen selbst: Schritt 2 ohne Angebot
+  assert.deepEqual(g("intervall-3", [S, S, S]), []);
+  // Intervalle 5/6: Schritt 2 → intervall-4; Intervalle 7: → intervall-6
+  assert.deepEqual(g("intervall-6", [S, S, S]), [{ need: "intervall-4", count: 3, step: 1 }]);
+  assert.deepEqual(g("intervall-7", [S, B, S]), [{ need: "intervall-6", count: 3, step: 1 }]);
+  // Tonleitern 4: Schritt 1 → tonleitern-3, Schritt 2 → noten-7; nach Zahl geordnet
+  assert.deepEqual(g("tonleitern-4", [F, F, F]), [{ need: "tonleitern-3", count: 3, step: 0 }]);
+  assert.deepEqual(g("tonleitern-4", [F, F, F, S, S, S, B]),
+    [{ need: "tonleitern-3", count: 4, step: 0 }, { need: "noten-7", count: 4, step: 1 }]);
+  assert.deepEqual(g("tonleitern-4", [B, S, S, S, F]),
+    [{ need: "noten-7", count: 4, step: 1 }]);
+  // Tonleitern 5 (ein Schritt): beide als Ganzes
+  assert.deepEqual(g("tonleitern-5", [[false], [false], [false]]),
+    [{ need: "tonleitern-3", count: 3, step: null }, { need: "noten-7", count: 3, step: null }]);
+  // Tonleitern 12: Stammton → intervall-2, Molltonart → tonleitern-3; Tonleitern 13: beide als Ganzes
+  assert.deepEqual(g("tonleitern-12", [F, F, F]), [{ need: "intervall-2", count: 3, step: 0 }]);
+  assert.deepEqual(g("tonleitern-12", [S, S, S]), [{ need: "tonleitern-3", count: 3, step: 1 }]);
+  assert.deepEqual(g("tonleitern-13", [[false], [false], [false]]),
+    [{ need: "intervall-2", count: 3, step: null }, { need: "tonleitern-3", count: 3, step: null }]);
+  // Notenwerte 4 und 6: Notenwert daneben → notenwerte-3; Notenwerte 6, Dauer → notenwerte-5
+  assert.deepEqual(g("notenwerte-4", [F, F, F]), [{ need: "notenwerte-3", count: 3, step: 0 }]);
+  assert.deepEqual(g("notenwerte-4", [S, S, S]), [], "Notenwerte 4, Schritt 2: führt die Dauer selbst ein (mit Hilfen)");
+  assert.deepEqual(g("notenwerte-6", [F, F, F, S, S, S]),
+    [{ need: "notenwerte-3", count: 3, step: 0 }, { need: "notenwerte-5", count: 3, step: 1 }]);
+  // Notenwerte 8: Zählen daneben → notenwerte-5 und -7; beide Schritte daneben zählt einmal
+  assert.deepEqual(g("notenwerte-8", [B, B, B]),
+    [{ need: "notenwerte-5", count: 3, step: null }, { need: "notenwerte-7", count: 3, step: null }]);
+  assert.deepEqual(g("notenwerte-8", [F, F, F]),
+    [{ need: "notenwerte-5", count: 3, step: 0 }, { need: "notenwerte-7", count: 3, step: 0 }]);
+  assert.deepEqual(g("notenwerte-8", [F, S, F]),
+    [{ need: "notenwerte-5", count: 3, step: null }, { need: "notenwerte-7", count: 3, step: null }]);
+  // einschrittige Stufe mit einer Voraussetzung
+  assert.deepEqual(g("noten-7", [[false], [true], [false], [false]]), [{ need: "noten-3", count: 3, step: null }]);
+  // Stufe ohne Voraussetzungen: nichts
+  assert.deepEqual(g("noten-1", [[false], [false], [false], [false]]), []);
+});
+
+test("gapsOf: nur Einträge der Stufe, richtige zählen nicht, leeres Protokoll", () => {
+  const lv = level("intervall-4");
+  assert.deepEqual(gapsOf(PACKS, lv, []), []);
+  assert.deepEqual(gapsOf(PACKS, lv, undefined), []);
+  assert.deepEqual(gapsOf(PACKS, null, []), []);
+  const log = [entry("intervall-4", [false, true]), entry("intervall-5", [false, true]), entry("intervall-4", [true, true]),
+    entry("intervall-4", [false, true]), entry("intervall-6", [false, true])];
+  assert.deepEqual(gapsOf(PACKS, lv, log), []);
+  log.push(entry("intervall-4", [false, false]));
+  assert.deepEqual(gapsOf(PACKS, lv, log), [{ need: "intervall-2", count: 3, step: 0 }]);
 });
