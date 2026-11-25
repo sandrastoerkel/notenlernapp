@@ -468,7 +468,6 @@ export default {
   id: "akkorde",
   title: "Dreiklänge und Quintenzirkel",
   subtitle: "Dreiklangstypen, Umkehrungen, Stufen",
-  grade: "Klasse 9–12",
   levels,
   learn: [
     { title: "Dreiklangstypen", clef: "treble", render() { return typesHtml("treble"); } },

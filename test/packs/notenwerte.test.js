@@ -37,7 +37,8 @@ const HELP_LEVELS = [1, 2, 4, 6, 8];
 
 test("zehn Stufen mit eindeutigen IDs", () => {
   assert.equal(notenwerte.id, "notenwerte");
-  assert.ok(notenwerte.title && notenwerte.subtitle && notenwerte.grade);
+  assert.ok(notenwerte.title && notenwerte.subtitle);
+  assert.equal(notenwerte.grade, undefined); // seit Welle 11, Schritt 11: Jahrgang über src/klasse.js
   assert.deepEqual(L.map((l) => l.id), Array.from({ length: 10 }, (_, i) => "notenwerte-" + (i + 1)));
   assert.equal(new Set(L.map((l) => l.id)).size, 10);
   L.forEach((l, i) => {

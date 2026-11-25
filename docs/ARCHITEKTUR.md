@@ -299,12 +299,14 @@ export default {
   id: "noten",                 // eindeutig, nur Kleinbuchstaben
   title: "Noten lesen",
   subtitle: "Violin- und Bassschlüssel",
-  grade: "Klasse 5–7",         // grobe Einordnung, nur Anzeige
   levels: [ /* Stufen in Reihenfolge */ ],
   learn: [ /* optionale Lerntafeln */ ],
   blitz: null,                 // optional, siehe unten
 };
 ```
+
+Ein Paket nennt keinen Jahrgang (das frühere Feld `grade` entfällt seit Welle 11). Was in welchem Jahrgang
+„dran“ ist, steht an einer Stelle in `src/klasse.js` und kommt nur über den Link der Lehrkraft auf das Gerät.
 
 Eine Stufe:
 

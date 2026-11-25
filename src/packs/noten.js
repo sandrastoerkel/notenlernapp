@@ -165,7 +165,6 @@ export default {
   id: "noten",
   title: "Noten lesen",
   subtitle: "Violin- und Bassschlüssel",
-  grade: "Klasse 5–7",
   levels,
   // Lerntafeln: Inhalt für den Bereich „Merkhilfen“, je Schlüssel eine Tafel
   learn: [

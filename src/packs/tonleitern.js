@@ -1222,7 +1222,6 @@ export default {
   id: "tonleitern",
   title: "Tonleitern",
   subtitle: "Dur-Tonleitern bauen und lesen",
-  grade: "Klasse 5–9",
   levels,
   learn: [
     { title: "So baust du eine Dur-Tonleiter", render() { return boardHtml("scale"); }, mount: mountBoard("scale") },
