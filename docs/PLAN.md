@@ -2775,6 +2775,22 @@ bisherigen Tests bleiben grün (eine normale Runde verhält sich unverändert).
 aus drei Stufen bei 320 und 420 px ohne Überlauf; Wechsel zwischen Namensraster und Auswahlknöpfen ohne Reste
 der vorigen Aufgabe.
 
+**Umgesetzt (25.11.2026, Opus, eigener Arbeitsbaum `mixed-11`, zusammengeführt):** Commit f207c4d. `makeMixed(packs,
+plan, ctx, rand)` rein (je Stufe eigenes `prev`/`ctx.round`, Aufgaben als Kopie mit `q.from` und `q.fromPack`;
+gemischt wird nach „meiste übrige Aufgaben, nicht die zuletzt gezogene Stufe“; unbekannte ID = Fehler).
+`startMixed({ kind, items, plan? }, ui, hooks)`; `cur(r)` statt `r.level`; `startRound` in `newRun`/`begin`/
+`setupAnswers` zerlegt, Eingabe je Aufgabe neu (`effectiveInput`). Keine Hilfen und kein „Vorführen“ in der
+gemischten Runde, Warten wie in der Herkunftsstufe. `originText` („Intervalle · Stufe 4“), Rundenprotokoll `log`
+(auch in normalen Runden), `perLevelOf`. `store.js`: `MIXED_KINDS`, `recordMixedRound` (ohne Sterne und
+Freischaltung; „wiederholen“ XP wie eine normale Runde, „grundlagen“ 10 je Richtige). `#pOrigin` vor `#pStaff`.
+Vorläufiger Start und schlichte Ergebniskarte in `practice.js` (nur Konsole/Playwright), ersetzt in Schritt 7/8.
+
+**Prüfung (25.11.2026, Fable): bestanden nach Korrektur 2e8746d** (Fokus bleibt in der gemischten Runde im
+Antwortbereich statt auf `<body>`). Normale Runden unverändert, Eingabewechsel je Aufgabe ohne Reste, `s.levels`
+bleibt leer. Hinweise: erste Aufgabe einer neuen Stufe rechnet `okWaits` (bis ~110 ms) zwischen zwei Aufgaben –
+auf Handys beobachten; Herkunftszeile ohne `aria-live` (in 7/8 entscheiden); Bonus `starsFor` zählt absolute
+Richtige (kürzere Runden kleinerer Bonus, in 8 im Blick); `ueberlauf.mjs` dauert über 10 Minuten.
+
 #### Schritt 7 – „Grundlagen wiederholen“ und Fehlermuster
 
 - `repeat.js`: `basicsPlan(packs, levelId, n = RUNDE_GRUNDLAGEN, only = null)` → `[{ id, n }]` aus `needsOf`
