@@ -1,5 +1,5 @@
 // Startseite: Karte „Heute“ (Wiederholung über Tage, Weiter üben), Pakete mit ihren Stufen
-import { isUnlocked, unlockedBy, today, dayDiff } from "../store.js";
+import { isUnlocked, unlockedBy, today, dayDiff, addDays } from "../store.js";
 import { findLevel, starsHtml, keepStufe } from "../engine.js";
 import { due, nextDue, reviewPlan, dueText } from "../repeat.js";
 import { learnTabOf } from "./learn.js";
@@ -74,9 +74,17 @@ export function reviewListText(packs, plan) {
   return `${total} Aufgaben aus ${andList(plan.map((e) => { const { pack, level } = findLevel(packs, e.id); return `${packShort(pack)}\u00a0${level.no}`; }))}`;
 }
 
-export const streakText = (s) => (s.dayStreak >= 2
-  ? `${s.dayStreak} Tage in Folge geübt. Eine Runde heute hält die Serie am Leben.`
-  : "Eine Runde dauert etwa zwei Minuten. Zehn Aufgaben, dann gibt es Sterne.");
+// Satz zur Tagesserie. Der Zusatz „Eine Runde heute hält die Serie am Leben.“ steht nur, wenn die Serie bis gestern
+// reicht und heute noch nicht geübt wurde; nach der Runde von heute bleibt die Zahl ohne Zusatz. Ist die Serie
+// gerissen (letzter Übetag vor gestern), steht der allgemeine Satz – kein Hinweis auf Versäumtes.
+const STREAK_NONE = "Eine Runde dauert etwa zwei Minuten. Zehn Aufgaben, dann gibt es Sterne.";
+export function streakText(s, heute) {
+  if (!(s.dayStreak >= 2)) return STREAK_NONE;
+  const n = `${s.dayStreak} Tage in Folge geübt.`;
+  if (s.lastDay === heute) return n;
+  if (s.lastDay === addDays(heute, -1)) return `${n} Eine Runde heute hält die Serie am Leben.`;
+  return STREAK_NONE;
+}
 export const BOX_EMPTY_TEXT = "Was du mit 8 von 10 schaffst, kommt nach einem Tag zum Wiederholen wieder.";
 export const REVIEW_START = "Wiederholung starten";
 
@@ -91,7 +99,7 @@ export function todayCard(state, packs, heute) {
   if (plan.length) return { title: "Wiederholen", line: reviewListText(packs, plan), review: REVIEW_START, cont, small: "" };
   const next = nextDue(state, heute);
   return {
-    title: "Bereit für eine Runde?", line: streakText(state), review: null, cont,
+    title: "Bereit für eine Runde?", line: streakText(state, heute), review: null, cont,
     small: next ? `Nächste Wiederholung: ${dueText(dayDiff(heute, next))}` : BOX_EMPTY_TEXT,
   };
 }

@@ -2954,6 +2954,33 @@ ersetzt (Konsole/Playwright: `practice.open(arg)` = `ctx.show("practice", arg)`)
   „… üben“ öffnet die Startkarte, danach „Heute“ ohne Fälliges mit „Nächste Wiederholung“), eine normale Runde
   ganz richtig („Neu im Kasten“), Statistik mit Kästchen; „Kasten leer“ ist die erste Startseite.
 
+**Prüfung (25.11.2026, Fable): bestanden nach Korrektur** (Commit „Prüfung Schritt 8“):
+- **Statistik bei 320 px:** `.level-stat-name` trug `min-width: 0`; lange Wörter („Bassschlüssel“,
+  „Violinschlüssel“) ragten damit in „noch nicht gespielt“ hinein (in allen Zeilen, auch ohne Kasten;
+  `ueberlauf.mjs` sieht Überlappung innerhalb einer Zeile nicht). Ohne `min-width: 0` ist die Spalte wieder so
+  breit wie ihr längstes Wort (wie vor Schritt 8).
+- **Satz zur Serie auf der Karte „Heute“:** „Eine Runde heute hält die Serie am Leben.“ stand auch direkt nach der
+  Runde von heute und bei gerissener Serie (die Zahl in `dayStreak` bleibt bis zur nächsten Runde stehen). Jetzt
+  `streakText(s, heute)`: Zusatz nur, wenn bis gestern geübt und heute noch nicht; heute schon geübt → nur „4 Tage
+  in Folge geübt.“; Serie gerissen → der allgemeine Satz (kein Hinweis auf Versäumtes).
+- **Schreibweise:** „Noch wacklig.“ (`resultMessage`) wie „noch wacklig“ in den Urteilszeilen (beides stand auf
+  derselben Ergebniskarte in zwei Schreibweisen).
+- **Kurzname `short` (Abweichung des Umsetzers): richtig.** „Dreiklänge 1 und Notenwerte 5“ liest sich eindeutig,
+  der volle Titel mit „und“ nicht; Überschriften und Statistik behalten den Titel. Hinweis: Der Satz aus Schritt 7
+  („Das übst du in Dreiklänge und Quintenzirkel, Stufe 1 und in …“) nutzt noch den vollen Titel.
+- **Ablauf über Tage im Browser** (gestellte Uhr, Zeitzone Kuala Lumpur, 07:30 Uhr – in UTC noch der Vortag):
+  Tag 0 Kasten leer → drei Runden → „Neu im Kasten“, „Nächste Wiederholung: morgen“; Tag 1 „Wiederholen“ (3
+  Stufen) → Fach 2, „in 3 Tagen“, Serie 2, +160 XP; Tag 2 normale Runde in nicht fälliger Stufe ändert nichts;
+  Tag 4 eine Stufe daneben → Fach 1, „morgen noch einmal“, die anderen Fach 3 („in 7 Tagen“); Tag 5 normale
+  Runde in der fälligen Stufe → „Wiederholung: sitzt · wieder in 3 Tagen.“; Tag 11 → Fach 4 („in 14 Tagen“);
+  nach drei Wochen Pause mit sieben fälligen Stufen nennt die Karte nur die nächste Runde (drei Stufen, am
+  längsten fällig zuerst), kein Zähler, „Noch eine Wiederholung“ erst auf der Ergebniskarte; nie eine Stufe
+  gesperrt, keine Konsolenfehler.
+- Hinweise ohne Änderung: Nach langer Pause tragen alle fälligen Stufen in der Liste „↻ wieder dran“ (so im Plan;
+  ruhig, ohne Zahl). Die Zahl der Tagesserie oben in der Leiste bleibt nach einem ausgelassenen Tag bis zur
+  nächsten Runde stehen (schon vor Welle 11 so). Die Sterne der Ergebniskarte „Wiederholen“ sind nur Anzeige;
+  bei 0 Richtigen stehen drei leere Sterne.
+
 #### Schritt 9 – Gewichtete Auswahl in Intervalle und Tonleitern, Gewicht nach Tagen
 
 - `src/adapt.js`: `TAGE_WIE_NEU = 7`; `weight(entry, heute)`: Eine „sichere“ Aufgabe, deren `last` mindestens

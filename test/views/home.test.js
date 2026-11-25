@@ -58,8 +58,14 @@ test("todayCard: nichts fällig, Kasten nicht leer – „Nächste Wiederholung:
   c = todayCard(st({ "noten-3": { fach: 2, faellig: "2026-11-28", zuletzt: T }, "noten-6": { fach: 4, faellig: "2026-12-20", zuletzt: T } }), PACKS, T);
   assert.equal(c.small, "Nächste Wiederholung: in 3 Tagen");
   // Serie
-  c = todayCard(st({ "noten-3": { fach: 1, faellig: "2026-11-26", zuletzt: T } }, { dayStreak: 4 }), PACKS, T);
+  // Serie: bis gestern geübt → mit dem Zusatz; heute schon geübt → nur die Zahl; Serie gerissen → allgemeiner Satz
+  const box = { "noten-3": { fach: 1, faellig: "2026-11-26", zuletzt: T } };
+  c = todayCard(st(box, { dayStreak: 4, lastDay: "2026-11-24" }), PACKS, T);
   assert.equal(c.line, "4 Tage in Folge geübt. Eine Runde heute hält die Serie am Leben.");
+  c = todayCard(st(box, { dayStreak: 4, lastDay: T }), PACKS, T);
+  assert.equal(c.line, "4 Tage in Folge geübt.");
+  c = todayCard(st(box, { dayStreak: 4, lastDay: "2026-11-20" }), PACKS, T);
+  assert.equal(c.line, streakText(fresh()));
 });
 
 test("todayCard: Kasten leer – wie bisher, dazu der Satz zum Kasten", () => {

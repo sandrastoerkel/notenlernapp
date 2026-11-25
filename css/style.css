@@ -546,7 +546,7 @@ section { display: grid; gap: 14px; }
 .level-stat-end { gap: 8px; flex-wrap: nowrap; justify-content: flex-end; }
 @media (max-width: 480px) { .level-stat { grid-template-columns: 1fr auto; } .level-stat .bar { grid-column: 1 / -1; grid-row: 2; } }
 /* Karteikasten je Stufe (Welle 11, Schritt 8): fünf Kästchen, gefüllt bis zum Fach, dazu „zuletzt geübt am …“ */
-.level-stat-name { display: grid; gap: 2px; min-width: 0; }
+.level-stat-name { display: grid; gap: 2px; }
 .box-line { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; }
 .box { display: inline-flex; gap: 3px; vertical-align: middle; }
 .box > i { width: 9px; height: 9px; border-radius: 2px; border: 1px solid var(--muted); background: transparent; }

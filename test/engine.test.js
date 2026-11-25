@@ -110,7 +110,7 @@ test("Feedback- und Ergebnistexte", () => {
   // Tippfehler aus dem Prototyp („die dritte Sterne“) hier korrigiert
   assert.equal(resultMessage(2), "Gut. Noch eine Runde und der dritte Stern ist drin.");
   assert.ok(resultMessage(1).startsWith("Solide Basis"));
-  assert.ok(resultMessage(0).startsWith("Noch wackelig"));
+  assert.ok(resultMessage(0).startsWith("Noch wacklig"));
 });
 
 test("dotsHtml", () => {
