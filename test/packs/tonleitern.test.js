@@ -1038,12 +1038,20 @@ test("Abschlussprüfung Welle 10: Tonleitern 1–3 daneben mit Grund; Startkarte
 const UNSICHER = { ok: 0, bad: 8, hist: "00000000", last: "2026-11-24" };
 const SICHER_HEUTE = { ok: 10, bad: 0, hist: "1111111111", last: "2026-11-25" };
 const HEUTE = "2026-11-25";
+// Fester Zufall (mulberry32) für die Häufigkeitstests: Die Pakete ziehen jede Auswahl über ctx.rand, deshalb
+// laufen diese Tests bei jedem Aufruf gleich und können nicht zufällig scheitern.
+const prng = (seed) => () => {
+  seed = (seed + 0x6d2b79f5) | 0;
+  let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+};
 const STATS = [stepStat, stepStat, stepStat, gapStat, gapStat, oddStat, oddStat, sigStat, sigStat, majorStat, majorStat, minorStat, minorStat];
 const POOLS = [ITEMS_1, ITEMS_2, ITEMS_3, ITEMS_4, ITEMS_5, ITEMS_6, ITEMS_7, ITEMS_8, ITEMS_9, ITEMS_10, ITEMS_11, ITEMS_12, ITEMS_13];
-function zuege(l, notes, runden = 200) {
-  const count = {}, rounds = [];
+function zuege(l, notes, runden = 200, seed = 11) {
+  const count = {}, rounds = [], rand = prng(seed);
   for (let r = 0; r < runden; r++) {
-    const round = makeRound(l, 10, { notes, heute: HEUTE });
+    const round = makeRound(l, 10, { notes, heute: HEUTE, rand });
     rounds.push(round);
     for (const q of round) count[q.statKey] = (count[q.statKey] || 0) + 1;
   }
@@ -1112,7 +1120,7 @@ test("Gewichtung: was lange nicht dran war, kommt öfter (ab 7 Tagen wie neu)", 
 });
 
 test("pickItem und pickStep: ohne w wie bisher, mit w nie dieselbe wie prev", () => {
-  const w = { notes: { [gapStat(ITEMS_5[0])]: UNSICHER }, statOf: gapStat, heute: HEUTE };
+  const w = { notes: { [gapStat(ITEMS_5[0])]: UNSICHER }, statOf: gapStat, heute: HEUTE, rand: prng(5) };
   let prev = null;
   for (let i = 0; i < 500; i++) {
     const it = pickItem(ITEMS_5, prev, w);
@@ -1120,7 +1128,7 @@ test("pickItem und pickStep: ohne w wie bisher, mit w nie dieselbe wie prev", ()
     prev = it;
   }
   prev = null;
-  const ws = { notes: { [stepStat(ITEMS_1[0])]: UNSICHER }, statOf: stepStat, heute: HEUTE };
+  const ws = { notes: { [stepStat(ITEMS_1[0])]: UNSICHER }, statOf: stepStat, heute: HEUTE, rand: prng(6) };
   for (let i = 0; i < 500; i++) {
     const it = pickStep(ITEMS_1, prev, Math.random, HALF_P, ws);
     if (prev) assert.notEqual(it.key, prev.key);

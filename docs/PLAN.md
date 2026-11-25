@@ -2886,6 +2886,21 @@ beides ab). `heute` kommt aus `ctx.heute` (Tests) oder `today()` aus `store.js`.
   Oberfläche oder Texten, deshalb keine Überlauf-Prüfung nötig.
 - Rücknahme: den Commit zurücknehmen; nichts anderes hängt davon ab.
 
+**Prüfung (25.11.2026, Fable):** bestanden nach Korrektur. Die vier Abweichungen sind richtig entschieden (Gruppe
+gewichten, weil sonst nichts wirkt; Tonleitern 10–13 gehören nach Abschnitt 3 dazu; `baseOf` hält die Prime selten;
+`notes: {}` in `okTextsMax` gab es schon, die Verteilung ist dieselbe – nachgemessen je Stufe mit 15 000 Zügen,
+Abweichung je `statKey` unter 1 %).
+- Korrektur: Die neuen Häufigkeitstests liefen über `Math.random` und hätten selten zufällig scheitern können.
+  Jetzt zieht jede Auswahl beider Pakete über `ctx.rand` (freiwillig, sonst `Math.random`; auch Gruppe, Aufgabe in
+  der Gruppe, Richtung in Intervalle 9, Urteil in Intervalle 10, Ganz/Halb in Tonleitern 1–4), und die Tests geben
+  einen festen Zufall mit (mulberry32 mit Startwert). Gleicher Startwert → gleiche Folge von Aufgaben.
+- Keine Antwort wird vorhersagbar: Im schlimmsten Fall (eine Aufgabe unsicher, alle anderen sicher und heute geübt)
+  hat die häufigste Antwort einer Stufe höchstens etwa ein Drittel (Intervalle 1: 33 %, sonst 9 bis 26 %); in
+  Tonleitern 1–3 bleibt „Ganztonschritt“ bei 60 %, in Intervalle 10 jedes Urteil bei einem Viertel.
+- Prime: höchstens einmal je Runde bleibt. Ist die Prime selbst unsicher und alles andere sicher, kommt sie in
+  etwa der Hälfte bis zwei Dritteln der Runden einmal vor (ohne Fortschritt in etwa einem Viertel bis einem
+  Drittel) – gewollt, weil sie dann geübt werden soll.
+
 #### Schritt 10 – QR-Code-Modul (`src/qr.js`)
 
 Eigener kleiner Encoder, keine Abhängigkeit, kein Netz, rein (ohne DOM); die Datei kommt in `PRECACHE` und läuft

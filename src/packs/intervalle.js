@@ -45,13 +45,15 @@ const pairKey = (it) => `${it.clef}:${dia(it.low)}/${it.low.acc}:${dia(it.high)}
 export function pickItem(items, prev, w = null) {
   const cand = prev ? items.filter((it) => pairKey(it) !== pairKey(prev)) : items;
   const list = cand.length ? cand : items;
-  if (w) return pickAmong(list, w.statOf, w.notes, w.rand, w.heute);
+  if (w) return pickAmong(list, w.statOf, w.notes, randOf(w), w.heute);
   return list[Math.floor(Math.random() * list.length)];
 }
 
 // Gewichtete Auswahl (Welle 11, Schritt 9): nur mit ctx.notes (Fortschritt je statKey), sonst null und alles
 // wie bisher. statOf liefert den statKey, den die Frage zu einer Aufgabe des Vorrats einträgt; heute aus ctx
-// (Tests) oder der örtliche Tag.
+// (Tests) oder der örtliche Tag. ctx.rand (optional, Tests) ersetzt Math.random bei jedem Zug der Auswahl
+// (Gruppe, Aufgabe, Richtung, Urteil), damit die Häufigkeitstests mit festem Startwert immer gleich laufen.
+const randOf = (w) => (w && w.rand) || Math.random;
 export const adaptOf = (ctx, statOf) => (ctx && ctx.notes ? { notes: ctx.notes, statOf, heute: ctx.heute || today(), rand: ctx.rand } : null);
 
 // Auflösungszeichen (Welle 10, A3): Ein Vorzeichen gilt bis zum Taktstrich für alle folgenden Noten an
@@ -144,6 +146,7 @@ export const POOL_7 = qualityPool("treble", TYPES_NO_PRIME);
 export const PRIME_WEIGHT = 0.25;
 const isPrime = (q) => !!q && (q.num === 1 || (q.low && q.high && intervalNumber(q.low, q.high) === 1));
 function pickBy(pool, prev, groupOf, keyOf = pairKey, round = [], w = null) {
+  const rnd = randOf(w);
   const primeDone = round.some(isPrime);
   const usable = primeDone ? pool.filter((it) => it.num !== 1) : pool;
   if (usable.length) pool = usable;
@@ -152,18 +155,18 @@ function pickBy(pool, prev, groupOf, keyOf = pairKey, round = [], w = null) {
   const total = groups.reduce((sum, g) => sum + weightOf(g), 0);
   const repOf = (g) => pool.find((it) => groupOf(it) === g);
   const drawGroup = () => {
-    if (w) return pickAmong(groups, (g) => w.statOf(repOf(g)), w.notes, w.rand, w.heute, weightOf);
-    let r = Math.random() * total;
+    if (w) return pickAmong(groups, (g) => w.statOf(repOf(g)), w.notes, rnd, w.heute, weightOf);
+    let r = rnd() * total;
     for (const g of groups) { r -= weightOf(g); if (r < 0) return g; }
     return groups[groups.length - 1];
   };
   for (let i = 0; i < 20; i++) {
     const g = drawGroup();
     const cand = pool.filter((it) => groupOf(it) === g && (!prev || keyOf(it) !== keyOf(prev)));
-    if (cand.length) return cand[Math.floor(Math.random() * cand.length)];
+    if (cand.length) return cand[Math.floor(rnd() * cand.length)];
   }
   const cand = pool.filter((it) => !prev || keyOf(it) !== keyOf(prev));
-  return cand[Math.floor(Math.random() * cand.length)];
+  return cand[Math.floor(rnd() * cand.length)];
 }
 const roundOf = (ctx) => (ctx && ctx.round) || [];
 const byNum = (it) => it.num;
@@ -294,7 +297,7 @@ const buildKey = (it) => `${dia(it.given)}/${it.given.acc}:${it.num}${it.quality
 
 // Stufe 9: Richtung gleich wahrscheinlich, dann das Intervall, dann die Aufgabe
 function pickBuild9(prev, round = [], w = null) {
-  const up = Math.random() < 0.5;
+  const up = randOf(w)() < 0.5;
   return pickBy(up ? BUILD_UP : BUILD_DOWN, prev, byType, buildKey, round, w);
 }
 
@@ -372,7 +375,7 @@ const checkKey = (it) => `${dia(it.low)}/${it.low.acc}:${it.num}${it.quality}:${
 
 // Erst das Urteil (jedes gleich wahrscheinlich, also etwa ein Viertel „stimmt“), dann das Intervall, dann die Aufgabe
 function pickCheck(pool, prev, round = [], w = null) {
-  const verdict = VERDICTS[Math.floor(Math.random() * VERDICTS.length)];
+  const verdict = VERDICTS[Math.floor(randOf(w)() * VERDICTS.length)];
   return pickBy(pool.filter((it) => it.verdict === verdict), prev, byType, checkKey, round, w);
 }
 

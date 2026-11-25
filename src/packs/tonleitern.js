@@ -170,7 +170,8 @@ export function pickItem(items, prev, w = null) {
 
 // Gewichtete Auswahl (Welle 11, Schritt 9): nur mit ctx.notes (Fortschritt je statKey), sonst null und alles
 // wie bisher. statOf liefert den statKey, den die Frage zu einer Aufgabe des Vorrats einträgt; heute aus ctx
-// (Tests) oder der örtliche Tag.
+// (Tests) oder der örtliche Tag. ctx.rand (optional, Tests) ersetzt Math.random bei jedem Zug der Auswahl
+// (auch Ganz oder Halb in pickStep), damit die Häufigkeitstests mit festem Startwert immer gleich laufen.
 export const adaptOf = (ctx, statOf) => (ctx && ctx.notes ? { notes: ctx.notes, statOf, heute: ctx.heute || today(), rand: ctx.rand } : null);
 
 const scalePlay = (notes) => notes.map((note) => ({ note, beats: 0.5 }));
@@ -217,9 +218,10 @@ export const ITEMS_3 = [...stepPool("treble", KEYS_4), ...stepPool("bass", KEYS_
 // Halbtöne mit Wahrscheinlichkeit p (Stufe 1–3: 0,4, sonst kämen sie nur 2 von 7 Mal; Stufe 4: 1/3).
 // Mit w (adaptOf) wird danach innerhalb von Ganz bzw. Halb gewichtet; der Anteil p bleibt.
 export function pickStep(items, prev, rnd = Math.random, p = HALF_P, w = null) {
+  if (w && w.rand) rnd = w.rand;
   const half = rnd() < p;
   const cand = items.filter((it) => it.half === half && (!prev || it.key !== prev.key));
-  if (cand.length && w) return pickAmong(cand, w.statOf, w.notes, w.rand || rnd, w.heute);
+  if (cand.length && w) return pickAmong(cand, w.statOf, w.notes, rnd, w.heute);
   return cand.length ? cand[Math.floor(rnd() * cand.length)] : pickItem(items, prev, w);
 }
 

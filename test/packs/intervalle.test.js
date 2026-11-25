@@ -751,11 +751,19 @@ test("Welle 10, B15: Intervalltafel – Paare eng, Lücken weit, Trennstrich; Kn
 const UNSICHER = { ok: 0, bad: 8, hist: "00000000", last: "2026-11-24" };
 const SICHER_HEUTE = { ok: 10, bad: 0, hist: "1111111111", last: "2026-11-25" };
 const HEUTE = "2026-11-25";
+// Fester Zufall (mulberry32) für die Häufigkeitstests: Die Pakete ziehen jede Auswahl über ctx.rand, deshalb
+// laufen diese Tests bei jedem Aufruf gleich und können nicht zufällig scheitern.
+const prng = (seed) => () => {
+  seed = (seed + 0x6d2b79f5) | 0;
+  let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+};
 // 200 Runden zu 10 Aufgaben (2000 Züge) mit Fortschritt notes, gezählt je statKey
-function zuege(l, notes, runden = 200) {
-  const count = {}, rounds = [];
+function zuege(l, notes, runden = 200, seed = 11) {
+  const count = {}, rounds = [], rand = prng(seed);
   for (let r = 0; r < runden; r++) {
-    const round = makeRound(l, 10, { notes, heute: HEUTE });
+    const round = makeRound(l, 10, { notes, heute: HEUTE, rand });
     rounds.push(round);
     for (const q of round) count[q.statKey] = (count[q.statKey] || 0) + 1;
   }
@@ -858,7 +866,7 @@ test("Gewichtung: was lange nicht dran war, kommt öfter (ab 7 Tagen wie neu)", 
 });
 
 test("pickItem: mit w gewichtet, nie dieselbe wie prev", () => {
-  const w = { notes: { "Terz (Violin)": UNSICHER }, statOf: numberStat, heute: HEUTE };
+  const w = { notes: { "Terz (Violin)": UNSICHER }, statOf: numberStat, heute: HEUTE, rand: prng(5) };
   let terz = 0, prev = null;
   for (let i = 0; i < 2000; i++) {
     const it = pickItem(POOL_1, prev, w);
