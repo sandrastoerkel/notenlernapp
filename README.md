@@ -1,6 +1,6 @@
 # Notenheld – klassische Notenlernapp
 
-Noten lesen lernen im Violin- und Bassschlüssel, mit Notenwerten, Dur-Tonleitern, Intervallen und Dreiklängen, gedacht für Schülerinnen und Schüler am Gymnasium (Klasse 5 bis 12). Deutsche Notennamen (H, B, Fis, Es), Oktavschreibweise wie im Musikunterricht (c, c', c'').
+Noten lesen lernen im Violin- und Bassschlüssel, mit Notenwerten, Intervallen, Dur-Tonleitern und Dreiklängen, gedacht für Schülerinnen und Schüler am Gymnasium (Klasse 5 bis 12). Deutsche Notennamen (H, B, Fis, Es), Oktavschreibweise wie im Musikunterricht (c, c', c'').
 
 Die App ist eine statische Web-App ohne Konto und ohne Tracking. Der Fortschritt wird nur im Browser des Geräts gespeichert.
 
@@ -75,7 +75,7 @@ Smartphone-Breite (420 px), helles Farbschema. Die dunklen Fassungen liegen dane
 7. Vorzeichen ♯ und ♭
 8. Alles gemischt
 
-Das sind die Stufen von „Noten lesen“. Weitere Pakete: Notenwerte und Pausen (zehn Stufen: Notenwerte, Pausen, Schläge, Punktierungen, Takt füllen; immer erst mit Hilfen – Merkmale, Notenwert-Pyramide, Zählleiste – dann ohne; drei Vorführungen als Lerntafeln), Tonleitern (13 Stufen: Ganz- und Halbtonschritte, welcher Ton fehlt, welcher Ton passt nicht, Vorzeichen, Tonart aus den Vorzeichen, parallele Molltonart; immer erst mit Hilfen – Klaviatur, Bauplan-Leiste bzw. Quintenzirkel – dann ohne; drei Vorführungen als Lerntafeln), Intervalle (zehn Stufen: erst nur die Zahl, dann Grob- und Feinbestimmung – rein/klein/groß und vermindert/übermäßig in zwei Schritten, abwärts, bauen, Fehler finden; Stufe 1, 3, 5 und 8 mit aufklappbaren Hilfen: Klaviatur und Tabelle), Dreiklänge und Quintenzirkel.
+Das sind die Stufen von „Noten lesen“. Weitere Pakete: Notenwerte und Pausen (zehn Stufen: Notenwerte, Pausen, Schläge, Punktierungen, Takt füllen; immer erst mit Hilfen – Merkmale, Notenwert-Pyramide, Zählleiste – dann ohne; drei Vorführungen als Lerntafeln), Intervalle (zehn Stufen: erst nur die Zahl, dann Grob- und Feinbestimmung – rein/klein/groß und vermindert/übermäßig in zwei Schritten, abwärts, bauen, Fehler finden; Stufe 1, 3, 5 und 8 mit aufklappbaren Hilfen: Klaviatur und Tabelle), Tonleitern (13 Stufen: Ganz- und Halbtonschritte, welcher Ton fehlt, welcher Ton passt nicht, Vorzeichen, Tonart aus den Vorzeichen, parallele Molltonart; immer erst mit Hilfen – Klaviatur, Bauplan-Leiste bzw. Quintenzirkel – dann ohne; drei Vorführungen als Lerntafeln), Dreiklänge und Quintenzirkel (in dieser Reihenfolge auf der Startseite, in „Lernen“ und in der Statistik; seit Welle 11 stehen die Intervalle vor den Tonleitern).
 
 Eine Stufe öffnet sich, sobald in der vorherigen 8 von 10 Noten richtig waren. Zum Ausprobieren gibt es auf der Startseite „Alle Stufen öffnen (Demo)“.
 

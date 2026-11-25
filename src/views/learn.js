@@ -12,7 +12,7 @@ let ctx = null;
 // lTab: gewählter Reiter, gemerkt in der Sitzung (wie lClef); nach dem Neuladen wieder „Tonhöhen“
 let lClef = "treble", lSel = null, lAll = false, lTab = "noten";
 
-// Reiter (rein, getestet). Reihenfolge wie die Pakete nach Welle 11, Schritt 3 (Intervalle vor Tonleitern);
+// Reiter (rein, getestet). Reihenfolge wie PACKS (seit Welle 11, Schritt 3 Intervalle vor Tonleitern; der Test prüft das);
 // „Takt“ steht hinter „Notenwerte“. Ein Reiter mit der id eines Pakets zeigt dessen Tafeln ohne eigenes tab.
 export const LEARN_TABS = [
   { id: "noten", label: "Tonhöhen" },

@@ -28,9 +28,10 @@ test("Lerntafeln mit mount werden nach dem Einsetzen verdrahtet (nur die sichtba
   const packs = [{ learn: [{ clef: "treble", render: () => "", mount: (r) => seen.push(["t", r]) }, { clef: "bass", render: () => "", mount: () => seen.push(["b"]) }, { render: () => "" }, { render: () => "", mount: (r) => seen.push(["all", r]) }] }];
   mountCards(packs, "treble", "ROOT");
   assert.deepEqual(seen, [["t", "ROOT"], ["all", "ROOT"]]);
-  // Tafeln mit mount: die drei Vorführungen bei „Notenwerte“ (Welle 9) und „Tonleitern“ (Welle 8) und „So bestimmst du ein Intervall“
+  // Tafeln mit mount: die drei Vorführungen bei „Notenwerte“ (Welle 9), „So bestimmst du ein Intervall“ und die drei
+  // bei „Tonleitern“ (Welle 8), in der Reihenfolge der Pakete (seit Welle 11 Intervalle vor Tonleitern)
   assert.deepEqual(PACKS.flatMap((p) => p.learn || []).filter((c) => c.mount).map((c) => c.title),
-    ["So erkennst du einen Notenwert", "So bestimmst du die Dauer", "So zählst du einen Takt", "So baust du eine Dur-Tonleiter", "So findest du die Tonart", "So findest du die parallele Molltonart", "So bestimmst du ein Intervall"]);
+    ["So erkennst du einen Notenwert", "So bestimmst du die Dauer", "So zählst du einen Takt", "So bestimmst du ein Intervall", "So baust du eine Dur-Tonleiter", "So findest du die Tonart", "So findest du die parallele Molltonart"]);
   // die Tonleiter-Tafeln tragen ein eigenes Attribut: die Intervall-Tafel (data-demo-board) findet nur sich selbst
   const html = PACKS.flatMap((p) => p.learn || []).map((c) => c.render()).join("");
   assert.equal((html.match(/data-demo-board/g) || []).length, 1);
@@ -45,10 +46,9 @@ const TABS = LEARN_TABS.map((t) => t.id);
 
 test("Reiter: Namen und Reihenfolge wie die Pakete (Intervalle vor Tonleitern), „Takt“ hinter „Notenwerte“", () => {
   assert.deepEqual(LEARN_TABS.map((t) => t.label), ["Tonhöhen", "Notenwerte", "Takt", "Intervalle", "Tonleitern", "Dreiklänge"]);
-  // jedes Paket hat seinen Reiter; die Pakete stehen in der Reihenfolge nach Schritt 3
-  // (Schritt 3 stellt PACKS um; dann gilt: TABS ohne „takt“ = PACKS.map(id))
-  assert.deepEqual(TABS.filter((id) => id !== "takt"), ["noten", "notenwerte", "intervalle", "tonleitern", "akkorde"]);
-  assert.deepEqual(PACKS.map((p) => p.id).slice().sort(), TABS.filter((id) => id !== "takt").sort());
+  // jedes Paket hat seinen Reiter, in der Reihenfolge von PACKS (seit Schritt 3); „Takt“ direkt hinter „Notenwerte“
+  assert.deepEqual(TABS.filter((id) => id !== "takt"), PACKS.map((p) => p.id));
+  assert.equal(TABS.indexOf("takt"), TABS.indexOf("notenwerte") + 1);
 });
 
 test("Reiter: jede Lerntafel gehört zu genau einem Reiter, kein Reiter ist leer", () => {

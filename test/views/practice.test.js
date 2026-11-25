@@ -159,8 +159,8 @@ test("Startkarte: zweischrittige Stufen sagen „Beide Schritte müssen stimmen.
     if (level.twoSteps) { two.push(level.id); assert.ok(startHint(level).endsWith(TWO_STEPS_NOTE), level.id); }
     else assert.equal(startHint(level), textOf(level.hint), level.id);
   }
-  assert.deepEqual(two, ["notenwerte-1", "notenwerte-4", "notenwerte-6", "notenwerte-8", "tonleitern-4", "tonleitern-10", "tonleitern-12",
-    "intervall-3", "intervall-4", "intervall-5", "intervall-6", "intervall-7"]);
+  assert.deepEqual(two, ["notenwerte-1", "notenwerte-4", "notenwerte-6", "notenwerte-8",
+    "intervall-3", "intervall-4", "intervall-5", "intervall-6", "intervall-7", "tonleitern-4", "tonleitern-10", "tonleitern-12"]);
   // die Startkarte nutzt startHint
   const src = readFileSync(new URL("../../src/views/practice.js", import.meta.url), "utf8");
   assert.match(src, /\$\("#pHint"\)\.textContent = startHint\(level, \{ state: ctx\.state \}\)/);

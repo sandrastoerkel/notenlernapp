@@ -25,12 +25,13 @@ src/
   sprueche.js           Merksprüche: Vorschläge, eigener Spruch, Prüfung der Anfangsbuchstaben (rein, seit Welle 10)
   demo.js               Baukasten: Vorführung (Bilder mit Zurück/Abspielen/Weiter ›, Schritt-Marken, Ergebniskarte)
   grid.js               Baukasten: Kästchentabelle („gehirngerechte“ Übersicht, eine Zeile je Eintrag)
-  packs/index.js        Registry aller Themenpakete
+  packs/index.js        Registry aller Themenpakete (PACKS; ihre Reihenfolge gilt für Startseite, Lernen, Statistik:
+                        Noten lesen, Notenwerte, Intervalle, Tonleitern, Dreiklänge; Intervalle vor Tonleitern seit Welle 11)
   packs/noten.js        Paket „Noten lesen“ (8 Stufen)
   packs/notenwerte.js   Paket „Notenwerte und Pausen“
+  packs/intervalle.js   Paket „Intervalle“ (10 Stufen, neu seit Welle 7: erst mit Hilfen, dann ohne)
   packs/tonleitern.js   Paket „Tonleitern“ (seit Welle 8: 13 Stufen, erst mit Hilfen, dann ohne; Dur bis 4 Vorzeichen,
                         Tonart aus den Vorzeichen und parallele Molltonart bis 7; drei Vorführungen)
-  packs/intervalle.js   Paket „Intervalle“ (10 Stufen, neu seit Welle 7: erst mit Hilfen, dann ohne)
   packs/akkorde.js      Paket „Dreiklänge und Quintenzirkel“
   views/home.js         Startseite: Pakete und Stufen
   views/practice.js     Üben (nutzt engine.js)

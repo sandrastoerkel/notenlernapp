@@ -25,8 +25,8 @@ const byId = (n) => L[n - 1];
 const many = (l, n = 300) => { const out = []; let prev = null; for (let i = 0; i < n; i++) { prev = l.question(prev); out.push(prev); } return out; };
 const steps = (notes) => notes.slice(1).map((n, i) => midi(n) - midi(notes[i]));
 
-test("Paket ist registriert und steht zwischen Notenwerten und Intervallen", () => {
-  assert.deepEqual(PACKS.map((p) => p.id), ["noten", "notenwerte", "tonleitern", "intervalle", "akkorde"]);
+test("Paket ist registriert und steht zwischen Intervallen und Dreiklängen (seit Welle 11)", () => {
+  assert.deepEqual(PACKS.map((p) => p.id), ["noten", "notenwerte", "intervalle", "tonleitern", "akkorde"]);
   assert.equal(tonleitern.title, "Tonleitern");
   assert.equal(tonleitern.subtitle, "Dur-Tonleitern bauen und lesen");
   // seit die Tonarten-Stufen (bis 7 Vorzeichen) hier stehen: Klasse 5–9 (wird nirgends angezeigt)

@@ -10,6 +10,9 @@ import noten from "../src/packs/noten.js";
 import intervalle from "../src/packs/intervalle.js";
 import tonleitern from "../src/packs/tonleitern.js";
 import notenwerte from "../src/packs/notenwerte.js";
+import akkorde from "../src/packs/akkorde.js";
+import { PACKS } from "../src/packs/index.js";
+import { findLevel } from "../src/engine.js";
 import { FENSTER, ZEIT_DECKEL } from "../src/adapt.js";
 
 // Einfacher Ersatz für localStorage
@@ -525,4 +528,55 @@ test("reset behält nur Ton und Eingabeart", () => {
   assert.equal(r.xp, 0);
   assert.deepEqual(r.levels, {});
   assert.equal(r.current, "noten-1");
+});
+
+/* ---------- Paketreihenfolge (Welle 11, Schritt 3): Intervalle vor Tonleitern ---------- */
+
+// Reihenfolge bis Welle 10 (Tonleitern vor Intervallen), zum Vergleich
+const OLD_ORDER = [noten, notenwerte, tonleitern, intervalle, akkorde];
+
+test("Paketreihenfolge: Intervalle vor Tonleitern, dieselben Pakete und Stufen-IDs wie vorher", () => {
+  assert.deepEqual(PACKS.map((p) => p.id), ["noten", "notenwerte", "intervalle", "tonleitern", "akkorde"]);
+  // nur die Reihenfolge der Pakete ändert sich: jede Stufen-ID (Schlüssel im Spielstand) bleibt, auch innerhalb der Pakete
+  const ids = (packs) => Object.fromEntries(packs.map((p) => [p.id, p.levels.map((l) => l.id)]));
+  assert.deepEqual(ids(PACKS), ids(OLD_ORDER));
+  assert.deepEqual(ids(PACKS).intervalle, Array.from({ length: 10 }, (_, i) => `intervall-${i + 1}`));
+  assert.deepEqual(ids(PACKS).tonleitern, Array.from({ length: 13 }, (_, i) => `tonleitern-${i + 1}`));
+});
+
+test("Paketreihenfolge: gespeicherte Spielstände bleiben unverändert (Fortschritt, Freischaltung, Umstellungen)", () => {
+  // Stand nach allen Umstellungen, mit Fortschritt in jedem Paket und current in den Intervallen
+  const saved = {
+    ...fresh(), xp: 1234, streak: 3, lastDay: "2026-11-24", answered: 300, correct: 250,
+    current: "intervall-4", migrated: [MIGRATION_INTERVALLE, MIGRATION_TONLEITERN, MIGRATION_NOTENWERTE],
+    levels: {
+      "noten-1": { stars: 3, best: 10, played: 4 }, "noten-2": { stars: 2, best: 8, played: 2 },
+      "notenwerte-1": { stars: 2, best: 8, played: 1 },
+      "intervall-1": { stars: 3, best: 9, played: 3 }, "intervall-2": { stars: 2, best: 8, played: 1 },
+      "intervall-3": { stars: 1, best: 6, played: 2 },
+      "tonleitern-1": { stars: 2, best: 8, played: 1 }, "tonleitern-11": { stars: 1, best: 6, played: 2 },
+      "akkorde-1": { stars: 1, best: 5, played: 1 },
+    },
+    notes: { "treble:c'": { ok: 5, bad: 1 } },
+  };
+  const raw = JSON.stringify(saved);
+  const st = memStorage({ [KEY_V2]: raw });
+  const s = load(st);
+  // nichts umgestellt, nichts neu gespeichert, alles wie gespeichert
+  assert.equal(st.data[KEY_V2], raw);
+  assert.deepEqual(s, saved);
+  assert.equal(s.current, "intervall-4");
+  assert.equal(findLevel(PACKS, s.current).level.id, "intervall-4");
+  // Freischaltung jeder Stufe und die Suche nach jeder Stufe sind in alter und neuer Reihenfolge gleich
+  const view = (packs) => packs.flatMap((p) => p.levels.map((l) => [l.id, isUnlocked(s, p, l.id), findLevel(packs, l.id).pack.id]))
+    .sort((a, b) => (a[0] < b[0] ? -1 : 1));
+  assert.deepEqual(view(PACKS), view(OLD_ORDER));
+  assert.ok(isUnlocked(s, intervalle, "intervall-3") && !isUnlocked(s, intervalle, "intervall-5"));
+  assert.ok(isUnlocked(s, tonleitern, "tonleitern-2") && isUnlocked(s, tonleitern, "tonleitern-11") && !isUnlocked(s, tonleitern, "tonleitern-3"));
+  // ein alter Stand (v1, dann alle Umstellungen) ergibt dasselbe wie vor der Umstellung der Reihenfolge
+  const old = load(memStorage({ [KEY_V2]: JSON.stringify({ ...fresh(), migrated: [], current: "intervalle-6",
+    levels: { "intervalle-5": { stars: 2, best: 8, played: 3 }, "intervalle-6": { stars: 1, best: 6, played: 1 }, "notenwerte-3": { stars: 1, best: 6, played: 1 } } }) }));
+  assert.deepEqual(old.levels, { "tonleitern-11": { stars: 2, best: 8, played: 3 }, "tonleitern-13": { stars: 1, best: 6, played: 1 }, "notenwerte-5": { stars: 1, best: 6, played: 1 } });
+  assert.equal(old.current, "tonleitern-13");
+  assert.deepEqual(old.migrated.slice().sort(), [MIGRATION_INTERVALLE, MIGRATION_NOTENWERTE, MIGRATION_TONLEITERN].sort());
 });

@@ -2580,6 +2580,23 @@ und Reiter bleiben in der Sitzung, nach Neuladen „Tonhöhen“. Korrekturen:
 - Abnahme: Startseite, Statistik und „Lernen“ zeigen Noten lesen → Notenwerte und Pausen → Intervalle →
   Tonleitern → Dreiklänge und Quintenzirkel; `docs/screens/screenshots.mjs` läuft.
 
+**Umgesetzt (25.11.2026, Opus).** `PACKS = [noten, notenwerte, intervalle, tonleitern, akkorde]`; Startseite,
+Statistik und „Lernen“ folgen von selbst (mit Playwright bei 420 px hell und 320 px dunkel nachgesehen: Noten
+lesen → Notenwerte und Pausen → Intervalle → Tonleitern → Dreiklänge und Quintenzirkel, kein Seitenüberlauf).
+- Tests: `tonleitern.test.js` (Reihenfolge der IDs); `learn.test.js` prüft jetzt `LEARN_TABS` ohne „takt“ =
+  `PACKS.map(id)` und „Takt“ direkt hinter „Notenwerte“ (Hinweis aus Schritt 2 erledigt). Zwei weitere feste
+  Reihenfolgen gefunden und angepasst: die Tafeln mit `mount` (`learn.test.js`) und die zweischrittigen Stufen
+  (`practice.test.js`).
+- Neu in `store.test.js`: Stufen-IDs je Paket wie vorher; ein gespeicherter Stand (alle Umstellungs-Marker,
+  Fortschritt in jedem Paket, `current` in den Intervallen) wird unverändert geladen und nicht neu gespeichert;
+  Freischaltung und `findLevel` jeder Stufe sind in alter und neuer Reihenfolge gleich; ein alter Stand
+  (`intervalle-5/-6`, `notenwerte-3`) wird wie bisher umgestellt. Spielstände hängen nur an den IDs.
+- Skripte: `ueberlauf.mjs` und `screenshots.mjs` hängen nicht an der Reihenfolge (keine Änderung nötig); beide
+  laufen. Die Bildschirmfotos in `docs/screens/` sind nicht neu eingecheckt (das macht Schritt 13).
+- Doku: `README.md` (Aufzählung der Pakete), `docs/ARCHITEKTUR.md` (Registry, Liste der Pakete), `CLAUDE.md`
+  Zeile 19 als damaliger Stand gekennzeichnet. Hinweise der Stufen gelesen: keiner setzt das andere Paket als
+  „später“ oder „schon gelernt“ voraus; nichts geändert.
+
 #### Schritt 4 – Örtliches Datum, Felder `rep` und `klasse`, Karteikasten als reine Logik
 
 **`src/store.js`.**
