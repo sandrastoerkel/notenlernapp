@@ -2377,6 +2377,14 @@ Antworten) und Tastatur ausdrücklich nannte:
 - Keine Abweichung vom Plan; ein Fokus-Rahmen ohne `outline` war nicht möglich (Regel in `test/css.test.js`), der
   Antwortbereich zeigt bei Tastaturbedienung den üblichen Rahmen in `--accent`.
 
+**Prüfung (25.11.2026, Fable).** Code und Tests gegen den Plan gelesen, 377 Tests grün. Eine Korrektur: Der
+Antwortbereich ist jetzt Fokusziel, hatte aber keinen Namen – `#pAnswers` trägt `role="group"` und
+`aria-label="Antworten"`, damit ein Vorleseprogramm nach „Nächste Aufgabe“ etwas ansagt. Der Ausweichweg auf die
+Klaviatur (`ui.piano`) wird derzeit nie erreicht: Die einzige Buchstaben-Stufe mit Hilfen (Intervalle 8) nimmt
+nur das Namensraster. **Noch offen:** `ueberlauf.mjs` und die Bildschirmfotos (420 hell, 320 dunkel) konnten in
+der Prüfsitzung nicht laufen (der lokale Server ließ sich dort nicht starten); nachzuholen sind dabei der Abstand
+72 px zur Kopfleiste und der Fokusrahmen um den Antwortbereich.
+
 #### Schritt 1 – W1: Notenwerte – Dauer in Schlägen, ein Wortlaut
 
 **Befund.** „Wie viele Schläge im 4/4-Takt?“ lässt sich als „Wie viele Schläge hat der 4/4-Takt?“ lesen

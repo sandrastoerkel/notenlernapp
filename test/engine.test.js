@@ -835,7 +835,8 @@ test("Nächste Aufgabe: Fokus geht auf „Abspielen“ und danach auf den Antwor
 test("index.html und style.css: Antwortbereich als Fokusziel, Notenzeile mit Abstand zur Kopfleiste", () => {
   const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
   const css = readFileSync(new URL("../css/style.css", import.meta.url), "utf8");
-  assert.match(html, /<div class="answers" id="pAnswers" tabindex="-1">/);
+  // mit Namen: Der Antwortbereich bekommt nach „Nächste Aufgabe“ den Fokus, ein Vorleseprogramm sagt „Antworten“
+  assert.match(html, /<div class="answers" id="pAnswers" role="group" aria-label="Antworten" tabindex="-1">/);
   assert.match(css, /#pStaff \{ scroll-margin-top: \d+px; \}/);
 });
 
