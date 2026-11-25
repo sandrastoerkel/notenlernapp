@@ -2551,6 +2551,18 @@ jedem Wechsel ganz sichtbar, letzter Reiter durch Rollen erreichbar, kein Seiten
 Wechsel, Reiter bleibt nach „Statistik“ und zurück, nach Neuladen „Tonhöhen“, Merkspruch-Wahl in „Tonleitern“
 speichert; `ueberlauf.mjs` (jetzt je Reiter und Schlüssel) 0 Treffer, 0 Konsolenfehler.
 
+**Prüfung (25.11.2026, Fable).** Bestanden nach Korrektur. Mit Playwright bei 320 px dunkel und 420 px hell
+nachgeprüft: genau ein gewählter Reiter, wandernder Tabindex, `aria-labelledby` folgt, Pfeile umlaufend,
+Pos1/Ende, Tab in den Inhalt und zurück, gewählter Reiter immer ganz sichtbar, kein Seitenüberlauf, Schlüssel
+und Reiter bleiben in der Sitzung, nach Neuladen „Tonhöhen“. Korrekturen:
+- **„Erst anschauen“ bei „Takt füllen“:** Die Stufen 8 und 9 der Notenwerte tragen `learnTab: "takt"`;
+  `learnTabOf(packs, levelId)` (rein, getestet) liefert `level.learnTab`, sonst die id des Pakets. So führt
+  „Erst anschauen“ zu „So zählst du einen Takt“ statt zu den Notenwert-Tafeln. Stufe 10 „Alles gemischt“
+  (Stufen 3, 5, 7 und 9) bleibt bei „Notenwerte“, weil drei der vier Teile dorthin gehören.
+- **Leiste springt nicht zurück:** Der gewählte Reiter wird nur beim Öffnen der Ansicht und beim Wechsel des
+  Reiters sichtbar gerollt, nicht mehr bei jedem Neuzeichnen (Notenzeile antippen, „Alle Namen zeigen“,
+  Schlüssel wechseln) – wer die Leiste von Hand gewischt hat, behält ihre Stellung.
+
 #### Schritt 3 – Paketreihenfolge: Intervalle vor Tonleitern
 
 - `src/packs/index.js`: `PACKS = [noten, notenwerte, intervalle, tonleitern, akkorde]`. Startseite

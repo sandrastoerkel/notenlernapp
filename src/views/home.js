@@ -1,6 +1,7 @@
 // Startseite: Begrüßung, Trefferquote, Pakete mit ihren Stufen
 import { isUnlocked, unlockedBy, accuracy } from "../store.js";
 import { findLevel, starsHtml, keepStufe } from "../engine.js";
+import { learnTabOf } from "./learn.js";
 import { countUnsure } from "../adapt.js";
 import { NOTE_KEYS } from "../packs/noten.js";
 
@@ -10,8 +11,9 @@ let ctx = null;
 export function init(c) {
   ctx = c;
   $("#homeContinue").addEventListener("click", () => ctx.show("practice"));
-  // „Erst anschauen“ öffnet in „Lernen“ den Reiter des Pakets der aktuellen Stufe (Welle 11, Schritt 2)
-  $("#homeLearn").addEventListener("click", () => ctx.show("learn", { tab: findLevel(ctx.packs, ctx.state.current).pack.id }));
+  // „Erst anschauen“ öffnet in „Lernen“ den Reiter zur aktuellen Stufe (Welle 11, Schritt 2): den des Pakets,
+  // bei „Takt füllen“ den Reiter „Takt“ (learnTabOf)
+  $("#homeLearn").addEventListener("click", () => ctx.show("learn", { tab: learnTabOf(ctx.packs, ctx.state.current) }));
   $("#unlockAll").addEventListener("click", () => { ctx.state.unlockAll = !ctx.state.unlockAll; ctx.save(); render(); });
   // Klick auf eine Stufe (Delegation, weil die Liste bei jedem render neu entsteht)
   $("#levelList").addEventListener("click", (e) => {

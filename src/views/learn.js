@@ -3,6 +3,7 @@
 import { fromDia, same, gName, helm, staffPos } from "../music.js";
 import { staffSvg, noteSvg, noteheadSvg, BOTTOM, S } from "../staff.js";
 import { play } from "../audio.js";
+import { findLevel } from "../engine.js";
 import { stopDemos } from "../demo.js";
 import { MERKHILFEN, waehle, setzeEigen, checkSpruch, meldung, aktiv, spruch } from "../sprueche.js";
 
@@ -31,6 +32,13 @@ export function nextTab(ids, cur, key) {
   if (key === "Home") return ids[0];
   if (key === "End") return ids[n - 1];
   return null;
+}
+
+// Reiter, den „Erst anschauen“ für eine Stufe öffnet (rein, getestet): level.learnTab, sonst der Reiter des
+// Pakets. So führt „Takt füllen“ (Paket Notenwerte) zu „So zählst du einen Takt“ im Reiter „Takt“.
+export function learnTabOf(packs, levelId) {
+  const { pack, level } = findLevel(packs, levelId);
+  return level.learnTab || pack.id;
 }
 
 export function init(c) {
@@ -130,6 +138,7 @@ function selectTab(id, focus = false) {
   if (!TAB_IDS.includes(id)) return;
   lTab = id;
   draw();
+  reveal();
   if (focus) $("#ltab-" + id).focus();
 }
 
@@ -146,7 +155,6 @@ function drawTabs() {
   $("#lStaff").hidden = !notes;
   $("#lNote").hidden = !notes;
   $("#lClefs").hidden = !tabHasClef(ctx.packs, lTab);
-  showTab($("#lTabs"), $("#ltab-" + lTab));
 }
 
 // Kleinste Rollweite der Leiste, bei der der Reiter [a, b] ganz sichtbar ist und die Leiste am Anfang eines
@@ -161,6 +169,10 @@ export function tabScroll(starts, a, b, pos, width, pad, max) {
   return Math.min(max, snap === undefined ? max : snap);
 }
 
+// Nur beim Öffnen der Ansicht und beim Wechsel des Reiters: Wer die Leiste von Hand gewischt hat, dem springt
+// sie beim Antippen der Notenzeile oder beim Wechsel des Schlüssels nicht zurück.
+const reveal = () => showTab($("#lTabs"), $("#ltab-" + lTab));
+
 // gewählten Reiter sichtbar machen (die Leiste rollt bei schmalen Fenstern in sich)
 function showTab(bar, sel) {
   const f = bar.getBoundingClientRect(), pos = bar.scrollLeft, pad = parseFloat(getComputedStyle(bar).paddingLeft) || 0;
@@ -174,6 +186,7 @@ function showTab(bar, sel) {
 export function render(arg) {
   if (arg && TAB_IDS.includes(arg.tab)) lTab = arg.tab;
   draw();
+  reveal();
 }
 
 // legend: false beim Antippen der Notenzeile und bei „Alle Namen zeigen“ – die Lerntafeln (und eine

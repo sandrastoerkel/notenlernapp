@@ -789,9 +789,10 @@ const RAW = [
     hint: "Zwei Schritte: Erst der Notenwert ohne den Punkt, dann die Dauer. Der Punkt verlängert eine Note um die Hälfte ihres Wertes: punktierte Viertel 1 + ½ = 1½ Schläge." },
   { title: "Punktierungen ohne Hilfen", subtitle: "Punktierte halbe, Viertel und Achtel", items: ITEMS_7, pool: POOL_7, example: singleSvg(el(2, true), true),
     hint: "Der Punkt verlängert eine Note um die Hälfte ihres Wertes: punktierte halbe 2 + 1 = 3 Schläge, punktierte Viertel 1 + ½ = 1½, punktierte Achtel ½ + ¼ = ¾." },
-  { twoSteps: true, title: "Takt füllen", subtitle: `4/4-Takt mit Lücke · zwei Schritte · mit Hilfen · ${ITEMS_8.length} Aufgaben`, items: ITEMS_8, example: barSvg(parseBar("4. 8 r4 4"), 2),
+  // learnTab: Reiter in „Lernen“, den „Erst anschauen“ für diese Stufe öffnet (sonst der Reiter des Pakets)
+  { learnTab: "takt", twoSteps: true, title: "Takt füllen", subtitle: `4/4-Takt mit Lücke · zwei Schritte · mit Hilfen · ${ITEMS_8.length} Aufgaben`, items: ITEMS_8, example: barSvg(parseBar("4. 8 r4 4"), 2),
     hint: "Zwei Schritte: Erst zählen – die Werte im Takt zusammenzählen, die Lücke überspringen, dann: Was fehlt bis 4? Dann den Wert wählen, der genau so lang dauert." },
-  { title: "Takt füllen ohne Hilfen", subtitle: `4/4-Takt mit Lücke · ${ITEMS_9.length} Aufgaben`, items: ITEMS_9, example: barSvg(parseBar("2 4 r8 8"), 3),
+  { learnTab: "takt", title: "Takt füllen ohne Hilfen", subtitle: `4/4-Takt mit Lücke · ${ITEMS_9.length} Aufgaben`, items: ITEMS_9, example: barSvg(parseBar("2 4 r8 8"), 3),
     hint: "Ein 4/4-Takt hat vier Schläge. Zähle zusammen, was schon im Takt steht, und überlege, wie viel bis vier fehlt." },
   { autoNext: true, title: "Alles gemischt", subtitle: "Stufen 3, 5, 7 und 9", items: ITEMS_10, pools: POOLS_10, example: barSvg(parseBar("2 8 8 8 8"), 3),
     hint: "Notenwerte, Pausen, Schläge, Punkte und Takte aus den Stufen ohne Hilfen durcheinander." },
@@ -814,6 +815,7 @@ const levels = RAW.map((r, i) => ({
   // Zweischrittige Stufe (q.steps): Die Startkarte sagt „Beide Schritte müssen stimmen.“
   twoSteps: !!r.twoSteps,
   ...(typeof r.autoNext === "boolean" ? { autoNext: r.autoNext } : {}),
+  ...(r.learnTab ? { learnTab: r.learnTab } : {}),
   example: r.example,
   input: "choices",
   items: r.items,

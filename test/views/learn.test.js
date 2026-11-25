@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { learnCardsHtml, mountCards, LEARN_TABS, tabHasClef, nextTab, tabScroll } from "../../src/views/learn.js";
+import { learnCardsHtml, mountCards, LEARN_TABS, tabHasClef, nextTab, tabScroll, learnTabOf } from "../../src/views/learn.js";
 import { PACKS } from "../../src/packs/index.js";
 import noten from "../../src/packs/noten.js";
 
@@ -113,4 +113,18 @@ test("tabScroll: gewählter Reiter ganz sichtbar, Leiste rastet am Anfang eines 
   // links hinaus: an seinen Anfang (Pos1 → 0)
   assert.equal(tabScroll(starts, 6, 6 + w, 300, width, pad, max), 0);
   assert.equal(tabScroll(starts, 218, 218 + w, 300, width, pad, max), 212);
+});
+
+test("„Erst anschauen“: Reiter zur Stufe – der des Pakets, bei „Takt füllen“ der Reiter „Takt“", () => {
+  for (const p of PACKS) for (const l of p.levels) {
+    const t = learnTabOf(PACKS, l.id);
+    assert.ok(TABS.includes(t), l.id);
+    assert.equal(t, /^Takt füllen/.test(l.title) ? "takt" : p.id, l.id);
+  }
+  assert.equal(learnTabOf(PACKS, "notenwerte-8"), "takt");
+  assert.equal(learnTabOf(PACKS, "notenwerte-9"), "takt");
+  // „Alles gemischt“ (Stufen 3, 5, 7 und 9) bleibt beim Paket
+  assert.equal(learnTabOf(PACKS, "notenwerte-10"), "notenwerte");
+  // unbekannte Stufe: erste Stufe des ersten Pakets
+  assert.equal(learnTabOf(PACKS, "gibt-es-nicht"), "noten");
 });
