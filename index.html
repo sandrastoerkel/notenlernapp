@@ -103,28 +103,32 @@
     <div class="row between">
       <div>
         <p class="eyebrow">Lernen</p>
-        <h2>Tippe auf die Notenzeile</h2>
+        <h2 id="lHead">Tippe auf die Notenzeile</h2>
       </div>
-      <div class="seg" role="group" aria-label="Schlüssel">
+      <div class="seg" role="group" aria-label="Schlüssel" id="lClefs">
         <button id="lTreble" class="on">Violinschlüssel</button>
         <button id="lBass">Bassschlüssel</button>
       </div>
     </div>
-    <div class="card staff-card" id="lStaff"></div>
-    <div class="card row between">
-      <div>
-        <p class="eyebrow">Gewählte Note</p>
-        <p class="big" id="lName">–</p>
-        <p class="muted small" id="lHelm">Tippe auf eine Linie oder einen Zwischenraum.</p>
+    <!-- Reiter je Inhalt (Welle 11, W3); die Knöpfe setzt learn.js aus LEARN_TABS -->
+    <div class="ltabs" role="tablist" aria-label="Lerninhalte" id="lTabs"></div>
+    <div class="lpanel" role="tabpanel" id="lPanel" aria-labelledby="ltab-noten" tabindex="0">
+      <div class="card staff-card" id="lStaff"></div>
+      <div class="card row between" id="lNote">
+        <div>
+          <p class="eyebrow">Gewählte Note</p>
+          <p class="big" id="lName">–</p>
+          <p class="muted small" id="lHelm">Tippe auf eine Linie oder einen Zwischenraum.</p>
+        </div>
+        <div class="stack">
+          <button class="btn" id="lPlay">▶ Anhören</button>
+          <button class="btn ghost" id="lShowAll">Alle Namen zeigen</button>
+        </div>
       </div>
-      <div class="stack">
-        <button class="btn" id="lPlay">▶ Anhören</button>
-        <button class="btn ghost" id="lShowAll">Alle Namen zeigen</button>
+      <div class="card stack">
+        <p class="eyebrow">Lerntafeln</p>
+        <div class="legend" id="lLegend"></div>
       </div>
-    </div>
-    <div class="card stack">
-      <p class="eyebrow">Lerntafeln</p>
-      <div class="legend" id="lLegend"></div>
     </div>
   </section>
 

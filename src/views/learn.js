@@ -1,4 +1,5 @@
-// Lernen: Notenzeile zum Antippen, alle Namen einblenden, Lerntafeln der Pakete
+// Lernen: Reiter je Inhalt (Welle 11, W3); im Reiter „Tonhöhen“ die Notenzeile zum Antippen und „Alle Namen
+// zeigen“, in jedem Reiter die Lerntafeln, die zu ihm gehören
 import { fromDia, same, gName, helm, staffPos } from "../music.js";
 import { staffSvg, noteSvg, noteheadSvg, BOTTOM, S } from "../staff.js";
 import { play } from "../audio.js";
@@ -7,21 +8,56 @@ import { MERKHILFEN, waehle, setzeEigen, checkSpruch, meldung, aktiv, spruch } f
 
 const $ = (s) => document.querySelector(s);
 let ctx = null;
-let lClef = "treble", lSel = null, lAll = false;
+// lTab: gewählter Reiter, gemerkt in der Sitzung (wie lClef); nach dem Neuladen wieder „Tonhöhen“
+let lClef = "treble", lSel = null, lAll = false, lTab = "noten";
+
+// Reiter (rein, getestet). Reihenfolge wie die Pakete nach Welle 11, Schritt 3 (Intervalle vor Tonleitern);
+// „Takt“ steht hinter „Notenwerte“. Ein Reiter mit der id eines Pakets zeigt dessen Tafeln ohne eigenes tab.
+export const LEARN_TABS = [
+  { id: "noten", label: "Tonhöhen" },
+  { id: "notenwerte", label: "Notenwerte" },
+  { id: "takt", label: "Takt" },
+  { id: "intervalle", label: "Intervalle" },
+  { id: "tonleitern", label: "Tonleitern" },
+  { id: "akkorde", label: "Dreiklänge" },
+];
+const TAB_IDS = LEARN_TABS.map((t) => t.id);
+
+// Nächster Reiter für eine Taste (rein, getestet): Pfeile umlaufend, Pos1/Ende; null bei anderen Tasten
+export function nextTab(ids, cur, key) {
+  const i = Math.max(0, ids.indexOf(cur)), n = ids.length;
+  if (key === "ArrowRight") return ids[(i + 1) % n];
+  if (key === "ArrowLeft") return ids[(i - 1 + n) % n];
+  if (key === "Home") return ids[0];
+  if (key === "End") return ids[n - 1];
+  return null;
+}
 
 export function init(c) {
   ctx = c;
-  $("#lTreble").addEventListener("click", () => { lClef = "treble"; lSel = null; render(); });
-  $("#lBass").addEventListener("click", () => { lClef = "bass"; lSel = null; render(); });
+  $("#lTreble").addEventListener("click", () => { lClef = "treble"; lSel = null; draw(); });
+  $("#lBass").addEventListener("click", () => { lClef = "bass"; lSel = null; draw(); });
   $("#lPlay").addEventListener("click", () => { if (lSel) play(lSel); });
-  $("#lShowAll").addEventListener("click", () => { lAll = !lAll; render(false); });
+  $("#lShowAll").addEventListener("click", () => { lAll = !lAll; draw(false); });
+  // Reiter: ARIA-Muster „Tabs“ mit Aktivierung beim Fokus und wanderndem Tabindex. Der Tastatur-Handler hängt
+  // an der Leiste, nicht an document: die Tasten der anderen Ansichten bleiben unberührt.
+  const bar = $("#lTabs");
+  bar.innerHTML = LEARN_TABS.map((t) => `<button class="ltab" role="tab" id="ltab-${t.id}" data-tab="${t.id}" aria-controls="lPanel" aria-selected="false" tabindex="-1">${t.label}</button>`).join("");
+  bar.addEventListener("click", (e) => { const b = e.target.closest("[data-tab]"); if (b) selectTab(b.dataset.tab); });
+  bar.addEventListener("keydown", (e) => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const t = nextTab(TAB_IDS, lTab, e.key);
+    if (!t) return;
+    e.preventDefault();
+    selectTab(t, true);
+  });
   // Klick auf eine Linie oder einen Zwischenraum (Delegation)
   // Merkspruch-Wahl (Delegation am Bereich der Lerntafeln; ctx.state wird beim Zurücksetzen ersetzt)
   wireSprueche($("#lLegend"), { get state() { return ctx.state; }, save: () => ctx.save() });
   $("#lStaff").addEventListener("click", (e) => {
     const r = e.target.closest(".hit[data-d]");
     if (!r) return;
-    lSel = fromDia(+r.dataset.d); play(lSel); render(false);
+    lSel = fromDia(+r.dataset.d); play(lSel); draw(false);
   });
 }
 
@@ -30,11 +66,17 @@ const esc = (t) => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replac
 // Lerntafeln aller Pakete (rein, getestet): Tafeln mit Schlüssel nur für den gewählten, Tafeln ohne
 // Schlüssel immer. Der Titel einer Tafel steht als Überschrift über ihrem Inhalt (ganze Breite des Rasters).
 // c (optional): { state } geht an card.render (gewählte Merksprüche, Welle 10, Schritt 4).
-export const learnCardsHtml = (packs, clef, c) => packs.flatMap((p) => p.learn || [])
+// tab (optional, Welle 11): nur die Tafeln dieses Reiters (card.tab, sonst die id des Pakets).
+const cardsOf = (packs, tab) => packs.flatMap((p) => (p.learn || []).filter((card) => tab === undefined || (card.tab || p.id) === tab));
+export const learnCardsHtml = (packs, clef, c, tab) => cardsOf(packs, tab)
   .filter((card) => !card.clef || card.clef === clef)
   .map((card) => (card.title ? `<h3 class="legend-title">${esc(card.title)}</h3>` : "") + card.render(c))
   .join("");
-const legendHtml = () => learnCardsHtml(ctx.packs, lClef, { state: ctx.state });
+const legendHtml = () => learnCardsHtml(ctx.packs, lClef, { state: ctx.state }, lTab);
+
+// Gibt es im Reiter eine Tafel je Schlüssel (oder ist es „Tonhöhen“ mit der Notenzeile)? Sonst ist die
+// Schlüsselwahl ausgeblendet, damit kein Schalter ohne Wirkung dasteht (rein, getestet)
+export const tabHasClef = (packs, tab) => tab === "noten" || cardsOf(packs, tab).some((card) => card.clef);
 
 // Merkspruch-Wahl in den Lerntafeln (sprueche.wahlHtml): Vorschlag antippen → gespeichert; „Eigener Spruch“
 // wird beim Tippen geprüft und nur gespeichert, wenn die Anfangsbuchstaben passen. Danach zeigen alle
@@ -78,13 +120,67 @@ export function wireSprueche(root, c) {
   });
 }
 // Tafeln mit mount (z. B. die Vorführung bei „Intervalle“) verdrahten ihre Knöpfe nach dem Einsetzen
-export const mountCards = (packs, clef, root) => packs.flatMap((p) => p.learn || [])
+export const mountCards = (packs, clef, root, tab) => cardsOf(packs, tab)
   .filter((card) => (!card.clef || card.clef === clef) && card.mount)
   .forEach((card) => card.mount(root));
 
+// Reiter wechseln: Vorführungen anhalten, nur die Tafeln des Reiters neu setzen und verdrahten;
+// focus: true bei der Tastatur (der Fokus geht mit dem Reiter)
+function selectTab(id, focus = false) {
+  if (!TAB_IDS.includes(id)) return;
+  lTab = id;
+  draw();
+  if (focus) $("#ltab-" + id).focus();
+}
+
+// Leiste und Kopf zum gewählten Reiter: aria-selected, wandernder Tabindex, Überschrift, Schlüsselwahl
+function drawTabs() {
+  for (const t of LEARN_TABS) {
+    const b = $("#ltab-" + t.id), on = t.id === lTab;
+    b.setAttribute("aria-selected", String(on));
+    b.tabIndex = on ? 0 : -1;
+  }
+  $("#lPanel").setAttribute("aria-labelledby", "ltab-" + lTab);
+  const notes = lTab === "noten";
+  $("#lHead").textContent = notes ? "Tippe auf die Notenzeile" : LEARN_TABS.find((t) => t.id === lTab).label;
+  $("#lStaff").hidden = !notes;
+  $("#lNote").hidden = !notes;
+  $("#lClefs").hidden = !tabHasClef(ctx.packs, lTab);
+  showTab($("#lTabs"), $("#ltab-" + lTab));
+}
+
+// Kleinste Rollweite der Leiste, bei der der Reiter [a, b] ganz sichtbar ist und die Leiste am Anfang eines
+// Reiters einrastet (rein, getestet). starts: Anfänge aller Reiter, a/b: Kanten des gewählten, alle in px vom
+// Anfang des Inhalts; pad: Innenabstand; max: größte Rollweite. Ohne Einrasten hielte scroll-snap ein
+// scrollIntoView({ inline: "nearest" }) nicht: die Leiste spränge zum nächsten Einrastpunkt zurück.
+export function tabScroll(starts, a, b, pos, width, pad, max) {
+  if (a - pad >= pos && b + pad <= pos + width) return pos;
+  if (a - pad < pos) return Math.max(0, a - pad);
+  const need = b + pad - width;
+  const snap = starts.map((x) => x - pad).filter((x) => x >= need).sort((x, y) => x - y)[0];
+  return Math.min(max, snap === undefined ? max : snap);
+}
+
+// gewählten Reiter sichtbar machen (die Leiste rollt bei schmalen Fenstern in sich)
+function showTab(bar, sel) {
+  const f = bar.getBoundingClientRect(), pos = bar.scrollLeft, pad = parseFloat(getComputedStyle(bar).paddingLeft) || 0;
+  const at = (el) => el.getBoundingClientRect().left - f.left - bar.clientLeft + pos;
+  const starts = [...bar.children].map(at), a = at(sel), b = a + sel.getBoundingClientRect().width;
+  const to = tabScroll(starts, a, b, pos, bar.clientWidth, pad, bar.scrollWidth - bar.clientWidth);
+  if (Math.abs(to - pos) > 0.5) bar.scrollTo({ left: to, behavior: "instant" });
+}
+
+// Aufruf beim Öffnen der Ansicht (app.js show); arg.tab (optional): diesen Reiter zeigen („Erst anschauen“)
+export function render(arg) {
+  if (arg && TAB_IDS.includes(arg.tab)) lTab = arg.tab;
+  draw();
+}
+
 // legend: false beim Antippen der Notenzeile und bei „Alle Namen zeigen“ – die Lerntafeln (und eine
-// laufende Vorführung) bleiben dann stehen; beim Öffnen der Ansicht und beim Wechsel des Schlüssels neu
-export function render(legend = true) {
+// laufende Vorführung) bleiben dann stehen; beim Öffnen der Ansicht, beim Wechsel des Schlüssels und des
+// Reiters neu
+function draw(legend = true) {
+  drawTabs();
   $("#lTreble").classList.toggle("on", lClef === "treble"); $("#lBass").classList.toggle("on", lClef === "bass");
   const base = lClef === "treble" ? 30 : 18;
   let inner = "";
@@ -113,7 +209,7 @@ export function render(legend = true) {
   if (legend) {
     stopDemos();
     $("#lLegend").innerHTML = legendHtml();
-    mountCards(ctx.packs, lClef, $("#lLegend"));
+    mountCards(ctx.packs, lClef, $("#lLegend"), lTab);
   }
   ctx.renderTop();
 }

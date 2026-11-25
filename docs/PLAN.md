@@ -2529,6 +2529,28 @@ Antippen, „Gewählte Note“, darunter **alle** Lerntafeln aller Pakete untere
 mit der Tastatur sind alle Reiter und ihr Inhalt erreichbar; Schlüssel wechseln in „Tonleitern“ lässt den
 Reiter stehen; Merkspruch-Wahl in „Tonhöhen“ und „Tonleitern“ funktioniert wie bisher.
 
+**Umgesetzt (25.11.2026, Opus).** Reiter wie in der Tabelle, Technik wie geplant (`LEARN_TABS`, `nextTab`,
+`tabHasClef`, `learnCardsHtml`/`mountCards` mit Reiter, `show(v, arg)`, „Erst anschauen“ mit `{ tab }`,
+`lTab` in der Sitzung). `notenwerte.js`: `valuesHtml()` und `beamsHtml()`, `learnHtml()` bleibt als beides
+zusammen für die Wortprüfung der Tests; in „Balken“ entfällt nur die Zwischenüberschrift (jetzt Titel der Tafel).
+Abweichungen und Ergänzungen:
+- **Reihenfolge der Reiter:** `LEARN_TABS` ist eine feste Liste schon in der neuen Reihenfolge (Intervalle vor
+  Tonleitern), weil `PACKS` erst in Schritt 3 umgestellt wird. Der Test prüft die Reihenfolge der Pakete in
+  `LEARN_TABS` gegen die Liste nach Schritt 3 und dass jedes Paket seinen Reiter hat. **Für Schritt 3:** den Test
+  auf `LEARN_TABS` ohne „takt“ = `PACKS.map(id)` umstellen.
+- **Sichtbar machen des Reiters:** `scrollIntoView({ inline: "nearest" })` hält das Einrasten nicht (die Leiste
+  sprang zum nächsten Einrastpunkt zurück, der Reiter blieb halb verdeckt; mit Playwright gefunden). Stattdessen
+  rollt `tabScroll` (rein, getestet) zum kleinsten Einrastpunkt, bei dem der Reiter ganz sichtbar ist.
+- Die Reiterknöpfe setzt `learn.js` aus `LEARN_TABS` in `#lTabs` (eine Quelle statt Liste in `index.html`); der
+  Inhalt (Notenzeile, „Gewählte Note“, Lerntafeln) steht in `#lPanel` (`.lpanel`, Abstand wie die Abschnitte).
+- `.ltabs` hat 6 px Innenabstand (Plan: 4 px 2 px), damit der Fokusring (3 px + 2 px) im Rollbereich nicht
+  abgeschnitten wird; `.ltab` wie `.btn` mit Rand, gewählt wie `.seg button.on`.
+Geprüft mit Playwright bei 320 px dunkel und 420 px hell: Tab zum gewählten Reiter und weiter in den Inhalt,
+Umschalt+Tab zurück, Pfeile umlaufend, Pos1/Ende, Eingabe und Leertaste ändern nichts, gewählter Reiter nach
+jedem Wechsel ganz sichtbar, letzter Reiter durch Rollen erreichbar, kein Seitenüberlauf, Schlüssel bleibt beim
+Wechsel, Reiter bleibt nach „Statistik“ und zurück, nach Neuladen „Tonhöhen“, Merkspruch-Wahl in „Tonleitern“
+speichert; `ueberlauf.mjs` (jetzt je Reiter und Schlüssel) 0 Treffer, 0 Konsolenfehler.
+
 #### Schritt 3 – Paketreihenfolge: Intervalle vor Tonleitern
 
 - `src/packs/index.js`: `PACKS = [noten, notenwerte, intervalle, tonleitern, akkorde]`. Startseite

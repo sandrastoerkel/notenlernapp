@@ -863,7 +863,8 @@ export function beamPictureSvg(bar, label = "Balken") {
   return s + beamSvg(right, MID, false, secondaryBeams(els, g)) + "</svg>";
 }
 
-export function learnHtml() {
+// Lerntafel „Notenwerte und Pausen“ (Reiter „Notenwerte“): Tabellen Note/Pause/Dauer, punktierte Noten, Pyramide
+export function valuesHtml() {
   const rows = VALUES.map((v) => `<tr>${cell(el(v))}${cell(el(v, false, true))}<td ${TD}><b>${beatsText(beats(v))}</b></td></tr>`).join("");
   const dotted = DOTTABLE.map((v) => `<tr>${cell(el(v, true))}<td ${TD} class="small muted">${beatsText(beats(v))} + ${beatsText(beats(v) / 2)}</td><td ${TD}><b>${beatsText(beats(v, true))}</b></td></tr>`).join("");
   const th = (t) => `<th style="text-align:left;padding:4px;border-bottom:1px solid var(--line);font-weight:700" class="small muted">${t}</th>`;
@@ -872,15 +873,24 @@ export function learnHtml() {
     + `<p class="eyebrow" style="margin:14px 0 4px">Punktierte Noten</p>`
     + `<table ${TABLE}>${COLS}<thead><tr>${th("Note")}${th("Rechnung")}${th("Dauer in Schlägen")}</tr></thead><tbody>${dotted}</tbody></table>`
     + `<p class="small muted" style="margin:8px 0 0">Gezählt wird in Schlägen: Im 4/4-Takt ist ein Schlag so lang wie eine Viertelnote, ein ganzer Takt hat vier Schläge. Der Punkt verlängert eine Note um die Hälfte ihres Wertes.</p>`
-    + `<p class="eyebrow" style="margin:14px 0 4px">Balken</p>`
-    + BEAM_PICTURES.map((b) => `<figure class="nw-beam-fig" style="margin:6px 0;display:grid;justify-items:start;gap:2px">${beamPictureSvg(b.bar, b.text)}<figcaption class="small">${b.text}</figcaption></figure>`).join("")
-    + `<p class="small muted" style="margin:8px 0 0">${HELP_TEXT_BEAM} Ein Balken steht für ein Fähnchen (Achtel), zwei Balken für zwei Fähnchen (Sechzehntel). Eine einzelne Achtel in ihrem Schlag behält ihr Fähnchen.</p>`
-    + `<p class="small muted" style="margin:8px 0 0">${BEAM_HALF_BAR}</p>`
     + `<p class="eyebrow" style="margin:14px 0 4px">Notenwert-Pyramide</p>`
     + `<figure style="margin:0;display:grid;justify-items:center">${pyramidSvg()}</figure>`
     + `<p class="small muted" style="margin:8px 0 0">Jede Zeile dauert gleich lang, zusammen ein 4/4-Takt: 1 ganze = 2 halbe = 4 Viertel = 8 Achtel = 16 Sechzehntel.</p>`
     + `</section>`;
 }
+
+// Lerntafel „Balken“ (Reiter „Takt“, Welle 11, Schritt 2): bis Welle 10 ein Abschnitt in „Notenwerte und Pausen“,
+// Wortlaut unverändert; die Zwischenüberschrift „Balken“ ist jetzt der Titel der Tafel
+export function beamsHtml() {
+  return `<section style="grid-column:1/-1;min-width:0">`
+    + BEAM_PICTURES.map((b) => `<figure class="nw-beam-fig" style="margin:6px 0;display:grid;justify-items:start;gap:2px">${beamPictureSvg(b.bar, b.text)}<figcaption class="small">${b.text}</figcaption></figure>`).join("")
+    + `<p class="small muted" style="margin:8px 0 0">${HELP_TEXT_BEAM} Ein Balken steht für ein Fähnchen (Achtel), zwei Balken für zwei Fähnchen (Sechzehntel). Eine einzelne Achtel in ihrem Schlag behält ihr Fähnchen.</p>`
+    + `<p class="small muted" style="margin:8px 0 0">${BEAM_HALF_BAR}</p>`
+    + `</section>`;
+}
+
+// beide Tafeln zusammen (für die Prüfung der Wörter und Texte in den Tests)
+export const learnHtml = () => valuesHtml() + beamsHtml();
 
 // Lerntafeln mit Vorführung: Beispiel-Knöpfe, darunter die Vorführung (mountBoard verdrahtet die Knöpfe;
 // eigenes Attribut data-nw-board, siehe Welle 8 data-tl-board)
@@ -936,9 +946,11 @@ export default {
   levels,
   learn: [
     { title: "So erkennst du einen Notenwert", render() { return boardHtml("value"); }, mount: mountBoard("value") },
-    { title: "Notenwerte und Pausen", render: learnHtml },
+    { title: "Notenwerte und Pausen", render: valuesHtml },
     { title: "So bestimmst du die Dauer", render() { return boardHtml("beats"); }, mount: mountBoard("beats") },
-    { title: "So zählst du einen Takt", render() { return boardHtml("bar"); }, mount: mountBoard("bar") },
+    // Reiter „Takt“ in „Lernen“ (Welle 11, Schritt 2); ohne tab gilt die id des Pakets
+    { title: "So zählst du einen Takt", tab: "takt", render() { return boardHtml("bar"); }, mount: mountBoard("bar") },
+    { title: "Balken", tab: "takt", render: beamsHtml },
   ],
   blitz: null,
 };

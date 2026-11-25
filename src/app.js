@@ -30,7 +30,8 @@ function renderTop() {
   audio.setMuted(ctx.state.muted);
 }
 
-function show(v) {
+// arg (optional) geht an render der Ansicht, z. B. { tab } für „Lernen“ (Welle 11, Schritt 2)
+function show(v, arg) {
   if (!VIEWS[v]) v = "home";
   // Laufende Runden beenden, bevor die Ansicht wechselt
   practice.stop();
@@ -39,7 +40,7 @@ function show(v) {
   view = v;
   Object.keys(VIEWS).forEach((x) => { $("#view-" + x).hidden = x !== v; });
   document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("on", t.dataset.view === v));
-  VIEWS[v].render();
+  VIEWS[v].render(arg);
   window.scrollTo({ top: 0 });
 }
 

@@ -148,3 +148,11 @@ test("Auswahlknöpfe: Umbruch nur zwischen Wörtern, nie mitten im Wort", () => 
 test("Hilfen: auf Handys steht „Vorführen“ unter dem Hilfetext", () => {
   assert.match(plain, /@media \(max-width: 599px\) \{\s*\.help-head \{ flex-direction: column;/);
 });
+
+test("Lernen: Reiterleiste rollt in sich (Welle 11, W3)", () => {
+  const rule = plain.match(/\.ltabs\s*\{([^}]*)\}/)[1];
+  assert.match(rule, /overflow-x:\s*auto/);
+  assert.match(rule, /scroll-snap-type:\s*x/);
+  assert.match(rule, /min-width:\s*0/);
+  assert.match(plain.match(/\.ltab\s*\{([^}]*)\}/)[1], /scroll-snap-align:\s*start/);
+});

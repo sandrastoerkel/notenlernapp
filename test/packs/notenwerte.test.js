@@ -467,12 +467,17 @@ test("Taktangabe 4/4: Ziffern je zwei Zwischenräume hoch", () => {
 });
 
 test("Lerntafeln: Reihenfolge, Tabelle mit Pyramide, drei Vorführungen mit eigenem Attribut", () => {
-  assert.deepEqual(notenwerte.learn.map((c) => c.title), ["So erkennst du einen Notenwert", "Notenwerte und Pausen", "So bestimmst du die Dauer", "So zählst du einen Takt"]);
+  assert.deepEqual(notenwerte.learn.map((c) => c.title), ["So erkennst du einen Notenwert", "Notenwerte und Pausen", "So bestimmst du die Dauer", "So zählst du einen Takt", "Balken"]);
   assert.ok(notenwerte.learn.every((c) => c.clef === undefined));
+  // Reiter in „Lernen“ (Welle 11, Schritt 2): „So zählst du einen Takt“ und „Balken“ unter „Takt“
+  assert.deepEqual(notenwerte.learn.map((c) => c.tab), [undefined, undefined, undefined, "takt", "takt"]);
   const c = notenwerte.learn[1];
-  const html = c.render();
+  const html = c.render() + notenwerte.learn[4].render();
   assert.equal(html, learnHtml());
-  // 13 Zeichen, Pyramide, zwei Bilder „mit Fähnchen = mit Balken“
+  // 13 Zeichen und Pyramide in „Notenwerte und Pausen“, zwei Bilder „mit Fähnchen = mit Balken“ in „Balken“
+  assert.equal(count(c.render(), /<svg/g), 14);
+  assert.equal(count(notenwerte.learn[4].render(), /<svg/g), 2);
+  assert.ok(!c.render().includes("nw-beam-pic") && !notenwerte.learn[4].render().includes("Pyramide"));
   assert.equal(count(html, /<svg/g), 16);
   assert.ok(html.includes(pyramidSvg()));
   // weiches Trennzeichen vor „note“/„pause“ (bei 320 px liefen die Namen ineinander)

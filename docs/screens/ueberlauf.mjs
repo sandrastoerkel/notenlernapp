@@ -6,7 +6,7 @@
 //
 // Geprüft werden bei 320 px (dunkel) und 420 px (hell): Startseite, alle Stufen aller Pakete (Startkarte,
 // Aufgabe mit offenen Hilfen, nach jeder Antwort – abwechselnd richtig und daneben –, jede Vorführung Bild
-// für Bild), „Lernen“ in beiden Schlüsseln mit allen Vorführungen, Blitz und Statistik.
+// für Bild), „Lernen“ je Reiter und Schlüssel mit allen Vorführungen, Blitz und Statistik.
 // In jedem Zustand zählt außerdem ein zweiter sichtbarer Knopf „Nächste Aufgabe“ als Treffer (W2, Welle 11).
 //
 // Playwright ist KEINE Abhängigkeit der App (siehe screenshots.mjs). Aufruf bei laufendem Server:
@@ -186,10 +186,17 @@ async function run(browser, width, scheme) {
       await pg.waitForTimeout(250);
     }
   }
-  for (const clef of ["lTreble", "lBass"]) {
-    await pg.click('.tab[data-view="learn"]'); await pg.waitForTimeout(300);
-    await pg.click("#" + clef); await pg.waitForTimeout(400);
-    await chk(`Lernen ${clef}`); await demos("#view-learn", `Lernen ${clef}`);
+  // „Lernen“ je Reiter (Welle 11, W3) und, wo die Schlüsselwahl sichtbar ist, je Schlüssel, mit allen Vorführungen
+  await pg.click('.tab[data-view="learn"]'); await pg.waitForTimeout(300);
+  const ltabs = await pg.evaluate("[...document.querySelectorAll('#lTabs [role=tab]')].map((e) => e.dataset.tab)");
+  for (const t of ltabs) {
+    await pg.click(`#ltab-${t}`); await pg.waitForTimeout(300);
+    const clefs = (await vis("#lClefs")) ? ["lTreble", "lBass"] : [null];
+    for (const clef of clefs) {
+      if (clef) { await pg.click("#" + clef); await pg.waitForTimeout(400); }
+      const w = `Lernen ${t}${clef ? " " + clef : ""}`;
+      await chk(w); await demos("#view-learn", w);
+    }
   }
   await pg.click('.tab[data-view="blitz"]'); await pg.waitForTimeout(300); await chk("Blitz Startkarte");
   await pg.click("#bStart"); await pg.waitForTimeout(300); await chk("Blitz Frage");

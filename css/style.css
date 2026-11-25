@@ -556,6 +556,14 @@ section { display: grid; gap: 14px; }
 .tab.on { color: var(--accent); }
 
 .kbd { font-family: ui-monospace, Menlo, monospace; font-size: .8rem; padding: 1px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-2); }
+/* Lernen: Reiter je Inhalt (Welle 11, W3). Die Leiste rollt bei schmalen Fenstern waagrecht in sich (Wischen,
+   Einrasten am Anfang eines Reiters), die Seite bekommt keinen Überlauf. Innenabstand 6px, damit der Fokusring
+   (3px + 2px Abstand) im Rollbereich nicht abgeschnitten wird. Gewählt wie .seg button.on. */
+.ltabs { display: flex; gap: 6px; overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none; min-width: 0; padding: 6px; scroll-padding-inline: 6px; }
+.ltabs::-webkit-scrollbar { display: none; }
+.ltab { flex: none; scroll-snap-align: start; white-space: nowrap; min-height: 44px; border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 8px 14px; font-weight: 800; cursor: pointer; }
+.ltab[aria-selected="true"] { background: var(--accent); color: var(--accent-fg); border-color: transparent; }
+.lpanel { display: grid; gap: 14px; min-width: 0; }
 .legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 6px 14px; }
 .legend > div { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px dashed var(--line); padding: 3px 0; }
 .legend-title { grid-column: 1 / -1; font-size: 1.05rem; margin-top: 10px; }
