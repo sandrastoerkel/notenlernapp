@@ -806,6 +806,22 @@ function question(r, prev) {
   return ask(pick(r.pool || r.items, prev));
 }
 
+// Voraussetzungen (Welle 11, Tabelle in docs/PLAN.md, Abschnitt 1) je Stufennummer:
+// needs = direkte Voraussetzungen (fehlt das Feld: die nächste frühere Stufe ohne Hilfen im selben Paket),
+// stepNeeds = Voraussetzung je Denkschritt, skill = was man in der Stufe kann („Dafür brauchst du: …“),
+// guess = nur zwei Antwortknöpfe (Raten; mehr Aufgaben in der Runde „Wiederholen“). Siehe src/repeat.js.
+// Stufe 4: Schritt 2 (Dauer) hat keine frühere Grundlage, Stufe 4 führt die Dauer selbst ein.
+const VORAUSSETZUNGEN = {
+  3: { skill: "Notenwerte und Pausen erkennen" },
+  4: { stepNeeds: [["notenwerte-3"], []] },
+  5: { skill: "Dauer in Schlägen" },
+  6: { needs: ["notenwerte-3", "notenwerte-5"], stepNeeds: [["notenwerte-3"], ["notenwerte-5"]] },
+  7: { skill: "Punktierte Noten" },
+  8: { needs: ["notenwerte-5", "notenwerte-7"], stepNeeds: [["notenwerte-5", "notenwerte-7"], ["notenwerte-5", "notenwerte-7"]] },
+  9: { needs: ["notenwerte-5", "notenwerte-7"], skill: "Takt füllen" },
+  10: { needs: ["notenwerte-3", "notenwerte-5", "notenwerte-7", "notenwerte-9"] },
+};
+
 const levels = RAW.map((r, i) => ({
   id: "notenwerte-" + (i + 1),
   no: i + 1,
@@ -823,6 +839,7 @@ const levels = RAW.map((r, i) => ({
   check(q, value) { return value === q.answer; },
   ...(HELPS[i + 1] || {}),
   ...(DEMOS[i + 1] || {}),
+  ...(VORAUSSETZUNGEN[i + 1] || {}),
 }));
 /* ---------- Lerntafel ---------- */
 

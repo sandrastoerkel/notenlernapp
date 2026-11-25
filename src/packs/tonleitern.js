@@ -973,6 +973,23 @@ export function minorDemo(fifths) {
 const check = (q, value) => value === q.answer;
 const find = (items, key) => items.find((it) => it.key === key);
 
+// Voraussetzungen (Welle 11, Tabelle in docs/PLAN.md, Abschnitt 1) je Stufennummer:
+// needs = direkte Voraussetzungen (fehlt das Feld: die nächste frühere Stufe ohne Hilfen im selben Paket),
+// stepNeeds = Voraussetzung je Denkschritt, skill = was man in der Stufe kann („Dafür brauchst du: …“),
+// guess = nur zwei Antwortknöpfe (Raten; mehr Aufgaben in der Runde „Wiederholen“). Siehe src/repeat.js.
+const VORAUSSETZUNGEN = {
+  1: { needs: ["noten-3", "noten-6"], guess: true },
+  2: { needs: ["noten-7"], guess: true },
+  3: { needs: ["noten-6", "noten-7"], guess: true, skill: "Ganz- und Halbtonschritte" },
+  4: { needs: ["tonleitern-3", "noten-7"], stepNeeds: [["tonleitern-3"], ["noten-7"]] },
+  5: { needs: ["tonleitern-3", "noten-7"], skill: "Dur-Tonleitern" },
+  8: { needs: ["tonleitern-5"] },
+  9: { needs: ["tonleitern-5"], skill: "Vorzeichen der Dur-Tonleitern" },
+  11: { skill: "Tonart aus den Vorzeichen" },
+  12: { needs: ["intervall-2", "tonleitern-3"], stepNeeds: [["intervall-2"], ["tonleitern-3"]] },
+  13: { needs: ["intervall-2", "tonleitern-3"] },
+};
+
 const levels = [
   {
     title: "Ganz- und Halbtonschritte in C-Dur",
@@ -1092,7 +1109,7 @@ const levels = [
     example: keySvg({ clef: "bass", fifths: -3 }),
     question(prev) { return minorQuestion(pickKey(ITEMS_13, prev)); },
   },
-].map((l, i) => ({ id: "tonleitern-" + (i + 1), no: i + 1, input: "choices", check, ...l }));
+].map((l, i) => ({ id: "tonleitern-" + (i + 1), no: i + 1, input: "choices", check, ...l, ...(VORAUSSETZUNGEN[i + 1] || {}) }));
 
 /* ---------- Lerntafeln ---------- */
 

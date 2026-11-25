@@ -536,6 +536,25 @@ const withHelps = (kind, text = HELP_TEXT) => ({
   demo: (q) => intervalDemo(q.low, q.high, { clef: q.clef, table: kind, fine: kind !== "grob" }),
 });
 
+// Voraussetzungen (Welle 11, Tabelle in docs/PLAN.md, Abschnitt 1) je Stufennummer:
+// needs = direkte Voraussetzungen (fehlt das Feld: die nächste frühere Stufe ohne Hilfen im selben Paket),
+// stepNeeds = Voraussetzung je Denkschritt, skill = was man in der Stufe kann („Dafür brauchst du: …“),
+// guess = nur zwei Antwortknöpfe (Raten; mehr Aufgaben in der Runde „Wiederholen“). Siehe src/repeat.js.
+// Stufe 3 und 4, Schritt 2 (Halbtöne zählen): keine Grundlage – Stufe 3 führt das Zählen selbst mit Klaviatur
+// und Tabelle ein; „Ganz- und Halbtonschritte“ liegen seit Welle 11 im späteren Paket Tonleitern (PLAN, Abschnitt 1).
+// Aufgaben mit nur einem Schritt (Prime, Quarte, Quinte, Oktave) haben nur Schritt 1 (Notenstufen zählen).
+const VORAUSSETZUNGEN = {
+  1: { needs: ["noten-3"] },
+  2: { needs: ["noten-3", "noten-6"], skill: "Notenstufen zählen (Prime bis Oktave)" },
+  3: { needs: ["intervall-2", "noten-7"], stepNeeds: [["intervall-2"], []] },
+  4: { needs: ["intervall-2", "noten-7"], stepNeeds: [["intervall-2"], []], skill: "Intervalle rein, klein, groß" },
+  5: { stepNeeds: [["intervall-2"], ["intervall-4"]] },
+  6: { stepNeeds: [["intervall-2"], ["intervall-4"]], skill: "Verminderte und übermäßige Intervalle" },
+  7: { stepNeeds: [["intervall-2"], ["intervall-6"]], skill: "Intervalle abwärts" },
+  8: { needs: ["intervall-6", "noten-7"] },
+  9: { needs: ["intervall-7", "noten-7"], skill: "Intervalle bauen" },
+};
+
 const levels = [
   {
     title: "Intervall bestimmen",
@@ -641,7 +660,7 @@ const levels = [
     example: intervalSvg({ clef: "treble", low: N("E", 4), high: N("G", 4) }),
     question(prev, ctx) { return checkQuestion(pickCheck(POOL_10, prev, roundOf(ctx))); },
   },
-].map((l, i) => ({ id: "intervall-" + (i + 1), no: i + 1, input: "choices", check, ...l }));
+].map((l, i) => ({ id: "intervall-" + (i + 1), no: i + 1, input: "choices", check, ...l, ...(VORAUSSETZUNGEN[i + 1] || {}) }));
 
 /* ---------- Lerntafeln ---------- */
 

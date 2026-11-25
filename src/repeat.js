@@ -129,6 +129,41 @@ export function afterRound(state, level, correct, heute) {
   return applyReview(state, [{ id: level.id, n: RUNDE_WIEDERHOLEN, ok: correct }], heute)[0];
 }
 
+/* ---------- Voraussetzungen (Welle 11, Schritt 5) ----------
+Jede Stufe kennt ihre direkten Voraussetzungen (level.needs, Tabelle in docs/PLAN.md, Abschnitt 1). Ohne das
+Feld gilt die Voreinstellung: die nächste frühere Stufe ohne Hilfen im selben Paket (gibt es keine: keine).
+Ein gesetztes needs ersetzt die Voreinstellung ganz (needs: [] = keine). Ziele sind immer Stufen ohne Hilfen,
+weiter vorn im selben Paket oder in einem früheren Paket (Tests in test/repeat.test.js); der Graph hat damit
+keinen Kreis. Nichts davon sperrt eine Stufe: Voraussetzungen ordnen und bieten an. */
+
+// Direkte Voraussetzungen der Stufe levelId: Liste von Stufen-IDs (leer, wenn keine oder die Stufe unbekannt ist)
+export function needsOf(packs, levelId) {
+  const pos = position(packs, levelId);
+  if (!pos) return [];
+  const [p, i] = pos, lv = packs[p].levels[i];
+  if (Array.isArray(lv.needs)) return lv.needs.slice();
+  for (let j = i - 1; j >= 0; j--) if (inBox(packs[p].levels[j])) return [packs[p].levels[j].id];
+  return [];
+}
+
+// Voraussetzung zum Denkschritt i der Aufgabe q: q.steps[i].needs, sonst level.stepNeeds[i] (gilt für alle
+// Aufgaben der Stufe). null, wenn die Stufe nichts je Schritt sagt (dann zählt needsOf als Ganzes). Aufgaben
+// mit nur einem Schritt in einer zweischrittigen Stufe (Intervalle: Prime, Quarte, Quinte, Oktave) haben nur
+// Schritt 0 und damit dessen Eintrag.
+export function stepNeedsOf(level, q, i) {
+  const st = q && Array.isArray(q.steps) ? q.steps[i] : null;
+  if (st && Array.isArray(st.needs)) return st.needs.slice();
+  if (level && Array.isArray(level.stepNeeds) && Array.isArray(level.stepNeeds[i])) return level.stepNeeds[i].slice();
+  return null;
+}
+
+// Was man in der Stufe kann (für „Dafür brauchst du: …“); ohne level.skill der Titel der Stufe
+export const skillOf = (level) => (level ? level.skill || level.title || level.id || "" : "");
+
+// „Noten mit Vorzeichen · Notenstufen zählen (Prime bis Oktave)“ – leer, wenn die Stufe keine Voraussetzungen hat
+export const needsText = (packs, levelId) => needsOf(packs, levelId)
+  .map((id) => skillOf(levelOf(packs, id))).filter(Boolean).join(" · ");
+
 // „heute“, „morgen“, „in 3 Tagen“ (0 und weniger: heute)
 export const dueText = (inTagen) => (inTagen <= 0 ? "heute" : inTagen === 1 ? "morgen" : `in ${inTagen} Tagen`);
 

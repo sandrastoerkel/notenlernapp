@@ -2717,6 +2717,27 @@ Cache wird erst in Schritt 13 hochgezählt). In der Oberfläche ändert sich nic
   Ziel hat `skill`; `stepNeeds` hat so viele Einträge wie die Stufe Schritte.
 - Keine Änderung der Oberfläche in diesem Schritt.
 
+**Umgesetzt (25.11.2026, Opus).** Je Paket eine Tabelle `VORAUSSETZUNGEN` (Stufennummer → `needs`, `stepNeeds`,
+`skill`, `guess`), beim Bau der Stufen eingemischt; `needs` nur dort, wo die Voreinstellung etwas anderes ergäbe
+(ein Test prüft das), also auch `needs: []` an `noten-2`, `-4`, `-5`. `src/repeat.js`: `needsOf`, `stepNeedsOf`,
+`skillOf`, `needsText`. Keine Änderung der Oberfläche (kein Überlauf-Lauf nötig).
+- **`stepNeeds` mit leerem Eintrag:** Wo die Tabelle für einen Schritt keine Grundlage nennt, steht `[]`:
+  `notenwerte-4` Schritt 2 (die Dauer führt Stufe 4 selbst ein), `intervall-3`/`-4` Schritt 2 (Halbtöne zählen;
+  in Stufe 4 bietet Schritt 7 „Stufe 3 mit Hilfen üben“ an, siehe 2). So hat jede zweischrittige Stufe der
+  Tabelle genau zwei Einträge.
+- **Aufgaben mit einem Schritt in zweischrittigen Stufen** (Intervalle 3–7: Prime, Quarte, Quinte, Oktave) haben
+  nur Schritt 0 = Notenstufen zählen; `stepNeedsOf(level, q, 0)` liefert dafür den ersten Eintrag. Tonleitern 10
+  (ein Schritt bei C-, G-, F-Dur) hat laut Tabelle keine `stepNeeds`.
+- **`stepNeedsOf`** gibt `null` zurück, wenn weder die Aufgabe (`q.steps[i].needs`) noch die Stufe etwas je
+  Schritt sagt; dann zählt in Schritt 7 `needsOf` als Ganzes. `skillOf`: `skill`, sonst Titel.
+- **`guess`** steht genau an den Stufen, deren Aufgaben nur zwei Knöpfe haben (am Vorrat geprüft: Tonleitern
+  1–3, Dreiklänge 1); Tonleitern 1 und 2 haben Hilfen und kommen nie in den Kasten, das Feld schadet dort nicht.
+- Tests (`test/repeat.test.js`): die 47 Stufen als erwartete Werte von `needsOf`, `stepNeeds` an genau den
+  Stufen der Tabelle, Regeln für alle Ziele (auch die aus `stepNeeds`): vorhanden, ohne Hilfen, früher; jedes
+  Ziel hat den `skill` aus der Liste oben und nur diese Stufen tragen einen; Tiefensuche ohne Kreis (mit
+  Gegenprobe); `stepNeeds`-Länge = größte Schrittzahl am Vorrat; `guess` gegen die Knöpfe von je 100 Aufgaben;
+  `reviewPlan` mit Dreiklänge 1 (4 Aufgaben).
+
 #### Schritt 6 – Engine: gemischte Runde
 
 **Ziel.** Eine Runde, deren Aufgaben aus verschiedenen Stufen stammen (Eingabeart, `check`, Ziffern, Namensraster

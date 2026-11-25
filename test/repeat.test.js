@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   ABSTAENDE, FAECHER, RUNDE_WIEDERHOLEN, RUNDE_GRUNDLAGEN, MAX_STUFEN, MIN_AUFGABEN_RATEN,
   inBox, boxIds, enter, due, nextDue, reviewPlan, passed, applyReview, afterRound, dueText, dayText,
+  needsOf, stepNeedsOf, skillOf, needsText,
 } from "../src/repeat.js";
 import { fresh, addDays, UMSTELLUNG_JE_TAG } from "../src/store.js";
 import { PACKS } from "../src/packs/index.js";
@@ -11,7 +12,7 @@ import { PACKS } from "../src/packs/index.js";
 const T = "2026-11-25";
 const level = (id) => PACKS.flatMap((p) => p.levels).find((l) => l.id === id);
 
-// Kleine Pakete für reviewPlan (guess wird erst in Schritt 5 in den echten Paketen gesetzt)
+// Kleine Pakete für reviewPlan (unabhängig von den echten Paketen)
 const FAKE = [
   { id: "a", levels: [{ id: "a-1" }, { id: "a-2", guess: true }, { id: "a-3" }] },
   { id: "b", levels: [{ id: "b-1", helps: ["tabelle"] }, { id: "b-2", guess: true }, { id: "b-3" }, { id: "b-4", guess: true }] },
@@ -181,4 +182,189 @@ test("dueText und dayText", () => {
   assert.equal(dayText("2026-11-24"), "24.11.");
   assert.equal(dayText("2026-12-05"), "5.12.");
   assert.equal(dayText("2027-01-01"), "1.1.");
+});
+
+/* ---------- Voraussetzungen (Schritt 5) ---------- */
+
+// Die ganze Tabelle aus docs/PLAN.md (Welle 11, Abschnitt 1) als erwartete Werte: jede der 47 Stufen, so wie
+// needsOf sie liefert (gesetztes Feld oder Voreinstellung).
+const NEEDS = {
+  "noten-1": [], "noten-2": [], "noten-3": ["noten-1", "noten-2"], "noten-4": [], "noten-5": [],
+  "noten-6": ["noten-4", "noten-5"], "noten-7": ["noten-3"], "noten-8": ["noten-3", "noten-6", "noten-7"],
+  "notenwerte-1": [], "notenwerte-2": [], "notenwerte-3": [],
+  "notenwerte-4": ["notenwerte-3"], "notenwerte-5": ["notenwerte-3"],
+  "notenwerte-6": ["notenwerte-3", "notenwerte-5"], "notenwerte-7": ["notenwerte-5"],
+  "notenwerte-8": ["notenwerte-5", "notenwerte-7"], "notenwerte-9": ["notenwerte-5", "notenwerte-7"],
+  "notenwerte-10": ["notenwerte-3", "notenwerte-5", "notenwerte-7", "notenwerte-9"],
+  "intervall-1": ["noten-3"], "intervall-2": ["noten-3", "noten-6"],
+  "intervall-3": ["intervall-2", "noten-7"], "intervall-4": ["intervall-2", "noten-7"],
+  "intervall-5": ["intervall-4"], "intervall-6": ["intervall-4"], "intervall-7": ["intervall-6"],
+  "intervall-8": ["intervall-6", "noten-7"], "intervall-9": ["intervall-7", "noten-7"], "intervall-10": ["intervall-9"],
+  "tonleitern-1": ["noten-3", "noten-6"], "tonleitern-2": ["noten-7"], "tonleitern-3": ["noten-6", "noten-7"],
+  "tonleitern-4": ["tonleitern-3", "noten-7"], "tonleitern-5": ["tonleitern-3", "noten-7"],
+  "tonleitern-6": ["tonleitern-5"], "tonleitern-7": ["tonleitern-5"],
+  "tonleitern-8": ["tonleitern-5"], "tonleitern-9": ["tonleitern-5"],
+  "tonleitern-10": ["tonleitern-9"], "tonleitern-11": ["tonleitern-9"],
+  "tonleitern-12": ["intervall-2", "tonleitern-3"], "tonleitern-13": ["intervall-2", "tonleitern-3"],
+  "akkorde-1": ["intervall-4", "noten-8"], "akkorde-2": ["akkorde-1", "intervall-4"], "akkorde-3": ["noten-8"],
+  "akkorde-4": ["akkorde-1", "intervall-2"], "akkorde-5": ["tonleitern-11"], "akkorde-6": ["tonleitern-9", "akkorde-2"],
+};
+// Voraussetzungen je Denkschritt (zweischrittige Stufen laut Tabelle)
+const STEP_NEEDS = {
+  "notenwerte-4": [["notenwerte-3"], []],
+  "notenwerte-6": [["notenwerte-3"], ["notenwerte-5"]],
+  "notenwerte-8": [["notenwerte-5", "notenwerte-7"], ["notenwerte-5", "notenwerte-7"]],
+  "intervall-3": [["intervall-2"], []], "intervall-4": [["intervall-2"], []],
+  "intervall-5": [["intervall-2"], ["intervall-4"]], "intervall-6": [["intervall-2"], ["intervall-4"]],
+  "intervall-7": [["intervall-2"], ["intervall-6"]],
+  "tonleitern-4": [["tonleitern-3"], ["noten-7"]],
+  "tonleitern-12": [["intervall-2"], ["tonleitern-3"]],
+};
+const SKILLS = {
+  "noten-1": "Linien im Violinschlüssel", "noten-2": "Zwischenräume im Violinschlüssel", "noten-3": "Noten im Violinschlüssel",
+  "noten-4": "Linien im Bassschlüssel", "noten-5": "Zwischenräume im Bassschlüssel", "noten-6": "Noten im Bassschlüssel",
+  "noten-7": "Noten mit Vorzeichen", "noten-8": "Noten in beiden Schlüsseln",
+  "notenwerte-3": "Notenwerte und Pausen erkennen", "notenwerte-5": "Dauer in Schlägen", "notenwerte-7": "Punktierte Noten",
+  "notenwerte-9": "Takt füllen",
+  "intervall-2": "Notenstufen zählen (Prime bis Oktave)", "intervall-4": "Intervalle rein, klein, groß",
+  "intervall-6": "Verminderte und übermäßige Intervalle", "intervall-7": "Intervalle abwärts", "intervall-9": "Intervalle bauen",
+  "tonleitern-3": "Ganz- und Halbtonschritte", "tonleitern-5": "Dur-Tonleitern", "tonleitern-9": "Vorzeichen der Dur-Tonleitern",
+  "tonleitern-11": "Tonart aus den Vorzeichen", "akkorde-1": "Dur- und Moll-Dreiklang", "akkorde-2": "Dreiklangstypen",
+};
+const ALL = PACKS.flatMap((p, pi) => p.levels.map((l, li) => ({ l, pi, li })));
+const posOf = (id) => ALL.find((e) => e.l.id === id);
+// Aufgaben einer Stufe (genug, um jede Form zu sehen)
+function sample(l, n = 200) {
+  const out = []; let prev = null;
+  for (let k = 0; k < n; k++) { prev = l.question(prev, { state: fresh(), notes: {} }); out.push(prev); }
+  return out;
+}
+
+test("Voraussetzungen: die ganze Tabelle (jede der 47 Stufen)", () => {
+  assert.equal(ALL.length, 47);
+  assert.deepEqual(Object.keys(NEEDS).sort(), ALL.map((e) => e.l.id).sort());
+  for (const { l } of ALL) assert.deepEqual(needsOf(PACKS, l.id), NEEDS[l.id], l.id);
+  // stepNeeds genau an den Stufen der Tabelle
+  for (const { l } of ALL) assert.deepEqual(l.stepNeeds, STEP_NEEDS[l.id], `${l.id}: stepNeeds`);
+  // unbekannte Stufe: keine
+  assert.deepEqual(needsOf(PACKS, "gibt-es-nicht"), []);
+});
+
+test("Voraussetzungen: needs nur, wo die Voreinstellung etwas anderes ergäbe", () => {
+  for (const { l, pi, li } of ALL) {
+    if (!Array.isArray(l.needs)) continue;
+    const prev = PACKS[pi].levels.slice(0, li).filter(inBox).pop();
+    assert.notDeepEqual(l.needs, prev ? [prev.id] : [], `${l.id}: needs gleich der Voreinstellung`);
+  }
+});
+
+test("Voraussetzungen: Regeln – ID vorhanden, Ziel ohne Hilfen, früher im selben oder in einem früheren Paket", () => {
+  for (const { l, pi, li } of ALL) {
+    const targets = [...needsOf(PACKS, l.id), ...(l.stepNeeds || []).flat()];
+    for (const id of targets) {
+      const t = posOf(id);
+      assert.ok(t, `${l.id} → ${id}: gibt es nicht`);
+      assert.ok(inBox(t.l), `${l.id} → ${id}: Ziel hat Hilfen`);
+      assert.ok(t.pi < pi || (t.pi === pi && t.li < li), `${l.id} → ${id}: nicht früher`);
+      assert.ok(skillOf(t.l) === SKILLS[id] && t.l.skill === SKILLS[id], `${l.id} → ${id}: skill fehlt oder falsch`);
+    }
+    // keine doppelten Einträge
+    assert.equal(new Set(needsOf(PACKS, l.id)).size, needsOf(PACKS, l.id).length, l.id);
+  }
+  // skill genau an den Stufen, auf die verwiesen wird
+  const referenced = new Set(ALL.flatMap(({ l }) => [...needsOf(PACKS, l.id), ...(l.stepNeeds || []).flat()]));
+  assert.deepEqual([...referenced].sort(), Object.keys(SKILLS).sort());
+  for (const { l } of ALL) assert.equal(l.skill, SKILLS[l.id], `${l.id}: skill`);
+});
+
+// Kreis im Graphen der Voraussetzungen (needsOf und stepNeeds)? Gibt den ersten gefundenen Kreis zurück oder null.
+function findCycle(packs) {
+  const lv = Object.fromEntries(packs.flatMap((p) => p.levels).map((l) => [l.id, l]));
+  const mark = {};
+  const visit = (id, path) => {
+    if (mark[id] === 1) return [...path, id];
+    if (mark[id] === 2 || !lv[id]) return null;
+    mark[id] = 1;
+    for (const n of new Set([...needsOf(packs, id), ...(lv[id].stepNeeds || []).flat()])) {
+      const c = visit(n, [...path, id]);
+      if (c) return c;
+    }
+    mark[id] = 2;
+    return null;
+  };
+  for (const id of Object.keys(lv)) { const c = visit(id, []); if (c) return c; }
+  return null;
+}
+
+test("Voraussetzungen: kein Kreis (Tiefensuche über alle Kanten)", () => {
+  assert.equal(findCycle(PACKS), null);
+  // Gegenprobe: ein Ziel weiter hinten ergibt mit der Voreinstellung einen Kreis, die Suche findet ihn
+  const loop = [{ id: "x", levels: [{ id: "x-1", needs: ["x-2"] }, { id: "x-2" }] }];
+  assert.deepEqual(findCycle(loop), ["x-1", "x-2", "x-1"]);
+  const step = [{ id: "y", levels: [{ id: "y-1", needs: [], stepNeeds: [["y-2"], []] }, { id: "y-2" }] }];
+  assert.ok(findCycle(step));
+});
+
+test("Voraussetzungen: stepNeeds hat so viele Einträge wie die Stufe Schritte", () => {
+  for (const { l } of ALL) {
+    const qs = sample(l);
+    const maxSteps = Math.max(...qs.map((q) => (Array.isArray(q.steps) ? q.steps.length : 1)));
+    if (l.stepNeeds) {
+      assert.equal(l.stepNeeds.length, maxSteps, `${l.id}: ${l.stepNeeds.length} Einträge, ${maxSteps} Schritte`);
+      assert.equal(maxSteps, 2, l.id);
+      for (const e of l.stepNeeds) assert.ok(Array.isArray(e), l.id);
+    }
+  }
+});
+
+test("stepNeedsOf: Schritt der Aufgabe, sonst der Stufe, sonst null", () => {
+  const l4 = level("intervall-4"), qs = sample(l4);
+  const two = qs.find((q) => q.steps.length === 2), one = qs.find((q) => q.steps.length === 1);
+  assert.ok(two && one, "Intervalle 4 hat Aufgaben mit einem und mit zwei Schritten");
+  assert.deepEqual(stepNeedsOf(l4, two, 0), ["intervall-2"]);
+  assert.deepEqual(stepNeedsOf(l4, two, 1), []);
+  // Aufgaben mit nur einem Schritt (z. B. Quinte): nur Schritt 0 = Notenstufen zählen
+  assert.deepEqual(stepNeedsOf(l4, one, 0), ["intervall-2"]);
+  const t4 = level("tonleitern-4"), tq = sample(t4, 20)[0];
+  assert.deepEqual(stepNeedsOf(t4, tq, 0), ["tonleitern-3"]);
+  assert.deepEqual(stepNeedsOf(t4, tq, 1), ["noten-7"]);
+  assert.deepEqual(stepNeedsOf(level("intervall-7"), null, 1), ["intervall-6"]);
+  // einschrittige Stufe: null (dann zählt needsOf als Ganzes)
+  assert.equal(stepNeedsOf(level("tonleitern-5"), sample(level("tonleitern-5"), 1)[0], 0), null);
+  // die Aufgabe kann ihre Stufe überstimmen
+  assert.deepEqual(stepNeedsOf(t4, { steps: [{ needs: ["noten-3"] }, {}] }, 0), ["noten-3"]);
+  assert.deepEqual(stepNeedsOf(t4, { steps: [{ needs: ["noten-3"] }, {}] }, 1), ["noten-7"]);
+  // die Rückgabe ist eine Kopie
+  stepNeedsOf(t4, tq, 0).push("x");
+  assert.deepEqual(t4.stepNeeds[0], ["tonleitern-3"]);
+});
+
+test("skillOf und needsText", () => {
+  assert.equal(skillOf(level("noten-7")), "Noten mit Vorzeichen");
+  assert.equal(skillOf(level("intervall-3")), "Rein, klein, groß"); // ohne skill: Titel
+  assert.equal(skillOf(null), "");
+  assert.equal(needsText(PACKS, "intervall-3"), "Notenstufen zählen (Prime bis Oktave) · Noten mit Vorzeichen");
+  assert.equal(needsText(PACKS, "akkorde-1"), "Intervalle rein, klein, groß · Noten in beiden Schlüsseln");
+  assert.equal(needsText(PACKS, "notenwerte-5"), "Notenwerte und Pausen erkennen");
+  assert.equal(needsText(PACKS, "noten-1"), "");
+  assert.equal(needsText(PACKS, "notenwerte-1"), "");
+  // needsOf gibt eine Kopie zurück
+  needsOf(PACKS, "noten-3").push("x");
+  assert.deepEqual(level("noten-3").needs, ["noten-1", "noten-2"]);
+});
+
+test("guess: genau die Stufen mit zwei Antwortknöpfen (Tonleitern 1–3, Dreiklänge 1)", () => {
+  const guess = ALL.filter(({ l }) => l.guess === true).map(({ l }) => l.id);
+  assert.deepEqual(guess, ["tonleitern-1", "tonleitern-2", "tonleitern-3", "akkorde-1"]);
+  for (const { l } of ALL) {
+    const qs = sample(l, 100);
+    const twoButtons = qs.every((q) => {
+      const steps = Array.isArray(q.steps) ? q.steps : [q];
+      return steps.length === 1 && Array.isArray(steps[0].choices) && steps[0].choices.length === 2;
+    });
+    assert.equal(twoButtons, l.guess === true, `${l.id}: guess`);
+  }
+  // in der Runde „Wiederholen“ bekommt Dreiklänge 1 den größten Anteil
+  assert.deepEqual(reviewPlan(dueOn(["noten-3", "intervall-2", "akkorde-1"]), PACKS, T),
+    [{ id: "noten-3", n: 3 }, { id: "intervall-2", n: 3 }, { id: "akkorde-1", n: 4 }]);
 });

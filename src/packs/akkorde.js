@@ -381,6 +381,19 @@ function degreeLevel() {
   };
 }
 
+// Voraussetzungen (Welle 11, Tabelle in docs/PLAN.md, Abschnitt 1) je Stufennummer:
+// needs = direkte Voraussetzungen (fehlt das Feld: die nächste frühere Stufe ohne Hilfen im selben Paket),
+// stepNeeds = Voraussetzung je Denkschritt, skill = was man in der Stufe kann („Dafür brauchst du: …“),
+// guess = nur zwei Antwortknöpfe (Raten; mehr Aufgaben in der Runde „Wiederholen“). Siehe src/repeat.js.
+const VORAUSSETZUNGEN = {
+  1: { needs: ["intervall-4", "noten-8"], guess: true, skill: "Dur- und Moll-Dreiklang" },
+  2: { needs: ["akkorde-1", "intervall-4"], skill: "Dreiklangstypen" },
+  3: { needs: ["noten-8"] },
+  4: { needs: ["akkorde-1", "intervall-2"] },
+  5: { needs: ["tonleitern-11"] },
+  6: { needs: ["tonleitern-9", "akkorde-2"] },
+};
+
 const levels = [
   typeLevel(1, "Dur oder Moll", "Dur: große Terz unten (4 Halbtöne), kleine oben (3). Moll: kleine Terz unten, große oben. Hör nach der Antwort genau hin.", ["dur", "moll"], ["treble", "bass"], "Dur oder Moll?"),
   typeLevel(2, "Vier Dreiklangstypen", "Zähle die Halbtöne: Dur 4 + 3, Moll 3 + 4, vermindert 3 + 3, übermäßig 4 + 4.", ["dur", "moll", "vermindert", "uebermaessig"], ["treble", "bass"], "Welcher Dreiklangstyp?"),
@@ -388,7 +401,7 @@ const levels = [
   inversionLevel(),
   circleLevel(),
   degreeLevel(),
-];
+].map((l) => ({ ...l, ...(VORAUSSETZUNGEN[l.no] || {}) }));
 
 /* ---------- Lerntafeln ---------- */
 

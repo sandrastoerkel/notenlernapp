@@ -104,6 +104,21 @@ const RAW = [
 ];
 RAW[7].items = [...RAW[2].items, ...RAW[5].items, ...RAW[6].items];
 
+// Voraussetzungen (Welle 11, Tabelle in docs/PLAN.md, Abschnitt 1) je Stufennummer:
+// needs = direkte Voraussetzungen (fehlt das Feld: die nächste frühere Stufe ohne Hilfen im selben Paket),
+// stepNeeds = Voraussetzung je Denkschritt, skill = was man in der Stufe kann („Dafür brauchst du: …“),
+// guess = nur zwei Antwortknöpfe (Raten; mehr Aufgaben in der Runde „Wiederholen“). Siehe src/repeat.js.
+const VORAUSSETZUNGEN = {
+  1: { skill: "Linien im Violinschlüssel" },
+  2: { needs: [], skill: "Zwischenräume im Violinschlüssel" },
+  3: { needs: ["noten-1", "noten-2"], skill: "Noten im Violinschlüssel" },
+  4: { needs: [], skill: "Linien im Bassschlüssel" },
+  5: { needs: [], skill: "Zwischenräume im Bassschlüssel" },
+  6: { needs: ["noten-4", "noten-5"], skill: "Noten im Bassschlüssel" },
+  7: { needs: ["noten-3"], skill: "Noten mit Vorzeichen" },
+  8: { needs: ["noten-3", "noten-6", "noten-7"], skill: "Noten in beiden Schlüsseln" },
+};
+
 const levels = RAW.map((r, i) => ({
   id: "noten-" + (i + 1),
   no: i + 1,
@@ -122,6 +137,7 @@ const levels = RAW.map((r, i) => ({
     return makeQuestion(ctx && ctx.notes ? pickWeighted(r.items, itemKey, ctx.notes, prev) : pick(r.items, prev), ctx && ctx.state);
   },
   check: checkNote,
+  ...(VORAUSSETZUNGEN[i + 1] || {}),
 }));
 
 export const BLITZ_POOL = [...RAW[2].items, ...RAW[5].items];
