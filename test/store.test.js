@@ -5,6 +5,7 @@ import {
   starsFor, recordRound, recordAnswer, recordBlitz, reset, accuracy, unlockedBy, unlocks,
   migrateIntervalle, MIGRATION_INTERVALLE, migrateTonleitern, MIGRATION_TONLEITERN, RENAMED_TONLEITERN, migrateAll,
   migrateNotenwerte, MIGRATION_NOTENWERTE, RENAMED_NOTENWERTE,
+  MIGRATION_WIEDERHOLEN, UMSTELLUNG_JE_TAG, migrateWiederholen, localDay, addDays, dayDiff,
 } from "../src/store.js";
 import noten from "../src/packs/noten.js";
 import intervalle from "../src/packs/intervalle.js";
@@ -165,7 +166,7 @@ test("Umstellung: frischer Stand, v1-Stand und schon vorhandenes tonleitern-7", 
   assert.deepEqual(s, fresh());
   assert.equal(empty.data[KEY_V2], undefined);
   // ein frischer Stand trägt den Marker schon; ein Stand ohne Marker und ohne Intervalle bekommt ihn
-  assert.deepEqual(fresh().migrated, [MIGRATION_INTERVALLE, MIGRATION_TONLEITERN, MIGRATION_NOTENWERTE]);
+  assert.deepEqual(fresh().migrated, [MIGRATION_INTERVALLE, MIGRATION_TONLEITERN, MIGRATION_NOTENWERTE, MIGRATION_WIEDERHOLEN]);
   assert.equal(migrateIntervalle(fresh()), false);
   const s2 = { ...fresh(), migrated: undefined };
   assert.equal(migrateIntervalle(s2), true);
@@ -491,21 +492,22 @@ test("load: v1 wird übernommen und als v2 gespeichert, v1 bleibt", () => {
   assert.deepEqual(load(), fresh());
   assert.doesNotThrow(() => save(fresh()));
   // fehlende Felder in v2 werden aus fresh() ergänzt
-  assert.deepEqual(load(memStorage({ [KEY_V2]: JSON.stringify({ xp: 5 }) })), { ...fresh(), xp: 5 });
+  // (mit Liste der Stufen ohne Hilfen, sonst bleibt der Marker "wiederholen" aus, siehe unten)
+  assert.deepEqual(load(memStorage({ [KEY_V2]: JSON.stringify({ xp: 5 }) }), new Date(), []), { ...fresh(), xp: 5 });
 });
 
-test("touchStreak (UTC)", () => {
+test("touchStreak (Verschiebung 0, wie bisher in UTC)", () => {
   const now = new Date("2026-11-06T10:00:00Z");
-  assert.equal(today(now), "2026-11-06");
+  assert.equal(today(now, 0), "2026-11-06");
   const s = fresh();
-  touchStreak(s, now);
+  touchStreak(s, now, 0);
   assert.equal(s.dayStreak, 1);
   assert.equal(s.lastDay, "2026-11-06");
-  touchStreak(s, now);
+  touchStreak(s, now, 0);
   assert.equal(s.dayStreak, 1);
-  touchStreak(s, new Date("2026-11-07T08:00:00Z"));
+  touchStreak(s, new Date("2026-11-07T08:00:00Z"), 0);
   assert.equal(s.dayStreak, 2);
-  touchStreak(s, new Date("2026-11-09T08:00:00Z"));
+  touchStreak(s, new Date("2026-11-09T08:00:00Z"), 0);
   assert.equal(s.dayStreak, 1);
 });
 
@@ -522,7 +524,14 @@ test("recordBlitz", () => {
 
 test("reset behält nur Ton und Eingabeart", () => {
   const s = migrateV1(V1);
+  s.rep = { "noten-3": { fach: 2, faellig: "2026-11-27", zuletzt: "2026-11-24" } };
+  s.klasse = { jahrgang: 6, zweig: null, dran: { noten: 8 } };
   const r = reset(s);
+  // Welle 11: der Jahrgang der Lehrkraft bleibt (Einstellung), der Karteikasten wird gelöscht (Fortschritt)
+  assert.deepEqual(r.klasse, { jahrgang: 6, zweig: null, dran: { noten: 8 } });
+  assert.deepEqual(r.rep, {});
+  assert.ok(r.migrated.includes(MIGRATION_WIEDERHOLEN));
+  assert.equal(reset(fresh()).klasse, null);
   assert.equal(r.muted, true);
   assert.equal(r.input, "keys");
   assert.equal(r.xp, 0);
@@ -579,4 +588,227 @@ test("Paketreihenfolge: gespeicherte Spielstände bleiben unverändert (Fortschr
   assert.deepEqual(old.levels, { "tonleitern-11": { stars: 2, best: 8, played: 3 }, "tonleitern-13": { stars: 1, best: 6, played: 1 }, "notenwerte-5": { stars: 1, best: 6, played: 1 } });
   assert.equal(old.current, "tonleitern-13");
   assert.deepEqual(old.migrated.slice().sort(), [MIGRATION_INTERVALLE, MIGRATION_NOTENWERTE, MIGRATION_TONLEITERN].sort());
+});
+
+/* ---------- Welle 11, Schritt 4: örtliches Datum, Felder rep und klasse, Umstellung "wiederholen" ---------- */
+
+// Verschiebungen wie Date#getTimezoneOffset: Kuala Lumpur, Bayern Winter (MEZ) und Sommer (MESZ), New York (EST)
+const KL = -480, MEZ = -60, MESZ = -120, NY = 300;
+
+test("localDay: fester Zeitpunkt je Zeitzone, kurz vor und nach Mitternacht Ortszeit", () => {
+  // Kuala Lumpur (UTC+8): Mitternacht örtlich = 16:00 UTC des Vortags
+  assert.equal(localDay(new Date("2026-11-24T15:59:00Z"), KL), "2026-11-24"); // 23:59 in KL
+  assert.equal(localDay(new Date("2026-11-24T16:00:00Z"), KL), "2026-11-25"); // 00:00 in KL
+  assert.equal(localDay(new Date("2026-11-24T23:59:00Z"), KL), "2026-11-25"); // 07:59 in KL – bisher (UTC) noch der 24.
+  // Bayern im Winter (MEZ, UTC+1): Mitternacht = 23:00 UTC
+  assert.equal(localDay(new Date("2026-11-24T22:59:00Z"), MEZ), "2026-11-24");
+  assert.equal(localDay(new Date("2026-11-24T23:00:00Z"), MEZ), "2026-11-25");
+  // Bayern im Sommer (MESZ, UTC+2): Mitternacht = 22:00 UTC
+  assert.equal(localDay(new Date("2026-07-14T21:59:00Z"), MESZ), "2026-07-14");
+  assert.equal(localDay(new Date("2026-07-14T22:00:00Z"), MESZ), "2026-07-15");
+  // New York (UTC−5): Mitternacht = 05:00 UTC
+  assert.equal(localDay(new Date("2026-11-25T04:59:00Z"), NY), "2026-11-24");
+  assert.equal(localDay(new Date("2026-11-25T05:00:00Z"), NY), "2026-11-25");
+  // Jahreswechsel und Verschiebung 0
+  assert.equal(localDay(new Date("2026-12-31T16:00:00Z"), KL), "2027-01-01");
+  assert.equal(localDay(new Date("2026-12-31T23:59:59Z"), 0), "2026-12-31");
+  // today nimmt dieselbe Verschiebung
+  assert.equal(today(new Date("2026-11-24T16:00:00Z"), KL), "2026-11-25");
+});
+
+test("localDay ohne Verschiebung folgt der Zeitzone des Geräts (auch beim Wechsel der Sommerzeit)", () => {
+  const old = process.env.TZ;
+  try {
+    process.env.TZ = "Asia/Kuala_Lumpur";
+    const t = new Date("2026-11-24T16:30:00Z");
+    if (t.getTimezoneOffset() !== KL) return; // ohne Zeitzonendaten nicht prüfbar
+    assert.equal(localDay(t), "2026-11-25");
+    assert.equal(today(t), "2026-11-25");
+    process.env.TZ = "Europe/Berlin";
+    // Umstellung auf Sommerzeit am 29.03.2026 um 2 Uhr: davor MEZ, danach MESZ, der Tag bleibt der 29.
+    assert.equal(new Date("2026-03-29T00:30:00Z").getTimezoneOffset(), MEZ);
+    assert.equal(new Date("2026-03-29T01:30:00Z").getTimezoneOffset(), MESZ);
+    assert.equal(localDay(new Date("2026-03-28T22:59:00Z")), "2026-03-28");
+    assert.equal(localDay(new Date("2026-03-28T23:00:00Z")), "2026-03-29");
+    assert.equal(localDay(new Date("2026-03-29T21:59:00Z")), "2026-03-29");
+    assert.equal(localDay(new Date("2026-03-29T22:00:00Z")), "2026-03-30");
+    // Ende der Sommerzeit am 25.10.2026 um 3 Uhr
+    assert.equal(localDay(new Date("2026-10-24T21:59:00Z")), "2026-10-24");
+    assert.equal(localDay(new Date("2026-10-24T22:00:00Z")), "2026-10-25");
+    assert.equal(localDay(new Date("2026-10-25T22:59:00Z")), "2026-10-25");
+    assert.equal(localDay(new Date("2026-10-25T23:00:00Z")), "2026-10-26");
+  } finally {
+    if (old === undefined) delete process.env.TZ; else process.env.TZ = old;
+  }
+});
+
+test("addDays und dayDiff rechnen auf dem Text des Tages", () => {
+  assert.equal(addDays("2026-11-24", 1), "2026-11-25");
+  assert.equal(addDays("2026-11-24", -1), "2026-11-23");
+  assert.equal(addDays("2026-11-30", 1), "2026-12-01");
+  assert.equal(addDays("2026-12-31", 1), "2027-01-01");
+  assert.equal(addDays("2027-03-01", -1), "2027-02-28");
+  assert.equal(addDays("2028-02-28", 1), "2028-02-29"); // Schaltjahr
+  // über die Umstellung der Sommerzeit (in Bayern 28./29.03.2027) genau ein Tag
+  assert.equal(addDays("2027-03-28", 1), "2027-03-29");
+  assert.equal(addDays("2026-11-25", 30), "2026-12-25");
+  assert.equal(dayDiff("2026-11-24", "2026-11-25"), 1);
+  assert.equal(dayDiff("2026-11-25", "2026-11-24"), -1);
+  assert.equal(dayDiff("2026-11-25", "2027-01-24"), 60);
+  assert.equal(dayDiff("2027-03-27", "2027-03-30"), 3);
+});
+
+test("touchStreak mit Ortszeit: Mitternacht in Kuala Lumpur und Bayern, nicht mehr 8 bzw. 1 Uhr", () => {
+  // KL: 23:30 am 24., dann 00:30 am 25. (beides in UTC noch der 24.) – zwei Tage in Folge
+  const s = fresh();
+  touchStreak(s, new Date("2026-11-24T15:30:00Z"), KL);
+  touchStreak(s, new Date("2026-11-24T16:30:00Z"), KL);
+  assert.deepEqual([s.dayStreak, s.lastDay], [2, "2026-11-25"]);
+  // 07:30 und 20:00 am selben Tag in KL (in UTC zwei Tage) – derselbe Tag
+  const k = fresh();
+  touchStreak(k, new Date("2026-11-24T23:30:00Z"), KL); // 25.11., 07:30
+  touchStreak(k, new Date("2026-11-25T12:00:00Z"), KL); // 25.11., 20:00
+  assert.deepEqual([k.dayStreak, k.lastDay], [1, "2026-11-25"]);
+  // Bayern (MEZ): 00:30 und 23:30 am selben Tag
+  const b = fresh();
+  touchStreak(b, new Date("2026-11-24T23:30:00Z"), MEZ); // 25.11., 00:30
+  touchStreak(b, new Date("2026-11-25T22:30:00Z"), MEZ); // 25.11., 23:30
+  assert.deepEqual([b.dayStreak, b.lastDay], [1, "2026-11-25"]);
+  touchStreak(b, new Date("2026-11-26T17:00:00Z"), MEZ);
+  assert.equal(b.dayStreak, 2);
+  // ein Tag Pause: wieder 1
+  touchStreak(b, new Date("2026-11-28T17:00:00Z"), MEZ);
+  assert.equal(b.dayStreak, 1);
+});
+
+test("touchStreak: die Serie reißt beim Wechsel von UTC auf Ortszeit nicht ab", () => {
+  // alter UTC-Tag = gestern (östlich von Greenwich): KL, zuletzt 25.11. 07:30 Ortszeit = 24.11. in UTC
+  const kl = { ...fresh(), dayStreak: 5, lastDay: "2026-11-24" };
+  touchStreak(kl, new Date("2026-11-25T12:00:00Z"), KL); // 25.11. 20:00, nach dem Update
+  assert.deepEqual([kl.dayStreak, kl.lastDay], [6, "2026-11-25"]); // zählt einmalig weiter, kein Abriss
+  touchStreak(kl, new Date("2026-11-26T01:00:00Z"), KL); // 26.11. 09:00
+  assert.deepEqual([kl.dayStreak, kl.lastDay], [7, "2026-11-26"]);
+  // Bayern, zuletzt 25.11. 00:30 MEZ = 24.11. 23:30 UTC
+  const by = { ...fresh(), dayStreak: 3, lastDay: "2026-11-24" };
+  touchStreak(by, new Date("2026-11-25T17:00:00Z"), MEZ);
+  assert.deepEqual([by.dayStreak, by.lastDay], [4, "2026-11-25"]);
+  // Bayern im Sommer (MESZ), zuletzt 15.07. 01:30 = 14.07. 23:30 UTC
+  const so = { ...fresh(), dayStreak: 3, lastDay: "2026-07-14" };
+  touchStreak(so, new Date("2026-07-15T16:00:00Z"), MESZ);
+  assert.deepEqual([so.dayStreak, so.lastDay], [4, "2026-07-15"]);
+  // alter UTC-Tag = heute: nichts ändern
+  const same = { ...fresh(), dayStreak: 5, lastDay: "2026-11-25" };
+  touchStreak(same, new Date("2026-11-25T12:00:00Z"), KL);
+  assert.deepEqual([same.dayStreak, same.lastDay], [5, "2026-11-25"]);
+  touchStreak(same, new Date("2026-11-26T12:00:00Z"), KL);
+  assert.equal(same.dayStreak, 6);
+  // alter UTC-Tag = morgen (westlich von Greenwich): New York, zuletzt 24.11. 21:00 Ortszeit = 25.11. 02:00 UTC
+  const ny = { ...fresh(), dayStreak: 4, lastDay: "2026-11-25" };
+  touchStreak(ny, new Date("2026-11-25T03:00:00Z"), NY); // 24.11. 22:00 örtlich: der Eintrag liegt in der Zukunft
+  assert.deepEqual([ny.dayStreak, ny.lastDay], [4, "2026-11-25"]);
+  touchStreak(ny, new Date("2026-11-26T01:00:00Z"), NY); // 25.11. 20:00 örtlich = lastDay
+  assert.deepEqual([ny.dayStreak, ny.lastDay], [4, "2026-11-25"]);
+  touchStreak(ny, new Date("2026-11-26T23:00:00Z"), NY); // 26.11. 18:00 örtlich: gestern war lastDay
+  assert.deepEqual([ny.dayStreak, ny.lastDay], [5, "2026-11-26"]);
+  // recordRound und recordBlitz nutzen ebenfalls den örtlichen Tag des Geräts (hier ohne Verschiebung: nur kein Abriss)
+  const r = { ...fresh(), dayStreak: 2, lastDay: today(new Date(Date.now() - 864e5)) };
+  recordRound(r, "noten-1", 9);
+  assert.equal(r.dayStreak, 3);
+});
+
+test("fresh: Felder rep und klasse, alle vier Marker; ein alter Stand ohne die Felder lädt", () => {
+  assert.deepEqual(fresh().rep, {});
+  assert.equal(fresh().klasse, null);
+  assert.deepEqual(fresh().migrated, [MIGRATION_INTERVALLE, MIGRATION_TONLEITERN, MIGRATION_NOTENWERTE, MIGRATION_WIEDERHOLEN]);
+  // Stand von Welle 10 (drei Marker, ohne rep/klasse), ohne Liste: lädt, nichts wird gespeichert
+  const old = { xp: 70, dayStreak: 2, lastDay: "2026-11-24", levels: { "noten-1": { stars: 3, best: 10, played: 1 } }, notes: {},
+    migrated: [MIGRATION_INTERVALLE, MIGRATION_TONLEITERN, MIGRATION_NOTENWERTE] };
+  const st = memStorage({ [KEY_V2]: JSON.stringify(old) });
+  const s = load(st);
+  assert.deepEqual(s.rep, {});
+  assert.equal(s.klasse, null);
+  assert.equal(s.xp, 70);
+  assert.equal(st.data[KEY_V2], JSON.stringify(old), "ohne Liste keine Umstellung, kein Speichern");
+  assert.ok(!s.migrated.includes(MIGRATION_WIEDERHOLEN));
+});
+
+// Stufen ohne Hilfen in der Reihenfolge der Pakete (wie app.js sie übergibt)
+const BOX = PACKS.flatMap((p) => p.levels.filter((l) => !(l.helps && l.helps.length)).map((l) => l.id));
+
+test("migrateWiederholen: geschaffte Stufen ohne Hilfen in Fach 1, je Tag drei, Reihenfolge der Pakete, einmal", () => {
+  assert.equal(UMSTELLUNG_JE_TAG, 3);
+  const s = {
+    ...fresh(), migrated: [MIGRATION_INTERVALLE, MIGRATION_TONLEITERN, MIGRATION_NOTENWERTE], rep: undefined,
+    levels: {
+      // absichtlich nicht in der Reihenfolge der Pakete eingetragen
+      "akkorde-3": { stars: 2, best: 8, played: 1 },
+      "intervall-2": { stars: 3, best: 10, played: 2 },
+      "intervall-1": { stars: 3, best: 10, played: 1 }, // mit Hilfen: nicht in den Kasten
+      "noten-3": { stars: 2, best: 8, played: 1 },
+      "noten-1": { stars: 3, best: 9, played: 1 },
+      "noten-2": { stars: 2, best: 7, played: 3 }, // nicht geschafft
+      "notenwerte-5": { stars: 3, best: 9, played: 1 },
+      "notenwerte-4": { stars: 3, best: 10, played: 1 }, // mit Hilfen
+      "tonleitern-5": { stars: 2, best: 8, played: 1 },
+      "tonleitern-11": { stars: 0, best: 4, played: 1 }, // nicht geschafft
+    },
+  };
+  assert.equal(migrateWiederholen(s, BOX, "2026-11-25"), true);
+  assert.deepEqual(s.rep, {
+    "noten-1": { fach: 1, faellig: "2026-11-25", zuletzt: null },
+    "noten-3": { fach: 1, faellig: "2026-11-25", zuletzt: null },
+    "notenwerte-5": { fach: 1, faellig: "2026-11-25", zuletzt: null },
+    "intervall-2": { fach: 1, faellig: "2026-11-26", zuletzt: null },
+    "tonleitern-5": { fach: 1, faellig: "2026-11-26", zuletzt: null },
+    "akkorde-3": { fach: 1, faellig: "2026-11-26", zuletzt: null },
+  });
+  assert.deepEqual(s.migrated, [MIGRATION_INTERVALLE, MIGRATION_TONLEITERN, MIGRATION_NOTENWERTE, MIGRATION_WIEDERHOLEN]);
+  // läuft nur einmal: neue geschaffte Stufen kommen nicht mehr über die Umstellung hinzu
+  s.levels["noten-6"] = { stars: 3, best: 10, played: 1 };
+  assert.equal(migrateWiederholen(s, BOX, "2026-11-30"), false);
+  assert.equal(s.rep["noten-6"], undefined);
+  // ohne Liste: läuft nicht, kein Marker
+  const t = { ...fresh(), migrated: [], levels: { "noten-1": { stars: 3, best: 10, played: 1 } } };
+  assert.equal(migrateWiederholen(t, null, "2026-11-25"), false);
+  assert.ok(!t.migrated.includes(MIGRATION_WIEDERHOLEN));
+  // vorhandene Einträge bleiben
+  const u = { ...fresh(), migrated: [], rep: { "noten-1": { fach: 3, faellig: "2026-12-01", zuletzt: "2026-11-24" } },
+    levels: { "noten-1": { stars: 3, best: 10, played: 1 }, "noten-3": { stars: 3, best: 10, played: 1 } } };
+  migrateWiederholen(u, BOX, "2026-11-25");
+  assert.deepEqual(u.rep, { "noten-1": { fach: 3, faellig: "2026-12-01", zuletzt: "2026-11-24" }, "noten-3": { fach: 1, faellig: "2026-11-25", zuletzt: null } });
+  // zehn geschaffte Stufen: 3 + 3 + 3 + 1 über vier Tage
+  const many = { ...fresh(), migrated: [], levels: Object.fromEntries(BOX.slice(0, 10).map((id) => [id, { stars: 3, best: 10, played: 1 }])) };
+  migrateWiederholen(many, BOX, "2026-11-30");
+  const perDay = {};
+  for (const e of Object.values(many.rep)) perDay[e.faellig] = (perDay[e.faellig] || 0) + 1;
+  assert.deepEqual(perDay, { "2026-11-30": 3, "2026-12-01": 3, "2026-12-02": 3, "2026-12-03": 1 });
+});
+
+test("load mit Liste: alter Stand bekommt die Umstellung einmal, danach wird nicht mehr neu gespeichert", () => {
+  const old = { xp: 70, levels: { "noten-1": { stars: 3, best: 10, played: 1 }, "intervall-2": { stars: 2, best: 8, played: 1 } },
+    migrated: [MIGRATION_INTERVALLE, MIGRATION_TONLEITERN, MIGRATION_NOTENWERTE] };
+  const st = memStorage({ [KEY_V2]: JSON.stringify(old) });
+  // 25.11. 00:30 in Kuala Lumpur (in UTC noch der 24.): örtlicher Tag des Geräts; hier über die Verschiebung des
+  // Testrechners, darum nur der Vergleich mit today()
+  const now = new Date("2026-11-24T16:30:00Z");
+  const s = load(st, now, BOX);
+  assert.deepEqual(s.rep, {
+    "noten-1": { fach: 1, faellig: today(now), zuletzt: null },
+    "intervall-2": { fach: 1, faellig: today(now), zuletzt: null },
+  });
+  const saved = st.data[KEY_V2];
+  assert.ok(JSON.parse(saved).migrated.includes(MIGRATION_WIEDERHOLEN));
+  // zweites Laden: unverändert, nicht neu gespeichert
+  st.setItem = () => { throw new Error("darf nicht speichern"); };
+  const again = load(st, new Date("2026-12-01T10:00:00Z"), BOX);
+  assert.deepEqual(again.rep, s.rep);
+  // v1-Stand (nur Noten lesen): bekommt die Umstellung ebenfalls
+  const v1 = memStorage({ [KEY_V1]: JSON.stringify({ xp: 50, levels: { 3: { stars: 2, best: 8, played: 1 }, 4: { stars: 1, best: 6, played: 1 } }, current: 4 }) });
+  const s1 = load(v1, now, BOX);
+  assert.deepEqual(Object.keys(s1.rep), ["noten-3"]);
+  assert.ok(s1.migrated.includes(MIGRATION_WIEDERHOLEN));
+  // frischer Stand mit Liste: nichts zu tun, nichts gespeichert
+  const empty = memStorage();
+  assert.deepEqual(load(empty, now, BOX), fresh());
+  assert.equal(empty.data[KEY_V2], undefined);
 });

@@ -2,6 +2,7 @@
 import * as store from "./store.js";
 import * as audio from "./audio.js";
 import { PACKS } from "./packs/index.js";
+import { boxIds } from "./repeat.js";
 import * as home from "./views/home.js";
 import * as practice from "./views/practice.js";
 import * as learn from "./views/learn.js";
@@ -16,7 +17,8 @@ let view = "home";
 // Gemeinsamer Kontext für alle Ansichten. ctx.state wird beim Zurücksetzen ersetzt,
 // deshalb lesen die Ansichten den Zustand immer über ctx.state.
 const ctx = {
-  state: store.load(),
+  // Stufen ohne Hilfen für die einmalige Umstellung „wiederholen“ (Karteikasten, repeat.js)
+  state: store.load(undefined, new Date(), boxIds(PACKS)),
   save: () => store.save(ctx.state),
   show,
   renderTop,

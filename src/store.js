@@ -11,14 +11,25 @@ export const KEY_V2 = "notenheld.v2";
 export const MIGRATION_INTERVALLE = "intervalle-neu";
 export const MIGRATION_TONLEITERN = "tonleitern-neu";
 export const MIGRATION_NOTENWERTE = "notenwerte-neu";
+export const MIGRATION_WIEDERHOLEN = "wiederholen";
+
+// Stufen je Tag bei der Umstellung "wiederholen": so viele, wie eine Wiederholungsrunde fasst
+// (repeat.js MAX_STUFEN; hier als eigene Zahl, weil repeat.js dieses Modul einbindet – ein Test prüft die Gleichheit).
+export const UMSTELLUNG_JE_TAG = 3;
 
 export const fresh = () => ({
   xp: 0, dayStreak: 0, lastDay: null, levels: {}, notes: {}, answered: 0, correct: 0,
   bestCombo: 0, blitzRecord: 0, unlockAll: false, muted: false, input: "letters", current: "noten-1",
-  migrated: [MIGRATION_INTERVALLE, MIGRATION_TONLEITERN, MIGRATION_NOTENWERTE],
+  migrated: [MIGRATION_INTERVALLE, MIGRATION_TONLEITERN, MIGRATION_NOTENWERTE, MIGRATION_WIEDERHOLEN],
   // Gewählte Merksprüche (Welle 10, Schritt 4): je Kennung { wahl: n } oder { eigen: "…" }, siehe sprueche.js.
   // Ältere Stände ohne das Feld bekommen beim Laden {} aus fresh() und werden deshalb nicht neu gespeichert.
   sprueche: {},
+  // Wiederholung über Tage (Welle 11, repeat.js): je Stufe ohne Hilfen { fach: 1…5, faellig, zuletzt } ("JJJJ-MM-TT",
+  // örtliches Datum). Fortschritt: wird beim Zurücksetzen gelöscht.
+  rep: {},
+  // Jahrgang über den Lehrkraft-Link (Welle 11, Schritt 11): null oder { jahrgang, zweig, dran }. Einstellung der
+  // Lehrkraft, kein Fortschritt: bleibt beim Zurücksetzen erhalten.
+  klasse: null,
 });
 
 // Alte Daten (Stufen 1 bis 8 als Zahl) in das Format mit Stufen-IDs übernehmen
@@ -28,6 +39,9 @@ export function migrateV1(v1) {
   Object.entries((v1 && v1.levels) || {}).forEach(([k, v]) => { levels["noten-" + k] = v; });
   s.levels = levels;
   s.current = typeof (v1 && v1.current) === "number" ? "noten-" + v1.current : "noten-1";
+  // v1 kannte nur „Noten lesen“: die Umstellungen der anderen Pakete braucht es nicht, wohl aber "wiederholen"
+  // (geschaffte Stufen kommen in den Karteikasten)
+  s.migrated = s.migrated.filter((m) => m !== MIGRATION_WIEDERHOLEN);
   return s;
 }
 
@@ -105,20 +119,42 @@ export function migrateNotenwerte(s) {
   return true;
 }
 
+// "wiederholen" (25.11.2026, Welle 11): Jede schon geschaffte Stufe ohne Hilfen (beste Runde >= 8) kommt in Fach 1
+// des Karteikastens (repeat.js). Die Fälligkeiten werden verteilt, damit nach dem Update nicht alles auf einmal
+// fällig ist: in der Reihenfolge von boxIds (Pakete in der Reihenfolge PACKS, Grundlagen zuerst) je Tag
+// UMSTELLUNG_JE_TAG Stufen, beginnend heute. Vorhandene Einträge bleiben. boxIds: IDs der Stufen ohne Hilfen in
+// der Reihenfolge der Pakete (store.js kennt die Pakete nicht; app.js übergibt sie). Ohne Liste läuft die
+// Umstellung nicht und der Marker wird nicht gesetzt. Gibt true zurück, wenn sie gelaufen ist.
+export function migrateWiederholen(s, boxIds, heute = today()) {
+  const done = Array.isArray(s.migrated) ? s.migrated : [];
+  if (done.includes(MIGRATION_WIEDERHOLEN) || !Array.isArray(boxIds)) return false;
+  const rep = s.rep && typeof s.rep === "object" && !Array.isArray(s.rep) ? s.rep : {};
+  let k = 0;
+  for (const id of boxIds) {
+    if (((s.levels || {})[id] || {}).best >= 8 && !rep[id]) {
+      rep[id] = { fach: 1, faellig: addDays(heute, Math.floor(k / UMSTELLUNG_JE_TAG)), zuletzt: null };
+      k++;
+    }
+  }
+  s.rep = rep;
+  s.migrated = [...done, MIGRATION_WIEDERHOLEN];
+  return true;
+}
+
 // Alle Umstellungen in der festen Reihenfolge; jede läuft (nicht mit || verketten, sonst liefe die zweite
 // beim ersten Laden nicht). true, wenn eine etwas geändert hat. migrateNotenwerte fasst nur notenwerte-* an
-// und steht nur der Ordnung halber als dritte.
-export function migrateAll(s) {
-  const a = migrateIntervalle(s), b = migrateTonleitern(s), c = migrateNotenwerte(s);
-  return a || b || c;
+// und steht nur der Ordnung halber als dritte; migrateWiederholen kommt zuletzt (braucht die neuen Stufen-IDs).
+export function migrateAll(s, boxIds, heute = today()) {
+  const a = migrateIntervalle(s), b = migrateTonleitern(s), c = migrateNotenwerte(s), d = migrateWiederholen(s, boxIds, heute);
+  return a || b || c || d;
 }
 
 const defaultStorage = () => { try { return globalThis.localStorage || null; } catch (e) { return null; } };
 
 // Zustand laden: zuerst v2, sonst v1 übernehmen und als v2 speichern (v1 bleibt unverändert).
-// Danach die einmaligen Umstellungen (migrateAll: migrateIntervalle, migrateTonleitern, migrateNotenwerte); geändert
-// wird nur einmal gespeichert.
-export function load(storage = defaultStorage()) {
+// Danach die einmaligen Umstellungen (migrateAll: migrateIntervalle, migrateTonleitern, migrateNotenwerte,
+// migrateWiederholen mit boxIds und dem örtlichen Tag von now); geändert wird nur einmal gespeichert.
+export function load(storage = defaultStorage(), now = new Date(), boxIds = null) {
   try {
     if (!storage) return fresh();
     const raw = storage.getItem(KEY_V2);
@@ -126,13 +162,13 @@ export function load(storage = defaultStorage()) {
       // Marker nur aus dem gespeicherten Stand, nicht aus fresh(): ältere Stände haben keine
       const parsed = JSON.parse(raw);
       const s = Object.assign(fresh(), parsed, { migrated: Array.isArray(parsed.migrated) ? parsed.migrated : [] });
-      if (migrateAll(s)) save(s, storage);
+      if (migrateAll(s, boxIds, today(now))) save(s, storage);
       return s;
     }
     const old = storage.getItem(KEY_V1);
     if (old) {
       const s = migrateV1(JSON.parse(old));
-      migrateAll(s);
+      migrateAll(s, boxIds, today(now));
       save(s, storage);
       return s;
     }
@@ -144,15 +180,38 @@ export function save(s, storage = defaultStorage()) {
   try { if (storage) storage.setItem(KEY_V2, JSON.stringify(s)); } catch (e) { /* ignorieren */ }
 }
 
-// Datum als "JJJJ-MM-TT" in UTC (wie toISOString)
-export const today = (now = new Date()) => now.toISOString().slice(0, 10);
+// Örtlicher Tag als "JJJJ-MM-TT" (seit Welle 11; bis Welle 10 galt der Tag in UTC, der in Malaysia um 8 Uhr
+// morgens und in Bayern um 1 bzw. 2 Uhr nachts wechselte). offsetMin wie Date#getTimezoneOffset (Minuten
+// UTC − Ortszeit: Kuala Lumpur −480, Bayern −60 im Winter und −120 im Sommer, New York +300); für Tests einstellbar.
+export const localDay = (now = new Date(), offsetMin = now.getTimezoneOffset()) =>
+  new Date(now.getTime() - offsetMin * 60000).toISOString().slice(0, 10);
 
-// Tage in Folge: gleicher Tag ändert nichts, gestern +1, sonst wieder 1
-export function touchStreak(s, now = new Date()) {
-  const t = today(now);
+// Heute (örtlich); offsetMin wie bei localDay
+export const today = (now = new Date(), offsetMin) => localDay(now, offsetMin === undefined ? now.getTimezoneOffset() : offsetMin);
+
+// Tag + n Tage, nur auf dem Text des Tages gerechnet (über Date.UTC, unabhängig von Sommerzeit und Zeitzone)
+export function addDays(day, n) {
+  const [y, m, d] = String(day).split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
+}
+
+// Ganze Tage von a bis b (b − a; positiv, wenn b später ist)
+export function dayDiff(a, b) {
+  const t = (day) => { const [y, m, d] = String(day).split("-").map(Number); return Date.UTC(y, m - 1, d); };
+  return Math.round((t(b) - t(a)) / 864e5);
+}
+
+// Tage in Folge: gleicher Tag ändert nichts, gestern +1, sonst wieder 1 (örtliches Datum).
+// Umstellung von UTC auf Ortszeit (Welle 11), die Serie reißt dabei nicht ab:
+// - westlich von Greenwich kann der alte UTC-Tag in lastDay einen Tag *nach* dem örtlichen Tag liegen; ein Tag in
+//   der Zukunft gilt als heute (nichts ändern), am Tag darauf zählt die Serie wie gewohnt weiter;
+// - östlich (Kuala Lumpur, Bayern) liegt der alte UTC-Tag höchstens einen Tag zurück und zählt als gestern
+//   (die Serie zählt dann einmalig einen Tag weiter).
+export function touchStreak(s, now = new Date(), offsetMin) {
+  const t = today(now, offsetMin);
   if (s.lastDay === t) return s;
-  const y = new Date(now.getTime() - 864e5).toISOString().slice(0, 10);
-  s.dayStreak = s.lastDay === y ? s.dayStreak + 1 : 1;
+  if (typeof s.lastDay === "string" && s.lastDay > t) return s;
+  s.dayStreak = s.lastDay === addDays(t, -1) ? s.dayStreak + 1 : 1;
   s.lastDay = t;
   return s;
 }
@@ -239,8 +298,12 @@ export function recordBlitz(s, score, bestCombo, now = new Date()) {
   return { record, gained };
 }
 
-// Zurücksetzen: Ton, Eingabeart und Merksprüche bleiben erhalten (Einstellungen, kein Fortschritt)
-export const reset = (s) => Object.assign(fresh(), { muted: s.muted, input: s.input, sprueche: s.sprueche && typeof s.sprueche === "object" ? s.sprueche : {} });
+// Zurücksetzen: Ton, Eingabeart, Merksprüche und der Jahrgang der Lehrkraft (klasse) bleiben erhalten
+// (Einstellungen, kein Fortschritt); der Karteikasten (rep) wird gelöscht.
+export const reset = (s) => Object.assign(fresh(), {
+  muted: s.muted, input: s.input, sprueche: s.sprueche && typeof s.sprueche === "object" ? s.sprueche : {},
+  klasse: s.klasse && typeof s.klasse === "object" ? s.klasse : null,
+});
 
 // Trefferquote in Prozent oder null, wenn noch nichts beantwortet wurde
 export const accuracy = (s) => (s.answered ? Math.round((100 * s.correct) / s.answered) : null);

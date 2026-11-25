@@ -2649,6 +2649,34 @@ drei Stufen, Grundlagen zuerst; während des ganzen Laufs bleibt jede Stufe offe
 **Abnahme.** `npm test` grün; in der Oberfläche ändert dieser Schritt nichts außer dem Tageswechsel um
 Mitternacht Ortszeit.
 
+**Umgesetzt (25.11.2026, Opus).** `store.js`: `localDay`, `today(now, offsetMin)`, `addDays`, `dayDiff` (für die
+Texte in Schritt 8), `touchStreak(s, now, offsetMin)` mit örtlichem Tag; `fresh()` mit `rep: {}`, `klasse: null`
+und dem Marker `"wiederholen"`; `migrateWiederholen(s, boxIds, heute)` als vierte Umstellung in `migrateAll`;
+`load(storage, now, boxIds)`; `reset` behält `klasse`. `app.js` übergibt `boxIds(PACKS)`. Neues reines Modul
+`src/repeat.js` wie oben (dazu `FAECHER` und `boxIds(packs)`); `sw.js`: `src/repeat.js` in `PRECACHE` (der
+Cache wird erst in Schritt 13 hochgezählt). In der Oberfläche ändert sich nichts außer dem Tageswechsel
+(mit Playwright nachgesehen: alter Stand lädt ohne Fehler, bekommt Fach 1 und den Marker).
+- **v1-Stände:** `migrateV1` setzte bisher alle Marker aus `fresh()`; der Marker `"wiederholen"` wird dort jetzt
+  herausgenommen, damit auch geschaffte Stufen aus v1 in den Kasten kommen.
+- **Umstellung:** Einträge aus der Umstellung tragen `zuletzt: null` (noch nie wiederholt). Je Tag
+  `UMSTELLUNG_JE_TAG = 3` in `store.js` (eigene Zahl, weil `repeat.js` `store.js` einbindet; ein Test prüft
+  `UMSTELLUNG_JE_TAG === MAX_STUFEN`).
+- **`reviewPlan` mit mehreren Ratestufen** (Lücke im Plan): Bei drei fälligen Stufen, von denen zwei oder drei
+  `guess` tragen, ließe „mindestens 4“ einer Stufe nur 2 Aufgaben (4 + 4 + 2). Dann kommen nur die ersten zwei
+  Stufen in die Runde (5 + 5); die dritte bleibt fällig. So hat jede Stufe mindestens drei, jede Ratestufe
+  mindestens vier Aufgaben. Die Anteile gehen zuerst an die Ratestufen, die Reihenfolge der Runde bleibt wie `due`.
+- `afterRound` meldet eine neu aufgenommene Stufe mit `neu: true` (für „Kommt morgen zum Wiederholen wieder.“ in
+  Schritt 8); `dueText(0)` = „heute“; `dayText("2026-12-05")` = „5.12.“ (ohne führende Null).
+- **Lauf über 40 Tage:** Die Fälligkeiten 1, 4, 11, 25 und die nächste an Tag 55 gelten für den Lauf **ohne**
+  Ferien. Mit Ferien von Tag 12 bis 26 ist Tag 25 nicht gespielt; die Runde an Tag 27 setzt den Abstand ab Tag
+  27 (nächste an Tag 57, so wie `applyReview` es vorgibt). Darum zwei Läufe: ohne Ferien (1, 4, 11, 25, 55; die
+  an Tag 4 nicht bestandene Stufe: 1, 4, 5, 8, 15, 29, 59) und mit Ferien (an Tag 27 alle drei fällig, eine
+  Runde 4 + 3 + 3, am längsten fällig zuerst, dann Grundlagen vor Intervallen). Dazu derselbe Lauf in Bayern
+  (Start 00:30 MEZ) und ein Abbau nach langer Pause (7 Stufen → Runden 3 + 3 + 1, Grundlagen zuerst).
+- Tests: `localDay` mit −480, −60, −120, +300 je um Mitternacht, dazu mit `process.env.TZ` (Asia/Kuala_Lumpur,
+  Europe/Berlin über beide Umstellungen der Sommerzeit 2026); Serie über die Umstellung (alter UTC-Tag = gestern,
+  heute, morgen; Kuala Lumpur, Bayern Winter und Sommer, New York): kein Abriss.
+
 #### Schritt 5 – Voraussetzungen in allen Paketen
 
 - Alle fünf Pakete: `needs` je Stufe nach der Tabelle in 1 (wo die Voreinstellung dasselbe ergibt, ohne Feld),
