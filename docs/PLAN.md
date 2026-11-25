@@ -23,7 +23,8 @@ anzufassen.
 | 8     | Tonleitern gehirngerecht                  | zweites Paket nach KONZEPT-gehirngerecht (Reihenfolge Sandra: Intervalle → Tonleitern → Notenwerte → Noten lesen → Dreiklänge → Hörstufen) |
 | 9     | Notenwerte gehirngerecht                  | drittes Paket nach KONZEPT-gehirngerecht |
 | 10    | Korrekturen aus der Prüfung (drei Perspektiven) | A-Befunde und kleine B-Befunde der ganzen App, Notenwerte-Befunde, wählbare Merksprüche; vor den nächsten großen Paketen |
-| 11    | Wiederholen                               | Voraussetzungen je Stufe, „Grundlagen wiederholen“, Wiederholung über Tage, Jahrgang als Einstellung der Lehrkraft (Konzept; Feinplan nach Sandras Antworten) |
+| 11    | Wiederholen                               | zuerst Sandras Wünsche vom 25.11.2026 (ein Knopf „Nächste Aufgabe“, Wortlaut „Dauer in Schlägen“, „Lernen“ mit Reitern) und die neue Paketreihenfolge (Intervalle vor Tonleitern); dann Voraussetzungen je Stufe, „Grundlagen wiederholen“, Wiederholung über Tage, Jahrgang über den Lehrkraft-Link mit QR-Code (Feinplan vom 25.11.2026) |
+| danach | Noten lesen gehirngerecht → Dreiklänge Schritt für Schritt (bis zum Dominantseptakkord) → Hörstufen | Reihenfolge Sandra; Vorgabe zum Dominantseptakkord im Abschnitt nach Welle 11 |
 
 Vor Welle 2 muss Welle 1 gemergt und `npm test` grün sein. Welle 2 kann mit
 vier Agenten gleichzeitig laufen (am besten je ein Git-Worktree oder je ein
@@ -1803,7 +1804,8 @@ und wird nicht neu gespeichert.
 - Welle 11: Wiederholen (Voraussetzungen, „Grundlagen wiederholen“, Wiederholung über Tage, Jahrgang; B9, B16).
 - Noten lesen gehirngerecht: Bezugston → Stufen zählen, Hilfen, Vorführung; Namensregel -is/-es und „H mit ♭
   heißt B“, Namensraster (B4), Stufe „Auflösungszeichen“ (B8a).
-- Dreiklänge Schritt für Schritt: neues Paket, Umkehrungen vor „Grundton bestimmen“ (A5, B2; Vorgabe Sandra).
+- Dreiklänge Schritt für Schritt: neues Paket, Umkehrungen vor „Grundton bestimmen“ (A5, B2; Vorgabe Sandra),
+  bis zum Dominantseptakkord (Vorgabe Sandra, 25.11.2026, eigener Abschnitt nach Welle 11).
 - Moll-Tonleitern (natürlich, später harmonisch und melodisch; B8b).
 - Hörstufen: erst hören, dann antworten (B8c); dazu Grundschlag beim Takt-Rhythmus.
 - Startseite und Lernen: Pakete einklappbar, Sprungleiste, Tafeln umbenennen (B12); kürzere Vorführungen bzw.
@@ -1952,12 +1954,14 @@ Nicht geändert (Entscheidungen Sandra bzw. offen): Pausenlage-Wortlaut (Punkt 6
 den Berichten. `npm test` 374 grün, `docs/screens/ueberlauf.mjs` 0 Treffer bei 320 und 420 px. Cache bleibt
 `notenheld-v0.2.0-13` (noch nicht veröffentlicht).
 
-## Welle 11: Wiederholen (Voraussetzungen, Grundlagen wiederholen, Wiederholung über Tage, Jahrgang als Lehrkraft-Einstellung)
+## Welle 11: Wiederholen (Voraussetzungen, Grundlagen wiederholen, Wiederholung über Tage, Jahrgang über den Lehrkraft-Link)
 
+Ausgangsstand: Branch `wiederholen-11` (von `main` 2f3dfe8, Cache `notenheld-v0.2.0-13`, 374 Tests grün).
 Grundlage: KONZEPT-gehirngerecht, „Wiederholen ist der Kern“ und „Jahrgang“ (Sandra, 24.11.2026), Mängelliste B9
-und B16, Bericht Wissenschaft („Adaptive Auswahl und Stufenfolge als Ganzes“). Dieser Abschnitt ist ein
-**Konzept**. Vor dem Bau: Sandras Antworten auf die offenen Fragen unten, dann ein Feinplan je Schritt (Fable)
-wie in den Wellen 7 bis 10. Voraussetzung: Welle 10 ist zusammengeführt (Warten nach „daneben“, Merksprüche).
+und B16, Bericht Wissenschaft („Adaptive Auswahl und Stufenfolge als Ganzes“), Sandras Antworten vom 24.11.2026
+(21:25) und ihre Wünsche vom 25.11.2026 (10:38, W1–W4). Die Abschnitte 1 bis 5 sind das Konzept (mit den
+Entscheidungen eingearbeitet), Abschnitt 6 ist der **Feinplan** je Schritt, Abschnitt 7 hält die Entscheidungen
+fest, Abschnitt 8 ist die Liste „Offen für Sandra“.
 
 **Leitsätze (Sandra).**
 1. Schülerinnen und Schüler vergessen immer wieder. Die App ist dafür da, dass jede und jeder wiederholen kann,
@@ -1967,88 +1971,162 @@ wie in den Wellen 7 bis 10. Voraussetzung: Welle 10 ist zusammengeführt (Warten
    Wiederholungen sind ein Angebot, nie eine Schranke; der Jahrgang ordnet und öffnet, er sperrt nicht.
 4. Alles bleibt auf dem Gerät: nur `localStorage`, kein Server, kein Konto.
 
+**Entscheidungen Sandra (24.11.2026, verbindlich).**
+1. Abstände 1 · 3 · 7 · 14 · 30 Tage; Runden mit 10 Aufgaben („Wiederholen“) bzw. 6 Aufgaben („Grundlagen
+   wiederholen“).
+2. Die Wiederholung steht auf der Startseite ganz oben.
+3. Eine Wiederholungsrunde zählt für Tagesserie und Erfahrungspunkte wie eine normale Runde.
+4. Das Paket „Intervalle“ kommt **vor** „Tonleitern“ (Reihenfolge überall: Startseite, Lernen, Statistik, Doku).
+5. Jahrgänge 5 bis 13; Zuordnung der Stufen nach dem LehrplanPLUS (Gymnasium Bayern, Musik), Tabelle in 4.
+6. Der Jahrgang wird **nur über den Lehrkraft-Link** gesetzt, geändert oder entfernt, nicht frei in der App.
+7. Link **und** QR-Code für die Klasse (QR-Code im Gerät erzeugt, ohne Abhängigkeit, ohne Netz).
+8. Mit gesetztem Jahrgang sind auch die Stufen innerhalb von „Jetzt dran“ sofort offen.
+9. Die Runde heißt „Wiederholen“; „Grundlagen wiederholen“ bleibt.
+
+**Wünsche Sandra (25.11.2026) – die ersten Schritte dieser Welle.**
+- W1 Notenwerte: Die Frage „Wie viele Schläge im 4/4-Takt?“ klingt nach der Zahl der Schläge im ganzen Takt.
+  Gemeint ist die Dauer der Note in Schlägen (im 4/4-Takt ist ein Schlag eine Viertel). Ein eindeutiger Wortlaut,
+  überall gleich (Schritt 1).
+- W2 „Nächste Aufgabe“ erscheint doppelt, wenn die Vorführung offen ist. Nur einmal zeigen, in allen Paketen
+  (Schritt 0).
+- W3 „Lernen“ mit Reitern je Inhalt (Schritt 2).
+- W4 Dreiklänge bis zum Dominantseptakkord: nur als Vorgabe für das spätere Paket „Dreiklänge Schritt für
+  Schritt“ notiert (eigener Abschnitt nach dieser Welle), nicht bauen.
+
+**Übersicht: Schritt → Inhalt.**
+
+| Schritt | Inhalt | Dateien (Schwerpunkt) |
+|---|---|---|
+| 0 | W2: „Nächste Aufgabe“ nur einmal | `engine.js`, `test/engine.test.js`, `ueberlauf.mjs` |
+| 1 | W1: Notenwerte – Dauer in Schlägen, ein Wortlaut | `packs/notenwerte.js`, Tests |
+| 2 | W3: „Lernen“ mit Reitern | `views/learn.js`, `index.html`, `style.css`, Pakete (`tab`) |
+| 3 | Paketreihenfolge: Intervalle vor Tonleitern | `packs/index.js`, Tests, Skripte, Doku |
+| 4 | Örtliches Datum, Felder `rep` und `klasse`, Karteikasten als reine Logik | `store.js`, neu `repeat.js` |
+| 5 | Voraussetzungen in allen Paketen | Pakete (`needs`, `skill`), `repeat.js` |
+| 6 | Engine: gemischte Runde | `engine.js`, `store.js`, `index.html` |
+| 7 | „Grundlagen wiederholen“ und Fehlermuster | `views/practice.js`, `repeat.js` |
+| 8 | Wiederholung über Tage: Karte „Heute“, Runde „Wiederholen“, Statistik | `views/home.js`, `practice.js`, `stats.js` |
+| 9 | Gewichtete Auswahl in Intervalle und Tonleitern, Gewicht nach Tagen | `adapt.js`, Pakete |
+| 10 | QR-Code-Modul | neu `qr.js` |
+| 11 | Jahrgang: Tabelle, Link, Bestätigung, Öffnen | neu `klasse.js`, `store.js`, `app.js` |
+| 12 | Lehrkraft-Seite mit Link und QR-Code, Abschnitte der Startseite | neu `views/lehrkraft.js`, `home.js` |
+| 13 | Doku, Cache -14, Bildschirmfotos, Überlauf, Lauf über 40 Tage | Doku, `sw.js`, `docs/screens/*` |
+
 ### 1. Datenmodell
 
 **Voraussetzungen (im Code der Pakete, nicht im Spielstand).**
-- Innerhalb eines Pakets gilt ohne Angabe: Voraussetzung ist die Stufe ohne Hilfen davor (bzw. die Stufe, die
-  freischaltet, `unlockedBy`).
-- Über Pakete hinweg: neues Feld `level.needs = ["<Stufen-ID>", …]`. Verwiesen wird möglichst auf eine Stufe
-  **ohne Hilfen** (dort wird abgerufen, nicht abgelesen).
-- Je Denkschritt (optional): `steps[i].needs`. Damit weiß die App, welche Grundlage zu welchem Schritt gehört
-  (für die Fehlermuster, siehe 2).
-- Neues reines Modul `src/repeat.js`: `needsOf(packs, levelId)` (direkte Voraussetzungen, eigene und die des
-  Pakets), `dueLevels(state, packs, heute)`, `reviewItems(…)`, `gapsOf(rundenprotokoll)`.
-- Tests: jede genannte ID gibt es; der Graph hat keinen Kreis; keine Stufe verweist auf eine spätere Stufe
-  desselben Pakets.
+- Neues Feld `level.needs = ["<Stufen-ID>", …]`: die **direkten** Voraussetzungen einer Stufe. Ohne das Feld gilt
+  die Voreinstellung: die nächste frühere Stufe **ohne Hilfen** im selben Paket (gibt es keine: keine
+  Voraussetzung). Ein gesetztes `needs` ersetzt die Voreinstellung ganz (`needs: []` = keine).
+- Regeln (als Tests): Jede genannte ID gibt es. Jedes Ziel ist eine Stufe **ohne Hilfen** (dort wird abgerufen,
+  nicht abgelesen). Jedes Ziel liegt im selben Paket weiter vorn oder in einem **früheren** Paket (Reihenfolge
+  `PACKS`, seit dieser Welle Intervalle vor Tonleitern). Damit hat der Graph keinen Kreis.
+- Je Denkschritt (optional): `steps[i].needs` an der Aufgabe bzw. `level.stepNeeds = [[…], […]]` an der Stufe
+  (gilt für alle Aufgaben der Stufe). Damit weiß die App, welche Grundlage zu welchem Schritt gehört (für die
+  Fehlermuster, siehe 2).
+- `level.skill` (kurzer Text, was man in dieser Stufe kann, z. B. „Noten mit Vorzeichen“): steht in der Zeile
+  „Dafür brauchst du: …“. Fehlt er, gilt der Titel der Stufe.
+- Neues reines Modul `src/repeat.js` (siehe Schritte 4, 5, 7).
 
-**Erste Kanten** (aus dem Inhalt der Stufen abgeleitet; vor dem Bau von Fable an den Aufgabenvorräten
-nachprüfen, [OFFEN Sandra] bei den markierten):
+**Kanten** (am 25.11.2026 an den Aufgabenvorräten nachgeprüft: Schlüssel, Vorzeichen und Knöpfe jeder Stufe aus
+je 400 erzeugten Aufgaben; alle genannten IDs gibt es; Reihenfolge der Pakete: Noten lesen, Notenwerte und
+Pausen, Intervalle, Tonleitern, Dreiklänge und Quintenzirkel). Die Tabelle nennt **jede** Stufe; sie ist die
+Vorgabe für `needs` und wird als Ganzes getestet.
 
-| Stufe | braucht | weil |
+| Stufe | braucht (`needs`) | weil (am Vorrat geprüft) |
 |---|---|---|
-| `tonleitern-1` Ganz- und Halbtonschritte | `noten-3` | Noten im Violinschlüssel lesen |
-| `tonleitern-3` (beide Schlüssel) | `noten-6` | Bassschlüssel |
-| `tonleitern-4`/`-5` Welcher Ton fehlt? | `noten-7`; Schritt 1 → `tonleitern-3` | Namen mit Vorzeichen; Ganz-/Halbton |
-| `tonleitern-10`/`-11` Tonart aus den Vorzeichen | `tonleitern-9` | Vorzeichen der Tonleitern |
-| `tonleitern-12`/`-13` parallele Molltonart | Schritt 1 → `intervall-2`, Schritt 2 → `tonleitern-3` | Terz als drei Notenstufen; Halbtöne zählen. [OFFEN Sandra]: „Intervalle“ steht in der Liste nach „Tonleitern“ |
-| `intervall-1` Intervall bestimmen | `noten-3` | Noten lesen |
-| `intervall-2` (beide Schlüssel) | `noten-6` | Bassschlüssel |
-| `intervall-3`/`-4` rein, klein, groß | `noten-7`; Schritt 1 → `intervall-2`, Schritt 2 → `tonleitern-3` | Vorzeichen; Stufen zählen; Halbtöne zählen |
-| `intervall-8`/`-9` Intervall bauen | `intervall-6`, `noten-7` | bestimmen vor bauen (gebaut werden auch verminderte und übermäßige); Schreibweise |
-| `notenwerte-4` Schläge | `notenwerte-3` | Notenwerte und Pausen erkennen |
-| `notenwerte-6` Punktierungen | Schritt 1 → `notenwerte-3`, Schritt 2 → `notenwerte-5` | erkennen; Schläge |
-| `notenwerte-8`/`-9` Takt füllen | Schritt 1 → `notenwerte-5` und `-7`, Schritt 2 → `notenwerte-5` | Schläge zusammenzählen; Wert zur Dauer |
-| `akkorde-1`/`-2` Dreiklänge | `intervall-4` (große und kleine Terz), `noten-7` | Terzen (KONZEPT: „Dreiklänge → Terzen“) |
-| `akkorde-5` Quintenzirkel | `tonleitern-11` | Tonarten und Vorzeichen |
-| `akkorde-6` Stufenakkorde | `tonleitern-9`, `akkorde-2` | Tonleiter mit Vorzeichen; Dreiklangstypen |
+| `noten-1`, `-2`, `-4`, `-5` | – | Einstieg je Schlüssel (Linien, Zwischenräume) |
+| `noten-3` | `noten-1`, `noten-2` | 13 Noten: Linien, Zwischenräume und Hilfslinien |
+| `noten-6` | `noten-4`, `noten-5` | dasselbe im Bassschlüssel |
+| `noten-7` | `noten-3` | 8 Noten mit ♯/♭ im Violinschlüssel |
+| `noten-8` | `noten-3`, `noten-6`, `noten-7` | beide Schlüssel, alle Lagen, Vorzeichen |
+| `notenwerte-1`, `-2`, `-3` | – | Einstieg (1 und 2 mit Hilfen, 3 ist die erste ohne) |
+| `notenwerte-4`, `-5` | `notenwerte-3`; Stufe 4: Schritt 1 → `notenwerte-3` | Dauer setzt das Erkennen von Noten und Pausen voraus |
+| `notenwerte-6` | `notenwerte-3`, `notenwerte-5`; Schritt 1 → `-3`, Schritt 2 → `-5` | Notenwert ohne Punkt erkennen; Dauer |
+| `notenwerte-7` | `notenwerte-5` | Dauer ohne Punkt |
+| `notenwerte-8`, `-9` | `notenwerte-5`, `notenwerte-7`; Schritt 1 und 2 (Stufe 8) → beide | Dauern zusammenzählen, auch punktierte; Wert zur Dauer |
+| `notenwerte-10` | `notenwerte-3`, `-5`, `-7`, `-9` | mischt genau diese vier Stufen |
+| `intervall-1` | `noten-3` | nur Violinschlüssel, keine Vorzeichen (0 von 400), c' bis a'' |
+| `intervall-2` | `noten-3`, `noten-6` | beide Schlüssel, keine Vorzeichen, E bis a'' |
+| `intervall-3`, `-4` | `intervall-2`, `noten-7`; Schritt 1 → `intervall-2` | Grobbestimmung = Notenstufen zählen; Noten mit Vorzeichen. Schritt 2 (Halbtöne zählen) wird in Stufe 3 selbst mit Klaviatur und Tabelle eingeführt, siehe Hinweis unten |
+| `intervall-5`, `-6` | `intervall-4`; Schritt 1 → `intervall-2`, Schritt 2 → `intervall-4` | rein, klein, groß vor vermindert und übermäßig |
+| `intervall-7` | `intervall-6`; Schritt 1 → `intervall-2`, Schritt 2 → `intervall-6` | abwärts, mit verminderten und übermäßigen |
+| `intervall-8` | `intervall-6`, `noten-7` | bestimmen vor bauen (gebaut werden auch verminderte und übermäßige); Schreibweise der Namen |
+| `intervall-9` | `intervall-7`, `noten-7` | auf- und abwärts bauen |
+| `intervall-10` | `intervall-9` | Fehler in gebauten Intervallen finden |
+| `tonleitern-1` | `noten-3`, `noten-6` | C-Dur in **beiden** Schlüsseln (c bis c''), ohne Vorzeichen |
+| `tonleitern-2` | `noten-7` | G-, D-, F-, B-Dur im Violinschlüssel, jede Aufgabe mit Vorzeichen an den Noten |
+| `tonleitern-3` | `noten-6`, `noten-7` | 9 Tonarten, beide Schlüssel, Vorzeichen an den Noten |
+| `tonleitern-4`, `-5` | `tonleitern-3`, `noten-7`; Stufe 4: Schritt 1 → `tonleitern-3`, Schritt 2 → `noten-7` | Ganz-/Halbtonschritt; Namen mit Vorzeichen |
+| `tonleitern-6`, `-7` | `tonleitern-5` | falschen Ton finden setzt die Dur-Tonleitern voraus |
+| `tonleitern-8`, `-9` | `tonleitern-5` | Vorzeichen der Tonleiter ablesen (nicht `-7`: „passt nicht“ wird dafür nicht gebraucht) |
+| `tonleitern-10`, `-11` | `tonleitern-9` | Tonart aus den Vorzeichen setzt die Vorzeichen der Tonleitern voraus |
+| `tonleitern-12`, `-13` | `intervall-2`, `tonleitern-3`; Stufe 12: Schritt 1 → `intervall-2`, Schritt 2 → `tonleitern-3` | Terz abwärts als drei Notenstufen; drei Halbtöne zählen. Mit „Intervalle vor Tonleitern“ zeigt die Kante jetzt auf ein früheres Paket |
+| `akkorde-1` | `intervall-4`, `noten-8` | große und kleine Terz (KONZEPT: „Dreiklänge → Terzen“); Dreiklänge in beiden Schlüsseln mit Vorzeichen |
+| `akkorde-2` | `akkorde-1`, `intervall-4` | vier Typen aus großen und kleinen Terzen |
+| `akkorde-3` | `noten-8` | Grundton in der Grundstellung: prüft das Notenlesen (Vorgabe Sandra, 20.11.) |
+| `akkorde-4` | `akkorde-1`, `intervall-2` | Sexte bzw. Quarte und Sexte über dem Basston (Notenstufen zählen) |
+| `akkorde-5` | `tonleitern-11` | Tonarten bis 7 Vorzeichen |
+| `akkorde-6` | `tonleitern-9`, `akkorde-2` | Tonleiter mit Vorzeichen; Dreiklangstypen (VII. Stufe vermindert) |
+
+Hinweis zur geänderten Reihenfolge: Im Entwurf verwies Schritt 2 der Intervalle 3/4 („Halbtöne zählen“) auf
+`tonleitern-3`. Seit „Intervalle“ vor „Tonleitern“ steht, zeigte das auf ein späteres Paket und entfällt. Wer in
+Intervalle 4 (ohne Hilfen) im zweiten Schritt danebenliegt, bekommt Stufe 3 (dieselbe Aufgabe mit Klaviatur und
+Tabelle) angeboten, nicht eine Tonleiter-Stufe. Offen für Sandra (Abschnitt 8): Sollen die Stufen „Ganz- und
+Halbtonschritte“ (heute Tonleitern 1–3) vor Intervalle 3 liegen?
 
 Das Paket „Dreiklänge Schritt für Schritt“ bringt seine Kanten selbst mit (Terzen schichten → `intervall-4`).
 
 **Spielstand (`notenheld.v2`, nur zusätzliche Felder, kein neuer Schlüssel).**
 - `rep: { "<Stufen-ID>": { fach: 1…5, faellig: "JJJJ-MM-TT", zuletzt: "JJJJ-MM-TT" } }` – Wiederholung über Tage,
-  je Stufe (siehe 3).
-- `klasse: { jahrgang: 5…13 | null, dran: { noten: 8, notenwerte: 10, … } | null }` – Einstellung der
-  Lehrkraft (siehe 4). Bleibt beim Zurücksetzen erhalten.
+  je Stufe ohne Hilfen (siehe 3). Wird beim Zurücksetzen gelöscht (Fortschritt).
+- `klasse: null | { jahrgang: 5…13, zweig: "mug" | null, dran: { noten: 8, notenwerte: 10, intervalle: 4, … } }`
+  – über den Lehrkraft-Link gesetzt (siehe 4). `dran` wird beim Übernehmen vollständig eingetragen (nicht bei
+  jedem Laden aus der Tabelle neu berechnet), damit ein Update der Tabelle die Einstellung nicht stillschweigend
+  ändert. **Bleibt beim Zurücksetzen erhalten.**
 - Vorhanden und endlich genutzt: `notes[key].last` und `.hist` (je Aufgabe bzw. Note).
-- Einmalige Umstellung mit Marker (`"wiederholen"`): Für jede schon geschaffte Stufe ohne Hilfen (beste Runde
-  ≥ 8) entsteht ein Eintrag in Fach 1; die Fälligkeiten werden über die nächsten Tage verteilt (höchstens so
-  viele je Tag, wie eine Wiederholungsrunde fasst), damit nach dem Update nicht alles auf einmal ansteht.
+- Einmalige Umstellung mit Marker `"wiederholen"`: Für jede schon geschaffte Stufe ohne Hilfen (beste Runde
+  ≥ 8) entsteht ein Eintrag in Fach 1. Die Fälligkeiten werden verteilt: Stufen in der Reihenfolge der Pakete
+  (Grundlagen zuerst), je Tag höchstens so viele, wie eine Wiederholungsrunde fasst (3), beginnend heute.
 - Datum: `today()` rechnet heute in UTC (der Tag wechselt in Malaysia um 8 Uhr morgens, in Bayern um 1 bzw.
-  2 Uhr nachts). Für Fälligkeiten und die Tagesserie auf das **örtliche Datum** umstellen; alte Einträge bleiben
-  gültig, die Serie darf dabei nicht abreißen (Test mit festen Uhrzeiten).
+  2 Uhr nachts). Für Fälligkeiten und die Tagesserie gilt künftig das **örtliche Datum**; alte Einträge bleiben
+  gültig, die Serie reißt bei der Umstellung nicht ab (Schritt 4).
 
 ### 2. „Grundlagen wiederholen“
 
 **Was es ist.** Eine kurze Runde (Startwert 6 Aufgaben) aus den direkten Voraussetzungen einer Stufe, gleich
 verteilt, innerhalb jeder Voraussetzung bevorzugt die Aufgaben, die noch nicht sitzen oder lange nicht dran
-waren. Ohne Hilfen, mit Auflösung und Warten nach „daneben“ (Welle 10). Es gibt Erfahrungspunkte, aber keine
-Sterne und keine Freischaltung; jede Antwort zählt in der Statistik ihrer eigenen Stufe.
+waren. Ohne Hilfen, mit Auflösung und Warten nach „daneben“ (Welle 10). Es gibt Erfahrungspunkte (10 je richtige
+Antwort) und die Runde zählt für die Tagesserie, aber es gibt keine Sterne und keine Freischaltung; jede Antwort
+zählt in der Statistik ihrer eigenen Stufe. Der Karteikasten (siehe 3) ändert sich durch diese Runde nicht.
 
 **Technische Voraussetzung.** Die Engine führt heute eine Runde für genau eine Stufe (Eingabeart, `check`,
 Ziffern, Namensraster hängen an der Stufe). Für gemischte Runden trägt jede Aufgabe ihre Herkunft (`q.from` =
-Stufe); die Engine stellt Eingabe und Prüfung je Aufgabe um. Das ist der größte Eingriff dieser Welle und kommt
-zuerst, mit Tests für jede Eingabeart im Wechsel (Buchstaben, Klaviatur, Namensraster, Auswahlknöpfe, zwei
+Stufe); die Engine stellt Eingabe und Prüfung je Aufgabe um. Das ist der größte Eingriff dieser Welle (Schritt 6,
+vor allem, was darauf aufbaut), mit Tests für jede Eingabeart im Wechsel (Buchstaben, Klaviatur, Namensraster, Auswahlknöpfe, zwei
 Schritte).
 
 **Wann es angeboten wird.**
 1. **Auf der Startkarte jeder Stufe mit Voraussetzungen**, immer sichtbar und unaufdringlich: „Dafür brauchst
-   du: Noten mit Vorzeichen · Halbtöne zählen“ und der Knopf „Grundlagen wiederholen (6 Aufgaben)“. Hervorgehoben
+   du: Noten mit Vorzeichen · Notenstufen zählen (Prime bis Oktave)“ und der Knopf „Grundlagen wiederholen (6 Aufgaben)“. Hervorgehoben
    (als Empfehlung vor „Runde starten“), wenn eine Voraussetzung nie gespielt wurde, fällig ist (siehe 3) oder
    zuletzt unter 8 von 10 lag. Nie Pflicht.
 2. **Nach einer Runde mit weniger als 5 Richtigen** (kein Stern): auf der Ergebniskarte als erster Knopf.
 3. **Nach Fehlern, die auf eine Lücke deuten.** Die Runde merkt sich je Voraussetzung, wie oft der zugehörige
-   Denkschritt daneben lag (`steps[i].needs`; bei einschrittigen Stufen `level.needs` als Ganzes). Ab drei
+   Denkschritt daneben lag (`stepNeeds`; bei einschrittigen Stufen `level.needs` als Ganzes). Ab drei
    solchen Fehlern in einer Runde (Startwert) nennt die Ergebniskarte den Grund und bietet genau diese Grundlage
-   an: „Dreimal lag der erste Schritt daneben (Stufen zählen). Das übst du in Intervalle, Stufe 2.“ Knöpfe:
+   an: „Dreimal lag der erste Schritt daneben (Notenstufen zählen). Das übst du in Intervalle, Stufe 2.“ Knöpfe:
    „Grundlagen wiederholen“ und „Stufe 2 öffnen“. Erste Muster (aus den Rückmeldungen, die es schon gibt):
-   - Intervalle 3–6: Schritt 1 daneben („Die Halbtöne stimmen, die Zahl nicht“) → `intervall-2`; Schritt 2
-     daneben → `tonleitern-3`.
-   - Tonleitern 4/5: Schritt 1 daneben („Der Ton stimmt, der Schritt nicht“) → `tonleitern-3`; Name daneben →
-     `noten-7`.
-   - Tonleitern 12/13: Stammton daneben → `intervall-2`; Molltonart daneben → `tonleitern-3`.
-   - Notenwerte 4, 6: Notenwert daneben → `notenwerte-3`; Notenwerte 8/9: Zählen daneben → `notenwerte-5`/`-7`.
+   - Intervalle 3–7: Schritt 1 daneben („Die Halbtöne stimmen, die Zahl nicht“) → `intervall-2`; Schritt 2
+     daneben → in Stufe 5/6 `intervall-4`, in Stufe 7 `intervall-6`; in Stufe 4 keine Grundlage, sondern das
+     Angebot „Stufe 3 mit Hilfen üben“ (Stufe 3 hat die Hilfen selbst).
+   - Tonleitern 4: Schritt 1 daneben („Der Ton stimmt, der Schritt nicht“) → `tonleitern-3`; Name daneben →
+     `noten-7`. Tonleitern 5 (ein Schritt): beide als Ganzes.
+   - Tonleitern 12: Stammton daneben → `intervall-2`; Molltonart daneben → `tonleitern-3`. Tonleitern 13 (ein
+     Schritt): beide als Ganzes.
+   - Notenwerte 4, 6: Notenwert daneben → `notenwerte-3`; Notenwerte 8: Zählen daneben → `notenwerte-5`/`-7`.
    Feinere Muster (z. B. „immer einen Halbton zu viel“ = Starttaste mitgezählt) brauchen die gewählte Antwort im
-   Rundenprotokoll und sind eine Ausbaustufe; im Feinplan je Paket entscheiden.
+   Rundenprotokoll und sind eine Ausbaustufe (nicht in dieser Welle).
 4. Eine geöffnete, aber nie gespielte Voraussetzung (z. B. über den Jahrgang, siehe 4) zählt als „nie gespielt“
    und führt zu Punkt 1.
 
@@ -2073,129 +2151,842 @@ gewichtete Auswahl (`adapt.js`) die Aufgaben.
 |---|---|---|---|---|---|
 | wieder fällig nach | 1 Tag | 3 Tagen | 7 Tagen | 14 Tagen | 30 Tagen |
 
-- Eine Stufe kommt in Fach 1, sobald sie geschafft ist (beste Runde ≥ 8). Stufen mit Hilfen kommen nicht in
+- Eine Stufe kommt in Fach 1, sobald sie geschafft ist (beste Runde ≥ 8), fällig am nächsten Tag. Stufen mit Hilfen kommen nicht in
   den Kasten; für sie steht die Stufe ohne Hilfen danach.
-- **Wiederholungsrunde** (Startwert 10 Aufgaben): aus den am längsten fälligen Stufen, höchstens vier Stufen je
-  Runde, je Stufe zwei bis drei Aufgaben, gemischt (vermischtes Üben). Alle Aufgaben einer Stufe richtig → ein
-  Fach weiter, fällig nach dem neuen Abstand. Sonst ein Fach zurück (nicht unter 1), morgen wieder fällig, und
-  die Ergebniskarte bietet die Stufe zum Üben an.
+- **Wiederholungsrunde „Wiederholen“** (10 Aufgaben): aus den am längsten fälligen Stufen, höchstens **drei**
+  Stufen je Runde (4 + 3 + 3 Aufgaben; bei zwei fälligen Stufen 5 + 5, bei einer 10), gemischt (vermischtes
+  Üben). Stufen mit nur zwei Antwortknöpfen (Raten) bekommen den größeren Anteil, mindestens 4 Aufgaben.
+  Urteil je Stufe: bei n Aufgaben höchstens ⌊n / 5⌋ Fehler → „sitzt“, ein Fach weiter, fällig nach dem neuen
+  Abstand (bei 3 oder 4 Aufgaben also alle richtig, bei 5 eine daneben erlaubt, bei 10 zwei – das entspricht
+  8 von 10). Sonst ein Fach zurück (nicht unter 1), morgen wieder fällig, und die Ergebniskarte bietet die Stufe
+  zum Üben an. Die Runde zählt für Tagesserie und Erfahrungspunkte wie eine normale Runde (10 je richtige
+  Antwort und der Bonus 20 · Sterne nach `starsFor`); Sterne werden bei keiner Stufe eingetragen.
 - Eine normale Runde in einer fälligen Stufe mit ≥ 8 Richtigen zählt wie eine bestandene Wiederholung. Ist die
   Stufe nicht fällig, ändert die Runde das Fach nicht (viel am selben Tag soll den Abstand nicht verlängern).
 - Fach 5 ist nicht „fertig“: Die Stufe kommt weiter alle 30 Tage (Leitsatz 1).
 - Nach langer Pause (Ferien) ist vieles fällig. Die App zeigt dann nicht die ganze Menge als Schuld, sondern
   immer nur die nächste Runde; die Reihenfolge ist „am längsten fällig zuerst“, Grundlagen vor dem, was auf
   ihnen aufbaut (Kanten aus 1).
-- **Auswahl der Aufgaben in allen Paketen:** `pickWeighted` wirkt heute nur in „Noten lesen“, obwohl die
-  anderen Pakete schon `statKey`s schreiben. Künftig überall, wo es `statKey`s gibt; dazu steigt das Gewicht
-  einer sicheren Aufgabe mit den Tagen seit `last` (Startwert: ab 7 Tagen wie „neu“). „Nie dieselbe Aufgabe
-  zweimal hintereinander“ und der Zufallsanteil bleiben.
+- **Auswahl der Aufgaben:** `pickWeighted` wirkt heute nur in „Noten lesen“. `statKey`s schreiben außerdem
+  „Intervalle“ und „Tonleitern“ (nachgeprüft: „Notenwerte und Pausen“ und „Dreiklänge“ schreiben keine). Künftig
+  gewichten auch Intervalle und Tonleitern (Schritt 9); dazu steigt das Gewicht einer sicheren Aufgabe mit den
+  Tagen seit `last` (Startwert: ab 7 Tagen wie „neu“). „Nie dieselbe Aufgabe zweimal hintereinander“, der
+  Zufallsanteil und die Regeln der Vorräte (Gruppen, Anteil der Halbtonschritte, „Prime höchstens einmal“)
+  bleiben.
 - Was fällig ist, sperrt nichts: Jede Stufe lässt sich jederzeit starten, die Wiederholung jederzeit
   überspringen.
 
-### 4. Jahrgang als Einstellung der Lehrkraft
+### 4. Jahrgang über den Lehrkraft-Link
 
 **Heute:** `grade` steht fest im Code der Pakete („Klasse 5–7“, „Klasse 9–12“ …), wird nirgends angezeigt und
 ist laut Prüfung teils zu hoch gegriffen (B16). KONZEPT: keine Jahrgangsstufen an den Stufen, die Lehrkraft
 entscheidet, wie weit es geht.
 
-**Neu:** `grade` entfällt. Was „dran“ ist, bestimmt die Einstellung `klasse`:
-- **Wie gesetzt (ohne Server).** (a) In der App unter „Einstellungen → Für Lehrkräfte“: Jahrgang wählen oder
-  „kein Jahrgang“; darunter je Paket „dran bis Stufe n“ zum Nachstellen. (b) Über einen **Link** (auch als
-  QR-Code für die Tafel), den die Lehrkraft in ihrer eigenen App erzeugt, z. B. `…/notenlernapp/#klasse=6` oder
-  mit eigenem Zuschnitt `#dran=noten-8,notenwerte-10,tonleitern-9,intervall-4`. Öffnet ein Kind den Link, fragt
-  die App einmal: „Einstellung deiner Lehrkraft übernehmen: Klasse 6?“ Der Link enthält nur diese Angabe, keine
-  Namen, keine Ergebnisse; nichts verlässt das Gerät.
-- **Zuordnung Jahrgang → „dran“.** Die Voreinstellung je Jahrgang ist eine Tabelle an einer Stelle
-  (`src/klasse.js`), die die Lehrkraft überschreiben kann. Entwurf nach der Lehrplan-Zusammenfassung im Bericht
-  Lehrkraft (LehrplanPLUS Gymnasium Bayern, dort ausdrücklich **nicht am Original geprüft**) – deshalb
-  [OFFEN Sandra], bitte am Lehrplan festlegen:
-  - Jahrgang 5: Noten lesen 1–8, Notenwerte 1–10, Tonleitern 1–9, Intervalle 1–2.
-  - Jahrgang 6: dazu Intervalle 3–4, Tonleitern 10–13, Dreiklänge 1, 3, 4. Intervalle 5–10 und Dreiklänge 2
-    enthalten vermindert/übermäßig (laut Bericht in Jahrgang 6 nur musisches Gymnasium): eigene Zuordnung nötig.
-  - Jahrgang 7: dazu Dreiklänge 6 (Haupt- und Nebenstufen); Dreiklänge 5 (Quintenzirkel) ohne klare Zuordnung.
-  - Ab Jahrgang 8: alles.
-- **Was die Einstellung ändert.**
-  1. Die Startseite ordnet: oben „Jetzt dran“ (die Stufen des Jahrgangs, die noch nicht geschafft sind), darunter
-     „Wiederholen“ (alles Frühere), darunter „Später“ (eingeklappt).
-  2. „Weiter üben“ schlägt die nächste Stufe aus „Jetzt dran“ vor.
-  3. **Alles Frühere ist offen**, auch wenn es auf diesem Gerät nie gespielt wurde: Eine Schülerin der 7. Klasse
-     muss sich nicht durch „Noten lesen 1“ spielen, kann es aber jederzeit wiederholen. Nie gespielte frühere
-     Stufen erscheinen als Grundlagen (siehe 2), nicht als Rückstand.
-  4. In Statistik und Ergebniskarte steht „dran“ bzw. „Wiederholung“ als Hinweis.
+**Neu:** `grade` entfällt. Was „dran“ ist, bestimmt die Einstellung `klasse` – und die kommt **nur** über den
+Link der Lehrkraft auf das Gerät (Entscheidung 6).
+
+**Wie die Lehrkraft den Link erzeugt.** Eigene Seite „Für Lehrkräfte“ (Ansicht `lehrkraft`, Adresse
+`…/notenlernapp/#lehrkraft`, kein Reiter in der unteren Leiste; erreichbar über die Adresse und über einen
+unauffälligen Textlink „Für Lehrkräfte“ am Ende der Statistik). Dort: Jahrgang 5 bis 13 wählen, wahlweise
+„Musisches Gymnasium“, darunter je Paket „dran bis Stufe n“ (vorbelegt aus der Tabelle unten, zum Nachstellen).
+Die Seite zeigt den Link als Text („Link kopieren“) und als QR-Code (für die Tafel, „groß zeigen“), dazu einen
+zweiten Link samt QR-Code „Jahrgang wieder entfernen“. **Die Seite setzt nichts auf dem eigenen Gerät**: Sie
+erzeugt nur Link und Code. Es gibt in der App keinen Schalter, mit dem Schülerinnen und Schüler den Jahrgang
+ändern.
+
+**Form des Links** (nur diese Angaben, keine Namen, keine Ergebnisse; nichts verlässt das Gerät):
+- `#klasse=6` – Jahrgang 6 mit der Voreinstellung der Tabelle.
+- `#klasse=6&zweig=mug` – Voreinstellung für das Musische Gymnasium.
+- `#klasse=6&dran=intervalle:6,akkorde:1` – eigener Zuschnitt; genannt werden nur die Pakete, die von der
+  Voreinstellung abweichen (kurzer Link, kleiner QR-Code). `n` von 0 (nichts aus dem Paket) bis zur Zahl der
+  Stufen.
+- `#klasse=keine` – entfernt den Jahrgang.
+
+**Auf dem Gerät des Kindes.** Öffnet es den Link (oder scannt den Code), fragt die App **einmal**:
+„Einstellung deiner Lehrkraft übernehmen? Jahrgang 6“ mit „Übernehmen“ und „Nicht übernehmen“. Erst nach
+„Übernehmen“ wird `klasse` gespeichert; danach verschwindet die Angabe aus der Adresszeile
+(`history.replaceState`), damit ein Neuladen nicht noch einmal fragt. Ist dieselbe Einstellung schon gesetzt,
+fragt die App nicht. Ein Link mit unbekannten oder fehlerhaften Angaben wird als Ganzes verworfen (Hinweis „Der
+Link passt nicht zu dieser App-Version.“), der Spielstand bleibt unberührt.
+
+**Entfernen** (Feinplan-Entscheidung, passend zu „nur über den Lehrkraft-Link“): nur über den Link
+`#klasse=keine`, wieder mit einer Bestätigung („Jahrgang entfernen? Dein Fortschritt bleibt, es schließt sich
+nichts.“). „Fortschritt zurücksetzen“ lässt die Einstellung stehen. Ehrlich gesagt gehört dazu: Der Link ist
+eine Adresse, kein Schloss – wer ihn kennt, kann ihn öffnen; ein echter Schutz ginge nur mit einem Server.
+
+**Zuordnung Jahrgang → „dran“** (eine Tabelle an einer Stelle, `src/klasse.js`; die Lehrkraft kann sie über den
+eigenen Zuschnitt überschreiben). Quelle: LehrplanPLUS Gymnasium Bayern, Fachlehrplan Musik, abgerufen am
+25.11.2026, jeweils Lernbereich 4 „Musik und ihre Grundlagen“, „Inhalte zu den Kompetenzen“ (wörtliche Zitate
+in Anführungszeichen):
+
+- Jahrgang 5, <https://www.lehrplanplus.bayern.de/fachlehrplan/gymnasium/5/musik> (Mu5 Lernbereich 4):
+  „Tonhöhen im Violin- und Bassschlüssel, Kreuz- und b-Vorzeichen, Auflösungszeichen; einzeilig und in
+  zweizeiligen Partituren“ · „Noten- und Pausenwerte bis zum Sechzehntelwert“ · „Dur-Tonleitern mit
+  unterschiedlichen Grundtönen“ · „Ganz- und Halbtonschritt, diatonische Intervalle, Dur-Dreiklang (Grundform)“.
+  Kompetenzerwartung: „lesen und schreiben traditionelle Notenschrift, um einfache musikalische Abläufe adäquat
+  erfassen bzw. darstellen zu können.“
+- Jahrgang 6, <https://www.lehrplanplus.bayern.de/fachlehrplan/gymnasium/6/musik> (Mu6 Lernbereich 4):
+  „Intervalle bis zur Oktave: rein, groß und klein“ · „Tonleitern und Dreiklänge in Dur und Moll;
+  Dreiklangsumkehrung“ · „Aspekte der Rhythmik/Metrik: Triole, Taktwechsel, zusammengesetzte Taktarten, z. B.
+  7/8- oder 5/4-Takt“ · nur Musisches Gymnasium: „(MuG) übermäßige und verminderte Intervalle“.
+  Kompetenzerwartungen u. a.: „bestimmen Intervalle in schriftlicher Form genau.“ · „differenzieren verschiedene
+  Tonvorräte im Moll-Bereich.“
+- Jahrgang 7, <https://www.lehrplanplus.bayern.de/fachlehrplan/gymnasium/7/musik> (Mu7 Lernbereich 4):
+  „Aspekte der Harmonik: Einfache Kadenz, Haupt- und Nebenstufen“ · „Aspekte der Rhythmik/Metrik: Synkope,
+  Off-Beat, …“ · nur MuG: „(MuG) Dominantseptakkord und seine Umkehrungen“. Kompetenzerwartung (alle):
+  „beschreiben das Verhältnis von Haupt- und Nebenstufen und verwenden sie, ebenso wie den Dominantseptakkord,
+  bei der Liedbegleitung auf der Grundlage von Akkordsymbolen.“
+- Jahrgang 8, <https://www.lehrplanplus.bayern.de/fachlehrplan/gymnasium/8/musik>: keine neuen Inhalte der
+  Notenlehre (Popularmusik, Filmmusik, Musik anderer Kulturkreise; MuG: Naturtonreihe).
+- Jahrgang 9, <https://www.lehrplanplus.bayern.de/fachlehrplan/gymnasium/9/musik> (Mu9 Lernbereich 4): nur
+  MuG: „(MuG) Aspekte der harmonischen Analyse: verminderte Akkorde, verschiedene Septakkorde, Nonakkord;
+  Zwischendominante, Modulation“.
+- Jahrgang 10, <https://www.lehrplanplus.bayern.de/fachlehrplan/gymnasium/10/musik>: nur MuG: „(MuG)
+  beschreiben und bilden Akkordstrukturen auch in einfacher Generalbass-Notation.“
+- Jahrgang 11 (G9: 11 bis 13 sind die Oberstufe), <https://www.lehrplanplus.bayern.de/fachlehrplan/gymnasium/11/musik>:
+  keine Inhalte der Notenlehre aus dem Umfang der App.
+- Jahrgang 12, <https://www.lehrplanplus.bayern.de/fachlehrplan/gymnasium/12/musik/grundlegend> und
+  <https://www.lehrplanplus.bayern.de/fachlehrplan/gymnasium/12/musik/erhoeht>; Jahrgang 13,
+  <https://www.lehrplanplus.bayern.de/fachlehrplan/gymnasium/13/musik/grundlegend> und
+  <https://www.lehrplanplus.bayern.de/fachlehrplan/gymnasium/13/musik/erhoeht>: keine Inhalte aus dem Umfang der
+  App (12 erhöht: Quadratnotation, modale Tonvorräte; 13: Generalbass).
+
+Was im Lehrplan 5 bis 13 **nicht wörtlich** vorkommt (auf den genannten Seiten nachgesehen): punktierte Noten,
+die Taktart 4/4 als eigener Inhalt (Mu5 Lernbereich 3 nennt „Taktart, Notenwerte“ nur als Beispiele für
+Variation), die Wörter „Quintenzirkel“, „Tonart“ und „parallele Molltonart“, verminderte und übermäßige
+**Dreiklänge** (nur MuG 9: „verminderte Akkorde“), die Zahl der Vorzeichen bei den Dur-Tonleitern.
+
+Tabelle (Zahl = „dran bis Stufe n“ des Pakets, 0 = noch nichts; jeder Jahrgang enthält alles Frühere; nichts
+wird je gesperrt):
+
+| Jahrgang | Noten lesen (8) | Notenwerte und Pausen (10) | Intervalle (10) | Tonleitern (13) | Dreiklänge und Quintenzirkel (6) | Quelle und Begründung |
+|---|---|---|---|---|---|---|
+| 5 | 8 | 10 | 2 | 9 | 0 | Mu5 LB 4. Noten lesen 1–8: Violin- und Bassschlüssel, ♯/♭. Notenwerte 1–5: Werte und Pausen bis zum Sechzehntel; **6–10 (Punktierung, Takt füllen) nicht wörtlich genannt**, der Kompetenzerwartung „lesen und schreiben traditionelle Notenschrift …“ zugeordnet [OFFEN Sandra]. Intervalle 1–2: „diatonische Intervalle“ (nur die Zahl, ohne Vorzeichen). Tonleitern 1–3: „Ganz- und Halbtonschritt“, 4–9: „Dur-Tonleitern mit unterschiedlichen Grundtönen“ (App: bis 4 Vorzeichen; Zahl im Lehrplan offen). Dreiklänge: „Dur-Dreiklang (Grundform)“ hat in der App keine eigene Stufe (Stufe 1 fragt Dur **oder Moll**) → 0 [OFFEN Sandra] |
+| 6 | 8 | 10 | 4 (MuG: 10) | 13 | 4 | Mu6 LB 4. Intervalle 3–4: „rein, groß und klein“; 5–10 enthalten alle verminderte und übermäßige Intervalle → nur MuG. Tonleitern 12–13 (parallele Molltonart): „Tonleitern … in Dur und Moll“ (Auslegung); **10–11 (Tonart aus den Vorzeichen, 15 Tonarten) nicht wörtlich genannt**, liegen in der Reihe davor [OFFEN Sandra]. Dreiklänge 1, 3, 4: „Dreiklänge in Dur und Moll; Dreiklangsumkehrung“; **Stufe 2 (vermindert, übermäßig) nicht genannt**, liegt in der Reihe davor [OFFEN Sandra] |
+| 7 | 8 | 10 | 4 (MuG: 10) | 13 | 6 | Mu7 LB 4. Dreiklänge 6: „Haupt- und Nebenstufen“; **Stufe 5 (Quintenzirkel) im Lehrplan nicht genannt**, liegt in der Reihe davor [OFFEN Sandra]. Dominantseptakkord: kommt mit dem Paket „Dreiklänge Schritt für Schritt“ |
+| 8 bis 13 | 8 | 10 | 4 (MuG: 10) | 13 | 6 | Mu8 bis Mu13: keine weiteren Inhalte aus dem Umfang der App; alles ist Wiederholung. Intervalle 5–10 sind außerhalb des MuG in keinem Jahrgang zugeordnet und bleiben deshalb „Darüber hinaus“ (offen nach der üblichen Regel, über den eigenen Zuschnitt jederzeit als „dran“ wählbar) [OFFEN Sandra] |
+
+Die Angabe ist je Paket eine Zahl („bis Stufe n“). Darum zieht eine spätere Stufe die Stufen davor mit (Dreiklänge
+2 und 5, Tonleitern 10–11). Das ist als [OFFEN Sandra] markiert und über den eigenen Zuschnitt änderbar; mit dem
+Paket „Dreiklänge Schritt für Schritt“ wird die Reihe ohnehin neu geordnet.
+
+**Was die Einstellung ändert.**
+1. Die Startseite ordnet in drei Abschnitte: „Jetzt dran“ (die Stufen, die in diesem Jahrgang neu dazukommen
+   und noch nicht geschafft sind: über „dran“ des Jahrgangs davor, bis „dran“), darunter „Schon dran gewesen“
+   (alles Frühere und das Geschaffte), darunter „Darüber hinaus“ (eingeklappt).
+2. „Weiter üben“ schlägt die nächste Stufe aus „Jetzt dran“ vor.
+3. **Alles bis „dran“ ist sofort offen** (Entscheidungen 6 und 8), auch wenn es auf diesem Gerät nie gespielt
+   wurde – die Stufen in „Jetzt dran“ ebenso wie alles Frühere. Eine Schülerin der 7. Klasse muss sich nicht
+   durch „Noten lesen 1“ spielen, kann es aber jederzeit wiederholen. Nie gespielte frühere Stufen erscheinen
+   als Grundlagen (siehe 2), nicht als Rückstand.
+4. In der Statistik steht der Jahrgang als Hinweis.
 - **Was sich nie ändert.** Fortschritt, Sterne, Erfahrungspunkte, Karteikasten und alles schon Offene bleiben,
-  egal wie die Einstellung gesetzt, geändert oder entfernt wird. „Später“ ist nicht gesperrt: Es gilt die
-  bisherige Freischaltung (8 von 10 bzw. „Alle Stufen öffnen“). Ohne Einstellung („kein Jahrgang“) verhält sich
-  die App wie heute. Die Einstellung übersteht „Zurücksetzen“ und wird beim Laden nie stillschweigend geändert.
+  egal wie die Einstellung gesetzt, geändert oder entfernt wird. „Darüber hinaus“ ist nicht gesperrt: Es gilt die
+  bisherige Freischaltung (8 von 10 bzw. „Alle Stufen öffnen“). Ohne Einstellung verhält sich die App wie
+  heute. Die Einstellung übersteht „Zurücksetzen“ und wird beim Laden nie stillschweigend geändert.
 - Tests: Für jede Einstellung und jeden Spielstand gilt `offenMitKlasse ⊇ offenOhneKlasse` (die Einstellung
-  öffnet nur); Wechsel 7 → 5 → keine schließt keine gespielte oder offene Stufe; Link mit unbekannten oder
-  fehlerhaften Angaben wird verworfen, ohne den Spielstand anzufassen.
+  öffnet nur); Wechsel 7 → 5 → keine schließt keine gespielte oder nach der üblichen Regel offene Stufe; Link
+  mit unbekannten oder fehlerhaften Angaben wird verworfen, ohne den Spielstand anzufassen.
 
 ### 5. Oberfläche in Worten
 
-- **Startseite, oben** (statt der großen Trefferquote): eine Karte „Heute“. Ist etwas fällig: „Wiederholen ·
-  10 Aufgaben aus Intervalle 4, Tonleitern 5 und Noten lesen 7“ mit dem Knopf „Wiederholung starten“; daneben
-  „Weiter üben: Tonleitern, Stufe 6“. Ist nichts fällig: nur „Weiter üben“ und klein „Nächste Wiederholung
-  morgen“. Kein Zähler für Versäumtes, keine roten Marken.
+- **Startseite, ganz oben** (Entscheidung 2, statt der großen Trefferquote): eine Karte „Heute“. Ist etwas
+  fällig: „Wiederholen · 10 Aufgaben aus Intervalle 4, Tonleitern 5 und Noten lesen 7“ mit dem Knopf
+  „Wiederholung starten“; daneben „Weiter üben: Tonleitern, Stufe 6“. Ist nichts fällig: nur „Weiter üben“ und
+  klein „Nächste Wiederholung morgen“. Kein Zähler für Versäumtes, keine roten Marken.
 - **Stufenkarten:** kleines Zeichen „↻“ mit Text „wieder dran“ an fälligen Stufen; Abschnitte „Jetzt dran“,
-  „Wiederholen“, „Später“, wenn ein Jahrgang gesetzt ist.
+  „Schon dran gewesen“, „Darüber hinaus“, wenn ein Jahrgang gesetzt ist. Pakete in der neuen Reihenfolge.
 - **Startkarte einer Stufe:** Zeile „Dafür brauchst du: …“ (antippbar, führt zur Stufe) und „Grundlagen
   wiederholen (6 Aufgaben)“; als Empfehlung hervorgehoben, wenn einer der Auslöser zutrifft.
-- **Runde „Wiederholen“ bzw. „Grundlagen“:** wie eine normale Runde; über der Notenzeile steht klein, woher die
-  Aufgabe kommt („Intervalle · Stufe 4“). Keine Hilfen, aber nach „daneben“ die Auflösung und der Knopf „Diese
-  Stufe mit Hilfen üben“ auf der Ergebniskarte.
+- **Runde „Wiederholen“ bzw. „Grundlagen wiederholen“:** wie eine normale Runde; über der Notenzeile steht
+  klein, woher die Aufgabe kommt („Intervalle · Stufe 4“). Keine Hilfen, aber nach „daneben“ die Auflösung und
+  auf der Ergebniskarte der Knopf „Stufe 3 mit Hilfen üben“ bzw. „Stufe 5 üben“.
 - **Ergebniskarte:** je Stufe eine Zeile „sitzt · wieder in 7 Tagen“ bzw. „noch wacklig · morgen noch einmal“;
   bei einem Fehlermuster der Satz mit dem Grund (siehe 2).
-- **Statistik:** je Stufe das Fach als fünf kleine Punkte und „zuletzt geübt am …“.
-- **Einstellungen:** Abschnitt „Für Lehrkräfte“ mit Jahrgang, „dran bis Stufe n“ je Paket, „Link für die Klasse“
-  (Text und QR-Code, im Gerät erzeugt), dazu der vorhandene Knopf „Alle Stufen öffnen“.
-- Tonfall wie bisher: „du“, sachlich, kein Druck („wieder dran“, nicht „überfällig“).
+- **Statistik:** je Stufe das Fach als fünf kleine Kästchen und „zuletzt geübt am …“; am Ende der Textlink „Für
+  Lehrkräfte“ und, wenn gesetzt, „Jahrgang 6 (über den Link deiner Lehrkraft)“.
+- **Lernen:** Reiter je Inhalt (W3).
+- **Für Lehrkräfte:** eigene Seite mit Jahrgang, „dran bis Stufe n“ je Paket, Link und QR-Code (im Gerät
+  erzeugt). Der Knopf „Alle Stufen öffnen (Demo)“ bleibt, wo er ist.
+- Tonfall wie bisher: „du“, sachlich, kein Druck („wieder dran“, nicht „überfällig“). Die Seite „Für
+  Lehrkräfte“ spricht Lehrkräfte mit „Sie“ an (Abschnitt 8).
 
-### 6. Schritte (grob; Feinplan vor dem Bau)
+### 6. Feinplan je Schritt
 
-0. Örtliches Datum, Felder `rep` und `klasse`, Marker `"wiederholen"`, `src/repeat.js` mit reiner Logik
-   (fällig, Fach weiter/zurück, Auswahl der Stufen) und Tests.
-1. Engine: gemischte Runde (`q.from`), Runde ohne Sterne, Herkunft über der Notenzeile.
-2. Voraussetzungen (`level.needs`, `steps[i].needs`) in allen Paketen mit Tests; „Grundlagen wiederholen“ auf
-   Startkarte und Ergebniskarte; Fehlermuster.
-3. Wiederholung über Tage: Karte „Heute“, Karteikasten, Ergebniskarte, Statistik.
-4. Gewichtete Auswahl in allen Paketen, Gewicht nach Tagen seit `last`.
-5. Jahrgang: Einstellungen, Link, Abschnitte der Startseite; `grade` entfernen.
-6. Doku, Cache, Bildschirmfotos.
+Für alle Schritte gilt: je Schritt ein Opus-Agent (eine Sitzung, etwa 1 bis 3 Stunden), danach Prüfung durch
+Fable, erst dann der nächste Schritt (mehrere Schritte fassen `engine.js`, `practice.js`, `home.js`, `style.css`
+an). `npm test` grün, Wortliste (`test/texte.test.js`), keine Konsolenfehler, bei laufendem Server
+`node docs/screens/ueberlauf.mjs` mit 0 Treffern, Commit auf Deutsch. Kein Push ohne Sandras Ja. Musiktheorie,
+Lehrplan und Daten nicht erfinden: Unsicheres im Commit vermerken und in Abschnitt 8 nachtragen. Stufen-IDs,
+Aufgabenvorräte und `statKey`s bleiben unverändert.
 
-Je Schritt ein Opus-Agent, danach Prüfung durch Fable; am Ende Prüfung aus drei Perspektiven mit
-Bildschirmfotos (420 hell, 320 dunkel), dazu ein Durchlauf mit verstellter Uhr über 40 Tage (fällig werden,
-Ferienpause, Fächer). Kein Push ohne Sandras Ja.
+#### Schritt 0 – W2: „Nächste Aufgabe“ nur einmal
 
-### 7. Offene Fragen
+**Ursache.** Seit Welle 10 zeigt `finishQuestion` (`src/engine.js`, Zeile 561–564) in jeder Stufe mit Hilfen
+den Knopf `ui.next` (`#pNext`, `index.html` Zeile 93) unter den Antwortknöpfen. `openDemo` (`src/engine.js`,
+Zeile 592) setzt zusätzlich einen zweiten Knopf in die Hilfe-Karte:
+`<button class="btn primary wide" data-demo-next>${DEMO_NEXT}</button>`. Vor Welle 10 gab es `#pNext` in diesem
+Zustand nicht; jetzt stehen beide untereinander (Bildschirmfoto `2026-11-25_intervalle-naechste-aufgabe-doppelt.png`).
+Betroffen ist jede Stufe mit `level.demo`: Notenwerte 1, 4, 6, 8; Intervalle 1, 3, 5, 8; Tonleitern 1, 2, 4, 6,
+8, 10, 12.
 
-- [OFFEN Sandra] Abstände 1 · 3 · 7 · 14 · 30 Tage und Länge der Runden (10 bzw. 6 Aufgaben): so beginnen?
-- [OFFEN Sandra] Soll die Wiederholung auf der Startseite ganz oben stehen (Vorschlag) oder unter „Weiter üben“?
-- [OFFEN Sandra] Zählt eine Wiederholungsrunde für die Tagesserie und die Erfahrungspunkte wie eine normale
-  Runde (Vorschlag: ja)?
-- [OFFEN Sandra] Kanten der Voraussetzungen (Tabelle in 1): stimmen sie mit deiner Unterrichtsfolge überein?
-  Besonders: parallele Molltonart braucht die Terz, „Intervalle“ steht in der Liste aber nach „Tonleitern“ –
-  Reihenfolge der Pakete ändern oder die Kante nur als Hinweis führen?
-- [OFFEN Sandra] Jahrgänge: welche stehen zur Wahl (5 bis 13, nur 5 bis 7 und „älter“)? Zuordnung der Stufen zu
-  den Jahrgängen am LehrplanPLUS festlegen (Entwurf in 4 ist ungeprüft). Eigene Voreinstellung für das musische
-  Gymnasium (vermindert/übermäßig)?
-- [OFFEN Sandra] Dürfen Schülerinnen und Schüler den Jahrgang selbst ändern (Vorschlag: ja, ohne Schutz – ein
-  Kennwort wäre im Browser ohnehin kein echter Schutz und würde beim Selbstlernen stören)?
-- [OFFEN Sandra] Link/QR-Code für die Klasse: gewünscht, oder reicht die Einstellung in der App?
-- [OFFEN Sandra] Früheres mit Jahrgang sofort offen (Vorschlag) – auch Stufen **innerhalb** von „Jetzt dran“,
-  oder dort weiter Stufe für Stufe ab 8 von 10?
-- [OFFEN Sandra] Wort für die Runde: „Wiederholen“, „Auffrischen“ oder anderes; „Grundlagen wiederholen“ ist
-  gesetzt.
-- Offen für den Feinplan (Fable): Wie viele Aufgaben je Stufe in der Wiederholungsrunde tragen das Urteil
-  „sitzt“ (zwei bis drei sind wenig); Schwelle „drei Fehler je Runde“ für Fehlermuster; Umgang mit Stufen mit
-  nur zwei Knöpfen (Raten).
+**Lösung.** Zu jedem Zeitpunkt ist genau ein Knopf „Nächste Aufgabe“ sichtbar – der, der beim Lesen am nächsten
+liegt:
+- Vorführung zu: nur `ui.next` (wie heute).
+- Vorführung offen: `openDemo` setzt `ui.next.hidden = true`; der Knopf am Ende der Vorführung
+  (`data-demo-next`) bleibt. Grund: Auf Handys (unter 600 px) steht die Hilfe-Karte **unter** den Antwortknöpfen
+  (`#pHelps { order: 1 }`, `css/style.css` Zeile 298); wer die Vorführung zu Ende gesehen hat, ist dann beim
+  Knopf. Enter und Leertaste gehen weiter wie bisher (`handleKey`).
+- `r.advance` versteckt `ui.next` schon; nach dem Weitergehen ist keiner der beiden mehr da (die Hilfen werden
+  mit der nächsten Aufgabe neu aufgebaut).
+- „Weiter zu Schritt 2“ (`NEXT_STEP`) ist nicht betroffen: Vor der letzten Antwort lässt sich keine Vorführung
+  öffnen (`r.answered`).
+
+**Tests.**
+- `test/engine.test.js`, neu „Nächste Aufgabe steht nur einmal da (alle Pakete)“: für **jede** Stufe aller
+  Pakete aus `PACKS` mit `level.demo` eine Runde mit `runLevel` (vorhandenes Hilfsmittel, unechte Elemente)
+  starten, die erste Aufgabe beantworten (alle Schritte), prüfen: `ui.next.hidden === false` und kein
+  `[data-demo-next]` im Hilfe-Bereich; „Vorführen“ auslösen, prüfen: `ui.next.hidden === true` und genau ein
+  `[data-demo-next]`; darauf tippen, prüfen: nächste Aufgabe, `ui.next.hidden === true`. Dazu für jede Stufe
+  **ohne** `demo`: nach einer Antwort daneben ist `ui.next` sichtbar, einen zweiten Knopf gibt es nie.
+- Bestehender Test (Zeile 690–720) bleibt, ergänzt um `ui.next.hidden === true` nach „Vorführen“.
+- `docs/screens/ueberlauf.mjs`: in `chk` zusätzlich zählen, wie viele **sichtbare** Knöpfe mit dem Text
+  „Nächste Aufgabe“ es gibt; mehr als einer ist ein Treffer („doppelter Knopf“). Damit ist jeder Zustand jeder
+  Stufe bei 320 und 420 px abgedeckt.
+
+**Abnahme.** Intervalle 3 wie auf dem Bildschirmfoto (Hilfen offen, Vorführung offen): ein Knopf. Vorführung
+zu: ein Knopf unter den Antworten. In allen fünf Paketen bei 320 und 420 px kein Zustand mit zwei Knöpfen.
+
+#### Schritt 1 – W1: Notenwerte – Dauer in Schlägen, ein Wortlaut
+
+**Befund.** „Wie viele Schläge im 4/4-Takt?“ lässt sich als „Wie viele Schläge hat der 4/4-Takt?“ lesen
+(Antwort 4). Gemeint ist: Wie lange dauert diese Note, gemessen in Schlägen, wenn ein Schlag eine Viertel ist.
+
+**Wortlaut (verbindlich; zwei Bausteine als Konstanten in `src/packs/notenwerte.js`).**
+- `BEAT_UNIT = "1 Schlag = 1 Viertelnote"` (in Klammern hinter der Frage; mit geschützten Leerzeichen, damit
+  die Klammer nicht zerfällt).
+- `BEAT_RULE = "Gezählt wird in Schlägen: Im 4/4-Takt ist ein Schlag so lang wie eine Viertelnote."` (Hinweise
+  und Lerntafel).
+- Die Wendung „Schläge im 4/4-Takt“ bzw. „Schläge im 4/4“ kommt in Fragen, Rückmeldungen, Hilfen, Vorführungen
+  und Lerntafeln **nicht mehr** vor. „Ein 4/4-Takt hat vier Schläge“ bleibt dort, wo wirklich der ganze Takt
+  gemeint ist (Takt füllen, Stufen 8 und 9).
+
+| Stelle | bisher (`src/packs/notenwerte.js`) | neu |
+|---|---|---|
+| Frage Stufe 4, Schritt 2 (Zeile 310) und Stufe 5 (Zeile 318), auch in Stufe 10 | „Wie viele Schläge im 4/4-Takt?“ | Note: „Wie viele Schläge dauert diese Note? (1 Schlag = 1 Viertelnote)“ · Pause: „Wie viele Schläge dauert diese Pause? (1 Schlag = 1 Viertelnote)“ |
+| Frage Stufe 6, Schritt 2 (Zeile 348) | „Wie viele Schläge dauert die Note?“ | „Wie viele Schläge dauert diese Note? (1 Schlag = 1 Viertelnote)“ |
+| Frage Stufe 7 (Zeile 357), auch in Stufe 10 | „Wie viele Schläge dauert diese Note?“ | dieselbe Frage mit „(1 Schlag = 1 Viertelnote)“ |
+| Richtig, Stufen 5, 7, 9 (`displayOf`, Zeile 230) | „Richtig! Achtelnote (½ Schlag)“ | „Richtig! Achtelnote = ½ Schlag“ (wie die Ergebniskarte der Vorführung) |
+| Richtig und Daneben, Stufen 1–3 (`METER`, Zeile 228; `withBeats` 229; `valueWay` 274) | „… (½ Schlag im 4/4-Takt)“ | „… (dauert ½ Schlag)“, z. B. „Richtig! Achtelnote (dauert ½ Schlag)“, „Das war eine halbe Pause (dauert 2 Schläge) – das Rechteck sitzt auf der Mittellinie.“, „Kopf schwarz · 1 Fähnchen → Achtelnote (dauert ½ Schlag)“ |
+| Daneben, Stufe 7 mit der Frage nach dem Namen (`revealName` ohne `meter`, Zeile 234) | „Das war eine punktierte Viertelnote (1½ Schläge).“ | „Das war eine punktierte Viertelnote (dauert 1½ Schläge).“ – `withBeats` schreibt überall „(dauert …)“ |
+| Daneben, Stufen 5 und 7 (`revealBeats`, Zeile 236) | „Richtig wäre: ½ Schlag, denn das ist eine Achtelnote.“ | bleibt (eindeutig) |
+| Zwei Schritte, Stufe 4 (`beatsWay`, Zeile 301) | „Achtelpause → ½ Schlag“ | bleibt |
+| Teilerfolg Stufen 4 und 6 (Zeilen 313, 351) | „Die Schläge stimmen, der Notenwert nicht: …“ | „Die Dauer stimmt, der Notenwert nicht: …“ |
+| Titel Stufe 4 und 5 (Zeilen 772, 774) | „Wie viele Schläge?“ / „Wie viele Schläge? Ohne Hilfen“ | „Dauer in Schlägen“ / „Dauer in Schlägen ohne Hilfen“ |
+| Untertitel Stufe 4 und 5 (Zeilen 772, 774) | „4/4-Takt · Noten und Pausen · …“ | „Noten und Pausen · zwei Schritte · mit Hilfen“ / „Noten und Pausen“ (die Taktangabe 4/4 steht weiter in der Notenzeile) |
+| Hinweis Stufe 4 (Zeile 773) | „… dann die Schläge ablesen. Im 4/4-Takt dauert eine Viertelnote einen Schlag. …“ | „Zwei Schritte: Erst den Notenwert erkennen, dann seine Dauer ablesen. Gezählt wird in Schlägen: Im 4/4-Takt ist ein Schlag so lang wie eine Viertelnote. Eine Pause dauert so lang wie die Note mit demselben Wert.“ |
+| Hinweis Stufe 5 (Zeile 775) | „Im 4/4-Takt dauert eine Viertelnote einen Schlag. Ganze Note 4 Schläge, halbe 2, Achtel ½, Sechzehntel ¼. …“ | „Gezählt wird in Schlägen: Im 4/4-Takt ist ein Schlag so lang wie eine Viertelnote. Die ganze Note dauert 4 Schläge, die halbe 2, die Achtel ½ Schlag, die Sechzehntel ¼ Schlag. Eine Pause dauert so lang wie die Note mit demselben Wert.“ |
+| Hinweise Stufe 6, 7 (Zeilen 777, 779), Stufe 8, 9 (781, 783) | – | bleiben (nennen Dauern bzw. den ganzen Takt eindeutig) |
+| Hilfetext Stufe 4 (`HELP_TEXT_BEATS`, Zeile 558) | „Eine Pause dauert so lang wie die Note mit demselben Wert.“ | „1 Schlag = 1 Viertelnote. Eine Pause dauert so lang wie die Note mit demselben Wert.“ |
+| Vorführung „So bestimmst du die Dauer“: Marken (`DEMO_STEPS_BEATS`, Zeile 578) | „1 · Notenwert“, „2 · Schläge“ | „1 · Notenwert“, „2 · Dauer“ |
+| Vorführung, erstes Bild (Zeile 629) | „Wie lange dauert das? Erst der Notenwert, dann die Schläge.“ | „Wie viele Schläge dauert das? Erst der Notenwert, dann die Dauer (1 Schlag = 1 Viertelnote).“ |
+| Vorführung, Bilder 2 bis Ergebnis (Zeilen 630–645) | „Viertelnote = 1 Schlag“, „Punkt: die Hälfte dazu · 1 + ½ = 1½“, Ergebnis „Punktierte Viertelnote = 1½ Schläge“ | bleiben |
+| Vorführung „So erkennst du einen Notenwert“, Ergebnis (Zeile 602) | „Achtelnote · ½ Schlag im 4/4-Takt“ | „Achtelnote · dauert ½ Schlag“ |
+| Lerntafel „So bestimmst du die Dauer“, Einleitung (`BOARDS.beats.intro`, Zeile 884) | „… Dann die Schläge in der Notenwert-Pyramide ablesen.“ | „… Dann die Dauer in der Notenwert-Pyramide ablesen (1 Schlag = 1 Viertelnote).“ |
+| Lerntafel „Notenwerte und Pausen“, Spaltenkopf beider Tabellen (Zeilen 859, 861) | „Schläge im 4/4“ | „Dauer in Schlägen“ |
+| Lerntafel, Satz unter den Tabellen (Zeile 862) | „Der Punkt verlängert eine Note um die Hälfte ihres Wertes. Im 4/4-Takt hat jeder Takt vier Schläge, ein Schlag ist eine Viertelnote.“ | „Gezählt wird in Schlägen: Im 4/4-Takt ist ein Schlag so lang wie eine Viertelnote, ein ganzer Takt hat vier Schläge. Der Punkt verlängert eine Note um die Hälfte ihres Wertes.“ |
+| Pyramide, Spaltenkopf (Zeile 519) | „Schläge“ | bleibt |
+
+**Geprüft.** Die Antwortknöpfe passen zum neuen Wortlaut: Stufen 4/5 „4 · 2 · 1 · ½ · ¼“ (ganze, halbe, Viertel,
+Achtel, Sechzehntel, Note wie Pause), Stufen 6/7 „3 · 2 · 1½ · 1 · ¾ · ½“ (punktierte halbe 3, halbe 2,
+punktierte Viertel 1½, Viertel 1, punktierte Achtel ¾, Achtel ½). Punktierte Werte (Stufe 6 und 7, nur Noten)
+und Pausen (Stufen 4 und 5) benutzen dieselbe Frage; nur „Note“ bzw. „Pause“ wechselt. Länge: „Richtig!
+Sechzehntelpause (dauert ¼ Schlag)“ hat 43 Zeichen und liegt unter `AUTO_OK_MAX` (45); `autoNext` in den Stufen 3
+und 10 bleibt trotzdem stehen.
+
+**Umsetzung.** `METER` entfällt (ersetzt durch `DAUERT = "dauert"` in `withBeats` und `valueWay`); neue
+Funktion `beatsPrompt(e)` für alle vier Fragen; `displayOf(e)` ohne `meter`: „Name = Dauer“. Außerhalb des
+Pakets: `docs/ARCHITEKTUR.md` Zeilen 82, 333, 561, 633 (Wortlaut), `README.md` falls betroffen.
+
+**Tests** (`test/packs/notenwerte.test.js`; betroffen heute die Zeilen 126–139, 207–212, 222, 239, 478, 658).
+- Neu: Kein Text des Pakets (Fragen aller Schritte, `display`, `reveal`, `partial`, Hinweise, Titel, Untertitel,
+  Hilfetexte, alle Bilder aller Vorführungen, alle Lerntafeln) enthält „Schläge im 4/4“ oder „Schlag im 4/4“.
+- Neu: Jede Frage nach der Dauer (Stufen 4 Schritt 2, 5, 6 Schritt 2, 7, 10) lautet genau „Wie viele Schläge
+  dauert diese Note? (1 Schlag = 1 Viertelnote)“ bzw. „… diese Pause? …“, passend zu `q.el.rest`.
+- Angepasst: die wörtlichen Erwartungen der genannten Zeilen.
+
+**Abnahme.** Stufen 4 bis 7 und 10 je eine Runde bei 320 und 420 px: Frage in höchstens drei Zeilen, kein
+Überlauf; Vorführung und Lerntafeln mit dem neuen Wortlaut. Fable prüft den Wortlaut (Sandra: „Fable prüft“).
+
+#### Schritt 2 – W3: „Lernen“ mit Reitern
+
+**Heute** (`src/views/learn.js`, `index.html` Zeilen 103–128): oben die Schlüsselwahl, die Notenzeile zum
+Antippen, „Gewählte Note“, darunter **alle** Lerntafeln aller Pakete untereinander (`learnCardsHtml`).
+
+**Reiter** (Reihenfolge wie die Pakete nach Schritt 3; „Takt“ steht hinter „Notenwerte“):
+
+| Reiter (`id`) | Inhalt |
+|---|---|
+| Tonhöhen (`noten`) | Notenzeile zum Antippen, „Gewählte Note“ mit „Anhören“ und „Alle Namen zeigen“, Tafel „Merkhilfen“ (je Schlüssel) mit der Wahl der Merksprüche |
+| Notenwerte (`notenwerte`) | „So erkennst du einen Notenwert“, „Notenwerte und Pausen“ (Tabellen Note/Pause/Dauer, punktierte Noten, Notenwert-Pyramide), „So bestimmst du die Dauer“ |
+| Takt (`takt`) | „So zählst du einen Takt“, neu als eigene Tafel „Balken“ (der Abschnitt „Balken“ aus `learnHtml`, Zeilen 863–866, unverändert im Wortlaut) |
+| Intervalle (`intervalle`) | „So bestimmst du ein Intervall“, „Intervalle über c'“ bzw. „Intervalle über c“ (je Schlüssel) |
+| Tonleitern (`tonleitern`) | „So baust du eine Dur-Tonleiter“, „Bauplan Dur“ (je Schlüssel), „Dur-Tonleitern bis 4 Vorzeichen“, „So findest du die Tonart“, „Quintenzirkel“ (Tafel der Tonleitern mit den Merksprüchen), „So findest du die parallele Molltonart“ |
+| Dreiklänge (`akkorde`) | „Dreiklangstypen“ (je Schlüssel), „Quintenzirkel“ (Ring der Dreiklänge) |
+
+**Technik.**
+- Jede Lerntafel bekommt das Feld `tab` (fehlt es, gilt die `id` des Pakets). In `notenwerte.js`: `learnHtml`
+  wird in `valuesHtml()` (Tabellen, punktierte Noten, Pyramide) und `beamsHtml()` (Balken) geteilt; die Tafeln
+  „So zählst du einen Takt“ und „Balken“ tragen `tab: "takt"`.
+- `learn.js`: `LEARN_TABS = [{ id, label }]` (rein; die Reihenfolge folgt `PACKS`, „takt“ nach „notenwerte“);
+  `learnCardsHtml(packs, clef, c, tab)` und `mountCards(packs, clef, root, tab)` filtern zusätzlich nach dem
+  Reiter; `tabHasClef(packs, tab)` (rein): Gibt es im Reiter eine Tafel mit `clef` oder ist es „Tonhöhen“?
+- `index.html`: über dem Inhalt `<div class="ltabs" role="tablist" aria-label="Lerninhalte" id="lTabs">` mit je
+  einem `<button role="tab" id="ltab-<id>" aria-selected aria-controls="lPanel">`; der Inhalt in
+  `<div role="tabpanel" id="lPanel" aria-labelledby="ltab-<id>" tabindex="0">`. Die Notenzeile, „Gewählte Note“
+  und die Überschrift „Tippe auf die Notenzeile“ sind nur im Reiter „Tonhöhen“ sichtbar; in den anderen Reitern
+  ist die Überschrift der Name des Reiters.
+- **Tastatur (ARIA-Muster „Tabs“, Aktivierung beim Fokus):** nur der gewählte Reiter hat `tabindex="0"`, die
+  anderen `-1` (wandernder Tabindex). Pfeil rechts/links wechselt (am Ende umlaufend), Pos1 zum ersten, Ende
+  zum letzten; der Fokus geht mit und der Reiter wird gleich gezeigt. Tab springt vom gewählten Reiter in den
+  Inhalt. Der Tastatur-Handler hängt an `#lTabs` (nicht an `document`), damit die Buchstabentasten anderer
+  Ansichten unberührt bleiben.
+- **320 px:** `.ltabs { display: flex; gap: 6px; overflow-x: auto; scroll-snap-type: x proximity;
+  scrollbar-width: none; min-width: 0; padding: 4px 2px; }`, Reiter `flex: none; scroll-snap-align: start;
+  white-space: nowrap; min-height: 44px`. Die Leiste rollt in sich, die Seite bekommt keinen waagrechten
+  Überlauf (`ueberlauf.mjs` lässt gewollte Rollbereiche zu). Der gewählte Reiter wird nach jedem Wechsel mit
+  `scrollIntoView({ inline: "nearest", block: "nearest" })` sichtbar gemacht. Farben über die vorhandenen
+  Tokens (gewählt wie `.seg button.on`), Fokusring wie in Welle 10.
+- **Schlüsselwahl bleibt:** `#lTreble`/`#lBass` stehen weiter oben rechts und gelten für alle Reiter; die Wahl
+  bleibt beim Wechsel des Reiters erhalten. In Reitern ohne Tafel je Schlüssel („Notenwerte“, „Takt“) ist die
+  Wahl ausgeblendet (`tabHasClef`), damit kein Schalter ohne Wirkung dasteht.
+- **Gemerkt in der Sitzung:** `lTab` als Variable des Moduls (wie `lClef`): Wer „Lernen“ verlässt und
+  zurückkommt, steht im selben Reiter. Nach einem Neuladen der Seite beginnt „Lernen“ wieder bei „Tonhöhen“.
+- Wechsel des Reiters: `stopDemos()`, dann nur die Tafeln des Reiters neu setzen und verdrahten.
+- „Erst anschauen“ auf der Startseite öffnet den Reiter des Pakets der aktuellen Stufe (`ctx.show("learn",
+  { tab })`; `app.js`: `show(v, arg)` reicht `arg` an `render` weiter).
+
+**Tests** (`test/views/learn.test.js`).
+- Jede Lerntafel aller Pakete gehört zu genau einem Reiter aus `LEARN_TABS`; kein Reiter ist leer; die
+  Reihenfolge der Reiter folgt `PACKS`.
+- `learnCardsHtml` je Reiter und Schlüssel enthält genau die Titel der Tabelle oben.
+- `tabHasClef`: wahr für `noten`, `intervalle`, `tonleitern`, `akkorde`; falsch für `notenwerte`, `takt`.
+- Rein und getestet: `nextTab(ids, cur, key)` für ArrowRight, ArrowLeft, Home, End (umlaufend).
+- `test/css.test.js`: `.ltabs` hat `overflow-x: auto`.
+- `ueberlauf.mjs`: „Lernen“ je Reiter und je Schlüssel mit allen Vorführungen (statt bisher zwei Durchgänge).
+
+**Abnahme.** Bei 320 px lässt sich die Leiste wischen, der letzte Reiter ist erreichbar, kein Seitenüberlauf;
+mit der Tastatur sind alle Reiter und ihr Inhalt erreichbar; Schlüssel wechseln in „Tonleitern“ lässt den
+Reiter stehen; Merkspruch-Wahl in „Tonhöhen“ und „Tonleitern“ funktioniert wie bisher.
+
+#### Schritt 3 – Paketreihenfolge: Intervalle vor Tonleitern
+
+- `src/packs/index.js`: `PACKS = [noten, notenwerte, intervalle, tonleitern, akkorde]`. Startseite
+  (`home.js`), Statistik (`levelGroups`) und „Lernen“ (`LEARN_TABS`) folgen `PACKS` und ändern sich damit von
+  selbst. „Blitz“ ist nicht betroffen (nur „Noten lesen“ hat `blitz`).
+- Tests: `test/packs/tonleitern.test.js` Zeile 29 (Reihenfolge der IDs); Suche nach weiteren festen Reihenfolgen
+  in `test/**` und `docs/screens/*.mjs` (`ueberlauf.mjs` Zeile 111 ist eine Zuordnung, keine Reihenfolge).
+- Texte, die die Lage nennen: `CLAUDE.md` Zeile 19 („zwischen ‚Notenwerte und Pausen‘ und ‚Intervalle …‘“ – als
+  Stand von damals kennzeichnen), `README.md` (Aufzählung der Pakete), `docs/ARCHITEKTUR.md` (Registry),
+  Reihenfolge-Tabelle oben in diesem Plan (ist angepasst).
+- Hinweise der Stufen, die auf das jeweils andere Paket verweisen, lesen und anpassen, falls sie „später“ oder
+  „schon gelernt“ voraussetzen (Tonleitern 12/13 nennen die Terz: passt jetzt; Intervalle 3 erklärt Halbtöne
+  selbst: passt).
+- Spielstände: unverändert (IDs bleiben). `s.current` bleibt.
+- Abnahme: Startseite, Statistik und „Lernen“ zeigen Noten lesen → Notenwerte und Pausen → Intervalle →
+  Tonleitern → Dreiklänge und Quintenzirkel; `docs/screens/screenshots.mjs` läuft.
+
+#### Schritt 4 – Örtliches Datum, Felder `rep` und `klasse`, Karteikasten als reine Logik
+
+**`src/store.js`.**
+- `localDay(now = new Date(), offsetMin = now.getTimezoneOffset())` → `"JJJJ-MM-TT"` des örtlichen Tages (rein,
+  die Verschiebung ist für Tests einstellbar). `today` ruft `localDay`. `addDays(day, n)` rechnet auf dem Text
+  des Tages (über `Date.UTC`, unabhängig von Sommerzeit).
+- `touchStreak`: „gestern“ = `addDays(heute, -1)`. Neu: Liegt `lastDay` **in der Zukunft** (alter UTC-Eintrag
+  in Zeitzonen westlich von Greenwich), gilt er als heute (nichts ändern). Östlich von Greenwich liegt der alte
+  UTC-Tag höchstens einen Tag zurück: Die Serie zählt dann einmalig einen Tag weiter, sie reißt nie ab.
+- `fresh()`: `rep: {}`, `klasse: null`, Marker `MIGRATION_WIEDERHOLEN = "wiederholen"` in `migrated`.
+- `migrateWiederholen(s, packs, heute)`: wie in 1 beschrieben (je Tag 3 Stufen, beginnend heute, Reihenfolge
+  der Pakete, nur Stufen ohne Hilfen mit `best ≥ 8`). `load(storage, now)` reicht das Datum durch; `migrateAll`
+  ruft sie als vierte. Weil `store.js` die Pakete nicht kennt, bekommt `load` die Liste der Stufen ohne Hilfen
+  als Parameter (`app.js` übergibt sie aus `PACKS`); ohne Liste läuft die Umstellung nicht und der Marker wird
+  nicht gesetzt.
+- `reset`: behält zusätzlich `klasse`; `rep` wird gelöscht.
+
+**`src/repeat.js` (neu, rein, ohne DOM).**
+- `ABSTAENDE = [1, 3, 7, 14, 30]`, `RUNDE_WIEDERHOLEN = 10`, `RUNDE_GRUNDLAGEN = 6`, `MAX_STUFEN = 3`,
+  `MIN_AUFGABEN_RATEN = 4`.
+- `inBox(level)` = keine Hilfen. `enter(state, levelId, heute)`: Fach 1, fällig morgen (nur wenn noch kein
+  Eintrag).
+- `due(state, packs, heute)` → Stufen-IDs mit `faellig ≤ heute`, sortiert: am längsten fällig zuerst, bei
+  Gleichstand Grundlagen vor dem, was auf ihnen aufbaut (Reihenfolge `PACKS`, dann Stufennummer).
+- `nextDue(state, heute)` → frühestes künftiges Datum oder `null`.
+- `reviewPlan(state, packs, heute)` → `[{ id, n }]` für die nächste Runde: höchstens `MAX_STUFEN` Stufen,
+  Aufteilung 10 / 5+5 / 4+3+3; Stufen mit nur zwei Antwortknöpfen (`level.guess === true`, gesetzt in
+  Tonleitern 1–3 und Dreiklänge 1) bekommen mindestens `MIN_AUFGABEN_RATEN` und den größten Anteil.
+- `passed(n, fehler)` = `fehler ≤ Math.floor(n / 5)`.
+- `applyReview(state, perLevel, heute)` (`perLevel = [{ id, n, ok }]`): bestanden → `fach = min(5, fach + 1)`,
+  `faellig = heute + ABSTAENDE[fach − 1]`; sonst `fach = max(1, fach − 1)`, `faellig = heute + 1`; `zuletzt =
+  heute`. Ergebnis je Stufe `{ id, sitzt, fach, inTagen }` für die Ergebniskarte.
+- `afterRound(state, level, correct, heute)` (normale Runde, 10 Aufgaben): Stufe ohne Hilfen, `correct ≥ 8`,
+  kein Eintrag → `enter`; Eintrag vorhanden und fällig → wie bestanden; fällig und `correct < 8` → wie nicht
+  bestanden; nicht fällig → nichts.
+- `dueText(inTagen)`: „morgen“, „in 3 Tagen“ …; `dayText(day)`: „24.11.“.
+
+**Tests.** `test/store.test.js`: `localDay` mit festen Zeitpunkten und Verschiebungen −480 (Kuala Lumpur), −60
+und −120 (Bayern), +300 (New York), je kurz vor und nach Mitternacht; Serie über die Umstellung (alter UTC-Tag
+= gestern, = heute, = morgen): kein Abriss; `migrateWiederholen` (Verteilung 3 je Tag, nur ohne Hilfen, Marker,
+läuft einmal); alter Stand ohne `rep`/`klasse` lädt; `reset` behält `klasse`. `test/repeat.test.js`: jede
+Funktion; Fach 1→2→3→4→5 mit den Abständen 1, 3, 7, 14, 30; Fach 5 bleibt 5 und kommt nach 30 Tagen wieder;
+zurück nicht unter 1; `passed` für n = 3, 4, 5, 10. **`test/repeat.sim.test.js`: Lauf über 40 Tage** mit
+verstellter Uhr (rein, ohne Browser): Tag 0 drei Stufen geschafft; täglich `due`, `reviewPlan`, `applyReview`;
+erwartet werden die Fälligkeiten an den Tagen 1, 4, 11, 25 (und die nächste am Tag 55 außerhalb des Laufs);
+eine Stufe wird am Tag 4 nicht bestanden (Fach zurück, am Tag 5 wieder fällig); Ferienpause Tag 12 bis 26
+(nichts gespielt): am Tag 27 ist alles fällig, `reviewPlan` liefert trotzdem genau eine Runde mit höchstens
+drei Stufen, Grundlagen zuerst; während des ganzen Laufs bleibt jede Stufe offen (`isUnlocked` unverändert wahr).
+
+**Abnahme.** `npm test` grün; in der Oberfläche ändert dieser Schritt nichts außer dem Tageswechsel um
+Mitternacht Ortszeit.
+
+#### Schritt 5 – Voraussetzungen in allen Paketen
+
+- Alle fünf Pakete: `needs` je Stufe nach der Tabelle in 1 (wo die Voreinstellung dasselbe ergibt, ohne Feld),
+  `stepNeeds` für die zweischrittigen Stufen laut Tabelle, `skill` für jede Stufe, auf die verwiesen wird:
+  `noten-1` „Linien im Violinschlüssel“, `noten-2` „Zwischenräume im Violinschlüssel“, `noten-3` „Noten im
+  Violinschlüssel“, `noten-4` „Linien im Bassschlüssel“, `noten-5` „Zwischenräume im Bassschlüssel“, `noten-6`
+  „Noten im Bassschlüssel“, `noten-7` „Noten mit Vorzeichen“, `noten-8` „Noten in beiden Schlüsseln“,
+  `notenwerte-3` „Notenwerte und Pausen erkennen“, `notenwerte-5` „Dauer in Schlägen“, `notenwerte-7`
+  „Punktierte Noten“, `notenwerte-9` „Takt füllen“, `intervall-2` „Notenstufen zählen (Prime bis Oktave)“,
+  `intervall-4` „Intervalle rein, klein, groß“, `intervall-6` „Verminderte und übermäßige Intervalle“,
+  `intervall-7` „Intervalle abwärts“, `intervall-9` „Intervalle bauen“, `tonleitern-3` „Ganz- und
+  Halbtonschritte“, `tonleitern-5` „Dur-Tonleitern“, `tonleitern-9` „Vorzeichen der Dur-Tonleitern“,
+  `tonleitern-11` „Tonart aus den Vorzeichen“, `akkorde-1` „Dur- und Moll-Dreiklang“, `akkorde-2`
+  „Dreiklangstypen“. `guess: true` in Tonleitern 1–3 und Dreiklänge 1.
+- `src/repeat.js`: `needsOf(packs, levelId)` (Feld oder Voreinstellung), `stepNeedsOf(level, q, i)`,
+  `skillOf(level)`, `needsText(packs, levelId)` → „Noten mit Vorzeichen · Notenstufen zählen (Prime bis
+  Oktave)“.
+- Tests (`test/repeat.test.js`): Die ganze Tabelle aus 1 als erwartete Werte (jede der 47 Stufen); die Regeln
+  aus 1 (ID vorhanden, Ziel ohne Hilfen, Ziel früher im selben oder in einem früheren Paket, kein Kreis); jedes
+  Ziel hat `skill`; `stepNeeds` hat so viele Einträge wie die Stufe Schritte.
+- Keine Änderung der Oberfläche in diesem Schritt.
+
+#### Schritt 6 – Engine: gemischte Runde
+
+**Ziel.** Eine Runde, deren Aufgaben aus verschiedenen Stufen stammen (Eingabeart, `check`, Ziffern, Namensraster
+hängen heute an `r.level`).
+
+- `makeMixed(packs, plan, ctx, rand = Math.random)` (rein): für jeden Eintrag `{ id, n }` erzeugt die Stufe n
+  Aufgaben (`level.question(prev, ctx)`, `prev` innerhalb der Stufe), jede bekommt `q.from = level`; danach
+  reihum gemischt (nie zwei Aufgaben derselben Stufe hintereinander, solange es anders geht).
+- `startMixed(spec, ui, hooks)` mit `spec = { kind: "wiederholen" | "grundlagen", items }`. Im Lauf steht
+  `r.mixed = true`; **alle** Stellen, die heute `r.level` lesen (`answer`, `showChoices`, `showQuestion`,
+  `applyInput`, `handleKey`, `finishQuestion`), lesen über `cur(r) = r.mixed ? r.items[r.idx].from : r.level`.
+- `showQuestion` baut im gemischten Lauf die Eingabe je Aufgabe neu auf (aus `startRound` herausgelöst als
+  `setupAnswers(r, level)`: Buchstaben, Namensraster, Auswahlknöpfe, Klaviatur; `r.input =
+  effectiveInput(level.input, state.input, namesOnly)`).
+- Keine Hilfen und kein „Vorführen“ im gemischten Lauf (`ui.helps.hidden = true`). Warten: nach „daneben“
+  immer, nach „richtig“ wie in der Herkunftsstufe (`okWaits(q.from)`), Stufen mit Hilfen kommen nicht vor.
+- Herkunft: neues Element `ui.origin` (`#pOrigin`, klein über der Notenzeile, `index.html`): „Intervalle ·
+  Stufe 4“ (`originText(pack, level)`, rein).
+- Ende: `store.recordMixedRound(s, kind, correct, total, now)` – „wiederholen“: `gained = correct · 10 +
+  starsFor(correct) · 20`; „grundlagen“: `gained = correct · 10`; beide `touchStreak`; **kein** Eintrag in
+  `s.levels` (keine Sterne, keine beste Runde, keine Freischaltung). Ergebnis an `onFinish`: `{ kind, correct,
+  total, gained, avg, results, perLevel: [{ id, n, ok }] }`.
+- Für die Fehlermuster (Schritt 7) führt **jede** Runde, auch die normale, ein Protokoll `log: [{ id, ok, oks }]`
+  (je Aufgabe die Stufe und das Ergebnis je Schritt) und gibt es im Ergebnis mit.
+- Antworten zählen wie bisher über `countAnswer` (`statKey` der Aufgabe, `answered`, `correct`).
+
+**Tests** (`test/engine.test.js`): gemischte Runde mit je einer Aufgabe jeder Eingabeart im Wechsel –
+Buchstaben (`noten-3`), Namensraster (`noten-7`), Klaviatur (Vorliebe „keys“), Auswahlknöpfe
+(`notenwerte-5`), Ziffern (`intervall-2`), zwei Schritte (`intervall-4`), `namesOnly` (`intervall-9`): richtige
+Knöpfe je Aufgabe, richtige Prüfung, Tastatur je Art; `ui.helps` verborgen; `recordMixedRound` (XP, Serie,
+`s.levels` unverändert); `perLevel` und `log`; `makeMixed` (Anzahl je Stufe, Reihenfolge, `q.from`). Alle
+bisherigen Tests bleiben grün (eine normale Runde verhält sich unverändert).
+
+**Abnahme.** Über die Konsole (`engine.startMixed`) bzw. den vorläufigen Start aus Schritt 7 läuft eine Runde
+aus drei Stufen bei 320 und 420 px ohne Überlauf; Wechsel zwischen Namensraster und Auswahlknöpfen ohne Reste
+der vorigen Aufgabe.
+
+#### Schritt 7 – „Grundlagen wiederholen“ und Fehlermuster
+
+- `repeat.js`: `basicsPlan(packs, levelId, n = RUNDE_GRUNDLAGEN, only = null)` → `[{ id, n }]` aus `needsOf`
+  (gleich verteilt, Rest an die erste; `only`: nur diese eine Grundlage); `basicsOffer(state, packs, levelId,
+  heute)` → `{ show, recommend, reason }`: `show`, wenn es Voraussetzungen gibt; `recommend`, wenn eine nie
+  gespielt wurde, fällig ist oder zuletzt unter 8 von 10 lag, und seit der letzten Grundlagen-Runde mit
+  höchstens einem Fehler kein Auslöser neu zutraf (Merker `s.basics = { "<Stufen-ID>": "JJJJ-MM-TT" }`, zählt
+  zum Fortschritt); `gapsOf(packs, level, log)` → Liste `{ need, count, step }` mit `count ≥ LUECKE_AB` (3):
+  je Aufgabe mit Schritt i daneben zählt jede Stufe aus `stepNeeds[i]`; bei einschrittigen Stufen zählt eine
+  falsche Antwort für `needs` als Ganzes.
+- `views/practice.js`:
+  - Startkarte: Zeile `#pNeeds` „Dafür brauchst du: Noten mit Vorzeichen · Notenstufen zählen (Prime bis
+    Oktave)“ (jeder Eintrag ein Knopf, öffnet die Startkarte jener Stufe) und der Knopf `#pBasics` „Grundlagen
+    wiederholen · 6 Aufgaben“. Bei `recommend` steht er als erster, hervorgehoben, mit dem Grund darüber:
+    „Empfohlen: ‚Noten mit Vorzeichen‘ hast du hier noch nie geübt.“ / „… ist wieder dran.“ / „… lag zuletzt
+    unter 8 von 10.“ Sonst steht er unter „Runde starten“ als ruhiger Knopf (`btn ghost`).
+  - `render(arg)`: `arg.mode` „grundlagen“ (mit `arg.levelId`, optional `arg.only`) startet `startMixed`;
+    Kopf: „Grundlagen wiederholen“ / „für Intervalle, Stufe 3“; die Wahl Buchstaben/Klaviatur ist verborgen.
+  - Ergebniskarte normale Runde: bei weniger als 5 Richtigen „Grundlagen wiederholen“ als erster Knopf; bei
+    einem Fehlermuster der Satz „Dreimal lag der erste Schritt daneben (Notenstufen zählen). Das übst du in
+    Intervalle, Stufe 2.“ mit „Grundlagen wiederholen“ (nur diese Grundlage) und „Stufe 2 öffnen“.
+    Zahlwörter: „Dreimal“, „Viermal“ … „Zehnmal“; „der erste Schritt“ / „der zweite Schritt“; bei
+    einschrittigen Stufen „Dreimal lag die Antwort daneben. Das übst du in …“.
+  - Ergebniskarte Grundlagen-Runde: „Grundlagen wiederholt“, „5 / 6“, „+50 XP“, je Stufe eine Zeile
+    „Intervalle 2 · 3 von 3“ und die Knöpfe „Zurück zu Stufe 3“ (erste), „Nochmal“, „Übersicht“.
+- Tests: `basicsPlan` (Verteilung für 1, 2, 3, 4 Voraussetzungen), `basicsOffer` (jeder Auslöser, Verschwinden
+  nach einer Runde mit höchstens einem Fehler, Wiederkehr), `gapsOf` (Muster der Liste in 2 mit echten Stufen:
+  Intervalle 4 Schritt 1 → `intervall-2`; Tonleitern 4 Schritt 1 → `tonleitern-3`, Schritt 2 → `noten-7`;
+  Tonleitern 12; Notenwerte 6, 8); reine Textfunktionen der Start- und Ergebniskarte in
+  `test/views/practice.test.js`.
+- Abnahme: Startkarte von Intervalle 3 und Tonleitern 12 bei 320 px ohne Überlauf; Grundlagen-Runde zu
+  Dreiklänge 1 (aus `intervall-4` und `noten-8`) läuft; nach der Runde ist die Empfehlung weg.
+
+#### Schritt 8 – Wiederholung über Tage: Karte „Heute“, Runde „Wiederholen“, Statistik
+
+- `views/home.js`, `index.html` (Karte `.hero`): reine Funktion `todayCard(state, packs, heute)` →
+  `{ title, line, primary, secondary, small }`:
+  - etwas fällig: Titel „Wiederholen“, Zeile „10 Aufgaben aus Intervalle 4, Tonleitern 5 und Noten lesen 7“,
+    Hauptknopf „Wiederholung starten“, zweiter Knopf „Weiter üben: Tonleitern, Stufe 6“.
+  - nichts fällig, Kasten nicht leer: Titel „Bereit für eine Runde?“, Hauptknopf „Weiter üben: Tonleitern,
+    Stufe 6“, klein „Nächste Wiederholung: morgen“ / „… in 3 Tagen“.
+  - Kasten leer: wie heute („Starten: …“ bzw. „Weiter üben: …“, Satz zur Serie); zusätzlich klein „Was du mit
+    8 von 10 schaffst, kommt nach einem Tag zum Wiederholen wieder.“
+  - Die große Trefferquote entfällt auf der Startseite (sie steht in der Statistik). „Erst anschauen“ bleibt.
+  - „Weiter üben“ nennt jetzt Paket und Stufe (bisher nur „Stufe n“).
+- Stufenkarten (`levelHtml`): an fälligen Stufen „↻ wieder dran“ (Text, nicht nur Zeichen; `aria` über den
+  sichtbaren Text).
+- `views/practice.js`: `arg.mode` „wiederholen“ → `reviewPlan` → `makeMixed` → `startMixed`; Kopf
+  „Wiederholen“ / „10 Aufgaben aus 3 Stufen“. Ergebniskarte: „Wiederholung beendet“, Sterne nach `starsFor`
+  nur als Anzeige der Runde, „8 / 10“, „+… XP“, je Stufe eine Zeile „Intervalle 4 · sitzt · wieder in 7
+  Tagen“ bzw. „Tonleitern 5 · noch wacklig · morgen noch einmal“ mit dem Knopf „Stufe 4 mit Hilfen üben“ (die
+  Stufe mit Hilfen direkt davor, falls es sie gibt) bzw. „Stufe 5 üben“; unten „Noch eine Wiederholung“ (nur
+  wenn weiter etwas fällig ist) und „Übersicht“.
+- Normale Runde: `showResult` ruft `repeat.afterRound`; die Ergebniskarte nennt bei einer neu geschafften Stufe
+  ohne Hilfen „Kommt morgen zum Wiederholen wieder.“
+- `views/stats.js`: je Stufe im Kasten fünf Kästchen (`boxHtml(fach)`, gefüllt bis zum Fach, `role="img"`,
+  `aria-label="Fach 3 von 5"`) und „zuletzt geübt am 24.11.“; Stufen mit Hilfen und Stufen außerhalb des
+  Kastens ohne Kästchen. Eine Zeile Erklärung: „Fach 1 kommt nach einem Tag wieder, Fach 5 nach 30 Tagen.“
+- CSS: Kästchen und „↻“ über vorhandene Tokens; die Karte „Heute“ einspaltig bei 320 px.
+- Tests: `todayCard` (drei Fälle, Wortlaut, Aufzählung mit „und“), Zeilen der Ergebniskarte (`reviewLine`),
+  `boxHtml`, `afterRound` im Ablauf (`test/views/*.test.js`, `test/repeat.test.js`); der Lauf über 40 Tage
+  bleibt grün.
+- Abnahme: mit einem vorbereiteten Stand (drei fällige Stufen) zeigt die Startseite die Karte, die Runde läuft,
+  die Ergebniskarte nennt je Stufe das Urteil, die Statistik die Fächer; nichts ist rot, kein Zähler für
+  Versäumtes; kein Überlauf bei 320 px.
+
+#### Schritt 9 – Gewichtete Auswahl in Intervalle und Tonleitern, Gewicht nach Tagen
+
+- `src/adapt.js`: `TAGE_WIE_NEU = 7`; `weight(entry, heute)`: Eine „sichere“ Aufgabe, deren `last` mindestens
+  `TAGE_WIE_NEU` Tage zurückliegt, bekommt das Gewicht von „neu“ (ohne `heute` wie bisher). Neu
+  `pickAmong(cands, keyOf, notes, rand, heute)`: gewichtete Wahl aus einer schon gefilterten Liste (mit
+  `ANTEIL_ZUFALL`), ohne eigene Regel zu `prev`.
+- `packs/intervalle.js` (`pickItem`, `pickBy`, `pickBuild9`, `pickCheck`) und `packs/tonleitern.js` (`pickItem`,
+  `pickStep`): An der Stelle, an der heute gleichverteilt aus den Kandidaten gezogen wird, zieht `pickAmong`
+  über `statKey`, wenn `ctx.notes` da ist. **Alle Regeln davor bleiben** (Gruppen gleich häufig, Anteil der
+  Halbtonschritte `HALF_P`, „Prime höchstens einmal je Runde“, nie dieselbe Aufgabe zweimal hintereinander).
+  Ohne `ctx.notes` (Stichprobe `okTextsMax`, Tests) verhalten sich die Pakete wie bisher.
+- „Notenwerte und Pausen“ und „Dreiklänge“ schreiben keine `statKey`s und bleiben unverändert (siehe „Nicht in
+  dieser Welle“).
+- Tests: `weight` mit Datum (6 Tage: sicher, 7 Tage: wie neu); `pickAmong` mit festem Zufall; je Paket: eine als
+  „unsicher“ eingetragene Aufgabe kommt in 2000 Zügen deutlich öfter als im Mittel, die Regeln der Vorräte gelten
+  weiter (bestehende Tests grün).
+- Abnahme: `npm test` grün; fünf Runden Intervalle 4 und Tonleitern 5 im Browser ohne Auffälligkeiten.
+  Dieser Schritt ist von den anderen unabhängig; zeigt die Prüfung Nebenwirkungen in den Vorräten, wird er
+  zurückgenommen, ohne dass etwas anderes davon abhängt.
+
+#### Schritt 10 – QR-Code-Modul (`src/qr.js`)
+
+Eigener kleiner Encoder, keine Abhängigkeit, kein Netz, rein (ohne DOM); die Datei kommt in `PRECACHE` und läuft
+damit offline.
+
+- Umfang: QR-Code Modell 2, **Byte-Modus** (UTF-8), **Fehlerkorrektur M**, **Versionen 1 bis 10** (bis 213
+  Bytes). Die Links dieser Welle haben 55 Zeichen (`…/notenlernapp/#klasse=6`, Version 4) bis etwa 135 Zeichen
+  (eigener Zuschnitt für alle fünf Pakete, Version 8). Längerer Text → `null` (die Seite zeigt dann nur den
+  Link).
+- Schnittstelle: `qrMatrix(text)` → `{ version, size, mask, modules: boolean[][] }` oder `null`;
+  `qrSvg(text, { scale = 6, margin = 4 })` → SVG-Text (ein `<path>` für die dunklen Module auf heller Fläche,
+  Ruhezone 4 Module, `shape-rendering="crispEdges"`, `role="img"` mit `aria-label`). Farben über zwei eigene
+  Tokens `--qr-dark` und `--qr-light` auf `:root`, **in hell und dunkel gleich** (schwarz auf weiß; ein
+  umgekehrter Code ist für viele Scanner unlesbar).
+- Bausteine und feste Tabellen (im Code als Konstanten, mit Kommentar zur Herkunft ISO/IEC 18004):
+  - Datenbytes je Version bei M: 16, 28, 44, 64, 86, 108, 124, 154, 182, 216; Fehlerkorrektur-Bytes je Block:
+    10, 16, 26, 18, 24, 16, 18, 22, 22, 26; Blöcke: 1, 1, 1, 2, 2, 4, 4, 2 + 2 (38 und 39 Datenbytes), 3 + 2
+    (36 und 37), 4 + 1 (43 und 44). Nutzbare Bytes im Byte-Modus: 14, 26, 42, 62, 84, 106, 122, 152, 180, 213
+    (Modus 4 Bit, Länge 8 Bit bis Version 9, 16 Bit bei Version 10).
+  - Auffüllen: Abschluss 0000, auf volle Bytes, dann abwechselnd 236 und 17.
+  - Reed-Solomon über GF(256) mit dem Polynom 0x11D; Blöcke verschränkt (erst Daten, dann Fehlerkorrektur);
+    Restbits: Version 2 bis 6 je 7, sonst 0.
+  - Muster: drei Suchmuster mit Trennern, Taktlinien, dunkles Modul, Ausrichtungsmuster (Mitten: V2 6/18, V3
+    6/22, V4 6/26, V5 6/30, V6 6/34, V7 6/22/38, V8 6/24/42, V9 6/26/46, V10 6/28/50).
+  - Formatangabe: 15 Bit, BCH mit 0x537, Maske 0x5412; Versionsangabe ab Version 7: 18 Bit, BCH mit 0x1F25.
+  - Alle acht Masken, Wahl nach den vier Strafregeln.
+- **Tests (`test/qr.test.js`).** Verlässlich ableitbare Bezugswerte (am 25.11.2026 nachgerechnet):
+  - Formatangabe für M, Maske 0 bis 7: `101010000010010`, `101000100100101`, `101111001111100`,
+    `101101101001011`, `100010111111001`, `100000011001110`, `100111110010111`, `100101010100000`.
+  - Versionsangabe: V7 `000111110010010100`, V8 `001000010110111100`, V9 `001001101010011001`, V10
+    `001010010011010011`.
+  - Reed-Solomon: Daten `32 91 11 120 209 114 220 77 67 64 236 17 236 17 236 17` mit 10 Prüfbytes →
+    `196 35 39 119 235 215 231 226 93 23` (bekanntes Beispiel „HELLO WORLD“, Version 1-M).
+  - Kapazitäten: Texte mit 14/15, 26/27 … 213/214 Bytes ergeben Version n bzw. n + 1 (214 → `null`).
+  - Struktur für jede Version 1 bis 10: Größe 17 + 4 · Version; Suchmuster, Trenner, Taktlinien, dunkles Modul
+    und Ausrichtungsmuster an ihren Stellen; die gelesene Formatangabe ist eine der acht oben und passt zu `mask`.
+  - **Selbstprüfung durch Rücklesen** (statt fertiger Bezugsmatrizen: eine ganze Matrix lässt sich hier nicht
+    verlässlich von Hand ableiten, und eine Bibliothek darf nicht ins Projekt): Ein kleiner Leser nur im Test
+    (Format lesen, Maske abnehmen, Bytes im Zickzack lesen, Blöcke entschränken, Reed-Solomon-Syndrome müssen
+    0 sein, Byte-Modus auslesen) gibt für jeden Link dieser Welle (alle Jahrgänge, mit `zweig`, mit `dran`,
+    `keine`) und für Zufallstexte jeder Länge 1 bis 213 genau den Text zurück. Dazu ein Test mit Umlauten
+    (UTF-8).
+  - Ehrlich: Rücklesen mit eigenem Leser findet keinen Fehler, den Schreiber und Leser gemeinsam haben (z. B.
+    eine falsch verstandene Leserichtung). Deshalb zusätzlich, **außerhalb von `npm test`**: In der
+    Cloud-Umgebung den Code für drei Links als Bild rendern (Playwright) und mit einem unabhängigen Leser
+    prüfen (dort vorhanden: `cv2.QRCodeDetector` aus OpenCV); Ergebnis im Commit vermerken. Und Sandra scannt
+    vor dem Push einmal mit der Handykamera (Abschnitt 8).
+- Abnahme: `npm test` grün; die Gegenprobe mit dem unabhängigen Leser liest alle drei Links.
+
+#### Schritt 11 – Jahrgang: Tabelle, Link, Bestätigung, Öffnen
+
+- `src/klasse.js` (neu, rein): `JAHRGAENGE = [5 … 13]`; `DRAN` und `DRAN_MUG` nach der Tabelle in 4 (je Jahrgang
+  ein Objekt je Paket-ID; Quellen als Kommentar); `dranFor(jahrgang, zweig)`; `parseLink(hash, packs)` →
+  `{ jahrgang, zweig, dran }`, `{ keine: true }` oder `null` (streng: nur die Formen aus 4; unbekannter
+  Parameter, unbekanntes Paket, Zahl außerhalb 0 … Stufenzahl, doppelte Angabe, Jahrgang außerhalb 5 … 13 →
+  `null`); `buildLink(base, { jahrgang, zweig, dran }, packs)` (nennt nur Abweichungen von der Voreinstellung;
+  `parseLink(buildLink(x))` ergibt wieder x); `sameKlasse(a, b)`; `klasseText(k)` → „Jahrgang 6“ / „Jahrgang 6,
+  Musisches Gymnasium“ / „Jahrgang 6, eigene Auswahl“; `sections(state, packs)` → `{ jetzt, gewesen, hinaus }`
+  (Listen von Stufen-IDs nach 4, „Was die Einstellung ändert“); `nextUp(state, packs)` (erste nicht geschaffte
+  Stufe aus „Jetzt dran“ oder `null`).
+- `src/store.js`: `isUnlocked` zusätzlich wahr, wenn `level.no ≤ (s.klasse && s.klasse.dran[pack.id] || 0)`.
+  `setKlasse(s, k)` / `clearKlasse(s)` (einzige Stellen, die `klasse` schreiben).
+- `src/app.js`: beim Start und bei `hashchange` die Adresse lesen. `#klasse=…`: `parseLink`; `null` → Hinweis
+  „Der Link passt nicht zu dieser App-Version.“ (Leiste wie der Update-Hinweis, „Schließen“); gleich der
+  geltenden Einstellung → nichts; sonst Bestätigung in einem `<dialog id="klasseDialog">` (`showModal`, Fokus
+  auf dem ersten Knopf, Escape = „Nicht übernehmen“):
+  - Setzen: Überschrift „Einstellung deiner Lehrkraft übernehmen?“, darunter „Jahrgang 6“ (bzw. `klasseText`)
+    und „Alles bis dahin ist dann sofort offen. Dein Fortschritt bleibt, es schließt sich nichts.“; bei einer
+    bestehenden Einstellung zusätzlich „Bisher: Jahrgang 5.“ Knöpfe „Übernehmen“ und „Nicht übernehmen“.
+  - Entfernen: „Jahrgang entfernen?“, „Dein Fortschritt bleibt, es schließt sich nichts.“, Knöpfe „Entfernen“
+    und „Nicht entfernen“.
+  - Danach in jedem Fall `history.replaceState` ohne die Angabe; Startseite neu zeichnen.
+- `grade` aus allen fünf Paketen entfernen; Tests anpassen (`test/packs/intervalle.test.js` Zeile 32,
+  `tonleitern.test.js` Zeile 33, `notenwerte.test.js` Zeile 40); ARCHITEKTUR (Paket-Schnittstelle).
+- Tests (`test/klasse.test.js`, `test/store.test.js`): Tabelle je Jahrgang wie in 4 und **aufsteigend** (kein
+  Jahrgang hat weniger als der davor); `parseLink` für jede gültige Form und eine Liste ungültiger (leerer
+  Wert, `klasse=4`, `klasse=14`, `dran=noten:9`, `dran=foo:1`, `dran=noten:x`, zusätzlicher Parameter,
+  Großschreibung); Rundlauf `buildLink`/`parseLink`; `offenMitKlasse ⊇ offenOhneKlasse` für alle Jahrgänge und
+  mehrere Spielstände; Wechsel 7 → 5 → keine schließt keine gespielte oder nach der üblichen Regel offene
+  Stufe; `sections` (Jahrgang 5 ohne Fortschritt: alles aus „dran“ in „Jetzt dran“; Jahrgang 7 ohne
+  Fortschritt: „Jetzt dran“ = Dreiklänge 5 und 6, alles andere bis „dran“ in „Schon dran gewesen“; Jahrgang 9:
+  „Jetzt dran“ leer); ungültiger Link fasst den Spielstand nicht an; `reset` behält `klasse`.
+- Abnahme (Browser): `#klasse=6` fragt einmal, „Übernehmen“ öffnet Intervalle 3 und 4 sofort, Neuladen fragt
+  nicht wieder; `#klasse=keine` entfernt; `#klasse=99` zeigt den Hinweis; Dialog mit Tastatur bedienbar, bei
+  320 px ohne Überlauf.
+
+#### Schritt 12 – Lehrkraft-Seite mit Link und QR-Code, Abschnitte der Startseite
+
+- `src/views/lehrkraft.js` (neu), `index.html` (`<section id="view-lehrkraft" hidden>`), `app.js` (Ansicht
+  `lehrkraft`, erreichbar über `#lehrkraft` und `hashchange`; kein Eintrag in der unteren Leiste; „Zurück zur
+  App“ führt zur Startseite), `sw.js` (`PRECACHE`).
+- Inhalt (Anrede „Sie“):
+  - Überschrift „Für Lehrkräfte“, Einleitung: „Hier erzeugen Sie einen Link und einen QR-Code für Ihre Klasse.
+    Die Schülerinnen und Schüler öffnen den Link oder scannen den Code und bestätigen einmal. Der Link enthält
+    nur den Jahrgang und die Auswahl der Stufen – keine Namen, keine Ergebnisse. Nichts verlässt das Gerät.
+    Auf diesem Gerät ändert sich durch diese Seite nichts.“
+  - „Jahrgang“: Auswahl 5 bis 13; Kästchen „Musisches Gymnasium“.
+  - „Was ist dran?“: je Paket eine Auswahl „bis Stufe …“ (0 = „noch nichts“, sonst Nummer und Titel der Stufe),
+    vorbelegt aus der Tabelle; Knopf „Voreinstellung für Jahrgang 6“. Darunter klein: „Voreinstellung nach dem
+    LehrplanPLUS (Gymnasium Bayern, Musik). Alles Frühere bleibt offen, nichts wird gesperrt.“
+  - „Link für die Klasse“: der Link als Text (nur lesbar, markierbar), „Link kopieren“ (Rückmeldung „Kopiert“),
+    der QR-Code (`qrSvg`), „QR-Code groß zeigen“ (füllt die Breite, für Beamer und Tafel; `Esc` bzw. „Schließen“).
+  - „Jahrgang wieder entfernen“: Link `#klasse=keine` mit eigenem, kleinerem QR-Code.
+  - Basis des Links: `location.origin + location.pathname`.
+- Reine Teile für Tests: `linkFor(base, form, packs)`, `optionsFor(pack)`.
+- `views/home.js`: mit gesetztem Jahrgang drei Abschnitte aus `klasse.sections`: „Jetzt dran“ (Stufenkarten
+  mit dem Paketnamen in der Unterzeile), „Schon dran gewesen“ (je Paket ein Abschnitt wie heute), „Darüber
+  hinaus“ (`<details>`, zugeklappt, je Paket). Ist „Jetzt dran“ leer: Satz „In Jahrgang 9 kommt nichts Neues
+  dazu. Alles hier ist zum Wiederholen da.“ Über den Abschnitten klein „Jahrgang 6 · über den Link deiner
+  Lehrkraft“. Ohne Jahrgang bleibt die Startseite wie nach Schritt 8. „Weiter üben“ nimmt `klasse.nextUp`,
+  sonst wie bisher.
+- `views/stats.js`: am Ende „Jahrgang 6 (über den Link deiner Lehrkraft)“ bzw. nichts; Textlink „Für
+  Lehrkräfte“ (`href="#lehrkraft"`).
+- Tests: `test/views/lehrkraft.test.js` (Link je Auswahl, nur Abweichungen im Link, MuG), reine Teile der
+  Startseite (`homeSections`-Texte), `test/sw.test.js` (neue Dateien in `PRECACHE`).
+- Abnahme: Seite bei 320 und 420 px ohne Überlauf, QR-Code scharf und mit Ruhezone, im dunklen Modus schwarz
+  auf weiß; der gescannte Link öffnet die App mit der Bestätigung; offline (Netz aus, nach erstem Laden)
+  erscheint der QR-Code weiter.
+
+#### Schritt 13 – Doku, Cache, Bildschirmfotos, Überlauf, Lauf über 40 Tage
+
+- Doku: `docs/ARCHITEKTUR.md` (neue Module `repeat.js`, `klasse.js`, `qr.js`, `views/lehrkraft.js`; Engine:
+  gemischte Runde, `cur(r)`, `ui.origin`, Protokoll; Paket-Schnittstelle: `needs`, `stepNeeds`, `skill`,
+  `guess`, `tab`, ohne `grade`; Fortschritt: `rep`, `klasse`, `basics`, Marker, örtliches Datum; Ansichten:
+  Reiter in „Lernen“, Karte „Heute“, Adress-Angaben `#lehrkraft` und `#klasse=…`), `docs/KONZEPT.md`
+  (Wiederholen ist der Kern, Jahrgang), `README.md` (Pakete in neuer Reihenfolge, „Für Lehrkräfte“ mit der
+  Adresse, Datenschutz-Satz zum Link), `CLAUDE.md` (Stand Welle 11, feste Entscheidungen vom 24./25.11.2026),
+  dieser Abschnitt um „Umgesetzt“ ergänzt (Commits je Schritt, Entscheidungen der Prüfer).
+- `sw.js`: Cache **`notenheld-v0.2.0-14`**; `PRECACHE` mit `src/repeat.js`, `src/klasse.js`, `src/qr.js`,
+  `src/views/lehrkraft.js` (`test/sw.test.js` prüft die Vollständigkeit).
+- **Neues Skript `docs/screens/pruefung.mjs`** (Bildschirmfotos für die Prüfung aus drei Perspektiven; Playwright
+  wie in `screenshots.mjs`, keine Abhängigkeit der App): 420 px hell und 320 px dunkel, ganze Seite, feste Uhr
+  (`page.clock.setFixedTime`), vorbereitete Spielstände über `addInitScript`; Ausgabe nach `OUT` (Vorgabe
+  `/tmp/notenheld-pruefung-w11/`, nicht im Repo). Aufnahmen: Startseite (leer; mit Karte „Heute“ fällig; nichts
+  fällig; mit Jahrgang 5, 7 und 9), jede Startkarte mit „Dafür brauchst du“ (mindestens Intervalle 3,
+  Tonleitern 12, Dreiklänge 1, Notenwerte 6; mit und ohne Empfehlung), Runde „Wiederholen“ (Aufgabe je
+  Eingabeart, nach „daneben“, Ergebniskarte mit „sitzt“ und „noch wacklig“), Runde „Grundlagen wiederholen“
+  (Aufgabe, Ergebniskarte), Ergebniskarte mit Fehlermuster, „Lernen“ je Reiter und Schlüssel, Notenwerte 4 bis
+  7 (Frage, Rückmeldung richtig und daneben, Vorführung „So bestimmst du die Dauer“ alle Bilder, Lerntafel),
+  Intervalle 3 mit offener Vorführung (ein Knopf), Seite „Für Lehrkräfte“ (Voreinstellung, eigene Auswahl,
+  QR-Code groß), Bestätigung des Links (setzen, ändern, entfernen, ungültig), Statistik mit Fächern und
+  Jahrgang.
+- **`docs/screens/ueberlauf.mjs` erweitert** auf alle neuen Ansichten: Startseite in den Zuständen oben,
+  Startkarten mit Voraussetzungen, eine ganze Runde „Wiederholen“ und „Grundlagen wiederholen“ (jede Aufgabe,
+  richtig und daneben im Wechsel), deren Ergebniskarten, „Lernen“ je Reiter, Seite „Für Lehrkräfte“ (auch „groß
+  zeigen“), der Dialog, Statistik mit Fächern; dazu die Zählung sichtbarer „Nächste Aufgabe“-Knöpfe aus
+  Schritt 0. Ziel: 0 Treffer bei 320 und 420 px.
+- **Lauf über 40 Tage im Browser** (`docs/screens/uhr40.mjs`, `page.clock`): Tag 0 drei Stufen mit 9 von 10
+  spielen; Uhr tageweise vorstellen; an jedem Tag prüfen, was die Karte „Heute“ zeigt, fällige Runden spielen
+  (richtig), einmal bewusst daneben, Ferienpause Tag 12 bis 26; am Ende die Fächer in der Statistik mit der
+  Erwartung aus `test/repeat.sim.test.js` vergleichen; zu keinem Zeitpunkt ist eine zuvor offene Stufe zu
+  (Leitsatz 3). Ende mit Code 1 bei Abweichung. Der reine Lauf aus Schritt 4 bleibt Teil von `npm test`.
+- `docs/screens/screenshots.mjs` läuft weiter (README-Bilder neu, Stand mit Jahrgang und Karte „Heute“).
+
+**Spielstände.** Kein Wechsel des Schlüssels (`notenheld.v2`). Neu: `rep`, `klasse`, `basics` und der Marker
+`"wiederholen"`. Stufen-IDs, `statKey`s, Sterne und Freischaltung bleiben; die Einstellung `klasse` öffnet nur.
+Test: alter Stand (ohne die neuen Felder, mit den drei alten Markern) lädt, bekommt einmal die Umstellung und
+wird danach nicht mehr neu gespeichert.
+
+**Reihenfolge und Prüfung.**
+- Schritte 0 bis 13 nacheinander auf `wiederholen-11`. Abhängigkeiten: 5 braucht 3 und 4; 6 braucht 4; 7
+  braucht 5 und 6; 8 braucht 6; 11 braucht 4; 12 braucht 8, 10 und 11. Die Schritte 0 bis 3 (Sandras Wünsche
+  und die Reihenfolge) stehen bewusst am Anfang und sind für sich abgeschlossen.
+- **Abschluss:** Prüfung aus drei Perspektiven (drei getrennte Prüfer: Lehrkraft, Jugendliche, Wissenschaft)
+  mit den Bildschirmfotos aus Schritt 13 und dem Code; je Abschnitt die vier Fragen (inhaltlich richtig,
+  übersichtlich, anschaulich, ansprechend). Danach Korrektur (Opus) und Nachprüfung (Fable). Erst dann Sandra
+  fragen, ob gepusht wird.
+
+**Nicht in dieser Welle.**
+- `statKey`s und gewichtete Auswahl für „Notenwerte und Pausen“ und „Dreiklänge“ (bräuchten lesbare Schlüssel
+  für „Schwache Stellen“).
+- Feinere Fehlermuster aus der gewählten Antwort („immer einen Halbton zu viel“).
+- Dominantseptakkord und das Paket „Dreiklänge Schritt für Schritt“ (Vorgabe im nächsten Abschnitt).
+- Export/Import des Spielstands, Klassenübersicht für die Lehrkraft (bräuchte einen Server).
+
+### 7. Entscheidungen zu den offenen Fragen
+
+Sandras Antworten (24.11.2026):
+- Abstände und Rundenlängen: 1 · 3 · 7 · 14 · 30 Tage, 10 bzw. 6 Aufgaben – so beginnen.
+- Platz der Wiederholung: ganz oben auf der Startseite.
+- Tagesserie und Erfahrungspunkte: Die Wiederholungsrunde zählt wie eine normale Runde.
+- Kanten: „Intervalle“ kommt vor „Tonleitern“; die Tabelle in 1 ist danach an den Vorräten nachgeprüft.
+- Jahrgänge: 5 bis 13, Zuordnung nach dem LehrplanPLUS (Tabelle in 4 mit Quellen).
+- Jahrgang ändern: nur über den Lehrkraft-Link.
+- Link und QR-Code: beides.
+- Mit gesetztem Jahrgang sind auch die Stufen innerhalb von „Jetzt dran“ sofort offen.
+- Name der Runde: „Wiederholen“.
+
+Vom Feinplan entschieden (Fable, 25.11.2026; jeweils als Konstante gebaut):
+- Urteil „sitzt“: höchstens ⌊n / 5⌋ Fehler bei n Aufgaben der Stufe; höchstens drei Stufen je Runde, damit je
+  Stufe mindestens drei Aufgaben das Urteil tragen.
+- Stufen mit nur zwei Knöpfen (Raten): mindestens vier Aufgaben in der Runde.
+- Fehlermuster: ab drei Fehlern desselben Schritts in einer normalen Runde; in gemischten Runden keine Muster.
+- Erfahrungspunkte: „Wiederholen“ wie eine normale Runde (10 je Richtige und der Sterne-Bonus), „Grundlagen
+  wiederholen“ 10 je Richtige ohne Bonus; beide zählen für die Tagesserie; keine der beiden trägt Sterne ein.
+- Lehrkraft-Seite über `#lehrkraft`; sie setzt nichts auf dem eigenen Gerät. Entfernen des Jahrgangs nur über
+  den Link `#klasse=keine`.
+- `klasse.dran` wird beim Übernehmen fest eingetragen.
+- Keine Kante auf ein späteres Paket (Intervalle 3/4, Schritt 2, verweist nicht mehr auf `tonleitern-3`).
+
+### 8. Offen für Sandra (Welle 11)
+
+Gebaut wird jeweils die genannte Voreinstellung.
+1. **W1 Wortlaut:** „Wie viele Schläge dauert diese Note? (1 Schlag = 1 Viertelnote)“, Rückmeldung „Richtig!
+   Achtelnote = ½ Schlag“, in den Stufen 1–3 „(dauert ½ Schlag)“, Titel „Dauer in Schlägen“ – so recht?
+2. **W2:** Bei offener Vorführung bleibt der Knopf am Ende der Vorführung, der unter den Antworten verschwindet
+   (sonst umgekehrt). Oder soll immer nur der Knopf unter den Antworten stehen?
+3. **W3 Reiter:** Tonhöhen · Notenwerte · Takt · Intervalle · Tonleitern · Dreiklänge. „Takt“ enthält „So
+   zählst du einen Takt“ und „Balken“; der Quintenzirkel steht unter „Tonleitern“ (Tafel mit Merksprüchen) und
+   unter „Dreiklänge“ (Ring). Eigener Reiter „Quintenzirkel“ gewünscht? Schlüsselwahl in „Notenwerte“ und
+   „Takt“ ausgeblendet – recht?
+4. **Lehrplan, nicht wörtlich belegt** (Tabelle in 4): Punktierung und „Takt füllen“ in Jahrgang 5
+   (Notenwerte 6–10); Tonart aus den Vorzeichen bis 7 Vorzeichen und parallele Molltonart in Jahrgang 6
+   (Tonleitern 10–13); Dreiklänge 2 (vermindert, übermäßig) in Jahrgang 6 und 5 (Quintenzirkel) in Jahrgang 7,
+   weil die Angabe „bis Stufe n“ sie mitzieht; Dreiklänge in Jahrgang 5 gar nicht (Stufe 1 fragt Dur oder
+   Moll).
+5. **Verminderte und übermäßige Intervalle** (Intervalle 5–10): laut Lehrplan nur am Musischen Gymnasium
+   (Jahrgang 6). Am übrigen Gymnasium in keinem Jahrgang „dran“, sondern „Darüber hinaus“ – oder ab einem
+   bestimmten Jahrgang für alle?
+6. **Musisches Gymnasium** als eigene Voreinstellung (Kästchen auf der Lehrkraft-Seite, `zweig=mug`) – gewünscht?
+7. **Halbtöne vor Intervalle 3?** Seit „Intervalle“ vor „Tonleitern“ steht, kommen „Ganz- und Halbtonschritte“
+   (Tonleitern 1–3) erst nach „rein, klein, groß“. Intervalle 3 erklärt das Zählen der Halbtöne selbst mit
+   Klaviatur. So lassen, oder die drei Stufen später vorziehen (eigene Welle)?
+8. **Lehrkraft-Seite:** erreichbar über die Adresse `…/#lehrkraft` und einen unauffälligen Textlink am Ende der
+   Statistik – oder nur über die Adresse? Anrede dort „Sie“ – recht?
+9. **Schutz:** Der Link ist kein Schloss. Wer die Lehrkraft-Seite findet, kann sich selbst einen Link bauen.
+   Mehr geht ohne Server nicht. In Ordnung?
+10. **Namen der Abschnitte** mit Jahrgang: „Jetzt dran“ · „Schon dran gewesen“ · „Darüber hinaus“ (statt
+    „Wiederholen“ und „Später“, weil „Wiederholen“ jetzt die Runde heißt und „Später“ in Jahrgang 13 nicht
+    passt).
+11. **Startseite:** Die große Trefferquote oben entfällt (steht in der Statistik). Recht?
+12. **Wiederholungsrunde:** höchstens drei Stufen (4 + 3 + 3 Aufgaben), „sitzt“ nur ohne Fehler bei 3 oder 4
+    Aufgaben. Nach dem Test mit Kindern nachstellen?
+13. **Nach dem Update:** Schon geschaffte Stufen kommen in Fach 1, je Tag drei, beginnend am ersten Tag.
+14. **QR-Code:** Bitte vor dem Push einmal mit der Handykamera scannen (Tafel/Beamer und Bildschirm).
+15. **Dominantseptakkord** (nächster Abschnitt): die markierten Punkte.
+
+## Vorgabe für das Paket „Dreiklänge Schritt für Schritt“ (nach Welle 11): bis zum Dominantseptakkord
+
+Sandra, 25.11.2026 (W4): Das neue Paket „Dreiklänge Schritt für Schritt“ (nach Welle 11 und „Noten lesen“) führt
+**bis zum Dominantseptakkord**. In Welle 11 wird davon nichts gebaut; dieser Abschnitt ist die Vorgabe für den
+Feinplan des Pakets. Er ergänzt die Vorgaben vom 20.11.2026 (KONZEPT-gehirngerecht: Terzen schichten;
+Umkehrungen vor „Grundton bestimmen“).
+
+**Lehrplan** (LehrplanPLUS Gymnasium Bayern, Musik 7, Lernbereich 4,
+<https://www.lehrplanplus.bayern.de/fachlehrplan/gymnasium/7/musik>, abgerufen am 25.11.2026):
+Kompetenzerwartung für alle: „beschreiben das Verhältnis von Haupt- und Nebenstufen und verwenden sie, ebenso wie
+den Dominantseptakkord, bei der Liedbegleitung auf der Grundlage von Akkordsymbolen.“ Inhalte: „Aspekte der
+Harmonik: Einfache Kadenz, Haupt- und Nebenstufen“; nur Musisches Gymnasium: „(MuG) Dominantseptakkord und seine
+Umkehrungen“. Zuvor Jahrgang 5 „Dur-Dreiklang (Grundform)“, Jahrgang 6 „Tonleitern und Dreiklänge in Dur und
+Moll; Dreiklangsumkehrung“.
+
+**Was gelehrt wird** (Anforderung; Stufenfolge wie überall: neuer Inhalt mit Hilfen, die nächste Stufe festigt
+ohne Hilfen):
+1. Dreiklang als zwei geschichtete Terzen; Dur und Moll, dann vermindert und übermäßig (heute `akkorde-1`, `-2`).
+2. Umkehrungen (Grundstellung, Sextakkord, Quartsextakkord), **danach** „Grundton bestimmen“ aus gemischten
+   Stellungen (Vorgabe 20.11.).
+3. Stufendreiklänge in Dur, Haupt- und Nebenstufen (heute `akkorde-6`).
+4. **Dominantseptakkord:** der Dur-Dreiklang auf der V. Stufe mit einer weiteren Terz darüber – vier Töne,
+   die Septime über dem Grundton ist klein. Beispiel C-Dur: g–h–d–f, Akkordsymbol G7.
+   - Erkennen: Vierklang aus drei Terzen; Unterscheidung vom Dreiklang.
+   - Bestimmen: Grundton nennen; zu welcher Dur-Tonart gehört er als Dominante (Grundton = V. Stufe)?
+   - Bauen: Dominantseptakkord einer gegebenen Dur-Tonart notieren bzw. den fehlenden Ton ergänzen.
+   - Akkordsymbol lesen (G7, D7 …), passend zur Kompetenzerwartung „auf der Grundlage von Akkordsymbolen“.
+
+**Einordnung in das Zwei-Schritte-Schema** (violett = Schritt 1, grün = Schritt 2; wie in den anderen Paketen):
+- Schritt 1 (violett) „Terzen schichten“: die Töne so ordnen, dass sie im Terzabstand übereinanderstehen; der
+  unterste Ton der Schichtung ist der Grundton (dasselbe Verfahren wie bei den Dreiklangs-Umkehrungen).
+- Schritt 2 (grün) „Terzen bestimmen“: große Terz – kleine Terz – kleine Terz → Dominantseptakkord (Dur-Dreiklang
+  mit kleiner Septime).
+- Hilfen: Klaviatur mit den vier Tönen, Terz-Tabelle; Vorführung „So baust du einen Dominantseptakkord“ Terz für
+  Terz, am Ende mit Klang.
+- Voraussetzungen (Kanten): `intervall-4` (große und kleine Terz, kleine Septime), die Stufen „Dreiklangstypen“
+  und „Stufendreiklänge“ des neuen Pakets, `tonleitern-9` (Tonleiter mit Vorzeichen).
+
+**Fachlich von Sandra zu prüfen, bevor der Feinplan entsteht** [OFFEN Sandra] – hier bewusst nichts festgelegt:
+- Nur in Dur oder auch in Moll (Dominante mit erhöhtem Leitton)?
+- Welche Tonarten (wie bei den Stufenakkorden bis 4 Vorzeichen)?
+- Umkehrungen des Dominantseptakkords (Quintsextakkord, Terzquartakkord, Sekundakkord): laut Lehrplan nur MuG –
+  als eigene Stufen für die MuG-Voreinstellung, oder weglassen?
+- Auflösung in die Tonika (Leitton aufwärts, Septime abwärts) und die verminderte Quinte zwischen Terz und
+  Septime: gehört das in dieses Paket, in die „einfache Kadenz“ oder in die Hörstufen?
+- Schreibweise der Akkordsymbole (G7; in B-Tonarten z. B. B7 für den Akkord auf B – deutsche oder
+  internationale Buchstaben?).
+- Zuordnung zum Jahrgang in der Tabelle der Lehrkraft-Einstellung (Voreinstellung: Jahrgang 7).
+
 
 ## Später (nicht geplant, nur notiert)
 
 - Altschlüssel für Bratsche als Stufen in „Noten lesen“.
 - Gehörbildung: Note hören und auf der Zeile setzen.
 - Export und Import des Fortschritts als Datei.
-- Lehrkraft-Modus mit Klassen-Code (bräuchte einen Server, bewusst
-  zurückgestellt).
+- Lehrkraft-Modus mit Klassen-Code und Klassenübersicht (bräuchte einen Server, bewusst
+  zurückgestellt; den Jahrgang setzt seit Welle 11 der Lehrkraft-Link ohne Server).
 
 ---
 
