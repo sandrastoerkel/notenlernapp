@@ -27,4 +27,7 @@
 - 2026-11-26 (Sandra: ja) | Regel: Jede Zusage an Lernende oder Lehrkräfte in UI-Texten und Doku (z. B. „nichts wird gesperrt“, „nichts verlässt das Gerät“) bekommt einen Test, der sie über alle Zustandsübergänge prüft; Prüfer gleichen solche Sätze ausdrücklich mit dem Code ab.
   Ort: CLAUDE.md, Abschnitt „Regeln“
   Grund: Lehre mit Zähler 2 – Schritt 13a (Schutz des Links zu stark beschrieben) und W-A1 (Dialog versprach „es schließt sich nichts“, 20–36 Stufen schlossen sich; Schritt-11-Test prüfte nur gespielte Stufen).
+- 2026-11-27 (von Sandra an Fable übertragen: ja) | Regel: Prüf- und Fotoskripte leiten Stufen, Eingabearten und Startkarten aus den Listen im Code ab (`PACKS`), nie von Hand aufgezählt; Probe-Spielstände entstehen aus `fresh()`, Stufen „früherer Bedeutung“ kommen über `RENAMED_*`; das Skript prüft die Eigenschaft, wegen der es die Stufe braucht, bricht sonst ab und gibt aus, welche Stufe wirklich offen ist.
+  Ort: CLAUDE.md, Abschnitt „Regeln“
+  Grund: Zwei Lehren mit Zähler 2, zu einer Regel zusammengefasst – (1) Welle 11, Schritt 13b (Eingabeart Klaviatur fehlte still in der Prüfung) und Welle 12, Schritt 6 (Skripte auf die neuen Stufen-IDs); (2) Welle 12, Korrektur LOGIK und Nachprüfung (Probe-Spielstand ohne Marker wurde beim Laden umgestellt, das Skript zeigte Stufe 6 statt Stufe 4).
 

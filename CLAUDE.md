@@ -38,6 +38,7 @@ Statische Web-App: HTML, CSS, JavaScript, keine Abhängigkeiten, kein Build.
 - Farben nur über die Tokens auf `:root` (hell und dunkel).
 - Vor jedem Commit: `npm test` (sobald vorhanden) und die App im Browser prüfen. Nach Änderungen an Aussehen oder Texten zusätzlich `node docs/screens/ueberlauf.mjs` (bei laufendem Server; findet bei 320 px und 420 px alles, was über seinen Rahmen hinausragt, Überlappungen innerhalb einer Zeile und einen doppelten Knopf „Nächste Aufgabe“; Selbsttest vorab, `--selftest` führt nur ihn aus; etwa 12 Minuten). Weitere Browser-Skripte in `docs/screens/`: `uhr40.mjs` (40 Tage mit gestellter Uhr, nach Änderungen am Wiederholen), `pruefung.mjs` (Bildschirmfotos aller Ansichten für Prüfungen nach `/tmp/notenheld-pruefung-w12/`), `screenshots.mjs` (README-Bilder); gemeinsame Bausteine in `spiel.mjs`. Die Spielstände dieser Skripte haben erfundene Zahlen (nur zur Darstellung).
 - Zusagen an Lernende und Lehrkräfte in App-Texten und Doku (z. B. „es schließt sich nichts“, „nichts verlässt das Gerät“, „der Link enthält nur …“) nie stärker formulieren, als der Code hält. Jede solche Zusage hat einen Test, der sie über alle Zustandswechsel prüft (nicht nur über Beispielpfade); Prüfer gleichen solche Sätze ausdrücklich mit dem Code ab. (Sandra, 26.11.2026, aus LESSONS.md)
+- Prüf- und Fotoskripte (`docs/screens/*.mjs`, auch einmalige Prüfskripte) leiten Stufen, Eingabearten und Startkarten aus den Listen im Code ab (`PACKS`), nie von Hand aufgezählt. Probe-Spielstände entstehen aus `fresh()` (trägt alle Marker in `migrated`); Stufen „früherer Bedeutung“ kommen über `RENAMED_*`, nicht als neu hingeschriebene ID. Das Skript prüft die Eigenschaft, wegen der es eine Stufe braucht (mit/ohne Hilfen, im Kasten, Namensraster), bricht ab, wenn sie nicht stimmt, und gibt aus, welche Stufe wirklich offen ist. (27.11.2026, von Sandra an Fable übertragen, aus LESSONS.md)
 - Rechner: MacBook M4. Lokaler Server: `python3 -m http.server 8080`.
 
 ## Feste Entscheidungen (Sandra, November 2026)
@@ -81,6 +82,7 @@ Statische Web-App: HTML, CSS, JavaScript, keine Abhängigkeiten, kein Build.
   5. Tonumfang bleibt c' bis a'' (Violinschlüssel) und E bis c' (Bassschlüssel).
   6. Karteikasten beim Update: nur das Paar Linien + Zwischenräume eines Schlüssels wandert (in Stufe 3 bzw. 8), ein einzelner Eintrag entfällt.
   7. 15 Stufen.
+- Entscheidungen vom 27.11.2026 (Welle 12, nach der Prüfung, PLAN Welle 12 Abschnitt 14; von Sandra an Fable übertragen): alle sechs Punkte wie gebaut – Schritt 2 nennt das Ergebnis von Schritt 1; Merkwort in Anführungszeichen („Es“ → E); „G (großes G)“ bleibt (einheitliche Form später mit der Erklärzeile zur Oktave); „Stufe n mit Hilfen üben“ nach schwacher Runde in allen Paketen; der Knopf darf eine nach der Umstellung noch geschlossene Stufe mit Hilfen öffnen, sie bleibt offen; Namensraster in Stufe 11 und 13 erst in Schritt 2.
 - Abgrenzung: Ohrwurmfänger (privates Repo `ohrwurmfaenger`) ist eine eigene App mit anderem Ansatz (Klang zuerst). Code und Texte nicht vermischen.
 
 ## Arbeitsweise

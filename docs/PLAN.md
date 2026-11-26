@@ -4596,10 +4596,10 @@ unten) hat den Stand der LOGIK-Punkte eingetragen.
 | Befund | Inhalt | Zweig | Stand |
 |---|---|---|---|
 | L-B1 = W-B1 | Fehlermuster der Stufen 4 und 9 am falschen Schritt | TEXT | erledigt (78837c6): `stepNeeds` `[["noten-3"], []]` bzw. `[["noten-8"], []]`; Abschnitt 7 und 8 nachgezogen; Test mit dem Satz „Der erste Schritt (Linien und Zwischenräume im Violinschlüssel) hat oft nicht geklappt. Das übst du in Noten lesen, Stufe 3.“; nur Weiterzählen daneben → kein Muster |
-| L-B2 (= W-C4) | „Es → E“ / „Eis → E“ in Beschriftung und Vorführung | TEXT | erledigt (f348368, Voreinstellung des Koordinators, Sandra kann anders entscheiden): Merkwort in Anführungszeichen, „Es“ → E, in der Beschriftung der Auflösung und im Ergebnis der Vorführung „So liest du eine Note“ (auch Lerntafel). Merkleiste unverändert (Wort allein in seiner Zeile, ohne Pfeil, fetter Anfangsbuchstabe); die Rückmeldung nennt den ganzen Spruch. `WORT_MAX` 12 → 11 (gemessen, sonst ragte ein Wort aus zwölf breiten Buchstaben über die Zeile) |
+| L-B2 (= W-C4) | „Es → E“ / „Eis → E“ in Beschriftung und Vorführung | TEXT | erledigt (f348368, entschieden 27.11.2026: bleibt): Merkwort in Anführungszeichen, „Es“ → E, in der Beschriftung der Auflösung und im Ergebnis der Vorführung „So liest du eine Note“ (auch Lerntafel). Merkleiste unverändert (Wort allein in seiner Zeile, ohne Pfeil, fetter Anfangsbuchstabe); die Rückmeldung nennt den ganzen Spruch. `WORT_MAX` 12 → 11 (gemessen, sonst ragte ein Wort aus zwölf breiten Buchstaben über die Zeile) |
 | J-B1 | „Nächste Aufgabe“ bei 320 × 640 unter dem Rand (Stufen 11–15) | LOGIK | erledigt (c016166): `revealNext` in `engine.js` rollt `#pNext` („Nächste Aufgabe“ und „Weiter zu Schritt 2“) ins Bild, sobald er erscheint und nicht ganz zu sehen ist (`block: "nearest"`, `scroll-margin-bottom` 72 px über dem unteren Menü, ohne Bewegung bei „Bewegung reduzieren“); der Fokus bleibt. Nachgemessen 320 × 640 dunkel: Stufe 11 Schritt 2 Knopf 523–568 (Menü ab 580), mit Klaviatur 386–431, Stufe 12 nach „daneben“ 522–568 |
 | J-B2 | Doppeltipp beantwortet den nächsten Schritt | LOGIK | erledigt (fbf4d6b, Skripte 92483ad): nach jedem Weitergehen von Hand (`resume`: Knopf, Enter, Leertaste, Knopf am Ende der Vorführung, Zuklappen der Hilfen) zählt `SWITCH_GUARD` = 380 ms lang keine Antwort (Knopf, Klaviatur, Tastatur). Nach „richtig“ mit selbsttätigem Weiterlaufen gibt es keine Sperre – zügiges Spielen bleibt, wie es war. Nachgemessen (Touch, 80 / 250 / 360 ms, Eingabe „Namen“ und „Klaviatur“): kein Schritt und keine neue Aufgabe wird ungesehen beantwortet |
-| J-B3 | Schritt 2 nennt das Ergebnis von Schritt 1 nicht | TEXT | erledigt (a18c2a9): „4. Linie – wie heißt die Note?“ (1, 2, 6, 7), „Zähle vom F weiter: Wie heißt die Note?“ (4, 9, Bezugston der Aufgabe), „Stammton C – und mit dem Vorzeichen?“ (11, 13); nie die Antwort von Schritt 2 (Test unverändert grün). J fragt Sandra, ob das so sein soll (Voreinstellung des Koordinators: ja) |
+| J-B3 | Schritt 2 nennt das Ergebnis von Schritt 1 nicht | TEXT | erledigt (a18c2a9): „4. Linie – wie heißt die Note?“ (1, 2, 6, 7), „Zähle vom F weiter: Wie heißt die Note?“ (4, 9, Bezugston der Aufgabe), „Stammton C – und mit dem Vorzeichen?“ (11, 13); nie die Antwort von Schritt 2 (Test unverändert grün). Entschieden 27.11.2026: bleibt |
 | J-B4 | Startkarte „Noten lesen 11“ ohne Knopf im ersten Bildschirm | TEXT | erledigt (0f767a3), siehe unten |
 | W-B2 | Zeit zweischrittiger Aufgaben färbt die Notenkarte „langsam“ | LOGIK | erledigt (13c26d8): Aufgaben mit `q.steps` tragen keine Zeit ein (`countAnswer(…, q.steps ? undefined : sec)`), richtig/daneben zählt weiter; gilt für alle Pakete (ohne Zeit entscheidet die Trefferquote, `adapt.js`). Test „Zeit je Note …“ |
 | W-B3 | Ergebniskarte ohne Rückweg zur Stufe mit Hilfen | LOGIK | erledigt (88bdcb8, Nachprüfung f0ebde1): `helpOffer` – Stufe ohne Hilfen unter 8 Richtigen (`HELP_BELOW`), Stufe direkt davor mit Hilfen → „Stufe 11 mit Hilfen üben“ als Hauptknopf; Knöpfe und Reihenfolge in `resultActions`, höchstens drei. Gilt in allen Paketen (20 Stufen: Noten lesen 3, 5, 8, 10, 12, 14; Notenwerte 3, 5, 7, 9; Intervalle 2, 4, 6, 9; Tonleitern 3, 5, 7, 9, 11, 13) |
@@ -4621,7 +4621,7 @@ dafür müssten noch zwei Zeilen weg, dann fehlte ein Beispiel; wie bei Stufe 4 
   länger wird (gemessen: 116 px wie vorher; „Nimm die nächstgelegene Linie als Bezugston …“ hätte 139 px).
 - Offener Punkt 3 (alte Lehrkraft-Links): ein Satz im README, Abschnitt „Für Lehrkräfte“ (ac4024e).
 - Offener Punkt 2 („G (großes G)“): bleibt so (Voreinstellung des Koordinators; L rät zu „großes G“, J und W
-  raten, es in dieser Welle zu lassen). Sandra kann anders entscheiden.
+  raten, es in dieser Welle zu lassen). Entschieden 27.11.2026: bleibt.
 
 **C – für später gesammelt** (nicht gebaut; Kürzel nach Bericht):
 - L-C3 Hinweis Stufe 13 und 14: „… dasselbe wie im Violinschlüssel“.
@@ -4678,6 +4678,8 @@ Touch) nachgesehen:
 **Fragen an Sandra aus den Berichten:** J 1 (darf Schritt 2 das Ergebnis von Schritt 1 nennen? – gebaut: ja),
 J 2 (Namensraster schon in Schritt 1, = J-C6), J 3 (Erklärzeile zur Oktave und eine Form, = J-C4). Aus der
 Nachprüfung: Darf „Stufe n mit Hilfen üben“ eine Stufe öffnen, die nach der Umstellung noch zu ist? (gebaut: ja)
+
+**Entschieden (27.11.2026, von Sandra an Fable übertragen):** alle sechs Punkte wie gebaut – Schritt 2 nennt das Ergebnis von Schritt 1; Merkwort in Anführungszeichen; „G (großes G)“ bleibt (einheitliche Form später zusammen mit der Erklärzeile zur Oktave, J-C4); „Stufe n mit Hilfen üben“ in allen Paketen; der Knopf darf eine noch geschlossene Stufe mit Hilfen öffnen, sie bleibt offen; Namensraster in Stufe 11 und 13 erst in Schritt 2 (J-C6 beim Kindertest ansehen). Dazu Regel „Prüf- und Fotoskripte aus den Listen im Code“ in CLAUDE.md übernommen. Beim Kindertest ansehen: wird „Es“ als Wort gelesen; stört der Sprung des Antwortbereichs in Stufe 11/13.
 
 ## Vorgaben für die nächsten Wellen (Sandra, 26.11.2026)
 
