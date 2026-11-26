@@ -124,7 +124,8 @@ export function render(arg) {
   if (arg && arg.mode === "wiederholen") return startReview();
   const { pack, level } = current();
   $("#pLevelNo").textContent = "Stufe " + level.no;
-  $("#pLevelTitle").textContent = level.title;
+  // „Vorzeichen ♯ und ♭“: das Zeichen nicht allein in der Zeile (J-C3)
+  $("#pLevelTitle").textContent = engine.keepTogether(level.title);
   $("#pHint").textContent = startHint(level, { state: ctx.state });
   $("#pIntro").hidden = false; $("#pPlay").hidden = true; $("#pResult").hidden = true;
   $("#pStaff").innerHTML = level.example || "";
@@ -287,10 +288,11 @@ export const open = (arg) => ctx.show("practice", arg);
 
 export const MIXED_HEAD = { wiederholen: "Wiederholen", grundlagen: "Grundlagen wiederholen" };
 
-// Ergebniszeile je Stufe der gemischten Runde (rein, getestet): „Intervalle 2 · 3 von 3“
+// Ergebniszeile je Stufe der gemischten Runde (rein, getestet): „Intervalle 2 · 3 von 3“; Kurzname des Pakets wie
+// auf der Karte „Heute“ (J-C4): „Dreiklänge 1 · 2 von 3“
 export function perLevelLine(packs, e) {
   const { pack, level } = engine.findLevel(packs, e.id);
-  return `${pack.title} ${level.no} · ${e.ok} von ${e.n}`;
+  return `${packShort(pack)} ${level.no} · ${e.ok} von ${e.n}`;
 }
 
 // Knopf unter einer Zeile mit Fehlern auf der Karte „Grundlagen wiederholt“ (rein, getestet; J-B6, L-B4, W-B3):

@@ -43,6 +43,14 @@ export const RHYTHM_TAIL = 300;
 // „Stufe 2“ und „… und 7“ nicht umbrechen (geschütztes Leerzeichen; bei 320 px stand die Zahl sonst allein in
 // der Zeile). Rein, getestet; genutzt von der Startseite (gesperrte Karten) und der Ergebniskarte (Welle 10, A7)
 export const keepStufe = (t) => t.replace(/(Stufen?| und) (?=\d)/g, "$1\u00a0");
+// Anzeige (Korrektur nach der Prüfung Welle 11, J-C3 und L-C7): Zahl und Einheit („3 Halbtöne“, „7 Tagen“,
+// „4 Stufen“) und Vorzeichen nach einem Wort („und ♭“) mit geschütztem Leerzeichen; Notenpaare („as–c'“) ohne
+// Umbruch nach dem Strich (unsichtbarer Wortverbinder U+2060). Nur für die Anzeige, die Texte der Pakete bleiben.
+// Rein, getestet.
+export const keepTogether = (t) => String(t)
+  .replace(/(\d) (?=(Halbt|Stufe|Schl[aä]g|Tag|Aufgabe|Note\b|Noten\b|Vorzeichen|Kreuz))/g, "$1\u00a0")
+  .replace(/ ([♭♯♮])/g, "\u00a0$1")
+  .replace(/([A-Ha-h][a-z]*'*)–(?=[A-Ha-h])/g, "$1–\u2060");
 
 export const starsHtml = (k) => `<span class="stars">${"★".repeat(k)}<span class="off">${"★".repeat(3 - k)}</span></span>`;
 
@@ -117,7 +125,8 @@ export function makeMixed(packs, plan, ctx, rand = Math.random) {
 
 // Herkunftszeile über der Notenzeile in der gemischten Runde: „Intervalle · Stufe 4“ (rein, getestet;
 // „Stufe 4“ bricht nicht um)
-export const originText = (pack, level) => keepStufe(`${pack ? pack.title : ""} · Stufe ${level.no}`.replace(/^ · /, ""));
+// Kurzname des Pakets wie auf der Karte „Heute“ (J-C4): „Dreiklänge · Stufe 6“ statt „Dreiklänge und Quintenzirkel · …“
+export const originText = (pack, level) => keepStufe(`${pack ? pack.short || pack.title : ""} · Stufe ${level.no}`.replace(/^ · /, ""));
 
 // Ergebnis je Stufe aus dem Rundenprotokoll (rein): [{ id, n, ok }], zuerst in der Reihenfolge von order
 // (IDs des Plans), weitere Stufen in der Reihenfolge ihres ersten Auftretens
@@ -148,11 +157,11 @@ export const feedbackText = (q, ok) => (ok ? `Richtig! ${q.display}` : q.reveal 
 export const feedbackParts = (q, text) => (Array.isArray(q.revealParts) && q.revealParts.map((x) => x.t).join("") === text ? q.revealParts : null);
 // Text der Rückmeldung setzen; markierte Teile in <b class="fb-mark"> (per textContent)
 function setFeedback(el, text, parts) {
-  if (!parts) { el.textContent = text; return; }
+  if (!parts) { el.textContent = keepTogether(text); return; }
   el.textContent = "";
   for (const x of parts) {
-    if (x.mark) { const b = document.createElement("b"); b.className = "fb-mark"; b.textContent = x.t; el.append(b); }
-    else el.append(document.createTextNode(x.t));
+    if (x.mark) { const b = document.createElement("b"); b.className = "fb-mark"; b.textContent = keepTogether(x.t); el.append(b); }
+    else el.append(document.createTextNode(keepTogether(x.t)));
   }
 }
 
@@ -627,7 +636,7 @@ function answerStep(r, value, el) {
   if (!ok) markRight(r, q);
   if (r.step === q.steps.length - 1) return finishQuestion(r, r.oks.every(Boolean), stepsFeedback(q, r.oks), stepsResult(q, r.oks) === "part");
   r.locked = true;
-  ui.feedback.textContent = (ok ? set.ok : set.bad) || "";
+  ui.feedback.textContent = keepTogether((ok ? set.ok : set.bad) || "");
   ui.feedback.className = "feedback " + (ok ? "ok" : "bad");
   const toNextStep = () => {
     if (run !== r) return;

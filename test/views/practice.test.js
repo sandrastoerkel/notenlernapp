@@ -208,6 +208,9 @@ test("Gemischte Runde (vorläufig, Welle 11, Schritt 6): Kopf und Zeile je Stufe
   assert.deepEqual(MIXED_HEAD, { wiederholen: "Wiederholen", grundlagen: "Grundlagen wiederholen" });
   assert.equal(perLevelLine(PACKS, { id: "intervall-2", n: 3, ok: 3 }), "Intervalle 2 · 3 von 3");
   assert.equal(perLevelLine(PACKS, { id: "noten-7", n: 4, ok: 2 }), "Noten lesen 7 · 2 von 4");
+  // Kurzname des Pakets (J-C4)
+  assert.equal(perLevelLine(PACKS, { id: "akkorde-1", n: 3, ok: 2 }), "Dreiklänge 1 · 2 von 3");
+  assert.equal(perLevelLine(PACKS, { id: "notenwerte-5", n: 3, ok: 3 }), "Notenwerte 5 · 3 von 3");
 });
 
 test("index.html: Herkunftszeile #pOrigin über der Notenzeile, zu Beginn verborgen", () => {

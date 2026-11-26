@@ -8,7 +8,7 @@ import {
   playMode, revealedSvg, svgResultClass, playSchedule, rhythmEnd, answerDelay, PLAY_GAP, BEAT_MS, RHYTHM_TAIL, DELAY_OK, AUTO_OK_MAX, waitsAfter, NEXT_STEP, DEMO_WAIT_SHORT, stepsResult,
   choiceSet, setClass, stepsFeedback, digitAction, helpsHtml, hasHelps, HELP_FROM, helpFrom, helpsTitle, DELAY_STEP_OK,
   startRound, stop, handleKey, ROUND_LENGTH, isWaiting, DEMO_LABEL, DEMO_WAIT, DEMO_READY, DEMO_NEXT, waitsForNext, silenceTones,
-  makeMixed, startMixed, originText, perLevelOf, currentQuestion, RESULT_HEAD, ALL_RIGHT,
+  makeMixed, startMixed, originText, perLevelOf, currentQuestion, RESULT_HEAD, ALL_RIGHT, keepTogether,
 } from "../src/engine.js";
 import { mock } from "node:test";
 import { setMuted } from "../src/audio.js";
@@ -598,7 +598,7 @@ test("Ablauf zweischrittig: richtig/richtig, Zahl daneben/dann Qualität, einmal
     assert.ok(r.ui.answers.classList.contains("cols"));
     // 1. Aufgabe: richtig, richtig
     r.click("Terz");
-    assert.equal(r.ui.feedback.textContent, "Richtig: e'–g': 3 Stufen → Terz.");
+    assert.equal(r.ui.feedback.textContent, keepTogether("Richtig: e'–g': 3 Stufen → Terz."));
     assert.equal(r.state.answered, 0, "nach Schritt 1 noch nicht gezählt");
     r.click("Quarte"); // gesperrt während der Pause: zählt nicht
     mock.timers.tick(DELAY_STEP_OK);
@@ -606,7 +606,7 @@ test("Ablauf zweischrittig: richtig/richtig, Zahl daneben/dann Qualität, einmal
     assert.equal(r.ui.feedback.textContent, "e'–g': 3 Stufen → Terz. Welche Terz? Zähle die Halbtöne.");
     r.click("kleine Terz");
     assert.equal(r.state.answered, 1); assert.equal(r.state.correct, 1);
-    assert.equal(r.ui.feedback.textContent, "Richtig! e'–g': 3 Stufen → Terz · 3 Halbtöne → kleine Terz");
+    assert.equal(r.ui.feedback.textContent, keepTogether("Richtig! e'–g': 3 Stufen → Terz · 3 Halbtöne → kleine Terz"));
     mock.timers.tick(DELAY_OK);
     // Stufe mit Hilfen: kein Weitergehen nach der Pause, die Runde wartet auf „Nächste Aufgabe“
     assert.equal(r.ui.count.textContent, "1 / 10"); assert.equal(isWaiting(), true); assert.equal(r.ui.next.hidden, false);
@@ -617,7 +617,7 @@ test("Ablauf zweischrittig: richtig/richtig, Zahl daneben/dann Qualität, einmal
     // 2. Aufgabe: Zahl daneben, dann trotzdem die Qualitäten der richtigen Zahl; zählt als daneben
     r.ui.helps.open = true;
     r.click("Quarte");
-    assert.equal(r.ui.feedback.textContent, "Nicht ganz: e'–g': 3 Stufen → Terz.");
+    assert.equal(r.ui.feedback.textContent, keepTogether("Nicht ganz: e'–g': 3 Stufen → Terz."));
     // Schritt 1 daneben: kein Zeitgeber, „Weiter zu Schritt 2“
     mock.timers.tick(100000);
     assert.equal(r.buttons().length, 8, "noch die Knöpfe von Schritt 1");
@@ -627,7 +627,7 @@ test("Ablauf zweischrittig: richtig/richtig, Zahl daneben/dann Qualität, einmal
     assert.deepEqual(r.buttons(), ["kleine Terz", "große Terz"]);
     r.click("kleine Terz");
     assert.equal(r.state.answered, 2); assert.equal(r.state.correct, 1);
-    assert.equal(r.ui.feedback.textContent, item.partial);
+    assert.equal(r.ui.feedback.textContent, keepTogether(item.partial));
     // Teilerfolg: eigene Klasse, Zeile nicht rot, eigener Fortschrittspunkt; zählt als daneben
     assert.equal(r.ui.feedback.className, "feedback part");
     assert.deepEqual(r.state.notes["kleine Terz"].hist, "10");
@@ -642,7 +642,7 @@ test("Ablauf zweischrittig: richtig/richtig, Zahl daneben/dann Qualität, einmal
     assert.equal(handleKey({ key: "1", preventDefault() {} }), false, "Ziffern nur im ersten Schritt");
     r.click("große Terz");
     assert.equal(r.state.answered, 3); assert.equal(r.state.correct, 1);
-    assert.equal(r.ui.feedback.textContent, item.reveal);
+    assert.equal(r.ui.feedback.textContent, keepTogether(item.reveal));
     assert.equal(r.ui.feedback.className, "feedback bad");
     r.next();
     // Rest der Runde richtig
@@ -1061,13 +1061,13 @@ test("Ablauf: Ein-Schritt-Aufgabe (Intervalle 3, Quinte) endet nach Schritt 1", 
     const r = runLevel(l3, [item]);
     r.click("Quinte");
     assert.equal(r.state.answered, 1); assert.equal(r.state.correct, 1);
-    assert.equal(r.ui.feedback.textContent, `Richtig! ${item.display}`);
-    assert.match(r.ui.feedback.textContent, /5 Stufen → Quinte · hier rein: 7 Halbtöne$/);
+    assert.equal(r.ui.feedback.textContent, keepTogether(`Richtig! ${item.display}`));
+    assert.match(r.ui.feedback.textContent, /5\u00a0Stufen → Quinte · hier rein: 7\u00a0Halbtöne$/);
     assert.equal(isWaiting(), true, "Stufe mit Hilfen wartet");
     r.next();
     r.click("Quarte");
     assert.equal(r.state.answered, 2); assert.equal(r.state.correct, 1);
-    assert.equal(r.ui.feedback.textContent, item.reveal);
+    assert.equal(r.ui.feedback.textContent, keepTogether(item.reveal));
     assert.equal(r.ui.feedback.className, "feedback bad");
   } finally { stop(); mock.timers.reset(); }
 });
@@ -1162,9 +1162,9 @@ test("makeMixed mit echten Stufen: 4 + 3 + 3 aus drei Paketen, jede Aufgabe stel
   }
 });
 
-test("originText: Paket · Stufe, „Stufe 4“ bricht nicht um", () => {
+test("originText: Paket (Kurzname, J-C4) · Stufe, „Stufe 4“ bricht nicht um", () => {
   assert.equal(originText(lvl("intervall-4").pack, lvl("intervall-4").level), "Intervalle · Stufe 4");
-  assert.equal(originText(lvl("akkorde-6").pack, lvl("akkorde-6").level), "Dreiklänge und Quintenzirkel · Stufe 6");
+  assert.equal(originText(lvl("akkorde-6").pack, lvl("akkorde-6").level), "Dreiklänge · Stufe 6");
 });
 
 test("perLevelOf: Ergebnis je Stufe, Reihenfolge des Plans, weitere Stufen nach erstem Auftreten", () => {
@@ -1234,7 +1234,7 @@ test("Gemischte Runde: jede Eingabeart im Wechsel (Buchstaben, Namensraster, Aus
     assert.equal(state.answered, 2); assert.equal(state.correct, 2);
     advance(ui);
     // 3. notenwerte-5: Auswahlknöpfe ohne Ziffern; daneben → wartet auf „Nächste Aufgabe“
-    assert.equal(ui.origin.textContent, "Notenwerte und Pausen · Stufe 5");
+    assert.equal(ui.origin.textContent, "Notenwerte · Stufe 5");
     expectChoices(items[2]);
     assert.equal(handleKey(key("1", { preventDefault() {} })), false, "keine Ziffern in Notenwerte 5");
     assert.equal(handleKey(key("c", { preventDefault() {} })), false, "keine Buchstaben bei Auswahlknöpfen");
@@ -1384,4 +1384,17 @@ test("Normale Runde nach einer gemischten: Herkunftszeile verborgen, Hilfen wie 
     assert.equal(ui.helps.hidden, false, "Stufe mit Hilfen");
     assert.ok(ui.helpsBody.innerHTML.includes("keys-static"));
   } finally { stop(); mock.timers.reset(); }
+});
+
+// Korrektur nach der Prüfung Welle 11 (J-C3, L-C7): Zahl und Einheit, Vorzeichen und Notenpaare bleiben zusammen
+test("keepTogether: geschützte Leerzeichen und Wortverbinder nur für die Anzeige", () => {
+  const NB = "\u00a0", WJ = "\u2060";
+  assert.equal(keepTogether("e'–g': 3 Stufen → Terz · 3 Halbtöne → kleine Terz"), `e'–${WJ}g': 3${NB}Stufen → Terz · 3${NB}Halbtöne → kleine Terz`);
+  assert.equal(keepTogether("as–c' große Terz"), `as–${WJ}c' große Terz`);
+  assert.equal(keepTogether("e''–fis'': 2 Halbtöne → Fis"), `e''–${WJ}fis'': 2${NB}Halbtöne → Fis`);
+  assert.equal(keepTogether("Vorzeichen ♯ und ♭"), `Vorzeichen${NB}♯ und${NB}♭`);
+  assert.equal(keepTogether("wieder in 7 Tagen"), `wieder in 7${NB}Tagen`);
+  assert.equal(keepTogether("Punktierte Halbe = 3 Schläge, 2 + 1 = 3"), `Punktierte Halbe = 3${NB}Schläge, 2 + 1 = 3`);
+  // nicht angefasst: Strich mit Leerzeichen, Zahlen ohne Einheit, Bauplan
+  for (const t of ["Ganz – Ganz – Halb", "2 + 1 = 3", "1 1 ½ 1 1 1 ½", "Stufe 1–8"]) assert.equal(keepTogether(t), t);
 });

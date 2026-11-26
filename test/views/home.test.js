@@ -194,3 +194,11 @@ test("Statistik: Hinweis auf den Jahrgang bzw. nichts", () => {
   assert.equal(klasseNote(null), "");
   assert.equal(klasseNote({ jahrgang: 6, zweig: null, dran: dranFor(6) }), "Jahrgang 6 (über den Link deiner Lehrkraft)");
 });
+
+// Korrektur nach der Prüfung Welle 11 (J-C3): „Vorzeichen ♯ und ♭“ – das ♭ steht nicht allein in der Zeile
+test("Stufenkarte: Titel mit geschütztem Leerzeichen vor ♯ und ♭", () => {
+  const html = levelHtml(fresh(), pack("noten"), lv("noten-7"));
+  assert.ok(html.includes(`<span class="level-title">Vorzeichen${NB}♯ und${NB}♭</span>`), html);
+  const src = readFileSync(new URL("../../src/views/home.js", import.meta.url), "utf8");
+  assert.ok(src.includes('$("#homeSmall").textContent = keepTogether(c.small);'));
+});

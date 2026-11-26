@@ -1,6 +1,6 @@
 // Startseite: Karte „Heute“ (Wiederholung über Tage, Weiter üben), Pakete mit ihren Stufen
 import { isUnlocked, unlockedBy, today, dayDiff, addDays } from "../store.js";
-import { findLevel, starsHtml, keepStufe } from "../engine.js";
+import { findLevel, starsHtml, keepStufe, keepTogether } from "../engine.js";
 import { due, nextDue, reviewPlan, dueText } from "../repeat.js";
 import { learnTabOf } from "./learn.js";
 import { countUnsure } from "../adapt.js";
@@ -56,7 +56,7 @@ export function levelHtml(s, pack, l, dueSet = new Set(), cur = s.current) {
   const again = dueSet.has(l.id) ? ` · ${againHtml()}` : "";
   return `<button class="level ${open ? "" : "locked"} ${l.id === cur ? "current" : ""}" data-id="${l.id}" ${open ? "" : "disabled"}>
         <span class="level-no ${st.stars >= 2 ? "done" : ""}">${open ? l.no : "🔒"}</span>
-        <span><span class="level-title">${l.title}</span><br><span class="small muted">${l.subtitle || ""}${lock ? ` · ${keepStufe(lock)}` : ""}${st.played ? ` · beste Runde ${st.best}/10` : ""}${again}</span></span>
+        <span><span class="level-title">${keepTogether(l.title)}</span><br><span class="small muted">${keepTogether(l.subtitle || "")}${lock ? ` · ${keepStufe(lock)}` : ""}${st.played ? ` · beste Runde ${st.best}/10` : ""}${again}</span></span>
         ${starsHtml(st.stars || 0)}
       </button>`;
 }
@@ -126,7 +126,8 @@ function renderToday(s, heute) {
   $("#homeContinue").textContent = c.cont;
   // Hauptknopf: „Wiederholung starten“, wenn etwas fällig ist, sonst „Weiter üben“
   $("#homeContinue").className = "btn" + (c.review ? "" : " primary");
-  $("#homeSmall").textContent = c.small;
+  // „in 3 Tagen“ zusammen (J-C3)
+  $("#homeSmall").textContent = keepTogether(c.small);
   $("#homeSmall").hidden = !c.small;
 }
 
