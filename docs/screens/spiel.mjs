@@ -159,7 +159,10 @@ export async function goOn(pg) {
 // Nach „Weiter zu Schritt 2“ bzw. „Nächste Aufgabe“ nimmt die Runde SWITCH_GUARD lang keine Antwort an (Korrektur
 // nach der Prüfung Welle 12, J-B2): warten, bis die Sperre vorbei ist (engine.isGuarded)
 export async function unguarded(pg) {
-  await pg.waitForFunction(async () => !(await import("./src/engine.js")).isGuarded(), null, { timeout: 3000 }).catch(() => {});
+  // waitForFunction wartet nicht auf ein Promise (ein Promise gilt als erfüllt): das Modul vorher holen, dann
+  // synchron prüfen
+  await pg.evaluate(async () => { window.__e = await import("./src/engine.js"); });
+  await pg.waitForFunction(() => !window.__e.isGuarded(), null, { timeout: 3000 }).catch(() => {});
 }
 
 // Ganze Runde spielen, bis die Ergebniskarte da ist. decide(info, k) → right (wie bei answerQuestion) für die k-te
