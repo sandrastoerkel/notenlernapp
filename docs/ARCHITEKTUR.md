@@ -769,7 +769,12 @@ Stufen-ID.
   Zeitgeber löschen), `isRunning()`, `setInput(pref)`,
   `handleKey(e)` (gibt `true` zurück, wenn die Taste verwendet wurde); für Tests und die Browserprüfung
   `isWaiting()` und `currentQuestion()` (die aktuelle Aufgabe oder `null`)
-- seit Welle 11, rein und getestet: `makeMixed`, `originText`, `perLevelOf`
+- seit Welle 11, rein und getestet: `makeMixed`, `originText` (Kurzname des Pakets, `pack.short`), `perLevelOf`;
+  seit der Korrektur nach der Prüfung `keepTogether(text)` (nur Anzeige: Zahl und Einheit wie „3 Halbtöne“,
+  „7 Tagen“ und ♯/♭ nach einem Wort mit geschütztem Leerzeichen, Notenpaare wie „as–c'“ ohne Umbruch) und
+  `resultMessage(stars, { correct, total, short })` (alles richtig: „Stark, alles richtig.“; `short`: nur „Stark.“
+  / „Gut.“ / „Solide Basis.“ / „Noch wacklig.“). Nach „daneben“ auf der Klaviatur ist die richtige Taste grün
+  (`markRight`), die Beschriftung markierter Tasten in `--fg` (J-B4).
 - reine Hilfsfunktionen (getestet): `starsHtml`, `effectiveInput`, `makeRound`,
   `findLevel(packs, id)`, `nextLevel(pack, level)`, `countAnswer`,
   `feedbackText`, `resultMessage`, `dotsHtml`, `lettersHtml`, `choicesHtml`,
@@ -835,11 +840,14 @@ Adress-Angaben (seit Welle 11, in `app.js`; gelesen beim Start und bei `hashchan
   der Adresszeile (`history.replaceState`); verschwindet die Angabe (Zurück im Browser), geht es zur Startseite.
 - `#klasse=…` (Formen und Prüfung in `klasse.js`, siehe unten): `readKlasseLink` prüft jede Angabe mit
   `klasse`, `zweig` oder `dran` (`isKlasseLink`, auch in falscher Schreibweise). Passt der Link nicht
-  (`parseLink` → `null`), erscheint über der unteren Leiste der Hinweis `#klasseBar` „Der Link passt nicht zu
-  dieser App-Version.“, der Spielstand bleibt unberührt. Ist dieselbe Einstellung schon gesetzt (bzw. es gibt
+  (`parseLink` → `null`), erscheint über der unteren Leiste der Hinweis `#klasseBar` „**Dieser Link funktioniert
+  hier nicht.** Er ist unvollständig oder passt nicht zu dieser Version der App. Frag deine Lehrkraft nach einem
+  neuen Link. Dein Fortschritt bleibt.“ (Korrektur J-B10/W-C8), der Spielstand bleibt unberührt. Ist dieselbe Einstellung schon gesetzt (bzw. es gibt
   nichts zu entfernen), fragt die App nicht. Sonst fragt sie **einmal** im `<dialog id="klasseDialog">`
-  (`showModal`): „Einstellung deiner Lehrkraft übernehmen?“ mit `klasseText` und „Bisher: …“, bzw. „Jahrgang
-  entfernen?“. Erst „Übernehmen“ bzw. „Entfernen“ ruft `store.setKlasse` bzw. `store.clearKlasse`, speichert und
+  (`showModal`): „Einstellung deiner Lehrkraft übernehmen?“ mit `klasseText`, „Die Startseite zeigt dir dann,
+  was in Jahrgang 6 dran ist. Alle Stufen bis dahin sind sofort offen. Dein Fortschritt bleibt, es schließt sich
+  nichts.“ (J-B9) und „Bisher: …“, bzw. „Jahrgang entfernen?“ mit „Dein Fortschritt bleibt, es schließt sich
+  nichts.“ – beides stimmt seit der Hochwassermarke (`store.klasseOffen`, W-A1). Erst „Übernehmen“ bzw. „Entfernen“ ruft `store.setKlasse` bzw. `store.clearKlasse`, speichert und
   zeigt die Startseite; Escape und „Nicht übernehmen“ ändern nichts. In jedem Fall verschwindet die Angabe danach
   aus der Adresszeile (`history.replaceState`, kein neuer Eintrag im Verlauf), damit ein Neuladen nicht noch
   einmal fragt. Kommt bei offener Frage ein zweiter Link, wechselt nur der Inhalt (kein `close()`). In der App
@@ -853,15 +861,17 @@ Startseite (`src/views/home.js`, seit Welle 11, Schritt 8 und 12; reine Teile ge
   Hauptknopf `#homeReview` „Wiederholung starten“ (`ctx.show("practice", { mode: "wiederholen" })`), daneben
   „Weiter üben: …“. Sonst „Bereit für eine Runde?“ mit dem Satz zur Tagesserie (`streakText`), „Weiter üben“
   als Hauptknopf und klein `#homeSmall` „Nächste Wiederholung: morgen“ bzw. bei leerem Kasten
-  `BOX_EMPTY_TEXT`. Kein Zähler für Versäumtes. `continueText` („Weiter üben: Tonleitern, Stufe 6“ bzw.
+  `BOX_EMPTY_TEXT` („Was du ohne Hilfen mit mindestens 8 von 10 schaffst, kommt am nächsten Tag zum Wiederholen
+  wieder.“, W-B8). Kein Zähler für Versäumtes. `continueText` („Weiter üben: Tonleitern, Stufe 6“ bzw.
   „Starten: …“), `continueId(state, packs)` = `klasse.nextUp` oder `state.current`; „Weiter üben“ und „Erst
   anschauen“ (Reiter aus `learn.learnTabOf`) nehmen diese Stufe.
-- Stufenkarten: `levelHtml(s, pack, l, dueSet, withPack, cur)`; fällige Stufen (`repeat.due`) tragen die Marke
-  „↻ wieder dran“ (`againHtml`, das Zeichen ist `aria-hidden`); umrandet ist die Stufe von „Weiter üben“.
+- Stufenkarten: `levelHtml(s, pack, l, dueSet, cur)` (Titel und Unterzeile über `engine.keepTogether`); fällige
+  Stufen (`repeat.due`) tragen die Marke „↻ wieder dran“ (`againHtml`, das Zeichen ist `aria-hidden`); umrandet
+  ist die Stufe von „Weiter üben“. Den Paketnamen trägt immer die Überschrift darüber, nie die Unterzeile.
   `packShort(pack)` (Kurzname `pack.short`, sonst `title`) wird auch in `practice.js` genutzt.
 - Ohne Jahrgang je Paket ein Abschnitt. Mit Jahrgang `homeSections(state, packs)` aus `klasse.sections`: klein
-  der Hinweis „Jahrgang 6 · über den Link deiner Lehrkraft“ (`klasseHint`), „Jetzt dran“ (Stufenkarten mit
-  Paket-Kurzname in der Unterzeile; leer: `nothingNewText` „In Jahrgang 9 kommt nichts Neues dazu. …“ bzw.
+  der Hinweis „Jahrgang 6 · über den Link deiner Lehrkraft“ (`klasseHint`), „Jetzt dran“ (je Paket mit kleiner
+  Überschrift `h3` wie die anderen Abschnitte, `homeSections(…).jetzt.groups`, Korrektur J-B5/L-B2; leer: `nothingNewText` „In Jahrgang 9 kommt nichts Neues dazu. …“ bzw.
   `allDoneText` „Was in Jahrgang 7 neu ist, hast du mit mindestens 8 von 10 geschafft. …“), „Schon dran gewesen“
   (je Paket), „Darüber hinaus“ (`<details>`, zugeklappt, je Paket). Titel in `SECTION_TITLES`.
 
@@ -872,23 +882,40 @@ Startseite (`src/views/home.js`, seit Welle 11, Schritt 8 und 12; reine Teile ge
   Beide laufen über `playMixed` → `engine.makeMixed` und `engine.startMixed`; Kopf `MIXED_HEAD`, Titel
   `basicsTitle` („für Intervalle, Stufe 3“) bzw. `reviewTitle` („10 Aufgaben aus 3 Stufen“); die Wahl
   Buchstaben/Klaviatur ist dort verborgen.
-- Startkarte einer Stufe mit Voraussetzungen: `#pNeeds` „Dafür brauchst du: …“ (`needsHtml`, je Voraussetzung
-  ein Knopf, der ihre Startkarte öffnet) und `#pBasics` „Grundlagen wiederholen · 6 Aufgaben“
-  (`BASICS_LABEL`). Mit Empfehlung (`repeat.basicsOffer`: nie gespielt, wieder dran oder zuletzt unter 8 von
-  10) steht der Grund darüber (`#pBasicsWhy`, `reasonText`: „Empfohlen: „Noten mit Vorzeichen“ hast du hier
-  noch nicht geübt.“) und der Knopf als Hauptknopf vor „Runde starten“; sonst ruhig darunter. Nie Pflicht.
-- Ergebniskarte der normalen Runde: dazu `repeatNote` (Karteikasten über `repeat.afterRound`: „Geschafft – kommt
-  morgen zum Wiederholen wieder.“, „Wiederholung: sitzt · wieder in 7 Tagen.“ bzw. „Wiederholung: morgen noch
-  einmal.“) und `resultBasics(packs, pack, level, correct, log)`
-  → `{ first, gaps, only }`: je Fehlermuster ein Satz (`gapText`, z. B. „Dreimal lag der erste Schritt daneben
-  (Notenstufen zählen). Das übst du in Intervalle, Stufe 2.“) mit Knopf „… öffnen“ bzw. „Stufe 3 mit Hilfen
-  üben“ (`openLabel`), und **ein** Knopf „Grundlagen wiederholen“ (nach Mustern nur deren Grundlagen, sonst
-  bei weniger als 5 Richtigen, `BASICS_BELOW`, alle Voraussetzungen).
+- Startkarte (Reihenfolge seit der Korrektur J-B1, damit der Start weit oben steht): Hinweis `#pHint` →
+  (mit Empfehlung: Grund `#pBasicsWhy` → `#pBasics` als Hauptknopf) → `#pStart` „Runde starten“ → (ohne
+  Empfehlung: `#pBasics` ruhig) → `#pNeeds` „Dafür brauchst du: …“ → Tastatur-Hinweis `#pKeys`. `#pBasics`
+  „Grundlagen wiederholen · 6 Aufgaben“ (`BASICS_LABEL`). `needsHtml`: eine fortlaufende Zeile mit Kommas, je
+  Voraussetzung ein Knopf im Textfluss mit sichtbarer Stufe (`needLabel`: „Notenstufen zählen (Intervalle 2)“,
+  Fähigkeit ohne Klammerzusatz), der ihre Startkarte öffnet (J-C1). Empfehlung aus `repeat.basicsOffer` (nie
+  gespielt, wieder dran oder zuletzt unter 8 von 10), Grund `reasonText`: „Empfohlen: „Noten mit Vorzeichen“
+  hast du hier noch nicht geübt.“ Nie Pflicht. `ueberlauf.mjs` misst die Lage der Knöpfe auf sechs Startkarten
+  (`startCards`).
+- Ergebniskarte der normalen Runde: Satz `engine.resultMessage(stars, { correct, total, short })` (10 von 10
+  „Stark, alles richtig.“; mit Fehlermuster oder „Grundlagen wiederholen“ zuerst nur der erste Teil, z. B. „Noch
+  wacklig.“), dazu `repeatNote` (Karteikasten über `repeat.afterRound`: „Geschafft – kommt morgen zum Wiederholen
+  wieder.“ (J-B8), „Wiederholung: sitzt · wieder in 7 Tagen.“, „Wiederholung: noch wacklig · morgen noch einmal.“
+  bzw. bei einer schwachen Runde in einer nicht fälligen Stufe „Wiederholung: morgen noch einmal.“, W-B7) und
+  `resultBasics(packs, pack, level, correct, log)` → `{ first, gaps, only }` mit **höchstens einem**
+  Fehlermuster (J-B7/W-B6; der erste Denkschritt vor dem zweiten): ein Satz ohne Rahmen (`gapText`, ohne die
+  Fehler nachzuzählen: „Der erste Schritt (Notenstufen zählen) hat oft nicht geklappt. Das übst du in Intervalle,
+  Stufe 2.“; einschrittige Stufen ohne Behauptung über die Ursache, W-B5: „Drei Antworten lagen daneben. Die
+  Grundlagen dazu findest du in Noten lesen, Stufe 3.“) und darunter genau ein Hauptknopf („Grundlagen
+  wiederholen“ mit nur den Grundlagen des Musters, bzw. „Stufe 3 mit Hilfen üben“, `openLabel`), dazu nur
+  „Nochmal“ und „Übersicht“. Ohne Muster unter 5 Richtigen (`BASICS_BELOW`) „Grundlagen wiederholen“ mit allen
+  Voraussetzungen zuerst, sonst „Nochmal“, „Stufe n“ (wenn offen), „Übersicht“.
 - Ergebniskarte „Wiederholen“: je Stufe `reviewLine` mit der Zahl der Richtigen („Noten lesen 7 · 4 von 4 · ✓ sitzt
   · wieder in 7 Tagen“, „Notenwerte 5 · 2 von 3 · ↻ fast · morgen noch einmal“, „… · ↻ noch wacklig · …“;
-  `verdictText`, `URTEIL_TEXT`; Zeichen `aria-hidden`, nicht rot), bei „noch wacklig“ ein Knopf `practiceOffer` („Stufe 4 mit
-  Hilfen üben“ bzw. „Stufe 5 üben“), „Noch eine Wiederholung“ nur, wenn weiter etwas fällig ist; Sterne nur als
-  Anzeige. Ergebniskarte „Grundlagen wiederholen“: `perLevelLine` je Stufe, „Zurück zu Stufe n“, „Nochmal“.
+  `verdictText`, `URTEIL_TEXT`; Zeichen `aria-hidden`, nicht rot), nur bei „noch wacklig“ ein Knopf
+  (`reviewOffers` → `practiceOffer`: „Stufe 4 mit Hilfen üben“ bzw. „Stufe 5 üben“; nicht bei „fast“,
+  Nachprüfung), „Noch eine Wiederholung“ nur, wenn weiter etwas fällig ist; Sterne nur als Anzeige, der Satz nur
+  „Stark.“ / „Gut.“ / „Solide Basis.“ / „Noch wacklig.“ (kein Sterne-Versprechen, J-B2/L-B1).
+- Ergebniskarte „Grundlagen wiederholt“ (`basicsResultPlan(packs, res, counted)`, J-B6/L-B4/W-B3): je
+  Grundlage eine Zeile `perLevelLine` („Intervalle 2 · 0 von 3“, Kurzname), bei Fehlern darunter ein Knopf
+  `needOffer` („Intervalle 1 mit Hilfen üben“, „Noten lesen 7 üben“); Hauptknopf ist dieser Knopf, wenn eine
+  Grundlage zur Hälfte oder mehr danebenlag, „Zurück zu Stufe n“ nur bei höchstens einem Fehler, sonst keiner.
+  Eine fällige Grundlage, die als Wiederholung zählte (`repeat.afterBasicsLevels`, W-B4 b), zeigt ihr Urteil in
+  ihrer Zeile (`reviewLine`: „Noten lesen 7 · 3 von 3 · ✓ sitzt · wieder in 7 Tagen“) und hat keinen Knopf.
 - `open(arg)` (für die Konsole und `docs/screens/ueberlauf.mjs`) = `ctx.show("practice", arg)`.
 
 Lernen (`src/views/learn.js`, seit Welle 11, Schritt 2, W3; reine Teile getestet in `test/views/learn.test.js`):
@@ -928,11 +955,12 @@ Statistik (`src/views/stats.js`, seit Paket F) exportiert reine Hilfsfunktionen
 - `weakList(notes, limit = 6)`: Einträge aus `state.notes` mit `bad > 0`,
   absteigend nach `bad` (Gleichstand nach Name), `[{ key, bad, ok, pct }]`;
   `pct` ist der Balken relativ zum größten Wert
-- `levelRow(level, entry, repEntry)`: `{ id, no, title, played, best, stars, pct, fach, zuletzt }`
+- `levelRow(level, entry, repEntry, heute)`: `{ id, no, title, played, best, stars, pct, fach, zuletzt }`
   für eine Stufe (`pct` = `best · 10`); seit Welle 11 `fach` (1 bis 5, nur bei Stufen ohne Hilfen mit Eintrag
   in `state.rep`, sonst `null`) und `zuletzt` (der spätere Tag aus `rep.zuletzt` und der letzten normalen
-  Runde `levels[id].day`; ebenfalls nur mit Eintrag im Kasten, sonst `null`)
-- `levelGroups(packs, levels, rep)`: Stufen je Paket in der Reihenfolge der
+  Runde `levels[id].day`; ebenfalls nur mit Eintrag im Kasten, sonst `null`; mit `heute` zählen Tage nach
+  heute nicht – nach vor- und zurückgestellter Uhr kein „zuletzt geübt am“ aus der Zukunft, Nachprüfung)
+- `levelGroups(packs, levels, rep, heute)` (die Statistik übergibt `today()`): Stufen je Paket in der Reihenfolge der
   Registry, je Gruppe `{ id, title, rows, played, stars, maxStars }`;
   unbekannte IDs in `state.levels` werden übergangen
 - `levelRowText(row)`: „8/10 · 3× gespielt“ bzw. „noch nicht gespielt“
@@ -1063,8 +1091,9 @@ Rein, ohne Seite und ohne Speicher, getestet in `test/klasse.test.js`. Der Jahrg
 der Lehrkraft auf das Gerät und wird erst nach der Bestätigung gespeichert (`app.js`, `store.setKlasse`).
 Leitsatz: Der Jahrgang ordnet und öffnet, er sperrt nie etwas.
 - Tabelle „dran bis Stufe n“ je Paket (`DRAN`, `DRAN_MUG` für das Musische Gymnasium; `JAHRGAENGE` 5 bis 13,
-  `ZWEIGE = ["mug"]`), Quelle LehrplanPLUS Gymnasium Bayern, Musik (Zitate und Begründung in `docs/PLAN.md`,
-  Welle 11, Abschnitt 4, als Kommentar im Modul). Jahrgang 5: Noten lesen 8, Notenwerte 10, Intervalle 2,
+  `ZWEIGE = ["mug"]`), Voreinstellung angelehnt an den LehrplanPLUS Gymnasium Bayern, Musik (Zitate und
+  Begründung in `docs/PLAN.md`, Welle 11, Abschnitt 4, als Kommentar im Modul; was dort nicht wörtlich steht:
+  Abschnitt 8, Punkt 4). Jahrgang 5: Noten lesen 8, Notenwerte 10, Intervalle 2,
   Tonleitern 9, Dreiklänge 0; Jahrgang 6: Intervalle 4, Tonleitern 13, Dreiklänge 4; ab Jahrgang 7: Dreiklänge 6;
   Musisches Gymnasium ab Jahrgang 6 Intervalle 10. `dranFor(jahrgang, zweig)` gibt eine Kopie.
 - Formen des Links (nur diese Angaben, keine Namen, keine Ergebnisse): `#klasse=6`, `#klasse=6&zweig=mug`,
@@ -1314,8 +1343,9 @@ in `npm test`; Aufruf bei laufendem Server, Adresse über `BASE=…`, eigener Br
   (auch mit Jahrgang 5, 7 und 9), alle Stufen aller Pakete (Startkarte, Aufgabe mit offenen Hilfen, nach jeder
   Antwort abwechselnd richtig und daneben, jede Vorführung Bild für Bild), drei Runden „Wiederholen“ (die dritte
   mit der Eingabe „Klaviatur“; je Aufgabe Herkunftszeile und Eingabeart ohne Reste der vorigen), „Grundlagen
-  wiederholen“, die Ergebniskarten (Urteil je Stufe, „Neu im Kasten“, Fehlermuster), Startkarten mit „Dafür
-  brauchst du“ mit und ohne Empfehlung, „Lernen“ je Reiter und Schlüssel, Blitz, Statistik (auch mit Jahrgang),
+  wiederholen“, die Ergebniskarten (Urteil je Stufe, „Geschafft – kommt morgen …“, Fehlermuster), Startkarten mit
+  „Dafür brauchst du“ mit und ohne Empfehlung (dazu je Breite die Lage der Knöpfe auf sechs Startkarten bei
+  640 px Höhe, `startCards`, J-B1), „Lernen“ je Reiter und Schlüssel, Blitz, Statistik (auch mit Jahrgang),
   Dialog und Hinweis zum Link der Lehrkraft und die Seite „Für Lehrkräfte“ samt „QR-Code groß zeigen“. Ende mit
   Code 1 bei Treffern oder Konsolenfehlern; etwa 12 Minuten. Nicht geprüft: senkrechtes Abschneiden, Text über
   einem SVG (die Beschriftungen der Notenkarte liegen gewollt auf dem Rand der Notenzeile), Flächen von Elementen
