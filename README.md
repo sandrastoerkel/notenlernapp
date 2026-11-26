@@ -36,15 +36,16 @@ Auf den Startbildschirm legen:
 
 Für Entwicklerinnen und Entwickler:
 
-- Die Cache-Version steht oben in `sw.js` (`const CACHE = "notenheld-v0.2.0-14"`). Bei jedem Release erhöhen, sonst behalten installierte Geräte die alten Dateien.
-- Stand 26.11.2026: Live ist `main` 2f3dfe8 (Welle 10, Cache `notenheld-v0.2.0-13`).
+- Die Cache-Version steht oben in `sw.js` (`const CACHE = "notenheld-v0.2.0-15"`). Bei jedem Release erhöhen, sonst behalten installierte Geräte die alten Dateien.
+- Stand 26.11.2026: Live ist `main` bcd6e85 (Welle 11, Cache `notenheld-v0.2.0-14`).
 - Welle 10 „Korrekturen aus der Prüfung“ (auf `main` 2f3dfe8): Warten nach „daneben“ und Teilerfolg, Auflösungszeichen, „Stellung“, Bauplan „1 1 ½ 1 1 1 ½“, „Grob- und Feinbestimmung“, sichtbare Freischalt-Regel, wählbare Merksprüche (Tab „Lernen“), Balken und Zählzeiten bei den Notenwerten, Fokus, Kontrast und Zeichen ✓/✗, bessere Lesbarkeit bei 320 px.
-- Welle 11 „Wiederholen“ (Branch `wiederholen-11`, von `main` 2f3dfe8, Cache `notenheld-v0.2.0-14`, noch nicht auf `main`): Voraussetzungen je Stufe und „Grundlagen wiederholen“, Wiederholung über Tage (Karteikasten, Karte „Heute“, Runde „Wiederholen“), Jahrgang über den Lehrkraft-Link mit QR-Code, „Lernen“ mit Reitern, Intervalle vor Tonleitern, Notenwerte mit „Wie viele Schläge dauert diese Note? (1 Schlag = 1 Viertelnote)“.
+- Welle 11 „Wiederholen“ (auf `main` bcd6e85, Cache `notenheld-v0.2.0-14`): Voraussetzungen je Stufe und „Grundlagen wiederholen“, Wiederholung über Tage (Karteikasten, Karte „Heute“, Runde „Wiederholen“), Jahrgang über den Lehrkraft-Link mit QR-Code, „Lernen“ mit Reitern, Intervalle vor Tonleitern, Notenwerte mit „Wie viele Schläge dauert diese Note? (1 Schlag = 1 Viertelnote)“.
+- Welle 12 „Noten lesen gehirngerecht“ (Branch `noten-lesen-12`, von `main` bcd6e85, Cache `notenheld-v0.2.0-15`, noch nicht auf `main`): „Noten lesen“ mit 15 statt 8 Stufen, erst mit Hilfen und in zwei Denkschritten (Lage → Name, Bezugston → Zählen, Stammton → Vorzeichen), dann ohne; Vorzeichen auch im Bassschlüssel; Hilfen (Merkleiste mit dem gewählten Merkspruch, Namensleiste, Vorzeichen-Regel), drei Vorführungen als Lerntafeln im Reiter „Tonhöhen“; alte Spielstände werden einmal umgestellt (Sterne und Freischaltung bleiben).
 - Neue Dateien unter `src/`, `css/`, `fonts/` oder `icons/` in die Liste `PRECACHE` in `sw.js` eintragen; `test/sw.test.js` vergleicht die Liste mit dem Dateibaum und schlägt sonst fehl.
 - Vor einem Release bei laufendem Server die Browser-Skripte in `docs/screens/` laufen lassen (brauchen Playwright wie die Screenshots, keine Abhängigkeit der App; Adresse über `BASE=…`, gemeinsame Bausteine in `spiel.mjs`):
   - `node docs/screens/ueberlauf.mjs` klickt bei 320 px und 420 px durch alle Stufen, Hilfen und Vorführungen, die Runden „Wiederholen“ (auch mit Klaviatur) und „Grundlagen wiederholen“, „Lernen“, Statistik und die Seite „Für Lehrkräfte“. Es meldet jedes Element, das über seinen Rahmen hinausragt, Texte und kleine Bildelemente, die sich in einer Zeile überlappen, und einen doppelten Knopf „Nächste Aufgabe“. Vorher zeigt ein Selbsttest, dass die Überlappungs-Prüfung greift (`--selftest` führt nur ihn aus).
   - `node docs/screens/uhr40.mjs` spielt 40 Tage mit gestellter Uhr (Kuala Lumpur und Berlin) und vergleicht Karte „Heute“, Runden und Fächer mit der Erwartung aus `test/repeat.sim.test.js`.
-  - `node docs/screens/pruefung.mjs` legt Bildschirmfotos aller Ansichten (420 px hell, 320 px dunkel) für eine Prüfung in `/tmp/notenheld-pruefung-w11/` ab, mit `index.md`. Die Spielstände darin sind vorbereitet, ihre Zahlen erfunden.
+  - `node docs/screens/pruefung.mjs` legt Bildschirmfotos aller Ansichten (420 px hell, 320 px dunkel) für eine Prüfung in `/tmp/notenheld-pruefung-w12/` ab, mit `index.md`. Die Spielstände darin sind vorbereitet, ihre Zahlen erfunden.
 - Beim Entwickeln hilft in Chrome DevTools unter Application → Service Workers „Update on reload“, damit Änderungen sofort sichtbar sind.
 - Die Icons in `icons/` sind aus einem Bild im Aquarell-Stil erzeugt, das Sandra Störkel mit Apple Image Playground erstellt hat (KI-generiert) (Violinschlüssel auf Blau, Grün und Gelb). Beim maskierbaren Icon liegt der Schlüssel ganz im sicheren Kreis, der Rand ist mit den verwischten Farben des Bildes aufgefüllt. Nachweise: [THIRD_PARTY.md](THIRD_PARTY.md).
 
@@ -78,18 +79,25 @@ Smartphone-Breite (420 px), helles Farbschema. Die dunklen Fassungen liegen dane
 
 ## Stufen
 
-1. Violinschlüssel, Linien (E G H D F)
-2. Violinschlüssel, Zwischenräume (F A C E)
-3. Violinschlüssel mit Hilfslinien
-4. Bassschlüssel, Linien (G H D F A)
-5. Bassschlüssel, Zwischenräume (A C E G)
-6. Bassschlüssel mit Hilfslinien
-7. Vorzeichen ♯ und ♭
-8. Alles gemischt
+1. Violinschlüssel, Linien (E G H D F) – mit Hilfen
+2. Violinschlüssel, Zwischenräume (F A C E) – mit Hilfen
+3. Violinschlüssel, Linien und Zwischenräume
+4. Violinschlüssel, über und unter der Zeile (d', c', g'', a'') – mit Hilfen
+5. Violinschlüssel mit Hilfslinien (c' bis a'')
+6. Bassschlüssel, Linien (G H D F A) – mit Hilfen
+7. Bassschlüssel, Zwischenräume (A C E G) – mit Hilfen
+8. Bassschlüssel, Linien und Zwischenräume
+9. Bassschlüssel, über und unter der Zeile (F, E, h, c') – mit Hilfen
+10. Bassschlüssel mit Hilfslinien (E bis c')
+11. Vorzeichen ♯ und ♭ im Violinschlüssel – mit Hilfen
+12. Vorzeichen im Violinschlüssel ohne Hilfen
+13. Vorzeichen ♯ und ♭ im Bassschlüssel – mit Hilfen
+14. Vorzeichen im Bassschlüssel ohne Hilfen
+15. Alles gemischt
 
-Das sind die Stufen von „Noten lesen“. Die Pakete stehen in dieser Reihenfolge (Startseite, „Lernen“, Statistik):
+Das sind die Stufen von „Noten lesen“ (seit Welle 12; vorher 8). Die Stufen mit Hilfen fragen in zwei Schritten: erst die Lage (Linie bzw. Zwischenraum von unten), dann den Namen; über und unter der Zeile erst den Bezugston (die nächste Linie der Zeile), dann zählen; mit Vorzeichen erst den Stammton, dann den ganzen Namen. Die Pakete stehen in dieser Reihenfolge (Startseite, „Lernen“, Statistik):
 
-1. **Noten lesen** (8 Stufen, oben)
+1. **Noten lesen** (15 Stufen, oben; immer erst mit Hilfen – Merkleiste mit Merkspruch, Namensleiste, Vorzeichen-Regel – dann ohne; drei Vorführungen als Lerntafeln)
 2. **Notenwerte und Pausen** (10 Stufen: Notenwerte, Pausen, Dauer in Schlägen, Punktierungen, Takt füllen; immer erst mit Hilfen – Merkmale, Notenwert-Pyramide, Zählleiste – dann ohne; drei Vorführungen als Lerntafeln)
 3. **Intervalle** (10 Stufen: erst nur die Zahl, dann Grob- und Feinbestimmung – rein/klein/groß und vermindert/übermäßig in zwei Schritten, abwärts, bauen, Fehler finden; Stufe 1, 3, 5 und 8 mit aufklappbaren Hilfen: Klaviatur und Tabelle)
 4. **Tonleitern** (13 Stufen: Ganz- und Halbtonschritte, welcher Ton fehlt, welcher Ton passt nicht, Vorzeichen, Tonart aus den Vorzeichen, parallele Molltonart; immer erst mit Hilfen – Klaviatur, Bauplan-Leiste bzw. Quintenzirkel – dann ohne; drei Vorführungen als Lerntafeln)
@@ -101,7 +109,7 @@ Eine Stufe öffnet sich, sobald in der vorherigen mindestens 8 von 10 Aufgaben r
 
 ## Tastatur
 
-`C` `D` `E` `F` `G` `A` `H` antworten sofort. Bei der Grobbestimmung (Paket „Intervalle“) wählen `1` bis `8` Prime bis Oktave. In Stufen mit Vorzeichen tippst du den ganzen Namen (`fis`, `es`, `b` …) und bestätigst mit `Enter`; `Backspace` löscht ein Zeichen, `Esc` leert die Eingabe. Auf dem Bildschirm stehen dort alle 21 Namen von C bis B in drei Reihen.
+`C` `D` `E` `F` `G` `A` `H` antworten sofort. In „Noten lesen“ wählen `1` bis `5` die Linie bzw. `1` bis `4` den Zwischenraum. Bei der Grobbestimmung (Paket „Intervalle“) wählen `1` bis `8` Prime bis Oktave. In Stufen mit Vorzeichen tippst du den ganzen Namen (`fis`, `es`, `b` …) und bestätigst mit `Enter`; `Backspace` löscht ein Zeichen, `Esc` leert die Eingabe. Auf dem Bildschirm stehen dort alle 21 Namen von C bis B in drei Reihen.
 
 ## Technik
 
@@ -117,5 +125,5 @@ Eine Stufe öffnet sich, sobald in der vorherigen mindestens 8 von 10 Aufgaben r
 
 - [docs/KONZEPT.md](docs/KONZEPT.md): Zielgruppe, Didaktik, Ausbau-Ideen
 - [docs/ARCHITEKTUR.md](docs/ARCHITEKTUR.md): Zielstruktur in Modulen, Paket-Schnittstelle
-- [docs/PLAN.md](docs/PLAN.md): Arbeitspakete und Wellen (zuletzt Welle 11 „Wiederholen“) mit Feinplan, Umsetzung und Prüfung
+- [docs/PLAN.md](docs/PLAN.md): Arbeitspakete und Wellen (zuletzt Welle 12 „Noten lesen gehirngerecht“) mit Feinplan, Umsetzung und Prüfung
 - `CLAUDE.md`: Regeln für Claude Code im Projekt
