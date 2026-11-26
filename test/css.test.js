@@ -156,3 +156,13 @@ test("Lernen: Reiterleiste rollt in sich (Welle 11, W3)", () => {
   assert.match(rule, /min-width:\s*0/);
   assert.match(plain.match(/\.ltab\s*\{([^}]*)\}/)[1], /scroll-snap-align:\s*start/);
 });
+
+test("QR-Code: --qr-dark und --qr-light auf :root, in hell und dunkel gleich (schwarz auf weiß)", () => {
+  for (const name of Object.keys(blocks)) {
+    const t = theme(name);
+    assert.equal(t["--qr-dark"], "#000000", name);
+    assert.equal(t["--qr-light"], "#ffffff", name);
+  }
+  // keine dunkle Variante: die Tokens stehen nur im hellen Block
+  assert.ok(!/--qr-/.test(blocks["dunkel (System)"]) && !/--qr-/.test(blocks["dunkel (Schalter)"]));
+});

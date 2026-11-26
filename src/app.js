@@ -8,11 +8,14 @@ import * as practice from "./views/practice.js";
 import * as learn from "./views/learn.js";
 import * as blitz from "./views/blitz.js";
 import * as stats from "./views/stats.js";
+import * as lehrkraft from "./views/lehrkraft.js";
 import { stopDemos } from "./demo.js";
 import { isKlasseLink, parseLink, sameKlasse, klasseText } from "./klasse.js";
 
 const $ = (s) => document.querySelector(s);
-const VIEWS = { home, practice, learn, blitz, stats };
+// lehrkraft: Seite „Für Lehrkräfte“ (Welle 11, Schritt 12), nur über #lehrkraft, ohne Reiter in der unteren Leiste
+const VIEWS = { home, practice, learn, blitz, stats, lehrkraft };
+const TEACHER_HASH = "#lehrkraft";
 let view = "home";
 
 // Gemeinsamer Kontext für alle Ansichten. ctx.state wird beim Zurücksetzen ersetzt,
@@ -41,6 +44,9 @@ function show(v, arg) {
   blitz.stop();
   stopDemos();
   view = v;
+  // Wer die Seite „Für Lehrkräfte“ verlässt, verliert die Angabe in der Adresszeile (sonst löste der Textlink
+  // „Für Lehrkräfte“ beim nächsten Mal kein hashchange aus)
+  if (v !== "lehrkraft" && location.hash === TEACHER_HASH) history.replaceState(null, "", location.pathname + location.search);
   Object.keys(VIEWS).forEach((x) => { $("#view-" + x).hidden = x !== v; });
   document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("on", t.dataset.view === v));
   VIEWS[v].render(arg);
@@ -58,8 +64,8 @@ $("#muteBtn").addEventListener("click", () => {
 // Tastatur: an die aktive Ansicht weitergeben (ohne Strg, Alt, Cmd)
 document.addEventListener("keydown", (e) => {
   if (e.metaKey || e.ctrlKey || e.altKey) return;
-  // offene Bestätigung (Jahrgang): Tasten gehören dem Dialog
-  if ($("#klasseDialog").open) return;
+  // offene Bestätigung (Jahrgang) oder großer QR-Code: Tasten gehören dem Dialog
+  if ($("#klasseDialog").open || $("#qrBig").open) return;
   const v = VIEWS[view];
   if (v && v.handleKey) v.handleKey(e);
 });
@@ -167,10 +173,16 @@ function readKlasseLink() {
   askKlasse(k);
 }
 
-window.addEventListener("hashchange", readKlasseLink);
+// #lehrkraft öffnet die Seite „Für Lehrkräfte“; verschwindet die Angabe (Zurück im Browser), geht es zur Startseite
+function readViewHash() {
+  if (location.hash === TEACHER_HASH) { if (view !== "lehrkraft") show("lehrkraft"); }
+  else if (view === "lehrkraft" && !isKlasseLink(location.hash)) show("home");
+}
+
+window.addEventListener("hashchange", () => { readViewHash(); readKlasseLink(); });
 
 /* ---------- Start ---------- */
 audio.setMuted(ctx.state.muted);
 Object.values(VIEWS).forEach((v) => v.init(ctx));
-show("home");
+show(location.hash === TEACHER_HASH ? "lehrkraft" : "home");
 readKlasseLink();

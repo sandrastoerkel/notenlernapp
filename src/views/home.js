@@ -5,18 +5,24 @@ import { due, nextDue, reviewPlan, dueText } from "../repeat.js";
 import { learnTabOf } from "./learn.js";
 import { countUnsure } from "../adapt.js";
 import { NOTE_KEYS } from "../packs/noten.js";
+import { sections, nextUp, klasseText } from "../klasse.js";
 
 const $ = (s) => document.querySelector(s);
 let ctx = null;
 
 export function init(c) {
   ctx = c;
-  $("#homeContinue").addEventListener("click", () => ctx.show("practice"));
+  // „Weiter üben“: mit Jahrgang die nächste Stufe aus „Jetzt dran“ (klasse.nextUp), sonst die aktuelle Stufe
+  $("#homeContinue").addEventListener("click", () => {
+    const id = continueId(ctx.state, ctx.packs);
+    if (id !== ctx.state.current) { ctx.state.current = id; ctx.save(); }
+    ctx.show("practice");
+  });
   // Runde „Wiederholen“ (Welle 11, Schritt 8): der Plan entsteht beim Start aus dem Karteikasten (repeat.reviewPlan)
   $("#homeReview").addEventListener("click", () => ctx.show("practice", { mode: "wiederholen" }));
   // „Erst anschauen“ öffnet in „Lernen“ den Reiter zur aktuellen Stufe (Welle 11, Schritt 2): den des Pakets,
   // bei „Takt füllen“ den Reiter „Takt“ (learnTabOf)
-  $("#homeLearn").addEventListener("click", () => ctx.show("learn", { tab: learnTabOf(ctx.packs, ctx.state.current) }));
+  $("#homeLearn").addEventListener("click", () => ctx.show("learn", { tab: learnTabOf(ctx.packs, continueId(ctx.state, ctx.packs)) }));
   $("#unlockAll").addEventListener("click", () => { ctx.state.unlockAll = !ctx.state.unlockAll; ctx.save(); render(); });
   // Klick auf eine Stufe (Delegation, weil die Liste bei jedem render neu entsteht)
   $("#levelList").addEventListener("click", (e) => {
@@ -41,14 +47,15 @@ export const packShort = (pack) => (pack ? pack.short || pack.title : "");
 export const AGAIN_TEXT = "wieder dran";
 export const againHtml = () => `<span class="again"><span aria-hidden="true">↻</span>\u00a0${AGAIN_TEXT}</span>`;
 
-// Eine Stufenkarte; dueSet: IDs der fälligen Stufen (repeat.due)
-export function levelHtml(s, pack, l, dueSet = new Set()) {
+// Eine Stufenkarte; dueSet: IDs der fälligen Stufen (repeat.due); withPack: Paketname vorn in der Unterzeile
+// (Abschnitt „Jetzt dran“, Stufen aus mehreren Paketen)
+export function levelHtml(s, pack, l, dueSet = new Set(), withPack = false) {
   const st = s.levels[l.id] || {}, open = isUnlocked(s, pack, l.id);
   const lock = open ? "" : lockText(pack, l);
   const again = dueSet.has(l.id) ? ` · ${againHtml()}` : "";
   return `<button class="level ${open ? "" : "locked"} ${l.id === s.current ? "current" : ""}" data-id="${l.id}" ${open ? "" : "disabled"}>
         <span class="level-no ${st.stars >= 2 ? "done" : ""}">${open ? l.no : "🔒"}</span>
-        <span><span class="level-title">${l.title}</span><br><span class="small muted">${l.subtitle || ""}${lock ? ` · ${keepStufe(lock)}` : ""}${st.played ? ` · beste Runde ${st.best}/10` : ""}${again}</span></span>
+        <span><span class="level-title">${l.title}</span><br><span class="small muted">${withPack ? `${packShort(pack)} · ` : ""}${l.subtitle || ""}${lock ? ` · ${keepStufe(lock)}` : ""}${st.played ? ` · beste Runde ${st.best}/10` : ""}${again}</span></span>
         ${starsHtml(st.stars || 0)}
       </button>`;
 }
@@ -62,9 +69,13 @@ export const unsureText = (k) => (k === 1
 
 const andList = (xs) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} und ${xs[xs.length - 1]}`);
 
+// Stufe für „Weiter üben“: mit Jahrgang die nächste nicht geschaffte Stufe aus „Jetzt dran“ (klasse.nextUp),
+// sonst (ohne Jahrgang oder wenn „Jetzt dran“ leer ist) die aktuelle Stufe wie bisher
+export const continueId = (state, packs) => nextUp(state, packs) || state.current;
+
 // „Weiter üben: Tonleitern, Stufe 6“ bzw. „Starten: Noten lesen, Stufe 1“ (nie gespielte Stufe)
 export function continueText(state, packs) {
-  const { pack, level } = findLevel(packs, state.current);
+  const { pack, level } = findLevel(packs, continueId(state, packs));
   return keepStufe(`${(state.levels || {})[level.id] ? "Weiter üben" : "Starten"}: ${packShort(pack)}, Stufe ${level.no}`);
 }
 
@@ -117,19 +128,74 @@ function renderToday(s, heute) {
   $("#homeSmall").hidden = !c.small;
 }
 
+/* ---------- Abschnitte mit Jahrgang (Welle 11, Schritt 12; rein, getestet) ---------- */
+
+export const SECTION_TITLES = { jetzt: "Jetzt dran", gewesen: "Schon dran gewesen", hinaus: "Darüber hinaus" };
+// „Jahrgang 6 · über den Link deiner Lehrkraft“ (klasseText, also auch „…, Musisches Gymnasium“)
+export const klasseHint = (k) => `${klasseText(k)} · über den Link deiner Lehrkraft`;
+// Satz bei leerem „Jetzt dran“: Kommt im Jahrgang nichts Neues dazu (8 bis 13), oder ist das Neue geschafft?
+export const nothingNewText = (k) => `In Jahrgang ${k.jahrgang} kommt nichts Neues dazu. Alles hier ist zum Wiederholen da.`;
+export const allDoneText = (k) => `Was in Jahrgang ${k.jahrgang} neu ist, hast du mit 8 von 10 geschafft. Alles hier ist zum Wiederholen da.`;
+
+// Startseite mit Jahrgang: { hint, jetzt: { title, ids, empty }, gewesen: { title, groups }, hinaus: { title, groups } }
+// mit groups = [{ pack, ids }] je Paket (nur Pakete mit Stufen im Abschnitt). null ohne Jahrgang (dann bleibt die
+// Startseite wie nach Schritt 8). empty: Satz, wenn „Jetzt dran“ leer ist, sonst "".
+export function homeSections(state, packs) {
+  const sec = sections(state, packs);
+  if (!sec) return null;
+  const k = state.klasse;
+  const group = (ids) => packs.map((pack) => ({ pack, ids: pack.levels.map((l) => l.id).filter((id) => ids.includes(id)) }))
+    .filter((g) => g.ids.length);
+  // ohne Fortschritt leer → der Jahrgang bringt nichts Neues; sonst ist alles Neue geschafft
+  const neu = sections({ klasse: k, levels: {} }, packs).jetzt.length > 0;
+  return {
+    hint: klasseHint(k),
+    jetzt: { title: SECTION_TITLES.jetzt, ids: sec.jetzt, empty: sec.jetzt.length ? "" : neu ? allDoneText(k) : nothingNewText(k) },
+    gewesen: { title: SECTION_TITLES.gewesen, groups: group(sec.gewesen) },
+    hinaus: { title: SECTION_TITLES.hinaus, groups: group(sec.hinaus) },
+  };
+}
+
+// Hinweis „… Noten sitzen noch nicht“ unter der Überschrift „Noten lesen“
+const unsureHtml = (pack, unsure) => (pack.id === "noten" && unsure ? `<p class="small muted unsure-hint">${unsureText(unsure)}</p>` : "");
+
+// Je Paket ein Abschnitt: Überschrift, dann die Stufen (ohne Jahrgang; mit Jahrgang innerhalb der Abschnitte)
+function packsHtml(s, groups, dueSet, unsure, tag) {
+  return groups.map(({ pack, ids }) => `<section class="levels" data-pack="${pack.id}">
+      <${tag}>${pack.title}</${tag}>
+      ${unsureHtml(pack, unsure)}
+      ${pack.levels.filter((l) => ids.includes(l.id)).map((l) => levelHtml(s, pack, l, dueSet)).join("")}
+    </section>`).join("");
+}
+
+function sectionsHtml(s, h, dueSet, unsure) {
+  const findPack = (id) => findLevel(ctx.packs, id);
+  // „Noten sitzen noch nicht“ in „Jetzt dran“, wenn dort Stufen aus „Noten lesen“ stehen (sonst beim Paket)
+  const notenNow = h.jetzt.ids.some((id) => findPack(id).pack.id === "noten");
+  const jetzt = `<section class="levels klasse-sec" data-sec="jetzt"><h2>${h.jetzt.title}</h2>
+      ${notenNow && unsure ? `<p class="small muted unsure-hint">${unsureText(unsure)}</p>` : ""}
+      ${h.jetzt.empty ? `<p class="muted">${h.jetzt.empty}</p>` : h.jetzt.ids.map((id) => { const { pack, level } = findPack(id); return levelHtml(s, pack, level, dueSet, true); }).join("")}
+    </section>`;
+  const rest = notenNow ? 0 : unsure;
+  const gewesen = h.gewesen.groups.length ? `<section class="levels klasse-sec" data-sec="gewesen"><h2>${h.gewesen.title}</h2>
+      ${packsHtml(s, h.gewesen.groups, dueSet, rest, "h3")}</section>` : "";
+  const shownNoten = notenNow || h.gewesen.groups.some((g) => g.pack.id === "noten");
+  const hinaus = h.hinaus.groups.length ? `<details class="levels klasse-sec more" data-sec="hinaus"><summary><h2>${h.hinaus.title}</h2></summary>
+      <div class="levels">${packsHtml(s, h.hinaus.groups, dueSet, shownNoten ? 0 : unsure, "h3")}</div></details>` : "";
+  return `<p class="small muted klasse-hint">${h.hint}</p>${jetzt}${gewesen}${hinaus}`;
+}
+
 export function render() {
   const s = ctx.state;
   ctx.renderTop();
   const heute = today();
   renderToday(s, heute);
   $("#unlockAll").textContent = s.unlockAll ? "Demo-Freischaltung aufheben" : "Alle Stufen öffnen (Demo)";
-  // Je Paket ein Abschnitt: Überschrift, dann die Stufen. Mit Jahrgang kommen hier in Schritt 12 die Abschnitte
-  // „Jetzt dran“, „Schon dran gewesen“ und „Darüber hinaus“ dazu (klasse.sections); ohne Jahrgang bleibt es so.
+  // Ohne Jahrgang: je Paket ein Abschnitt (wie nach Schritt 8). Mit Jahrgang: „Jetzt dran“, „Schon dran gewesen“,
+  // „Darüber hinaus“ (zugeklappt) aus klasse.sections (Welle 11, Schritt 12)
   const unsure = countUnsure(s.notes, NOTE_KEYS);
   const dueSet = new Set(due(s, ctx.packs, heute));
-  $("#levelList").innerHTML = ctx.packs.map((pack) => `<section class="levels" data-pack="${pack.id}">
-      <h2>${pack.title}</h2>
-      ${pack.id === "noten" && unsure ? `<p class="small muted unsure-hint">${unsureText(unsure)}</p>` : ""}
-      ${pack.levels.map((l) => levelHtml(s, pack, l, dueSet)).join("")}
-    </section>`).join("");
+  const h = homeSections(s, ctx.packs);
+  $("#levelList").innerHTML = h ? sectionsHtml(s, h, dueSet, unsure)
+    : packsHtml(s, ctx.packs.map((pack) => ({ pack, ids: pack.levels.map((l) => l.id) })), dueSet, unsure, "h2");
 }

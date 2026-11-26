@@ -6,6 +6,9 @@ import { PACKS } from "../../src/packs/index.js";
 import { fresh, recordRound } from "../../src/store.js";
 import { afterRound, applyReview, reviewPlan, due } from "../../src/repeat.js";
 import { findLevel } from "../../src/engine.js";
+import { homeSections, continueId, klasseHint, nothingNewText, allDoneText, SECTION_TITLES } from "../../src/views/home.js";
+import { klasseNote } from "../../src/views/stats.js";
+import { dranFor } from "../../src/klasse.js";
 
 const NB = " ";
 const T = "2026-11-25";
@@ -103,4 +106,71 @@ test("Ablauf: normale Runde nimmt auf, morgen „Wiederholen“, nach der Wieder
   const plan = reviewPlan(s, PACKS, morgen);
   applyReview(s, plan.map((e) => ({ ...e, ok: e.n })), morgen);
   assert.equal(todayCard(s, PACKS, morgen).small, "Nächste Wiederholung: in 3 Tagen");
+});
+
+/* ---------- Abschnitte mit Jahrgang (Welle 11, Schritt 12) ---------- */
+
+const mitKlasse = (jahrgang, zweig = null, extra = {}) => Object.assign(fresh(), { klasse: { jahrgang, zweig, dran: dranFor(jahrgang, zweig) } }, extra);
+const allIds = PACKS.flatMap((p) => p.levels.map((l) => l.id));
+
+test("homeSections: ohne Jahrgang null (Startseite wie nach Schritt 8)", () => {
+  assert.equal(homeSections(fresh(), PACKS), null);
+  assert.equal(continueId(Object.assign(fresh(), { current: "tonleitern-6" }), PACKS), "tonleitern-6");
+});
+
+test("homeSections: Jahrgang 5 ohne Fortschritt – alles aus „dran“ in „Jetzt dran“, der Rest „Darüber hinaus“", () => {
+  const h = homeSections(mitKlasse(5), PACKS);
+  assert.equal(h.hint, "Jahrgang 5 · über den Link deiner Lehrkraft");
+  assert.equal(h.jetzt.title, "Jetzt dran");
+  assert.equal(h.jetzt.empty, "");
+  assert.equal(h.jetzt.ids.length, 8 + 10 + 2 + 9);
+  assert.deepEqual(h.gewesen.groups, []);
+  assert.equal(h.hinaus.title, "Darüber hinaus");
+  assert.deepEqual(h.hinaus.groups.map((g) => [g.pack.id, g.ids.length]), [["intervalle", 8], ["tonleitern", 4], ["akkorde", 6]]);
+  // jede Stufe genau einmal
+  const shown = [...h.jetzt.ids, ...h.gewesen.groups.flatMap((g) => g.ids), ...h.hinaus.groups.flatMap((g) => g.ids)];
+  assert.deepEqual([...shown].sort(), [...allIds].sort());
+  // „Weiter üben“ nimmt die erste Stufe aus „Jetzt dran“
+  assert.equal(continueId(mitKlasse(5, null, { current: "akkorde-3" }), PACKS), "noten-1");
+  assert.equal(continueText(mitKlasse(5, null, { current: "akkorde-3" }), PACKS), `Starten: Noten lesen, Stufe${NB}1`);
+});
+
+test("homeSections: Jahrgang 7 – „Jetzt dran“ = Dreiklänge 5 und 6, Früheres in „Schon dran gewesen“ je Paket", () => {
+  const h = homeSections(mitKlasse(7), PACKS);
+  assert.deepEqual(h.jetzt.ids, ["akkorde-5", "akkorde-6"]);
+  assert.deepEqual(h.gewesen.groups.map((g) => g.pack.id), ["noten", "notenwerte", "intervalle", "tonleitern", "akkorde"]);
+  assert.deepEqual(h.hinaus.groups.map((g) => [g.pack.id, g.ids]), [["intervalle", ["intervall-5", "intervall-6", "intervall-7", "intervall-8", "intervall-9", "intervall-10"]]]);
+  assert.equal(continueText(mitKlasse(7), PACKS), `Starten: Dreiklänge, Stufe${NB}5`);
+  // geschafft (beste Runde ≥ 8) rückt nach „Schon dran gewesen“; „Weiter üben“ nimmt die nächste
+  const s = mitKlasse(7, null, { levels: { "akkorde-5": { played: 2, best: 9, stars: 3 } } });
+  assert.deepEqual(homeSections(s, PACKS).jetzt.ids, ["akkorde-6"]);
+  assert.equal(continueId(s, PACKS), "akkorde-6");
+  // MuG: nichts darüber hinaus
+  assert.deepEqual(homeSections(mitKlasse(7, "mug"), PACKS).hinaus.groups, []);
+  assert.equal(homeSections(mitKlasse(7, "mug"), PACKS).hint, "Jahrgang 7, Musisches Gymnasium · über den Link deiner Lehrkraft");
+});
+
+test("homeSections: Jahrgang 9 – „Jetzt dran“ leer mit Satz; alles Neue geschafft – anderer Satz", () => {
+  const h = homeSections(mitKlasse(9, null, { current: "tonleitern-6" }), PACKS);
+  assert.deepEqual(h.jetzt.ids, []);
+  assert.equal(h.jetzt.empty, "In Jahrgang 9 kommt nichts Neues dazu. Alles hier ist zum Wiederholen da.");
+  assert.equal(h.jetzt.empty, nothingNewText({ jahrgang: 9 }));
+  // ohne „Jetzt dran“ bleibt „Weiter üben“ bei der aktuellen Stufe
+  assert.equal(continueId(mitKlasse(9, null, { current: "tonleitern-6" }), PACKS), "tonleitern-6");
+  const done = mitKlasse(7, null, { levels: { "akkorde-5": { best: 8 }, "akkorde-6": { best: 10 } } });
+  assert.equal(homeSections(done, PACKS).jetzt.empty, allDoneText({ jahrgang: 7 }));
+  assert.equal(allDoneText({ jahrgang: 7 }), "Was in Jahrgang 7 neu ist, hast du mit 8 von 10 geschafft. Alles hier ist zum Wiederholen da.");
+  assert.deepEqual(Object.values(SECTION_TITLES), ["Jetzt dran", "Schon dran gewesen", "Darüber hinaus"]);
+  assert.equal(klasseHint({ jahrgang: 6, zweig: null, dran: dranFor(6) }), "Jahrgang 6 · über den Link deiner Lehrkraft");
+});
+
+test("Stufenkarte in „Jetzt dran“: Paketname (kurz) vorn in der Unterzeile", () => {
+  const html = levelHtml(fresh(), pack("akkorde"), lv("akkorde-5"), new Set(), true);
+  assert.match(html, /<span class="small muted">Dreiklänge · /);
+  assert.ok(!/<span class="small muted">Dreiklänge · /.test(levelHtml(fresh(), pack("akkorde"), lv("akkorde-5"))));
+});
+
+test("Statistik: Hinweis auf den Jahrgang bzw. nichts", () => {
+  assert.equal(klasseNote(null), "");
+  assert.equal(klasseNote({ jahrgang: 6, zweig: null, dran: dranFor(6) }), "Jahrgang 6 (über den Link deiner Lehrkraft)");
 });

@@ -242,9 +242,9 @@ test("Ergebniskarte: Zahlwörter, Orte, Satz zum Fehlermuster, Knöpfe", () => {
   assert.deepEqual([3, 4, 5, 6, 7, 8, 9, 10].map(countWord),
     ["Dreimal", "Viermal", "Fünfmal", "Sechsmal", "Siebenmal", "Achtmal", "Neunmal", "Zehnmal"]);
   assert.equal(placesText(PACKS, ["intervall-2"]), "Intervalle, Stufe 2");
-  assert.equal(placesText(PACKS, ["notenwerte-3", "notenwerte-5", "notenwerte-7"]), "Notenwerte und Pausen, Stufen 3, 5 und 7");
+  assert.equal(placesText(PACKS, ["notenwerte-3", "notenwerte-5", "notenwerte-7"]), "Notenwerte, Stufen 3, 5 und 7");
   assert.equal(placesText(PACKS, ["intervall-2", "tonleitern-3"]), "Intervalle, Stufe 2 und in Tonleitern, Stufe 3");
-  assert.equal(placesText(PACKS, ["akkorde-1", "intervall-4"]), "Dreiklänge und Quintenzirkel, Stufe 1 und in Intervalle, Stufe 4");
+  assert.equal(placesText(PACKS, ["akkorde-1", "intervall-4"]), "Dreiklänge, Stufe 1 und in Intervalle, Stufe 4");
   // Beispiel aus docs/PLAN.md
   assert.equal(gapText(PACKS, { needs: ["intervall-2"], count: 3, step: 0 }),
     `Dreimal lag der erste Schritt daneben (Notenstufen zählen). Das übst du in Intervalle, Stufe${NB}2.`);
@@ -255,10 +255,12 @@ test("Ergebniskarte: Zahlwörter, Orte, Satz zum Fehlermuster, Knöpfe", () => {
   assert.equal(gapText(PACKS, { needs: ["intervall-3"], count: 3, step: 1, helps: true }),
     `Dreimal lag der zweite Schritt daneben. Mit Hilfen übst du das in Stufe${NB}3.`);
   assert.equal(gapText(PACKS, { needs: ["notenwerte-5", "notenwerte-7"], count: 3, step: 0 }),
-    `Dreimal lag der erste Schritt daneben. Das übst du in Notenwerte und Pausen, Stufen${NB}5 und${NB}7.`);
+    `Dreimal lag der erste Schritt daneben. Das übst du in Notenwerte, Stufen${NB}5 und${NB}7.`);
   assert.equal(openLabel(PACKS, intervalle, "intervall-2"), `Stufe${NB}2 öffnen`);
   assert.equal(openLabel(PACKS, intervalle, "noten-7"), `Noten lesen 7 öffnen`);
   assert.equal(openLabel(PACKS, intervalle, "intervall-3", true), `Stufe${NB}3 mit Hilfen üben`);
+  // Kurzname des Pakets (packShort) auch im Knopf
+  assert.equal(openLabel(PACKS, intervalle, "notenwerte-5"), `Notenwerte 5 öffnen`);
   // gleiche Zahl und gleicher Schritt: ein Satz
   assert.deepEqual(gapGroups([{ need: "a", count: 3, step: null }, { need: "b", count: 3, step: null }, { need: "c", count: 4, step: 0 }]),
     [{ needs: ["a", "b"], count: 3, step: null, helps: false }, { needs: ["c"], count: 4, step: 0, helps: false }]);
@@ -289,7 +291,7 @@ test("Ergebniskarte: „Grundlagen wiederholen“ zuerst unter 5 Richtigen, sons
   assert.equal(r.gaps.length, 1);
   assert.deepEqual(r.gaps[0].needs, ["notenwerte-3", "notenwerte-5", "notenwerte-7", "notenwerte-9"]);
   assert.equal(r.gaps[0].open, null);
-  assert.equal(r.gaps[0].text, `Viermal lag die Antwort daneben. Das übst du in Notenwerte und Pausen, Stufen${NB}3, 5, 7 und${NB}9.`);
+  assert.equal(r.gaps[0].text, `Viermal lag die Antwort daneben. Das übst du in Notenwerte, Stufen${NB}3, 5, 7 und${NB}9.`);
 });
 
 // Welle 11, Schritt 8: Runde „Wiederholen“

@@ -360,8 +360,8 @@ export function placesText(packs, ids) {
     const x = byPack.find((b) => b.pack === pack);
     if (x) x.nos.push(level.no); else byPack.push({ pack, nos: [level.no] });
   }
-  // mehrere Pakete: „… und in …“, damit das „und“ in „Dreiklänge und Quintenzirkel“ nicht wie die Aufzählung liest
-  const parts = byPack.map(({ pack, nos }) => `${pack.title}, ${nos.length > 1 ? "Stufen" : "Stufe"} ${andList(nos)}`);
+  // Kurzname des Pakets wie auf der Karte „Heute“ (packShort, Welle 11, Schritt 12); mehrere Pakete: „… und in …“
+  const parts = byPack.map(({ pack, nos }) => `${packShort(pack)}, ${nos.length > 1 ? "Stufen" : "Stufe"} ${andList(nos)}`);
   return parts.length < 2 ? parts.join("") : parts.slice(0, -1).join(", in ") + " und in " + parts[parts.length - 1];
 }
 
@@ -377,11 +377,11 @@ export function gapText(packs, group) {
   return engine.keepStufe(`${what} ${where}`);
 }
 
-// Knopf „Stufe 2 öffnen“ (im selben Paket) bzw. „Intervalle 2 öffnen“ (anderes Paket); mit Hilfen „Stufe 3 mit Hilfen üben“
+// Knopf „Stufe 2 öffnen“ (im selben Paket) bzw. „Intervalle 2 öffnen“ (anderes Paket, Kurzname); mit Hilfen „Stufe 3 mit Hilfen üben“
 export function openLabel(packs, pack, id, helps = false) {
   const t = engine.findLevel(packs, id);
   if (helps) return engine.keepStufe(`Stufe ${t.level.no} mit Hilfen üben`);
-  return engine.keepStufe(t.pack === pack ? `Stufe ${t.level.no} öffnen` : `${t.pack.title} ${t.level.no} öffnen`);
+  return engine.keepStufe(t.pack === pack ? `Stufe ${t.level.no} öffnen` : `${packShort(t.pack)} ${t.level.no} öffnen`);
 }
 
 // Ergebniskarte einer normalen Runde, Teil „Grundlagen“ (rein, getestet): { first, gaps, only }

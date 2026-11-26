@@ -124,4 +124,6 @@ test("Liste deckt genau den Dateibaum der App ab (nichts fehlt, nichts zu viel)"
   const expected = new Set(["./", "./index.html", "./manifest.webmanifest", ...tree]);
   assert.deepEqual([...new Set(list)].sort(), [...expected].sort());
   assert.ok(list.includes("./src/sprueche.js"));
+  // Welle 11: Module der Wiederholung und des Jahrgangs, Seite „Für Lehrkräfte“ (QR-Code auch offline)
+  for (const f of ["./src/repeat.js", "./src/klasse.js", "./src/qr.js", "./src/views/lehrkraft.js"]) assert.ok(list.includes(f), f);
 });

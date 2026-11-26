@@ -12,7 +12,9 @@
 // Stufe und „… üben“, danach die Karte „Heute“ ohne Fälliges), eine normale Runde ganz richtig („Neu im Kasten“),
 // zwei Runden „Grundlagen wiederholen“ über die Startkarte und eine Ergebniskarte mit Fehlermuster (Schritt 7),
 // „Lernen“ je Reiter und Schlüssel mit allen Vorführungen, Blitz und Statistik, zuletzt die Bestätigung beim Link der
-// Lehrkraft (setzen, ändern, entfernen) und der Hinweis bei einem Link, der nicht passt (Welle 11, Schritt 11).
+// Lehrkraft (setzen, ändern, entfernen) und der Hinweis bei einem Link, der nicht passt (Welle 11, Schritt 11), die
+// Startseite mit Jahrgang 5, 7 und 9 und die Seite „Für Lehrkräfte“ samt „QR-Code groß zeigen“ (Schritt 12; dort
+// auch: Esc schließt, Fokus zurück, der gespeicherte Stand bleibt unverändert).
 // In jedem Zustand zählt außerdem ein zweiter sichtbarer Knopf „Nächste Aufgabe“ als Treffer (W2, Welle 11).
 //
 // Playwright ist KEINE Abhängigkeit der App (siehe screenshots.mjs). Aufruf bei laufendem Server:
@@ -339,6 +341,38 @@ async function run(browser, width, scheme) {
   await pg.goto(BASE + "#klasse=99"); await pg.waitForTimeout(400);
   if (!(await vis("#klasseBar"))) errs.push("Hinweis bei falschem Link fehlt");
   await chk("Hinweis Link passt nicht", "#klasseBar");
+  await pg.click("#klasseBarClose"); await pg.waitForTimeout(100);
+  // Startseite mit Jahrgang 5, 7 und 9 (Welle 11, Schritt 12): Abschnitte, „Darüber hinaus“ auf- und zugeklappt
+  for (const j of [5, 7, 9]) {
+    await pg.goto(BASE + "#klasse=" + j); await pg.waitForTimeout(400);
+    if (await vis("#klasseDialog")) { await pg.click("#klasseYes"); await pg.waitForTimeout(300); }
+    if (!(await vis('#levelList [data-sec="jetzt"]'))) errs.push(`Jahrgang ${j}: kein Abschnitt „Jetzt dran“`);
+    await chk(`Startseite Jahrgang ${j}`);
+    if (await pg.locator('#levelList [data-sec="hinaus"] > summary').count()) {
+      await pg.click('#levelList [data-sec="hinaus"] > summary'); await pg.waitForTimeout(150); await chk(`Startseite Jahrgang ${j} „Darüber hinaus“ offen`);
+    }
+  }
+  // Seite „Für Lehrkräfte“ über den Textlink der Statistik: Voreinstellung, MuG, eigene Auswahl, „groß zeigen“.
+  // Die Seite darf auf diesem Gerät nichts ändern: der gespeicherte Stand ist danach derselbe
+  const stand = () => pg.evaluate("JSON.stringify(Object.fromEntries(Object.keys(localStorage).sort().map((k) => [k, localStorage.getItem(k)])))");
+  await pg.click('.tab[data-view="stats"]'); await pg.waitForTimeout(300);
+  const vorher = await stand();
+  await pg.click('#view-stats a[href="#lehrkraft"]'); await pg.waitForTimeout(400);
+  if (!(await vis("#view-lehrkraft"))) errs.push("Für Lehrkräfte: Textlink öffnet die Seite nicht");
+  await chk("Für Lehrkräfte Voreinstellung");
+  await pg.selectOption("#tJahrgang", "13"); await pg.check("#tMug"); await pg.waitForTimeout(100); await chk("Für Lehrkräfte Jahrgang 13 MuG");
+  for (const [id, n] of [["noten", "3"], ["notenwerte", "4"], ["intervalle", "6"], ["tonleitern", "7"], ["akkorde", "1"]]) await pg.selectOption(`#tDran select[data-pack="${id}"]`, n);
+  await pg.waitForTimeout(100); await chk("Für Lehrkräfte eigene Auswahl (langer Link)");
+  await pg.click("#tBig"); await pg.waitForTimeout(250);
+  if (!(await vis("#qrBig"))) errs.push("Für Lehrkräfte: „QR-Code groß zeigen“ öffnet nichts");
+  await chk("QR-Code groß", "#qrBig"); await chk("QR-Code groß (Seite)");
+  await pg.keyboard.press("Escape"); await pg.waitForTimeout(150);
+  if (await vis("#qrBig")) errs.push("QR-Code groß: Esc schließt nicht");
+  if ((await pg.evaluate("document.activeElement && document.activeElement.id")) !== "tBig") errs.push("QR-Code groß: Fokus nicht zurück auf dem Knopf");
+  await pg.click("#tPreset"); await pg.waitForTimeout(100);
+  await pg.click("#tBack"); await pg.waitForTimeout(300);
+  if (!(await vis("#view-home"))) errs.push("Für Lehrkräfte: „Zurück zur App“ führt nicht zur Startseite");
+  if ((await stand()) !== vorher) errs.push("Für Lehrkräfte: gespeicherter Stand hat sich geändert");
   await ctx.close();
   return { hits: [...all.values()], errs };
 }

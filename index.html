@@ -183,7 +183,58 @@
       <div class="row" id="sResetRow">
         <button class="btn ghost" id="sReset">Fortschritt zurücksetzen</button>
       </div>
+      <p class="small" id="sKlasse" hidden></p>
+      <p class="small"><a class="text-link" href="#lehrkraft">Für Lehrkräfte</a></p>
     </div>
+  </section>
+  <!-- FÜR LEHRKRÄFTE (Welle 11, Schritt 12): nur über #lehrkraft und den Textlink in der Statistik, kein Reiter -->
+  <section id="view-lehrkraft" hidden>
+    <div>
+      <p class="eyebrow">Link und QR-Code</p>
+      <h2>Für Lehrkräfte</h2>
+    </div>
+    <p class="muted">Hier erzeugen Sie einen Link und einen QR-Code für Ihre Klasse. Die Schülerinnen und Schüler öffnen den Link oder scannen den Code und bestätigen einmal. Der Link enthält nur den Jahrgang und die Auswahl der Stufen – keine Namen, keine Ergebnisse. Nichts verlässt das Gerät. Auf diesem Gerät ändert sich durch diese Seite nichts.</p>
+
+    <div class="card stack">
+      <h3>Jahrgang</h3>
+      <div class="row">
+        <label class="field"><span>Jahrgang</span> <select id="tJahrgang"></select></label>
+        <label class="check"><input type="checkbox" id="tMug"> Musisches Gymnasium</label>
+      </div>
+    </div>
+
+    <div class="card stack">
+      <h3>Was ist dran?</h3>
+      <div class="stack" id="tDran"></div>
+      <p class="small" id="tCustom" hidden>Eigene Auswahl: Im Link stehen nur die Abweichungen von der Voreinstellung.</p>
+      <div class="row"><button class="btn ghost" id="tPreset">Voreinstellung für Jahrgang 5</button></div>
+      <p class="small muted">Voreinstellung nach dem LehrplanPLUS (Gymnasium Bayern, Musik). Alles Frühere bleibt offen, nichts wird gesperrt.</p>
+    </div>
+
+    <div class="card stack">
+      <h3>Link für die Klasse</h3>
+      <p class="klasse-what" id="tWhat"></p>
+      <p class="link-text" id="tLink"></p>
+      <div class="row">
+        <button class="btn" id="tCopy">Link kopieren</button>
+        <span class="small copied" id="tCopied" aria-live="polite"></span>
+      </div>
+      <div class="qr-box" id="tQr"></div>
+      <button class="btn primary" id="tBig">QR-Code groß zeigen</button>
+    </div>
+
+    <div class="card stack">
+      <h3>Jahrgang wieder entfernen</h3>
+      <p class="small muted">Mit diesem Link entfernen die Schülerinnen und Schüler den Jahrgang wieder, ebenfalls nach einer Bestätigung. Der Fortschritt bleibt, es schließt sich nichts.</p>
+      <p class="link-text" id="tRemoveLink"></p>
+      <div class="row">
+        <button class="btn" id="tCopyRemove">Link kopieren</button>
+        <span class="small copied" id="tCopiedRemove" aria-live="polite"></span>
+      </div>
+      <div class="qr-box small-qr" id="tRemoveQr"></div>
+    </div>
+
+    <div class="row"><button class="btn ghost" id="tBack">Zurück zur App</button></div>
   </section>
 </main>
 
@@ -222,6 +273,17 @@
       <button class="btn ghost" id="klasseNo" value="nein">Nicht übernehmen</button>
     </div>
   </form>
+</dialog>
+
+<!-- QR-Code groß für Beamer und Tafel (src/views/lehrkraft.js): füllt die Breite, Esc oder „Schließen“ -->
+<dialog class="qr-dialog" id="qrBig" aria-labelledby="qrBigTitle">
+  <div class="stack">
+    <div class="row between">
+      <h2 id="qrBigTitle">Jahrgang 5</h2>
+      <button class="btn" id="qrBigClose">Schließen</button>
+    </div>
+    <div class="qr-big" id="qrBigBox"></div>
+  </div>
 </dialog>
 
 <script type="module" src="./src/app.js"></script>

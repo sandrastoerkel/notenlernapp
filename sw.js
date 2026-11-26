@@ -34,6 +34,7 @@ const PRECACHE = [
   "./src/views/learn.js",
   "./src/views/blitz.js",
   "./src/views/stats.js",
+  "./src/views/lehrkraft.js",
   "./fonts/NotoMusic-Regular-music.woff2",
   "./fonts/Nunito-latin.woff2",
   "./fonts/Outfit-latin.woff2",
