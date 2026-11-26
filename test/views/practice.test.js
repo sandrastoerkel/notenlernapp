@@ -467,3 +467,11 @@ test("level.keysHint ersetzt den Tastatur-Hinweis; „Namen“, wenn ein Schritt
     assert.ok(!l.keysHint, l.id);
   }
 });
+
+// Welle 12, Schritt 0 (Prüfung): Die Engine setzt den Fokus auf den sichtbaren Antwortbereich (Knöpfe oder
+// Klaviatur), wenn Knöpfe verschwinden – dafür müssen beide Bereiche einen Fokus annehmen können
+test("Antwortbereich und Klaviatur nehmen den Fokus an (tabindex=\"-1\")", () => {
+  const html = readFileSync(new URL("../../index.html", import.meta.url), "utf8");
+  assert.match(html, /<div class="answers" id="pAnswers" role="group" aria-label="Antworten" tabindex="-1">/);
+  assert.match(html, /<div class="piano card" id="pPiano" tabindex="-1" hidden>/);
+});
