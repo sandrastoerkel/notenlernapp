@@ -114,11 +114,11 @@ test("Gerüst der Vorführungen und Lerntafeln", () => {
     const l = lv(`noten-${no}`), it = l.items[0];
     assert.deepEqual(l.demo({ note: it.n, clef: it.clef }).steps, [...SCHRITTE[a]], l.id);
   }
-  // Lerntafeln: im Gerüst „Merkhilfen“ je Schlüssel, wie bisher
+  // Lerntafeln: seit Schritt 5 fünf je Schlüssel, „Merkhilfen“ an zweiter Stelle mit der Tafel aus noten.js
   const b = boards((clef) => `<div>${clef}</div>`);
-  assert.deepEqual(b.map((c) => [c.title, c.clef]), [["Merkhilfen", "treble"], ["Merkhilfen", "bass"]]);
-  assert.equal(b[1].render({ state: fresh() }), "<div>bass</div>");
-  assert.deepEqual(noten.learn.map((c) => [c.title, c.clef]), [["Merkhilfen", "treble"], ["Merkhilfen", "bass"]]);
+  assert.deepEqual(b.filter((c) => c.title === "Merkhilfen").map((c) => c.clef), ["treble", "bass"]);
+  assert.equal(b.filter((c) => c.clef === "bass")[1].render({ state: fresh() }), "<div>bass</div>");
+  assert.deepEqual(noten.learn.map((c) => [c.title, c.clef]), b.map((c) => [c.title, c.clef]));
 });
 
 /* ---------- Kanten, Kasten, Jahrgang ---------- */

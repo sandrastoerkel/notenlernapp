@@ -742,3 +742,25 @@ svg.ok .beam { fill: var(--ok); } svg.bad .beam { fill: var(--bad); }
 
 
 /* ---------- Noten lesen: Vorführung (Welle 12, Schritt 5) ---------- */
+/* Ring um Notenkopf bzw. Vorzeichen, Nummern der Linien/Zwischenräume (die der Note violett), Bezugslinie
+   (violett), gezählte Köpfe blass in der Farbe ihres Schritts mit Namen darunter, Wort des Merkspruchs grün,
+   Klaviatur: Stammton violett (mark), Note mit Vorzeichen grün (count, wie die gezählten Tasten) */
+.nl-ring { fill: none; stroke-width: 2.2; }
+.nl-ring.s1 { stroke: var(--step1); } .nl-ring.s2 { stroke: var(--step2); }
+.nl-num text { font-family: var(--display); font-weight: 800; font-size: 10.5px; fill: var(--muted); }
+.nl-num.on circle { fill: var(--step1-soft); stroke: var(--step1); stroke-width: 1.4; }
+.nl-num.on text { fill: var(--step1-ink); }
+.nl-refline { stroke: var(--step1); stroke-width: 3; stroke-linecap: round; }
+.nl-weg { opacity: .55; }
+.nl-s1 .notehead { fill: var(--step1); } .nl-s1 .ledger { stroke: var(--step1); }
+.nl-s2 .notehead { fill: var(--step2); } .nl-s2 .ledger { stroke: var(--step2); }
+.nl-name { font-family: var(--display); font-weight: 800; font-size: 13px; }
+.nl-t1 { fill: var(--step1-ink); } .nl-t2 { fill: var(--step2-ink); }
+.nl-spruch { margin: 0; text-align: center; font-weight: 700; overflow-wrap: anywhere; }
+.nl-wort.s2 { color: var(--step2-ink); background: var(--step2-soft); border-radius: 4px; padding: 0 3px; }
+.nl-keys { justify-self: center; width: 100%; max-width: 280px; }
+.nl-keys .keys-static .wkey.mark { fill: var(--step1); stroke: var(--key-white-edge); stroke-width: 1; }
+.nl-keys .keys-static .klabel.mark { fill: var(--step-on); font-weight: 700; }
+.nl-vz-board { display: grid; gap: 8px; justify-items: start; }
+.nl-vz-board > p { margin: 0; }
+.nl-namen td { min-width: 4em; }
