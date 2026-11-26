@@ -2084,6 +2084,12 @@ Das Paket „Dreiklänge Schritt für Schritt“ bringt seine Kanten selbst mit 
   – über den Lehrkraft-Link gesetzt (siehe 4). `dran` wird beim Übernehmen vollständig eingetragen (nicht bei
   jedem Laden aus der Tabelle neu berechnet), damit ein Update der Tabelle die Einstellung nicht stillschweigend
   ändert. **Bleibt beim Zurücksetzen erhalten.**
+- `klasseOffen: { noten: 8, intervalle: 10, … }` (Korrektur nach der Prüfung, W-A1): Hochwassermarke, je Paket das
+  höchste je übernommene „dran“. Wächst nur (`setKlasse` nimmt das Maximum, `clearKlasse` und ein niedrigerer
+  Jahrgang lassen sie stehen); `isUnlocked` liest sie. Gehört zur Einstellung: **bleibt beim Zurücksetzen erhalten**
+  wie `klasse`. Alte Stände mit Jahrgang bekommen beim Laden die Marke = aktuelles „dran“.
+- `basicsOk: { "<Stufen-ID>": "JJJJ-MM-TT" }` (Korrektur W-B4): je Voraussetzung der Tag, an dem in einer
+  Grundlagen-Runde alle ihre Aufgaben stimmten. Fortschritt (wird beim Zurücksetzen gelöscht).
 - Vorhanden und endlich genutzt: `notes[key].last` und `.hist` (je Aufgabe bzw. Note).
 - Einmalige Umstellung mit Marker `"wiederholen"`: Für jede schon geschaffte Stufe ohne Hilfen (beste Runde
   ≥ 8) entsteht ein Eintrag in Fach 1. Die Fälligkeiten werden verteilt: Stufen in der Reihenfolge der Pakete
@@ -2098,7 +2104,9 @@ Das Paket „Dreiklänge Schritt für Schritt“ bringt seine Kanten selbst mit 
 verteilt, innerhalb jeder Voraussetzung bevorzugt die Aufgaben, die noch nicht sitzen oder lange nicht dran
 waren. Ohne Hilfen, mit Auflösung und Warten nach „daneben“ (Welle 10). Es gibt Erfahrungspunkte (10 je richtige
 Antwort) und die Runde zählt für die Tagesserie, aber es gibt keine Sterne und keine Freischaltung; jede Antwort
-zählt in der Statistik ihrer eigenen Stufe. Der Karteikasten (siehe 3) ändert sich durch diese Runde nicht.
+zählt in der Statistik ihrer eigenen Stufe. Der Karteikasten (siehe 3) ändert sich durch diese Runde nicht –
+mit einer Ausnahme (Korrektur W-B4): Eine **fällige** Voraussetzung mit mindestens 3 Aufgaben in der Runde, die
+bestanden ist, zählt als ihre Wiederholung (ein Fach weiter); nicht bestanden ändert nichts.
 
 **Technische Voraussetzung.** Die Engine führt heute eine Runde für genau eine Stufe (Eingabeart, `check`,
 Ziffern, Namensraster hängen an der Stufe). Für gemischte Runden trägt jede Aufgabe ihre Herkunft (`q.from` =
@@ -2131,7 +2139,10 @@ Schritte).
    und führt zu Punkt 1.
 
 Das Angebot verschwindet für diese Stufe, sobald die Grundlagen-Runde mit höchstens einem Fehler gespielt wurde,
-und kommt wieder, wenn einer der Auslöser erneut zutrifft.
+und kommt wieder, wenn einer der Auslöser erneut zutrifft. Seit der Korrektur W-B4 zählt gezeigtes Können auch je
+Voraussetzung: Stimmten alle Aufgaben einer Voraussetzung, gilt für sie in **jeder** Stufe, die sie braucht, der
+spätere Tag aus diesem und dem Merker der Stufe (Intervalle 4 empfiehlt nach fehlerfreien Grundlagen zu Intervalle 3
+nicht noch einmal dasselbe).
 
 ### 3. Wiederholung über Tage
 
@@ -2159,10 +2170,19 @@ gewichtete Auswahl (`adapt.js`) die Aufgaben.
   Urteil je Stufe: bei n Aufgaben höchstens ⌊n / 5⌋ Fehler → „sitzt“, ein Fach weiter, fällig nach dem neuen
   Abstand (bei 3 oder 4 Aufgaben also alle richtig, bei 5 eine daneben erlaubt, bei 10 zwei – das entspricht
   8 von 10). Sonst ein Fach zurück (nicht unter 1), morgen wieder fällig, und die Ergebniskarte bietet die Stufe
-  zum Üben an. Die Runde zählt für Tagesserie und Erfahrungspunkte wie eine normale Runde (10 je richtige
+  zum Üben an. **Korrektur nach der Prüfung (26.11.2026):** Genau ein Fehler, nicht bestanden (bei 3 oder 4
+  Aufgaben) → „fast“: Fach bleibt, morgen wieder fällig; ein Fach zurück erst ab zwei Fehlern (W-B2). Ratestufen
+  (`guess`) „sitzen“ erst bei höchstens 2 · ⌊n / 10⌋ Fehlern (4 und 5 Aufgaben: alle richtig, 10: zwei daneben), so
+  besteht Raten höchstens in 6,3 % der Runden (W-B1); ein Fehler ist dort „fast“. Die Zeile der Ergebniskarte nennt
+  die Zahl: „Notenwerte 5 · 2 von 3 · ↻ fast · morgen noch einmal“ (W-B2/J-B3). Die Runde zählt für Tagesserie und Erfahrungspunkte wie eine normale Runde (10 je richtige
   Antwort und der Bonus 20 · Sterne nach `starsFor`); Sterne werden bei keiner Stufe eingetragen.
 - Eine normale Runde in einer fälligen Stufe mit ≥ 8 Richtigen zählt wie eine bestandene Wiederholung. Ist die
   Stufe nicht fällig, ändert die Runde das Fach nicht (viel am selben Tag soll den Abstand nicht verlängern).
+  Korrektur W-B7: Mit weniger als 8 Richtigen in einer nicht fälligen Stufe ist sie morgen wieder fällig
+  (`faellig = min(faellig, morgen)`, Fach bleibt; „Wiederholung: morgen noch einmal.“).
+- Uhr vor- und zurückgestellt (Korrektur W-C1): Ein Eintrag mit `zuletzt` nach heute oder `faellig − heute` über
+  dem Abstand seines Fachs gilt heute als fällig (ein Tag Spielraum für Reisen nach Westen; Einträge der Umstellung
+  mit `zuletzt: null`: Grenze 30 Tage).
 - Fach 5 ist nicht „fertig“: Die Stufe kommt weiter alle 30 Tage (Leitsatz 1).
 - Nach langer Pause (Ferien) ist vieles fällig. Die App zeigt dann nicht die ganze Menge als Schuld, sondern
   immer nur die nächste Runde; die Reihenfolge ist „am längsten fällig zuerst“, Grundlagen vor dem, was auf
@@ -2281,11 +2301,15 @@ Paket „Dreiklänge Schritt für Schritt“ wird die Reihe ohnehin neu geordnet
    als Grundlagen (siehe 2), nicht als Rückstand.
 4. In der Statistik steht der Jahrgang als Hinweis.
 - **Was sich nie ändert.** Fortschritt, Sterne, Erfahrungspunkte, Karteikasten und alles schon Offene bleiben,
-  egal wie die Einstellung gesetzt, geändert oder entfernt wird. „Darüber hinaus“ ist nicht gesperrt: Es gilt die
+  egal wie die Einstellung gesetzt, geändert oder entfernt wird. Dafür sorgt seit der Korrektur W-A1 die
+  Hochwassermarke `klasseOffen` (Abschnitt 1): Was ein Jahrgang einmal geöffnet hat, bleibt offen, auch nach
+  „Jahrgang entfernen“ oder einem niedrigeren Jahrgang; Abschnitte, „Jetzt dran“ und „Weiter üben“ folgen der
+  aktuellen Einstellung. „Darüber hinaus“ ist nicht gesperrt: Es gilt die
   bisherige Freischaltung (8 von 10 bzw. „Alle Stufen öffnen“). Ohne Einstellung verhält sich die App wie
   heute. Die Einstellung übersteht „Zurücksetzen“ und wird beim Laden nie stillschweigend geändert.
 - Tests: Für jede Einstellung und jeden Spielstand gilt `offenMitKlasse ⊇ offenOhneKlasse` (die Einstellung
-  öffnet nur); Wechsel 7 → 5 → keine schließt keine gespielte oder nach der üblichen Regel offene Stufe; Link
+  öffnet nur); Wechsel 7 → 5 → keine schließt keine gespielte oder nach der üblichen Regel offene Stufe; seit W-A1
+  für jeden Übergang zwischen zwei Einstellungen und das Entfernen: offen danach ⊇ offen davor; Link
   mit unbekannten oder fehlerhaften Angaben wird verworfen, ohne den Spielstand anzufassen.
 
 ### 5. Oberfläche in Worten
@@ -2301,7 +2325,8 @@ Paket „Dreiklänge Schritt für Schritt“ wird die Reihe ohnehin neu geordnet
 - **Runde „Wiederholen“ bzw. „Grundlagen wiederholen“:** wie eine normale Runde; über der Notenzeile steht
   klein, woher die Aufgabe kommt („Intervalle · Stufe 4“). Keine Hilfen, aber nach „daneben“ die Auflösung und
   auf der Ergebniskarte der Knopf „Stufe 3 mit Hilfen üben“ bzw. „Stufe 5 üben“.
-- **Ergebniskarte:** je Stufe eine Zeile „sitzt · wieder in 7 Tagen“ bzw. „noch wacklig · morgen noch einmal“;
+- **Ergebniskarte:** je Stufe eine Zeile „sitzt · wieder in 7 Tagen“ bzw. „noch wacklig · morgen noch einmal“
+  (seit der Korrektur mit Zahl und „fast“: „Notenwerte 5 · 2 von 3 · ↻ fast · morgen noch einmal“);
   bei einem Fehlermuster der Satz mit dem Grund (siehe 2).
 - **Statistik:** je Stufe das Fach als fünf kleine Kästchen und „zuletzt geübt am …“; am Ende der Textlink „Für
   Lehrkräfte“ und, wenn gesetzt, „Jahrgang 6 (über den Link deiner Lehrkraft)“.
@@ -3450,6 +3475,16 @@ Vom Feinplan entschieden (Fable, 25.11.2026; jeweils als Konstante gebaut):
 - `klasse.dran` wird beim Übernehmen fest eingetragen.
 - Keine Kante auf ein späteres Paket (Intervalle 3/4, Schritt 2, verweist nicht mehr auf `tonleitern-3`).
 
+Nach der Prüfung aus drei Perspektiven (26.11.2026; Sandras Zahlen 1 · 3 · 7 · 14 · 30, 10 / 6 Aufgaben, höchstens
+drei Stufen bleiben):
+- Urteil „fast“: genau ein Fehler, nicht bestanden → Fach bleibt, morgen wieder; zurück erst ab zwei Fehlern.
+- Ratestufen in der Wiederholung: höchstens 2 · ⌊n / 10⌋ Fehler.
+- Hochwassermarke zum Jahrgang (`klasseOffen`), bleibt beim Zurücksetzen wie `klasse`.
+- Gezeigtes Können in „Grundlagen wiederholen“ zählt je Voraussetzung; eine fällige, bestandene Voraussetzung mit
+  mindestens 3 Aufgaben zählt als Wiederholung.
+- Schwache normale Runde (unter 8) in einer nicht fälligen Stufe: morgen wieder fällig, Fach bleibt.
+- Uhr zurückgestellt: Einträge „aus der Zukunft“ sind heute fällig (ein Tag Spielraum).
+
 ### 8. Offen für Sandra (Welle 11)
 
 Gebaut wird jeweils die genannte Voreinstellung.
@@ -3482,7 +3517,10 @@ Gebaut wird jeweils die genannte Voreinstellung.
     passt).
 11. **Startseite:** Die große Trefferquote oben entfällt (steht in der Statistik). Recht?
 12. **Wiederholungsrunde:** höchstens drei Stufen (4 + 3 + 3 Aufgaben), „sitzt“ nur ohne Fehler bei 3 oder 4
-    Aufgaben. Nach dem Test mit Kindern nachstellen?
+    Aufgaben. Nach dem Test mit Kindern nachstellen? **Gebaut seit der Korrektur nach der Prüfung (26.11.2026):**
+    mildere Rückstufung – ein Fehler bei 3 oder 4 Aufgaben ist „fast“ (Fach bleibt, morgen wieder), zurück erst ab
+    zwei Fehlern; die Zeile nennt die Zahl („2 von 3“). Sandras Zahlen sind unverändert. Offen bleibt, ob nach dem
+    Test mit einem Kind ein Fehler bei 4 Aufgaben schon „sitzt“ sein soll.
 13. **Nach dem Update:** Schon geschaffte Stufen kommen in Fach 1, je Tag drei, beginnend am ersten Tag.
 14. **QR-Code:** Bitte vor dem Push einmal mit der Handykamera scannen (Tafel/Beamer und Bildschirm).
 15. **Dominantseptakkord** (nächster Abschnitt): die markierten Punkte.
@@ -3505,6 +3543,41 @@ Gebaut wird jeweils die genannte Voreinstellung.
     geübt wurde); ist „Jetzt dran“ leer, steht dort „In Jahrgang 9 kommt nichts Neues dazu. Alles hier ist zum
     Wiederholen da.“ bzw. „Was in Jahrgang 7 neu ist, hast du mit mindestens 8 von 10 geschafft. …“ – Wortlaut
     recht? (Prüfung Schritt 12)
+
+### 9. Korrektur nach der Prüfung aus drei Perspektiven (26.11.2026)
+
+Berichte: `pruefung-3-perspektiven/2026-11-26_Welle11_Pruefung_{jugendliche,lehrkraft,wissenschaft}.md`. Zwei
+Arbeitsbäume: LOGIK (`wiederholen-11`: `repeat.js`, `store.js`, `klasse.js`, Tests, in `practice.js` nur
+`reviewLine`/`repeatNote` und was sie brauchen) und OBERFLAECHE (`korr-ui`, Ansichten, Texte, CSS). Je Befund
+eine Zeile mit Commit.
+
+LOGIK:
+- **W-A1** (A) Hochwassermarke `klasseOffen` je Paket (nur wachsend; `setKlasse` Maximum, `clearKlasse` und
+  Senken lassen sie stehen, `reset` behält sie wie `klasse`); `isUnlocked` liest sie, Abschnitte/„Jetzt
+  dran“/`nextUp` die aktuelle Einstellung; alte Stände mit Jahrgang: Marke = aktuelles „dran“ beim Laden. Test für
+  jeden Übergang zwischen allen Einstellungen (5–13, MuG, eigene Auswahl) und das Entfernen, alle Spielstände:
+  offen danach ⊇ offen davor. Der Satz „Dein Fortschritt bleibt, es schließt sich nichts.“ und Leitsatz 3 stimmen
+  damit (einzige Ausnahme bleibt das ausdrückliche „Fortschritt zurücksetzen“ für selbst Erspieltes und die
+  Demo-Freischaltung, beides schon vor Welle 11). – 8bd9d47
+- **W-B1** Ratestufen: „sitzt“ bei höchstens 2 · ⌊n / 10⌋ Fehlern; `reviewPlan` trägt `guess`, `withGuess` reicht
+  es an das Ergebnis weiter. Raten: 5 Aufgaben 18,8 % → 3,1 %, 4: 6,3 %, 10: 5,5 %. – 11192fd
+- **W-B2 / J-B3** Urteil „fast“ (ein Fehler, nicht bestanden: Fach bleibt, morgen wieder; zurück erst ab zwei);
+  `applyReview` liefert je Stufe `n, richtig, urteil, fach, faellig`; `reviewLine` „Notenwerte 5 · 2 von 3 · ↻ fast ·
+  morgen noch einmal“ / „Noten lesen 7 · 4 von 4 · ✓ sitzt · wieder in 7 Tagen“ (Kurzname, geschützte Leerzeichen,
+  Zeichen `aria-hidden`, nicht rot). Lauf über 40 Tage: Fehler an Tag 4 jetzt zwei (Geschichte und Erwartungen
+  bleiben), dazu ein Lauf mit einem Fehler („fast“); `uhr40.mjs` angepasst, Kuala Lumpur und Berlin wie erwartet. –
+  db11179, 7c80aac („noch wacklig“ bricht nicht um)
+- **J-B8** (Text in `repeatNote`, darum hier) „Geschafft – kommt morgen zum Wiederholen wieder.“ statt „Neu im
+  Kasten …“. – db11179
+- **W-B4** (a) `basicsOk` je Voraussetzung (alle Aufgaben richtig), `basicsOffer` nimmt den späteren Tag aus diesem
+  und dem Merker der Stufe; (b) fällige Voraussetzung mit ≥ 3 Aufgaben, bestanden → `applyReview`.
+  `afterBasicsLevels`, aufgerufen in `practice.js` `startBasics` (eine Zeile). – f61a0ad
+- **W-B7** Normale Runde unter 8 in einer nicht fälligen Stufe: morgen wieder fällig, Fach bleibt; „Wiederholung:
+  morgen noch einmal.“ – 9891d58
+- **W-C1** Uhr vor- und zurück: `zuletzt` nach heute oder `faellig − heute` über dem Abstand des Fachs → heute
+  fällig (`due`, `nextDue`, Empfehlung, `afterRound`); Abweichung vom Vorschlag: ein Tag Spielraum (Reise nach
+  Westen, Kuala Lumpur → Bayern), Einträge der Umstellung mit Grenze 30 Tage. – f3a2cae
+- Browser: `ueberlauf.mjs` 320 (dunkel) und 420 (hell) 0 Treffer; `uhr40.mjs` beide Zeitzonen wie erwartet.
 
 ## Vorgabe für das Paket „Dreiklänge Schritt für Schritt“ (nach Welle 11): bis zum Dominantseptakkord
 

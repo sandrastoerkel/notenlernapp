@@ -877,14 +877,16 @@ Startseite (`src/views/home.js`, seit Welle 11, Schritt 8 und 12; reine Teile ge
   (`BASICS_LABEL`). Mit Empfehlung (`repeat.basicsOffer`: nie gespielt, wieder dran oder zuletzt unter 8 von
   10) steht der Grund darüber (`#pBasicsWhy`, `reasonText`: „Empfohlen: „Noten mit Vorzeichen“ hast du hier
   noch nicht geübt.“) und der Knopf als Hauptknopf vor „Runde starten“; sonst ruhig darunter. Nie Pflicht.
-- Ergebniskarte der normalen Runde: dazu `repeatNote` (Karteikasten über `repeat.afterRound`: „Neu im Kasten:
-  …“ bzw. „Wiederholung: sitzt · wieder in 7 Tagen.“) und `resultBasics(packs, pack, level, correct, log)`
+- Ergebniskarte der normalen Runde: dazu `repeatNote` (Karteikasten über `repeat.afterRound`: „Geschafft – kommt
+  morgen zum Wiederholen wieder.“, „Wiederholung: sitzt · wieder in 7 Tagen.“ bzw. „Wiederholung: morgen noch
+  einmal.“) und `resultBasics(packs, pack, level, correct, log)`
   → `{ first, gaps, only }`: je Fehlermuster ein Satz (`gapText`, z. B. „Dreimal lag der erste Schritt daneben
   (Notenstufen zählen). Das übst du in Intervalle, Stufe 2.“) mit Knopf „… öffnen“ bzw. „Stufe 3 mit Hilfen
   üben“ (`openLabel`), und **ein** Knopf „Grundlagen wiederholen“ (nach Mustern nur deren Grundlagen, sonst
   bei weniger als 5 Richtigen, `BASICS_BELOW`, alle Voraussetzungen).
-- Ergebniskarte „Wiederholen“: je Stufe `reviewLine` („Intervalle 4 · sitzt · wieder in 7 Tagen“ bzw. „… · noch
-  wacklig · morgen noch einmal“, `verdictText`), bei „noch wacklig“ ein Knopf `practiceOffer` („Stufe 4 mit
+- Ergebniskarte „Wiederholen“: je Stufe `reviewLine` mit der Zahl der Richtigen („Noten lesen 7 · 4 von 4 · ✓ sitzt
+  · wieder in 7 Tagen“, „Notenwerte 5 · 2 von 3 · ↻ fast · morgen noch einmal“, „… · ↻ noch wacklig · …“;
+  `verdictText`, `URTEIL_TEXT`; Zeichen `aria-hidden`, nicht rot), bei „noch wacklig“ ein Knopf `practiceOffer` („Stufe 4 mit
   Hilfen üben“ bzw. „Stufe 5 üben“), „Noch eine Wiederholung“ nur, wenn weiter etwas fällig ist; Sterne nur als
   Anzeige. Ergebniskarte „Grundlagen wiederholen“: `perLevelLine` je Stufe, „Zurück zu Stufe n“, „Nochmal“.
 - `open(arg)` (für die Konsole und `docs/screens/ueberlauf.mjs`) = `ctx.show("practice", arg)`.
@@ -994,7 +996,8 @@ entstehen beim Start, die Gewichte wirken also ab der nächsten Runde.
 ## Wiederholung über Tage und Voraussetzungen (`src/repeat.js`, seit Welle 11)
 
 Rein, ohne DOM und ohne Speicher, getestet in `test/repeat.test.js` und `test/repeat.sim.test.js`. Nur `enter`,
-`applyReview`, `afterRound` (verändern `state.rep`) und `afterBasics` (verändert `state.basics`) schreiben in den
+`applyReview`, `afterRound` (verändern `state.rep`), `afterBasics` (verändert `state.basics`) und
+`afterBasicsLevels` (verändert `state.basicsOk` und über `applyReview` `state.rep`) schreiben in den
 übergebenen Zustand. Tage sind Texte `"JJJJ-MM-TT"` (örtlich, `store.today`). Leitsatz: Nichts hier sperrt eine
 Stufe; was fällig ist, ist ein Angebot.
 
@@ -1006,18 +1009,26 @@ Karteikasten nach Leitner (Schritte 4 und 8). Konstanten (Sandra, 24.11.2026, bz
 - `enter(state, id, heute)`: neu in Fach 1, fällig morgen (nur ohne vorhandenen Eintrag).
 - `due(state, packs, heute)`: fällige Stufen, am längsten fällig zuerst, bei Gleichstand Grundlagen vor dem, was
   auf ihnen aufbaut (Reihenfolge der Pakete, dann der Stufen); Einträge zu unbekannten Stufen oder Stufen mit
-  Hilfen bleiben außen vor. `nextDue(state, heute)`: frühester künftiger Tag oder `null`.
-- `reviewPlan(state, packs, heute)` → `[{ id, n }]` für die Runde „Wiederholen“: die ersten höchstens drei
+  Hilfen bleiben außen vor. `nextDue(state, heute)`: frühester künftiger Tag oder `null`. Beide über
+  `isDueEntry(e, heute)`: fällig ist auch ein Eintrag „aus der Zukunft“ (Uhr vor- und zurückgestellt, Korrektur
+  W-C1: `zuletzt` mehr als `TOLERANZ_TAGE` = 1 nach heute oder `faellig − heute` über dem Abstand des Fachs plus
+  1; Einträge der Umstellung mit `zuletzt: null`: Grenze 30 Tage). Der Tag Spielraum fängt Reisen nach Westen ab.
+- `reviewPlan(state, packs, heute)` → `[{ id, n, guess? }]` (`guess: true` nur an Ratestufen) für die Runde „Wiederholen“: die ersten höchstens drei
   fälligen Stufen, zusammen 10 Aufgaben (10 / 5 + 5 / 4 + 3 + 3); Stufen mit `guess` bekommen den größten Anteil
   und mindestens 4 Aufgaben – reicht das bei drei Stufen nicht, kommen nur die ersten zwei (5 + 5), die dritte
   bleibt fällig. Leer, wenn nichts fällig ist. Nach langer Pause zeigt die App so immer nur die nächste Runde.
-- `passed(n, fehler)`: „sitzt“ bei höchstens ⌊n / 5⌋ Fehlern (3 oder 4 Aufgaben: alle richtig; 5: einer daneben;
-  10: zwei, also 8 von 10). `applyReview(state, perLevel, heute)` mit `perLevel = [{ id, n, ok }]`: sitzt → ein
-  Fach weiter (höchstens 5), fällig nach dessen Abstand; sonst ein Fach zurück (nicht unter 1), morgen wieder
-  fällig. Fach 5 bleibt 5 und kommt alle 30 Tage. Ergebnis je Stufe `{ id, sitzt, fach, inTagen }`.
+- `passed(n, fehler, guess)`: „sitzt“ bei höchstens ⌊n / 5⌋ Fehlern (3 oder 4 Aufgaben: alle richtig; 5: einer
+  daneben; 10: zwei, also 8 von 10); Ratestufen (`guess`, Korrektur W-B1) bei höchstens 2 · ⌊n / 10⌋ (4 und 5: alle
+  richtig, 10: zwei), Raten besteht so höchstens in 6,3 %. `verdictOf(n, fehler, guess)` → `"sitzt"`, `"fast"`
+  (genau ein Fehler, nicht bestanden, ab 3 Aufgaben; Korrektur W-B2) oder `"wacklig"`. `withGuess(perLevel, plan)`
+  reicht `guess` aus dem Plan an das Ergebnis der Runde weiter. `applyReview(state, perLevel, heute)` mit `perLevel =
+  [{ id, n, ok, guess? }]`: sitzt → ein Fach weiter (höchstens 5), fällig nach dessen Abstand; fast → Fach bleibt,
+  morgen wieder; wacklig → ein Fach zurück (nicht unter 1), morgen wieder. Fach 5 bleibt 5 und kommt alle 30 Tage.
+  Ergebnis je Stufe `{ id, n, richtig, urteil, sitzt, fach, inTagen, faellig }`.
 - `afterRound(state, level, correct, heute)` nach einer normalen Runde: Stufe mit Hilfen → nichts; noch nicht im
   Kasten → ab 8 Richtigen in Fach 1 (`neu: true`); im Kasten und fällig → wie eine Wiederholung mit 10 Aufgaben;
-  nicht fällig → nichts (viel Üben am selben Tag verlängert den Abstand nicht).
+  nicht fällig und ab 8 Richtigen → nichts (viel Üben am selben Tag verlängert den Abstand nicht); nicht fällig und
+  unter 8 → morgen wieder fällig, Fach bleibt (`vorgezogen: true`, Korrektur W-B7).
 - Texte: `dueText(inTagen)` („heute“, „morgen“, „in 3 Tagen“), `dayText(day)` („24.11.“).
 
 Voraussetzungen (Schritt 5): `needsOf(packs, id)` (`level.needs` oder die Voreinstellung, siehe Themenpakete),
@@ -1032,14 +1043,19 @@ Notenstufen zählen (Prime bis Oktave)“).
   Voraussetzungen hat; `recommend`, wenn eine Voraussetzung nie gespielt wurde (auch eine über den Jahrgang
   geöffnete), fällig ist oder zuletzt unter 8 von 10 lag (`levels[id].last`) – und seit dem Merker
   `state.basics[id]` (Tag der letzten Grundlagen-Runde mit höchstens einem Fehler, `afterBasics`) kein Auslöser
-  neu zutraf. `reason = { kind: "nie" | "faellig" | "schwach", id }`.
+  neu zutraf; als „seit“ gilt je Voraussetzung der spätere Tag aus diesem Merker und `state.basicsOk[need]`
+  (Korrektur W-B4). `reason = { kind: "nie" | "faellig" | "schwach", id }`.
+- `afterBasicsLevels(state, packs, perLevel, heute)` nach jeder Grundlagen-Runde (Korrektur W-B4): stimmten alle
+  Aufgaben einer Voraussetzung, `state.basicsOk[id] = heute`; ist sie fällig, hatte mindestens
+  `MIN_AUFGABEN_GRUNDLAGE` = 3 Aufgaben und ist bestanden, zählt das als ihre Wiederholung (`applyReview`).
 - `gapsOf(packs, level, log)` → `[{ need, count, step, helps? }]` mit `count ≥ LUECKE_AB` (3): je Aufgabe mit
   Schritt `i` daneben zählt jede Grundlage aus `stepNeedsOf(level, null, i)` einmal; sagt die Stufe nichts je
   Schritt, zählt eine Antwort daneben für `needsOf` als Ganzes. Sonderfall Intervalle 4 (zweiter Schritt ohne
   Grundlage, Stufe davor mit Hilfen): der Eintrag nennt jene Stufe mit `helps: true` („Stufe 3 mit Hilfen
   üben“). In gemischten Runden gibt es keine Muster.
-- Die Grundlagen-Runde trägt keine Sterne ein, schaltet nichts frei und ändert den Karteikasten nicht; jede
-  Antwort zählt in der Statistik ihrer eigenen Stufe (über `statKey`).
+- Die Grundlagen-Runde trägt keine Sterne ein, schaltet nichts frei und ändert den Karteikasten nicht (Ausnahme:
+  eine fällige, bestandene Voraussetzung, siehe `afterBasicsLevels`); jede Antwort zählt in der Statistik ihrer
+  eigenen Stufe (über `statKey`).
 
 ## Jahrgang (`src/klasse.js`, seit Welle 11)
 
@@ -1066,6 +1082,8 @@ Leitsatz: Der Jahrgang ordnet und öffnet, er sperrt nie etwas.
   Zweig, bis „dran“) und noch nicht geschafft ist (beste Runde unter 8); „Schon dran gewesen“ alles bis „dran“
   des Vorjahrs und das Geschaffte; „Darüber hinaus“ alles über „dran“. `nextUp(state, packs)`: erste Stufe aus
   „Jetzt dran“ oder `null`.
+- Was ein Jahrgang einmal geöffnet hat, bleibt offen (Hochwassermarke `klasseOffen` in `store.js`, Korrektur
+  W-A1); `sections` und `nextUp` lesen nur die aktuelle Einstellung.
 - Grenze: Der Link ist eine Adresse, kein Schloss; wer ihn kennt, kann ihn öffnen, und wer die Seite „Für
   Lehrkräfte“ findet, kann sich selbst einen Link bauen (PLAN, Welle 11, „Offen für Sandra“ 9). Ein echter
   Schutz ginge nur mit einem Server.
@@ -1128,6 +1146,8 @@ Zustand (persistiert unter `localStorage["notenheld.v2"]`):
   rep: { "intervall-4": { fach: 3, faellig: "2026-12-02", zuletzt: "2026-11-25" } },   // Karteikasten (seit Welle 11)
   klasse: null,   // oder { jahrgang: 6, zweig: "mug" | null, dran: { noten: 8, notenwerte: 10, intervalle: 4, … } } (seit Welle 11)
   basics: { "intervall-3": "2026-11-25" },   // Tag der letzten „Grundlagen wiederholen“-Runde mit höchstens einem Fehler (seit Welle 11)
+  klasseOffen: { noten: 8, intervalle: 10 },   // Hochwassermarke: höchstes je übernommenes „dran“ je Paket (Korrektur W-A1)
+  basicsOk: { "noten-7": "2026-11-26" },   // Tag, an dem alle Aufgaben dieser Voraussetzung in einer Grundlagen-Runde stimmten (Korrektur W-B4)
 }
 ```
 
@@ -1140,6 +1160,12 @@ Welle 11 (Schritte 4, 6, 7, 11) bringt nur zusätzliche Felder, keinen neuen Sch
   vollständig eingetragen (nicht bei jedem Laden neu aus der Tabelle berechnet, damit ein Update der Tabelle die
   Einstellung nicht stillschweigend ändert). Einstellung, kein Fortschritt: `reset` behält sie.
 - `basics`: Merker zu „Grundlagen wiederholen“ (`repeat.afterBasics`). Fortschritt: `reset` löscht ihn.
+- `klasseOffen` (Korrektur W-A1): Hochwassermarke zum Jahrgang, je Paket das höchste je übernommene „dran“;
+  geschrieben nur in `setKlasse` (Maximum aus Marke, bisheriger und neuer Einstellung) und `clearKlasse` (Marke
+  bleibt, mindestens das bisherige „dran“); `migrateKlasseOffen` hebt sie beim Laden auf das aktuelle „dran“ (ohne
+  Marker, idempotent, in `migrateAll` als letzte). Einstellung wie `klasse`: `reset` behält sie.
+- `basicsOk` (Korrektur W-B4): je Voraussetzung der Tag einer fehlerfreien Grundlagen-Runde
+  (`repeat.afterBasicsLevels`). Fortschritt: `reset` löscht ihn.
 - `levels[id].last` und `.day` (`recordRound`): für „zuletzt unter 8 von 10“ in `repeat.basicsOffer`.
 - Fehlt ein Feld, setzt `load` über `fresh()` den leeren Wert; ein alter Stand wird dadurch nicht neu
   gespeichert (Test).
@@ -1158,7 +1184,8 @@ ein frischer Stand trägt alle vier Marker; ein übernommener v1-Stand durchläu
 `PACKS`, Grundlagen zuerst) je Tag `UMSTELLUNG_JE_TAG` = 3 Stufen (so viele, wie eine Wiederholungsrunde fasst;
 ein Test prüft die Gleichheit mit `repeat.MAX_STUFEN`), beginnend heute, `zuletzt: null`. Vorhandene Einträge
 bleiben. `store.js` kennt die Pakete nicht: `app.js` übergibt `boxIds(PACKS)` an `load(storage, now, boxIds)`;
-ohne Liste läuft die Umstellung nicht. `migrateAll` ruft sie als vierte und letzte auf.
+ohne Liste läuft die Umstellung nicht. `migrateAll` ruft sie als vierte auf; danach (fünfte, ohne Marker)
+`migrateKlasseOffen`.
 
 Umstellung „Intervalle neu“ (Welle 7, `migrateIntervalle(s)`): läuft beim Laden genau einmal (Marker
 `"intervalle-neu"` in `migrated`; ein frischer Stand trägt ihn schon). Sie benennt `intervalle-5` →
@@ -1179,8 +1206,8 @@ alte, offene, aber nie gespielte Stufe öffnet sich erst wieder über die neue S
 Umstellung „Notenwerte gehirngerecht“ (Welle 9, `migrateNotenwerte(s)`, Marker `"notenwerte-neu"`, ein frischer
 Stand trägt alle drei Marker): `notenwerte-1→1, 2→2, 3→5, 4→7, 5→9, 6→10`, in einem Durchgang in ein neues
 `levels`-Objekt (sonst verkettet 3→5 mit 5→9), `current` entsprechend, `notes` bleibt (keine statKeys im Paket).
-`migrateAll` ruft alle Umstellungen auf (jede läuft, das Ergebnis ist `a || b || c || d`; seit Welle 11 als vierte
-`migrateWiederholen`); die Reihenfolge ist für die Notenwerte unkritisch. Folge der
+`migrateAll` ruft alle Umstellungen auf (jede läuft, das Ergebnis ist `a || b || c || d || e`; seit Welle 11 als
+vierte `migrateWiederholen`, als fünfte `migrateKlasseOffen`); die Reihenfolge ist für die Notenwerte unkritisch. Folge der
 Freischaltung bei einem alten Stand, der alles geschafft hatte: 4 bleibt zu, bis 3 geschafft ist (im Test).
 
 Feld `sprueche` (Welle 10, Schritt 4): je Kennung aus `MERKHILFEN` entweder `{ wahl: n }` (Nummer des
@@ -1223,9 +1250,11 @@ Start übernommen (Stufe `n` wird zu `noten-n`, `current: n` zu `"noten-n"`)
 und als v2 gespeichert; der v1-Eintrag bleibt unverändert.
 
 Jahrgang und Freischaltung (seit Welle 11, Schritt 11): Mit gesetztem `klasse` ist zusätzlich alles bis „dran“
-des Pakets sofort offen (`klasseDran(s, packId)`, auch die Stufen in „Jetzt dran“; Entscheidung Sandra 8). Die
-Regel kommt nur dazu (oder-verknüpft): Der Jahrgang öffnet, er schließt nie (Test: für jede Einstellung und jeden
-Spielstand ist die Menge der offenen Stufen mit Jahrgang eine Obermenge der ohne). „Darüber hinaus“ folgt der
+des Pakets sofort offen (`klasseOffenBis(s, packId)` = Maximum aus Hochwassermarke `klasseMarke` und aktueller
+Einstellung `klasseDran`, auch die Stufen in „Jetzt dran“; Entscheidung Sandra 8). Die Regel kommt nur dazu
+(oder-verknüpft): Der Jahrgang öffnet, er schließt nie – auch nicht beim Entfernen oder Senken (Marke, Korrektur
+W-A1). Tests: für jede Einstellung und jeden Spielstand ist die Menge der offenen Stufen mit Jahrgang eine
+Obermenge der ohne, und nach jedem Wechsel oder Entfernen eine Obermenge der davor. „Darüber hinaus“ folgt der
 üblichen Regel. Fällige Wiederholungen und Voraussetzungen sperren nichts.
 
 Exporte (alle rein bis auf das Verändern des übergebenen Zustands; nur `load`
@@ -1237,14 +1266,15 @@ und `save` greifen auf `localStorage` zu): `KEY_V1`, `KEY_V2`, `fresh()`,
 `RENAMED_NOTENWERTE`, `localDay(now, offsetMin)`, `today(now, offsetMin)`, `addDays(day, n)`, `dayDiff(a, b)`,
 `touchStreak(s, now, offsetMin)`,
 `isUnlocked(s, pack, levelId)`, `unlockedBy(pack, levelId)`, `unlocks(pack, levelId)`, `klasseDran(s, packId)`,
+`klasseMarke(s, packId)`, `klasseOffenBis(s, packId)`, `migrateKlasseOffen(s)`,
 `setKlasse(s, k)`, `clearKlasse(s)`, `starsFor(correct)`,
 `recordRound(s, levelId, correct, now)` → `{ stars, gained }` (seit Welle 11 auch `last` und `day`),
 `MIXED_KINDS`, `recordMixedRound(s, kind, correct, total, now)` → `{ gained, total }` (gemischte Runde: 10 XP je
 richtige Antwort, bei `"wiederholen"` dazu `20 · starsFor(correct)`; Tagesserie wie eine normale Runde; kein
 Eintrag in `s.levels`, keine Sterne),
 `recordAnswer(s, key, ok, sec, now)` (`sec` optional, zählt nur bei richtigen Antworten), `recordBlitz(s, score, bestCombo)` →
-`{ record, gained }`, `reset(s)` (behält nur `muted`, `input`, `sprueche` und `klasse`; `rep` und `basics`
-werden gelöscht), `accuracy(s)`.
+`{ record, gained }`, `reset(s)` (behält nur `muted`, `input`, `sprueche`, `klasse` und `klasseOffen`; `rep`,
+`basics` und `basicsOk` werden gelöscht), `accuracy(s)`.
 
 ## Tests
 
