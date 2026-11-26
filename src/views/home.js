@@ -97,7 +97,8 @@ export function streakText(s, heute) {
   if (s.lastDay === addDays(heute, -1)) return `${n} Eine Runde heute hält die Serie am Leben.`;
   return STREAK_NONE;
 }
-export const BOX_EMPTY_TEXT = "Was du mit 8 von 10 schaffst, kommt nach einem Tag zum Wiederholen wieder.";
+// Kasten leer (W-B8, Korrektur nach der Prüfung Welle 11): nur Stufen ohne Hilfen kommen in den Kasten, ab 8 von 10
+export const BOX_EMPTY_TEXT = "Was du ohne Hilfen mit mindestens 8 von 10 schaffst, kommt am nächsten Tag zum Wiederholen wieder.";
 export const REVIEW_START = "Wiederholung starten";
 
 // Inhalt der Karte „Heute“ ganz oben auf der Startseite: { title, line, review, cont, small }.

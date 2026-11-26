@@ -78,7 +78,7 @@ test("todayCard: Kasten leer – wie bisher, dazu der Satz zum Kasten", () => {
   assert.equal(c.review, null);
   assert.equal(c.cont, `Starten: Noten lesen, Stufe${NB}1`);
   assert.equal(c.small, BOX_EMPTY_TEXT);
-  assert.equal(BOX_EMPTY_TEXT, "Was du mit 8 von 10 schaffst, kommt nach einem Tag zum Wiederholen wieder.");
+  assert.equal(BOX_EMPTY_TEXT, "Was du ohne Hilfen mit mindestens 8 von 10 schaffst, kommt am nächsten Tag zum Wiederholen wieder.");
   // Einträge zu Stufen mit Hilfen zählen nicht als fällig
   assert.equal(todayCard(st({ "intervall-3": { fach: 1, faellig: "2026-11-20", zuletzt: null } }), PACKS, T).review, null);
 });
