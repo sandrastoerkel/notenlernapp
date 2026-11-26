@@ -307,9 +307,11 @@ test("Zusage 5: v1-Stand landet auf den neuen Nummern (migrateV1 nimmt den Marke
       assert.ok(s.migrated.includes(MIGRATION_NOTEN) && s.migrated.includes(MIGRATION_WIEDERHOLEN));
     }
   }
-  // migrateV1 entfernt den Marker auch, wenn fresh() ihn trägt (vorweggenommen; fresh() hier von Hand nachgestellt)
-  const s = migrateV1({ levels: { 3: { stars: 2, best: 8, played: 1 } }, current: 3 });
-  assert.ok(!s.migrated.includes(MIGRATION_NOTEN));
+  // migrateV1 entfernt den Marker auch, wenn fresh() ihn trägt (Schritt 2). fresh() lässt sich hier nicht ersetzen;
+  // nachgestellt über ein Feld migrated im v1-Stand (Object.assign legt es über das aus fresh()): Der Filter nimmt
+  // "noten-neu" und "wiederholen" heraus, die anderen Marker bleiben.
+  const s = migrateV1({ levels: { 3: { stars: 2, best: 8, played: 1 } }, current: 3, migrated: [...NOTEN_MARKER, MIGRATION_NOTEN] });
+  assert.deepEqual(s.migrated, [MIGRATION_INTERVALLE, MIGRATION_TONLEITERN, MIGRATION_NOTENWERTE]);
 });
 
 test("Zusage 5: Stand vor Welle 7, vor Welle 11, frischer Stand – Kette in der Reihenfolge des Plans", () => {
