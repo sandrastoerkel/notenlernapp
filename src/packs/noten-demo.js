@@ -85,7 +85,7 @@ export function lageDemo(a, b, c) {
     { step: 2, text: `Das ${l.nr}. Wort beginnt mit ${letter}.`, body: staff1 + spruchHtml(teile, 2) },
     {
       step: 3, tones: [n],
-      result: { title: displayName(n), chips: [{ step: 1, text: lageWort(l) }, { step: 2, text: `${esc(wort)} → ${letter}` }] },
+      result: { title: displayName(n), chips: [{ step: 1, text: lageWort(l) }, { step: 2, text: `„${esc(wort)}“ → ${letter}` }] },
       body: staff1 + spruchHtml(teile, 2),
     },
   ];

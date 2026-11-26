@@ -144,6 +144,24 @@ test("Kanten auf „Noten lesen“ aus den anderen Paketen: die ganze Tabelle (A
   for (const ids of Object.values(edges)) for (const id of ids) assert.ok(inBox(lv(id)), id);
 });
 
+test("Korrektur nach der Prüfung (B1): Fehlermuster der Stufen 4 und 9 am ersten Schritt (Bezugston), Weiterzählen ohne Muster", async () => {
+  const { resultBasics } = await import("../src/views/practice.js");
+  const NB = "\u00a0";
+  const log = (id, list) => list.map((oks) => ({ id, ok: oks.every(Boolean), oks }));
+  for (const [no, grund, schluessel] of [[4, 3, "Violinschlüssel"], [9, 8, "Bassschlüssel"]]) {
+    const l = lv(`noten-${no}`);
+    assert.deepEqual(l.stepNeeds, [[`noten-${grund}`], []], l.id);
+    // dreimal der erste Schritt daneben: Muster mit der Grundlage Linien und Zwischenräume
+    let r = resultBasics(PACKS, noten, l, 7, log(l.id, [[false, true], [false, true], [false, true]]));
+    assert.equal(r.gaps.length, 1, l.id);
+    assert.equal(r.gaps[0].text, `Der erste Schritt (Linien und Zwischenräume im ${schluessel}) hat oft nicht geklappt. Das übst du in Noten lesen, Stufe${NB}${grund}.`);
+    assert.deepEqual(r.only, [`noten-${grund}`]);
+    // dreimal nur das Weiterzählen daneben: kein Muster (neu in der Stufe)
+    r = resultBasics(PACKS, noten, l, 7, log(l.id, [[true, false], [true, false], [true, false]]));
+    assert.deepEqual(r.gaps, [], l.id);
+  }
+});
+
 test("Karteikasten 30 Stufen, App 54 Stufen (162 Sterne), Jahrgang 5 öffnet alle 15", () => {
   assert.equal(boxIds(PACKS).length, 30);
   assert.deepEqual(boxIds([noten]), ["noten-3", "noten-5", "noten-8", "noten-10", "noten-12", "noten-14", "noten-15"]);

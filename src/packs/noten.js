@@ -88,14 +88,24 @@ export const LAGE_PROMPT = {
   zwischenraum: "In welchem Zwischenraum liegt die Note? Zähle von unten.",
 };
 export const LAGE_CHOICES = { linie: ["1.", "2.", "3.", "4.", "5."], zwischenraum: ["1.", "2.", "3.", "4."] };
-export const BEZUG_PROMPT = "Bezugston: Wie heißt die nächste Linie der Zeile?";
-export const ZAEHL_PROMPT = "Zähle von dort weiter: Wie heißt die Note?";
+// „nächstgelegene“ statt „nächste“ (Korrektur nach der Prüfung aus drei Perspektiven, L-C1/J-C5: „nächste“ lässt
+// sich als „die folgende Linie“ lesen)
+export const BEZUG_PROMPT = "Bezugston: Wie heißt die nächstgelegene Linie der Zeile?";
 export const STAMM_PROMPT = "Stammton: Wie heißt die Note ohne ihr Vorzeichen?";
-export const VZ_PROMPT = "Und mit dem Vorzeichen?";
+// Schritt 2 nennt das Ergebnis von Schritt 1 (Korrektur nach der Prüfung, J-B3: nach dem Wechsel stand „dort“
+// nirgends mehr), nie die Antwort von Schritt 2: „4. Linie – wie heißt die Note?“, „Zähle vom E weiter: Wie heißt
+// die Note?“, „Stammton F – und mit dem Vorzeichen?“
+export const lageNamePrompt = (ort) => `${ort} – wie heißt die Note?`;
+export const zaehlPrompt = (ref) => `Zähle vom ${ref.letter} weiter: Wie heißt die Note?`;
+export const vzPrompt = (st) => `Stammton ${st.letter} – und mit dem Vorzeichen?`;
 const stepTexts = (fact, badFact = fact) => ({ ok: `Richtig: ${fact}`, bad: `Nicht ganz: ${badFact}` });
 const letterOf = (n) => ({ letter: n.letter, acc: 0 });
-// Längstes Wort des Spruchs, das die Beschriftung der Auflösung noch zeigt (eigene Sprüche: bis 80 Zeichen)
-export const WORT_MAX = 12;
+// Längstes Wort des Spruchs, das die Beschriftung der Auflösung noch zeigt (eigene Sprüche: bis 80 Zeichen). 11 statt
+// 12, seit das Wort in Anführungszeichen steht (gemessen: „Mmmmmmmmmmmm“ → C mit „4. Zwischenraum“ ragte 3 Einheiten
+// über die Zeile von 320 hinaus, „Einkaufshall“ 51–289)
+export const WORT_MAX = 11;
+// Wort des Merkspruchs → Notenname, das Wort als Wort gekennzeichnet (Beschriftung der Auflösung, Vorführung)
+export const merkPfeil = (wort, letter) => `„${wort}“ → ${letter}`;
 
 // Schritte, Texte und Beschriftung der Auflösung je Art: { steps, display, partial, marks: [Schritt 1, Schritt 2] }
 function zweiSchritte(art, n, clef, state) {
@@ -107,11 +117,13 @@ function zweiSchritte(art, n, clef, state) {
       steps: [
         { prompt: LAGE_PROMPT[l.art], choices: LAGE_CHOICES[l.art].slice(), digits: true, answer: `${l.nr}.`,
           ...stepTexts(`${ort} von unten.`, `Es ist ${LAGE_ART[l.art]} ${ort} von unten.`) },
-        { prompt: PROMPT, note: "letters", answer: letterOf(n) },
+        { prompt: lageNamePrompt(ort), note: "letters", answer: letterOf(n) },
       ],
       display: `${ort} → ${name}`,
       partial: `Der Name stimmt, ${LAGE_ART[l.art]} ${wort} nicht: ${ort} → ${name}.`,
-      marks: [ort, w && w.length <= WORT_MAX ? `${w} → ${n.letter}` : n.letter],
+      // Merkwort in Anführungszeichen (Korrektur nach der Prüfung, L-B2/W-C4): „Es“ → E, nicht Es → E – Es und Eis
+      // sind ab Stufe 11 selbst Notennamen
+      marks: [ort, w && w.length <= WORT_MAX ? merkPfeil(w, n.letter) : n.letter],
     };
   }
   if (art === "zaehlen") {
@@ -121,7 +133,7 @@ function zweiSchritte(art, n, clef, state) {
     return {
       steps: [
         { prompt: BEZUG_PROMPT, note: "letters", answer: letterOf(b.ref), ...stepTexts(fact) },
-        { prompt: ZAEHL_PROMPT, note: "letters", answer: letterOf(n) },
+        { prompt: zaehlPrompt(b.ref), note: "letters", answer: letterOf(n) },
       ],
       display: way,
       partial: `Der Name stimmt, der Bezugston nicht: ${way}.`,
@@ -134,7 +146,7 @@ function zweiSchritte(art, n, clef, state) {
   return {
     steps: [
       { prompt: STAMM_PROMPT, note: "letters", answer: letterOf(st), ...stepTexts(`Ohne Vorzeichen ist das ein ${st.letter}.`) },
-      { prompt: VZ_PROMPT, note: "names", answer: { letter: n.letter, acc: n.acc } },
+      { prompt: vzPrompt(st), note: "names", answer: { letter: n.letter, acc: n.acc } },
     ],
     display: way,
     partial: `Der Name stimmt, der Stammton nicht: ${way}.`,
@@ -223,7 +235,14 @@ VORRAT.gemischt = [...VORRAT.violin, ...VORRAT.bass, ...VORRAT.violinVorzeichen,
 
 // Hinweise der Startkarte (PLAN Abschnitt 2). Bisherige Hinweise von alt 1 bis 8 unverändert übernommen.
 const merk = (c, id) => spruch(c && c.state, id);
-const VZ_REGEL = "♯ erhöht um einen Halbton und hängt „-is“ an: aus F wird Fis, ebenso Cis, Gis, Dis.\n♭ erniedrigt um einen Halbton: aus E wird Es, aus A wird As, aus D wird Des – und aus H wird B.";
+// Stufe 11 (mit Hilfen): der Weg und je ein Beispiel für ♯ und ♭ mit den drei Ausnahmen, im Wortlaut der Hilfe
+// „Vorzeichen“ (REGEL in noten-hilfen.js). Korrektur nach der Prüfung aus drei Perspektiven (J-B4, L-C2, offener
+// Punkt 1): vorher zehn Zeilen, „Runde starten“ bei 320 × 640 erst bei 593 px, mit Empfehlung der erste Knopf bei
+// 641 px (Grenze 580). Gemessen Zeile für Zeile: Hinweis mit „Beide Schritte müssen stimmen.“ 232 → 139 px. Die ganze
+// Regel steht in den Hilfen derselben Stufe, alle 21 Namen im Namensraster und in der Lerntafel.
+// Pfeile mit geschütztem Leerzeichen (bei 320 px brach „F →“ sonst vor „Fis“ um).
+const pf = (a, b) => `${a}\u00a0→\u00a0${b}`;
+const VZ_KURZ = `Lies erst den Stammton (ohne Vorzeichen), dann das Zeichen.\n♯ Halbton höher, „-is“: ${pf("F", "Fis")}.\n♭ Halbton tiefer, „-es“: ${pf("D", "Des")}, aber ${pf("E", "Es")}, ${pf("A", "As")}, ${pf("H", "B")}.`;
 // Stufe 12 mit dem Satz zur Eingabe; in Stufe 11 sagt ihn der Tastatur-Hinweis (keysHint), damit die Startkarte mit
 // „Beide Schritte müssen stimmen.“ nicht länger wird (Schritt 3, gemessen bei 320 px)
 // Stufe 12 (ohne Hilfen): dieselbe Regel in kürzerer Form (Schritt 7, gemessen bei 320 × 640 mit Empfehlung: erster
@@ -240,7 +259,7 @@ export const BASS_VERGLEICH = "Dieselbe Linie wie im Violinschlüssel heißt im 
 // Hilfen (PLAN Abschnitt 3): Überschrift, Satz und Tabelle aus noten-hilfen.js (Gerüst bis Schritt 4)
 const H_LINIEN = "Zähle die Linien von unten. Das Wort im Merkspruch beginnt mit dem Notennamen.";
 const H_RAEUME = "Zähle die Zwischenräume von unten. Das Wort im Merkspruch beginnt mit dem Notennamen.";
-const H_AUSSEN = "Nimm die nächste Linie der Zeile als Bezugston. Jede Stelle weiter ist ein Name weiter: nach oben vorwärts, nach unten rückwärts.";
+const H_AUSSEN = "Nimm die nächstgelegene Linie der Zeile als Bezugston. Jede Stelle weiter ist ein Name weiter: nach oben vorwärts, nach unten rückwärts.";
 const H_VZ = "Lies erst den Stammton (die Note ohne Vorzeichen), dann das Zeichen.";
 const helps = (helpsTitle, helpText, helpTable) => ({ helps: ["tabelle"], helpsTitle, helpText, helpTable });
 const mkLinien = (clef) => helps("Hilfen: Merkspruch für die Linien", H_LINIEN, (c) => merkleiste(clef, "linien", c && c.state));
@@ -269,7 +288,7 @@ const RAW = [
     hint: (c) => `Zähle die Zwischenräume von unten. F A C E, Merkspruch: „${merk(c, "violin-raeume")}“.` },
   { clef: "treble", title: "Violinschlüssel: Linien und Zwischenräume", items: VORRAT.violinZeile, hint: ZEILE_HINT },
   { clef: "treble", title: "Violinschlüssel: über und unter der Zeile", items: VORRAT.violinAussen, ...mkAussen("treble"), ...D_ZAEHLEN,
-    hint: "Neu sind vier Noten außerhalb der Zeile. Nimm die nächste Linie als Bezugston und zähle weiter. Das c' liegt auf einer Hilfslinie unter der Zeile." },
+    hint: "Neu sind vier Noten außerhalb der Zeile. Zähle vom Bezugston weiter, der nächstgelegenen Linie. Das c' liegt auf einer Hilfslinie unter der Zeile." },
   { clef: "treble", title: "Violinschlüssel mit Hilfslinien", items: VORRAT.violin,
     hint: "Alle Noten von c' bis a'' gemischt, jetzt ohne Hilfen. Das c' liegt auf einer Hilfslinie unter der Zeile." },
   { clef: "bass", title: "Linien im Bassschlüssel", items: VORRAT.bassLinien, ...mkLinien("bass"), ...D_LAGE, ...K_LINIEN,
@@ -278,11 +297,11 @@ const RAW = [
     hint: (c) => `Zähle die Zwischenräume von unten. A C E G, Merkspruch: „${merk(c, "bass-raeume")}“.` },
   { clef: "bass", title: "Bassschlüssel: Linien und Zwischenräume", items: VORRAT.bassZeile, hint: ZEILE_HINT },
   { clef: "bass", title: "Bassschlüssel: über und unter der Zeile", items: VORRAT.bassAussen, ...mkAussen("bass"), ...D_ZAEHLEN,
-    hint: "Neu sind vier Noten außerhalb der Zeile. Nimm die nächste Linie als Bezugston und zähle weiter. Das c' liegt auf einer Hilfslinie über der Zeile, das E auf einer darunter." },
+    hint: "Neu sind vier Noten außerhalb der Zeile. Zähle vom Bezugston weiter, der nächstgelegenen Linie. Das c' liegt auf einer Hilfslinie über der Zeile, das E auf einer darunter." },
   { clef: "bass", title: "Bassschlüssel mit Hilfslinien", items: VORRAT.bass,
     hint: "Das c' liegt im Bassschlüssel auf einer Hilfslinie über der Zeile, das E ganz unten." },
   { clef: "treble", title: "Vorzeichen im Violinschlüssel", acc: true, items: VORRAT.violinVorzeichen, ...mkVz(), ...D_VZ,
-    hint: `Lies erst den Stammton – die Note ohne Vorzeichen –, dann das Zeichen.\n${VZ_REGEL}` },
+    hint: VZ_KURZ },
   { clef: "treble", title: "Vorzeichen im Violinschlüssel ohne Hilfen", acc: true, items: VORRAT.violinVorzeichen, hint: VZ_HINT },
   { clef: "bass", title: "Vorzeichen im Bassschlüssel", acc: true, items: VORRAT.bassVorzeichen, ...mkVz(), ...D_VZ,
     hint: "♯ und ♭ bedeuten im Bassschlüssel dasselbe. Lies erst den Stammton, dann das Zeichen." },
@@ -299,12 +318,12 @@ const VORAUSSETZUNGEN = {
   // 1–5: needs fehlt, die Voreinstellung ergibt schon die Tabelle (1, 2, 3: keine frühere Stufe ohne Hilfen; 4, 5:
   // noten-3). 6, 7, 8: needs leer, sonst gälte noten-5 aus dem Violinschlüssel. 9, 10: Voreinstellung noten-8.
   3: { skill: "Linien und Zwischenräume im Violinschlüssel" },
-  4: { stepNeeds: [[], ["noten-3"]] },
+  4: { stepNeeds: [["noten-3"], []] },
   5: { skill: "Noten im Violinschlüssel" },
   6: { needs: [] },
   7: { needs: [] },
   8: { needs: [], skill: "Linien und Zwischenräume im Bassschlüssel" },
-  9: { stepNeeds: [[], ["noten-8"]] },
+  9: { stepNeeds: [["noten-8"], []] },
   10: { skill: "Noten im Bassschlüssel" },
   11: { needs: ["noten-5"], stepNeeds: [["noten-5"], []] },
   12: { needs: ["noten-5"], skill: "Vorzeichen im Violinschlüssel" },

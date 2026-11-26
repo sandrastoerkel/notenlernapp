@@ -69,7 +69,7 @@ test("lageDemo: Nummern von unten bis zur Note, Satz zur Lage, Wort des Spruchs 
     assert.ok(f2.body.includes(`<b class="nl-wort s2">${wort}</b>`), `${gName(n)} ${wort}`);
     assert.equal(wort[0], n.letter);
     assert.equal(f2.text, `Das ${l.nr}. Wort beginnt mit ${n.letter}.`);
-    assert.deepEqual(res.result.chips.map((c) => c.text), [l.art === "linie" ? `${l.nr}. Linie` : `${l.nr}. Zwischenraum`, `${wort} → ${n.letter}`]);
+    assert.deepEqual(res.result.chips.map((c) => c.text), [l.art === "linie" ? `${l.nr}. Linie` : `${l.nr}. Zwischenraum`, `„${wort}“ → ${n.letter}`]);
     assert.ok(!f0.tones && !f1.tones && !f2.tones);
   }
 });
@@ -85,7 +85,7 @@ test("lageDemo: Merkspruch aus q.spruch, aus dem Spielstand oder voreingestellt;
   const d = lageDemo({ note: n, clef, spruch: eigen });
   assert.equal(wortIn(d), "&lt;Gehen&gt;");
   assert.ok(!d.frames.some((f) => f.body.includes("<Gehen")), "kein HTML aus dem Text des Kindes");
-  assert.equal(d.frames.at(-1).result.chips[1].text, "&lt;Gehen&gt; → G");
+  assert.equal(d.frames.at(-1).result.chips[1].text, "„&lt;Gehen&gt;“ → G");
   assert.equal(spruchTeile(n, clef, eigen).join(""), eigen);
   // Spielstand mit eigenem Spruch
   const state = { sprueche: { "violin-linien": { eigen: "Elefanten Gähnen Hungrig Durch Felder" } } };

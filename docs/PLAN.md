@@ -3865,7 +3865,7 @@ kommt immer aus `sprueche.js` (gewählter Vorschlag oder eigener Spruch; eigene 
 |---|---|---|---|
 | 1, 6 | „Hilfen: Merkspruch für die Linien“ | Merkleiste Linien | „Zähle die Linien von unten. Das Wort im Merkspruch beginnt mit dem Notennamen.“ |
 | 2, 7 | „Hilfen: Merkspruch für die Zwischenräume“ | Merkleiste Zwischenräume | „Zähle die Zwischenräume von unten. Das Wort im Merkspruch beginnt mit dem Notennamen.“ |
-| 4, 9 | „Hilfen: Notennamen der Reihe nach“ | Namensleiste, darunter die Zeile „Linien von unten: <Merkspruch>“ | „Nimm die nächste Linie der Zeile als Bezugston. Jede Stelle weiter ist ein Name weiter: nach oben vorwärts, nach unten rückwärts.“ |
+| 4, 9 | „Hilfen: Notennamen der Reihe nach“ | Namensleiste, darunter die Zeile „Linien von unten: <Merkspruch>“ | „Nimm die nächstgelegene Linie der Zeile als Bezugston. Jede Stelle weiter ist ein Name weiter: nach oben vorwärts, nach unten rückwärts.“ |
 | 11, 13 | „Hilfen: Vorzeichen“ | Vorzeichen-Regel, darunter eine Oktave Klaviatur ohne Markierung | „Lies erst den Stammton (die Note ohne Vorzeichen), dann das Zeichen.“ |
 
 - **Merkleiste** (`merkleiste(clef, art, state)`): Tabelle in der Reihenfolge der Notenzeile – oben die 5. Linie,
@@ -3967,18 +3967,21 @@ Schritt 1 daneben lag. `reveal` und `revealParts` bleiben in allen 15 Stufen die
 außerhalb der Zeile.
 - Stufen 1, 6 (Linien): Schritt 1 „Auf welcher Linie liegt die Note? Zähle von unten.“ Knöpfe 1. | 2. | 3. | 4. |
   5. (eine Reihe, Ziffern 1–5). Danach „Richtig: 2. Linie von unten.“ bzw. „Nicht ganz: Es ist die 2. Linie von
-  unten.“ Schritt 2 „Wie heißt die Note?“ (C … H, Klaviatur). `display` „2. Linie → G (g')“; `reveal` wie bisher
+  unten.“ Schritt 2 „2. Linie – wie heißt die Note?“ (C … H, Klaviatur; seit der Korrektur nach der Prüfung mit
+  dem Ergebnis von Schritt 1). `display` „2. Linie → G (g')“; `reveal` wie bisher
   mit Spruch und markiertem Wort: „Das war ein G (g') – 2. Linie von unten (Es **Geht** Hurtig Durch Fleiß).“;
   `partial` „Der Name stimmt, die Linie nicht: 2. Linie → G (g').“
 - Stufen 2, 7 (Zwischenräume): genauso mit „In welchem Zwischenraum liegt die Note? Zähle von unten.“ und 1. | 2. |
   3. | 4. Jeder Knopf ist in jeder dieser vier Stufen bei genau einer Note richtig (5 Linien, 4 Zwischenräume).
-- Stufen 4, 9: Schritt 1 „Bezugston: Wie heißt die nächste Linie der Zeile?“ (C … H; richtig ist im
+- Stufen 4, 9: Schritt 1 „Bezugston: Wie heißt die nächstgelegene Linie der Zeile?“ (bis zur Korrektur nach der
+  Prüfung „nächste“) (C … H; richtig ist im
   Violinschlüssel E bei d' und c', F bei g'' und a''; im Bassschlüssel G bei F und E, A bei h und c'). Danach
-  „Richtig: Die unterste Linie ist das E.“ Schritt 2 „Zähle von dort weiter: Wie heißt die Note?“ `display`
+  „Richtig: Die unterste Linie ist das E.“ Schritt 2 „Zähle vom E weiter: Wie heißt die Note?“ (bis zur Korrektur „von dort“). `display`
   „unterste Linie E · abwärts E – D – C → C (c')“; `reveal` „Das war ein C (c') – auf der Hilfslinie unter der
   Zeile (von der untersten Linie abwärts: E – D – C).“; `partial` „Der Name stimmt, der Bezugston nicht: …“.
 - Stufen 11, 13: Schritt 1 „Stammton: Wie heißt die Note ohne ihr Vorzeichen?“ (C … H). Danach „Richtig: Ohne
-  Vorzeichen ist das ein F.“ Schritt 2 „Und mit dem Vorzeichen?“ (Namensraster oder tippen). `display` „Stammton
+  Vorzeichen ist das ein F.“ Schritt 2 „Stammton F – und mit dem Vorzeichen?“ (Namensraster oder tippen; bis zur Korrektur „Und mit dem
+  Vorzeichen?“). `display` „Stammton
   F · ♯ erhöht → Fis (fis')“ bzw. „Stammton H · ♭ erniedrigt → B (b')“; `partial` „Der Name stimmt, der Stammton
   nicht: …“.
 - Stufen ohne Hilfen (einschrittig, Eingabe wie heute; Namensraster in 12, 14, 15 – das sind die bisherigen
@@ -4000,10 +4003,10 @@ zwei Knöpfen).
 |---|---|---|---|
 | `noten-1`, `-2`, `-6`, `-7` | – (`[]`) | – | Titel |
 | `noten-3` | – (`[]`; erste Stufe ohne Hilfen) | – | „Linien und Zwischenräume im Violinschlüssel“ |
-| `noten-4` | `noten-3` | `[[], ["noten-3"]]` | Titel |
+| `noten-4` | `noten-3` | `[["noten-3"], []]` (Korrektur nach der Prüfung, B1) | Titel |
 | `noten-5` | `noten-3` | – | „Noten im Violinschlüssel“ (wie bisher alt 3) |
 | `noten-8` | – (`[]`) | – | „Linien und Zwischenräume im Bassschlüssel“ |
-| `noten-9` | `noten-8` | `[[], ["noten-8"]]` | Titel |
+| `noten-9` | `noten-8` | `[["noten-8"], []]` (Korrektur nach der Prüfung, B1) | Titel |
 | `noten-10` | `noten-8` | – | „Noten im Bassschlüssel“ (wie bisher alt 6) |
 | `noten-11` | `noten-5` | `[["noten-5"], []]` | Titel |
 | `noten-12` | `noten-5` | – | „Vorzeichen im Violinschlüssel“ |
@@ -4047,9 +4050,10 @@ IDs als ein Test geprüft; die Tiefensuche auf Kreise bleibt.
 - **Runde „Wiederholen“ und „Grundlagen wiederholen“:** Es kommen nur einschrittige Stufen von „Noten lesen“ vor
   (Buchstaben, Namensraster, Klaviatur) – die gemischte Runde kann das schon. Stufe 14 und 15 mit Namensraster.
 - **Fehlermuster** (ab drei Fehlern desselben Schritts, Texte aus `gapText` mit dem `skill` der Grundlage):
-  - Stufe 4 bzw. 9, zweiter Schritt: „Der zweite Schritt (Linien und Zwischenräume im Violinschlüssel) hat oft
-    nicht geklappt. Das übst du in Stufe 3.“ (bzw. Bassschlüssel, Stufe 8). Erster Schritt: kein Muster (neu in der
-    Stufe).
+  - Stufe 4 bzw. 9, erster Schritt (Bezugston = Name der äußeren Linie): „Der erste Schritt (Linien und
+    Zwischenräume im Violinschlüssel) hat oft nicht geklappt. Das übst du in Stufe 3.“ (bzw. Bassschlüssel,
+    Stufe 8). Zweiter Schritt (Weiterzählen): kein Muster (neu in der Stufe). Korrektur nach der Prüfung aus drei
+    Perspektiven (B1): vorher war es umgekehrt eingetragen.
   - Stufe 11, erster Schritt: „Der erste Schritt (Noten im Violinschlüssel) hat oft nicht geklappt. Das übst du in
     Stufe 5.“ Zweiter Schritt: kein Muster (die Regel ist neu in der Stufe).
   - Stufe 13: erster Schritt → Stufe 10 („Noten im Bassschlüssel“), zweiter Schritt → Stufe 12 („Vorzeichen im
@@ -4576,6 +4580,77 @@ Gebaut wird jeweils die **Voreinstellung**, solange Sandra nichts anderes entsch
      heute direkt in „mit Hilfslinien“ ohne Hilfen dazu.
    - c) 13 Stufen: „Vorzeichen im Bassschlüssel“ nur als eine Stufe ohne Hilfen (die Regel ist aus dem
      Violinschlüssel bekannt), dafür „Linien und Zwischenräume“ (3, 8) wie geplant.
+
+### 14. Korrektur nach der Prüfung aus drei Perspektiven (27.11.2026)
+
+Berichte: `pruefung-3-perspektiven/2026-11-27_Welle12_Pruefung_{lehrkraft,jugendliche,wissenschaft}.md` (L, J, W).
+Zählung: A 0 in allen drei Berichten; B: L 2, J 4, W 3 (L-B1 = W-B1). Korrigiert in zwei parallelen Zweigen:
+TEXT (`korr-text-12`, Pakettexte, Tests, PLAN, README) und LOGIK (`korr-logik-12`, `src/engine.js`,
+`src/views/*.js`). Den Stand der LOGIK-Punkte trägt der Koordinator nach dem Zusammenführen ein.
+
+**A – keine.**
+
+**B – Stand:**
+
+| Befund | Inhalt | Zweig | Stand |
+|---|---|---|---|
+| L-B1 = W-B1 | Fehlermuster der Stufen 4 und 9 am falschen Schritt | TEXT | erledigt (78837c6): `stepNeeds` `[["noten-3"], []]` bzw. `[["noten-8"], []]`; Abschnitt 7 und 8 nachgezogen; Test mit dem Satz „Der erste Schritt (Linien und Zwischenräume im Violinschlüssel) hat oft nicht geklappt. Das übst du in Noten lesen, Stufe 3.“; nur Weiterzählen daneben → kein Muster |
+| L-B2 (= W-C4) | „Es → E“ / „Eis → E“ in Beschriftung und Vorführung | TEXT | erledigt (f348368, Voreinstellung des Koordinators, Sandra kann anders entscheiden): Merkwort in Anführungszeichen, „Es“ → E, in der Beschriftung der Auflösung und im Ergebnis der Vorführung „So liest du eine Note“ (auch Lerntafel). Merkleiste unverändert (Wort allein in seiner Zeile, ohne Pfeil, fetter Anfangsbuchstabe); die Rückmeldung nennt den ganzen Spruch. `WORT_MAX` 12 → 11 (gemessen, sonst ragte ein Wort aus zwölf breiten Buchstaben über die Zeile) |
+| J-B1 | „Nächste Aufgabe“ bei 320 × 640 unter dem Rand (Stufen 11–15) | LOGIK | im Zweig LOGIK |
+| J-B2 | Doppeltipp beantwortet den nächsten Schritt | LOGIK | im Zweig LOGIK |
+| J-B3 | Schritt 2 nennt das Ergebnis von Schritt 1 nicht | TEXT | erledigt (a18c2a9): „4. Linie – wie heißt die Note?“ (1, 2, 6, 7), „Zähle vom F weiter: Wie heißt die Note?“ (4, 9, Bezugston der Aufgabe), „Stammton C – und mit dem Vorzeichen?“ (11, 13); nie die Antwort von Schritt 2 (Test unverändert grün). J fragt Sandra, ob das so sein soll (Voreinstellung des Koordinators: ja) |
+| J-B4 | Startkarte „Noten lesen 11“ ohne Knopf im ersten Bildschirm | TEXT | erledigt (0f767a3), siehe unten |
+| W-B2 | Zeit zweischrittiger Aufgaben färbt die Notenkarte „langsam“ | LOGIK | im Zweig LOGIK |
+| W-B3 | Ergebniskarte ohne Rückweg zur Stufe mit Hilfen | LOGIK | im Zweig LOGIK |
+
+**Startkarte „Noten lesen 11“ (J-B4, L-C2, offener Punkt 1 aus Abschnitt 13).** Neuer Hinweis: „Lies erst den
+Stammton (ohne Vorzeichen), dann das Zeichen. ♯ Halbton höher, „-is“: F → Fis. ♭ Halbton tiefer, „-es“: D → Des,
+aber E → Es, A → As, H → B.“ (Wortlaut der Hilfe „Vorzeichen“, Pfeile mit geschütztem Leerzeichen). Die ganze
+Regel steht in den Hilfen derselben Stufe, alle Namen im Namensraster und in der Lerntafel; der Test aus Welle 10
+(„nennt Dis“, alle Namen im Hinweis) gilt jetzt nur für Stufe 12. Gemessen bei 320 × 640, dunkel (Kandidaten
+Zeile für Zeile, LESSONS): Hinweis mit „Beide Schritte müssen stimmen.“ 232 → 139 px; „Runde starten“ ohne
+Empfehlung 593 → 501 px (ganz sichtbar, Unterkante 543); mit Empfehlung erster Knopf („Grundlagen wiederholen“)
+641 → 548 px, Unterkante 610 (Grenze 580: der Knopf beginnt im ersten Bildschirm, ganz sichtbar ist er nicht –
+dafür müssten noch zwei Zeilen weg, dann fehlte ein Beispiel; wie bei Stufe 4 und 9 mit 568 px).
+
+**Kleine C-Punkte gleich mit erledigt (TEXT):**
+- L-C1 = J-C5 „nächste Linie“: jetzt „nächstgelegene Linie“ in der Frage („Bezugston: Wie heißt die
+  nächstgelegene Linie der Zeile?“), in der Hilfe und im Hinweis der Stufen 4 und 9 (a18c2a9). Hinweis
+  umgestellt („Zähle vom Bezugston weiter, der nächstgelegenen Linie.“), damit die Startkarte von Stufe 9 nicht
+  länger wird (gemessen: 116 px wie vorher; „Nimm die nächstgelegene Linie als Bezugston …“ hätte 139 px).
+- Offener Punkt 3 (alte Lehrkraft-Links): ein Satz im README, Abschnitt „Für Lehrkräfte“ (ac4024e).
+- Offener Punkt 2 („G (großes G)“): bleibt so (Voreinstellung des Koordinators; L rät zu „großes G“, J und W
+  raten, es in dieser Welle zu lassen). Sandra kann anders entscheiden.
+
+**C – für später gesammelt** (nicht gebaut; Kürzel nach Bericht):
+- L-C3 Hinweis Stufe 13 und 14: „… dasselbe wie im Violinschlüssel“.
+- L-C4 = W-C5 Auflösungszeichen ♮ (Entscheidung 4 a) und der Begriff Versetzungszeichen/Vorzeichen; Satz in der
+  Lerntafel, Wortlaut von Sandra. L-C12: Vorzeichen vor einer Note / Vorzeichen am Zeilenanfang unterscheiden.
+- L-C5 Statistik „B (B)“, „A (A, Bass)“ in der großen Oktave.
+- L-C6 Klaviatur in den Vorzeichen-Stufen (Gis = As), ggf. nur Namensraster (Sandra entscheidet).
+- L-C7 = J-C8 Statistik Stufe 3 und 8 nach dem Update: halber Satz zu „noch keine eigene Runde“; Titel bricht um.
+- L-C8 Hinweis Stufe 10 an Stufe 5 angleichen. W-C7: Hinweis 4 und 5 nennt nur das c' auf einer Hilfslinie (auch
+  das a''). W-C6: Hinweis 15 „hin und wieder ein Vorzeichen“ (gemessen 38 %).
+- L-C9 Beschriftung 031/032 im `index.md` der Bildschirmfotos.
+- L-C10 Reihenfolge Vorzeichen vor Bassschlüssel für den Unterricht (erst auf Nachfrage).
+- L-C11 = J-C3 Beschriftung unter der Notenzeile bei 320 px klein, im Dunklen blass.
+- J-C1 „Dafür brauchst du“: Komma allein in einer Zeile bei 320 px.
+- J-C2 Zählnummern in der Vorführung „So liest du eine Note“ bei 320 px 9 px.
+- J-C4 Oktav-Zusatz ohne Erklärung, drei Formen („E (e)“, „großes H“, „große Oktave“) – Wortlaut von Sandra.
+- J-C6 Antwortbereich springt (Namensraster in Schritt 1 schon zeigen?; Klaviatur und Weiter-Knopf).
+- J-C7 Startseite: 15 Karten, Schlüssel doppelt im Untertitel, Nummer auf gesperrten Karten.
+- J-C9 Merkleiste: Wörter in Kästchen sehen wie Eingabefelder aus.
+- J-C10 Tastatur-Hinweis nur bei feinem Zeiger.
+- J-C11 Tippflächen der Vorführung unter 44 px.
+- J-C12 „Erst anschauen“ rollt zur passenden Lerntafel.
+- W-C1 Stufe 15: Voraussetzung je Aufgabe (`q.needs`). W-C2 Test zum Gewicht nach Tagen in „Noten lesen“.
+- W-C3 Teilerfolg zählt für die Note als falsch. W-C8 Teil-Stufen nach der Umstellung (mit L-C5 aus Welle 11).
+- W-C9 kurzer Weg für Kinder, die schon Noten lesen. W-C10 Link „Beispiel ansehen“ auf der Startkarte.
+- W-C11 Schlüssel erst in Stufe 15 gemischt (Kindertest). W-C12 Versionszeichen im Lehrkraft-Link bei der nächsten
+  Umnummerierung.
+
+**Fragen an Sandra aus den Berichten:** J 1 (darf Schritt 2 das Ergebnis von Schritt 1 nennen? – gebaut: ja),
+J 2 (Namensraster schon in Schritt 1, = J-C6), J 3 (Erklärzeile zur Oktave und eine Form, = J-C4).
 
 ## Vorgaben für die nächsten Wellen (Sandra, 26.11.2026)
 
