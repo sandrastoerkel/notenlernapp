@@ -624,6 +624,8 @@ section { display: grid; gap: 14px; }
 /* Merkspruch-Wahl (sprueche.js, Lerntafeln „Merkhilfen“ und „Quintenzirkel“): Vorschläge als Optionsfelder,
    der geltende Spruch hervorgehoben (.on), darunter das Feld „Eigener Spruch“ mit Meldung */
 .legend > .spruch-board { display: grid; gap: 10px; grid-column: 1 / -1; border: 0; padding: 0; min-width: 0; }
+/* Satz unter der Tabelle (Welle 12: Vergleich mit dem Violinschlüssel in der Bass-Tafel): über die ganze Breite */
+.legend > .legend-note { grid-column: 1 / -1; margin: 0; }
 .spruch-board > p { margin: 0; }
 .spruch-wahl { display: grid; gap: 6px; margin: 0; padding: 10px 12px 8px; border: 1px solid var(--line); border-radius: 12px; min-width: 0; }
 .spruch-wahl legend { padding: 0 4px; font-size: .9rem; font-weight: 700; }
