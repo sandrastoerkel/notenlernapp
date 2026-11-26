@@ -118,6 +118,13 @@ test("Cache-Version seit Welle 10 (Korrekturen, Merksprüche) mindestens -13", (
   assert.ok(n >= 13, String(n));
 });
 
+test("Cache-Version seit Welle 11 (Wiederholen, Jahrgang) mindestens -14", () => {
+  // neue Module src/repeat.js, src/klasse.js, src/qr.js und die Ansicht src/views/lehrkraft.js, geänderte Dateien in
+  // fast allen Paketen und Ansichten: installierte Geräte müssen neu laden
+  const n = +sw.match(/^const CACHE = "notenheld-v[\d.]+-(\d+)";$/m)[1];
+  assert.ok(n >= 14, String(n));
+});
+
 test("Liste deckt genau den Dateibaum der App ab (nichts fehlt, nichts zu viel)", () => {
   // aus dem Dateibaum: alles unter src/, css/, fonts/, icons/ und die Dateien der Shell
   const tree = ["src", "css", "fonts", "icons"].flatMap(walk).map((f) => `./${f}`);

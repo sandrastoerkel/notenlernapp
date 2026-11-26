@@ -21,7 +21,12 @@ src/
   audio.js              Töne per Web Audio
   store.js              Fortschritt: Zustand, Freischaltung, Serie, Persistenz
   adapt.js              adaptive Auswahl: Zustand je Note (neu, unsicher, langsam, sicher), Gewichte (seit Paket G)
-  engine.js             generischer Rundenablauf (10 Aufgaben, Feedback, Sterne, XP)
+  engine.js             generischer Rundenablauf (10 Aufgaben, Feedback, Sterne, XP; seit Welle 11 auch gemischte Runden)
+  repeat.js             Wiederholung über Tage (Karteikasten), Voraussetzungen, „Grundlagen wiederholen“, Fehlermuster
+                        (rein, seit Welle 11)
+  klasse.js             Jahrgang über den Lehrkraft-Link: Tabelle „dran“, Link lesen und bauen, Abschnitte der Startseite
+                        (rein, seit Welle 11)
+  qr.js                 QR-Code im Gerät erzeugen (eigener Encoder, ohne Abhängigkeit, ohne Netz; rein, seit Welle 11)
   sprueche.js           Merksprüche: Vorschläge, eigener Spruch, Prüfung der Anfangsbuchstaben (rein, seit Welle 10)
   demo.js               Baukasten: Vorführung (Bilder mit Zurück/Abspielen/Weiter ›, Schritt-Marken, Ergebniskarte)
   grid.js               Baukasten: Kästchentabelle („gehirngerechte“ Übersicht, eine Zeile je Eintrag)
@@ -33,14 +38,16 @@ src/
   packs/tonleitern.js   Paket „Tonleitern“ (seit Welle 8: 13 Stufen, erst mit Hilfen, dann ohne; Dur bis 4 Vorzeichen,
                         Tonart aus den Vorzeichen und parallele Molltonart bis 7; drei Vorführungen)
   packs/akkorde.js      Paket „Dreiklänge und Quintenzirkel“
-  views/home.js         Startseite: Pakete und Stufen
-  views/practice.js     Üben (nutzt engine.js)
-  views/learn.js        Lernen (Notenzeile zum Antippen, Lerntafeln der Pakete)
+  views/home.js         Startseite: Karte „Heute“ (seit Welle 11), Pakete und Stufen, mit Jahrgang in drei Abschnitten
+  views/practice.js     Üben (nutzt engine.js): Startkarte, Runde, Ergebniskarte; Runden „Wiederholen“ und
+                        „Grundlagen wiederholen“
+  views/learn.js        Lernen: Reiter je Inhalt (seit Welle 11), Notenzeile zum Antippen, Lerntafeln der Pakete
   views/blitz.js        Blitz (60 Sekunden)
-  views/stats.js        Statistik (mit Notenkarte seit Paket G)
-  app.js                Navigation und Verdrahtung
-test/                   node --test; eine Datei je Modul, z. B. test/music.test.js
-docs/                   Konzept und Architektur
+  views/stats.js        Statistik (mit Notenkarte seit Paket G; Fächer des Karteikastens, Jahrgang seit Welle 11)
+  views/lehrkraft.js    Seite „Für Lehrkräfte“ (#lehrkraft): Link und QR-Code für die Klasse (seit Welle 11)
+  app.js                Navigation und Verdrahtung, Adress-Angaben #lehrkraft und #klasse=…
+test/                   node --test; eine Datei je Modul, z. B. test/music.test.js (test/qrleser.js: Leser nur für Tests)
+docs/                   Konzept, Architektur, Plan; docs/screens/ Bildschirmfotos und Prüfskripte (Playwright)
 ```
 
 ## Notenmodell (`src/music.js`)
@@ -329,6 +336,12 @@ Eine Stufe:
   twoSteps: true,              // optional (seit Welle 10): zweischrittige Stufe, Startkarte mit „Beide Schritte müssen stimmen.“
   helpTable: "<table …>",      // optional, HTML der Tabelle in den Hilfen
   helpsTitle: "…",             // optional, eigene Überschrift der Hilfen (sonst aus helps: „Hilfen: Klaviatur und Tabelle“ bzw. „Hilfen: Klaviatur“)
+  autoNext: true,              // optional (seit Welle 10): nach „richtig“ von selbst weiter (true) bzw. warten (false), sonst aus den Texten (okWaits)
+  needs: ["noten-3"],          // optional (seit Welle 11): direkte Voraussetzungen (Stufen-IDs), siehe „Voraussetzungen“ unten
+  stepNeeds: [["intervall-2"], []], // optional (seit Welle 11): Voraussetzung je Denkschritt (für die Fehlermuster)
+  skill: "Noten mit Vorzeichen", // optional (seit Welle 11): was man hier kann, für „Dafür brauchst du: …“ (sonst title)
+  guess: true,                 // optional (seit Welle 11): nur zwei Antwortknöpfe (Raten) → mehr Aufgaben in „Wiederholen“
+  learnTab: "takt",            // optional (seit Welle 11): Reiter in „Lernen“, den „Erst anschauen“ öffnet (sonst die id des Pakets)
   demo(q) { return { steps, frames }; }, // optional (seit 20.11.2026): Vorführung der Aufgabe q für den Knopf „Vorführen“ in den Hilfen (src/demo.js)
   items: [ /* … */ ],          // optional, Vorrat der Aufgaben (nur für Tests und Blitz)
   question(prev, ctx) {        // liefert eine neue Aufgabe, nie dieselbe wie prev; ctx siehe unten
@@ -345,7 +358,7 @@ Eine Stufe:
       choices: ["…"],          // nur bei input "choices": 4 bis 6 Auswahlknöpfe, enthält answer
       cols: 4,                 // optional, feste Spaltenzahl der Knöpfe (Klasse cols, --cols), z. B. Prime … Oktave in 2 × 4
       digits: true,            // optional, Ziffer k auf der Tastatur wählt den k-ten Knopf
-      steps: [ /* optional, zweischrittig: { choices, cols?, digits?, answer, prompt?, ok?, bad? } je Schritt; seit Welle 10 auch nur ein Eintrag */ ],
+      steps: [ /* optional, zweischrittig: { choices, cols?, digits?, answer, prompt?, ok?, bad?, needs? } je Schritt; seit Welle 10 auch nur ein Eintrag; needs (seit Welle 11, optional) geht vor level.stepNeeds */ ],
       partial: "…",            // optional, Rückmeldung, wenn nur der erste Schritt daneben lag (Satz mit Punkt)
       helpMarks: [N("E", 4)],  // optional, Töne, die die Klaviatur der Hilfen markiert
       note: N("G", 4),         // optional, die gefragte Note (Ton im Blitz, Feedback ohne Oktave)
@@ -462,11 +475,37 @@ Regeln für Pakete:
 - Texte auf Deutsch, Anrede „du“, Fachbegriffe wie im Musikunterricht am Gymnasium.
 - Jedes Paket hat eine Testdatei `test/packs/<id>.test.js`, die prüft: Stufen-IDs eindeutig, `question()` liefert gültige Aufgaben, `check()` erkennt die richtige Antwort und lehnt eine falsche ab, bei `choices` ist `answer` enthalten.
 
+Voraussetzungen (seit Welle 11, Schritt 5): Jedes Paket hat eine Tabelle `VORAUSSETZUNGEN` (Stufennummer →
+`{ needs, stepNeeds, skill, guess }`), die beim Bau der Stufen eingemischt wird. Die Werte folgen der Tabelle in
+`docs/PLAN.md` (Welle 11, Abschnitt 1, an den Aufgabenvorräten nachgeprüft); `test/repeat.test.js` prüft alle
+47 Stufen als Ganzes. Regeln: Ohne `needs` gilt die Voreinstellung, die nächste frühere Stufe **ohne Hilfen** im
+selben Paket (gibt es keine: keine Voraussetzung); ein gesetztes `needs` ersetzt sie ganz (`needs: []` = keine)
+und steht nur dort, wo die Voreinstellung etwas anderes ergäbe. Jedes Ziel gibt es, es ist eine Stufe ohne
+Hilfen und liegt weiter vorn im selben Paket oder in einem früheren Paket (Reihenfolge `PACKS`); der Graph hat
+damit keinen Kreis. `stepNeeds[i]` nennt die Grundlage des Denkschritts `i` (`[]` = keine), eine Aufgabe darf
+sie mit `q.steps[i].needs` überschreiben (genutzt wird das derzeit nicht). `skill` tragen genau die Stufen, die
+Ziel einer Kante sind; `guess` genau die Stufen mit nur zwei Knöpfen (Tonleitern 1–3, Dreiklänge 1). Gelesen
+wird alles nur über `src/repeat.js` (`needsOf`, `stepNeedsOf`, `skillOf`, `needsText`). Nichts davon sperrt
+eine Stufe: Voraussetzungen ordnen und bieten an.
+
+Gewichtete Auswahl in den Paketen (seit Welle 11, Schritt 9): Außer „Noten lesen“ wählen auch „Intervalle“ und
+„Tonleitern“ ihre Aufgaben nach dem Zustand je `statKey` (`adapt.pickAmong`). Dafür hat jede Stufe dieser
+Pakete eine Funktion, die den `statKey` einer Aufgabe aus dem Vorrat liefert (Intervalle `numberStat`,
+`twoStepStat`, `buildStat`, `checkStat`; Tonleitern `stepStat`, `gapStat`, `oddStat`, `sigStat`, `majorStat`,
+`minorStat`); die Fragen tragen genau diese Texte ein (Tests gleichen beides ab). `adaptOf(ctx, statOf)` liest
+`ctx.notes`, `ctx.heute` (sonst `today()`) und `ctx.rand` (nur Tests, fester Zufall). In „Intervalle“ wird die
+Gruppe (Zahl bzw. Intervall) gewichtet, der Zug in der Gruppe bleibt gleichverteilt. „Notenwerte und Pausen“ und
+„Dreiklänge“ schreiben keine `statKey`s und wählen weiter gleichverteilt.
+
 Lerntafel (optional, erscheint im Tab „Lernen“ als Karte):
 
 ```js
-{ title: "Notenwerte", clef: "treble", render(ctx) { return "<div>…HTML…</div>"; } }
+{ title: "Notenwerte", clef: "treble", tab: "takt", render(ctx) { return "<div>…HTML…</div>"; } }
 ```
+
+`tab` (optional, seit Welle 11): Reiter in „Lernen“, in dem die Tafel steht; ohne das Feld der Reiter mit der
+`id` des Pakets (siehe Ansichten, `LEARN_TABS`). Genutzt von „So zählst du einen Takt“ und „Balken“ (Reiter
+„Takt“).
 
 `render(ctx)` bekommt seit Welle 10 `ctx = { state }` (gewählte Merksprüche); Tafeln ohne Parameter laufen
 unverändert.
@@ -625,10 +664,31 @@ Antwort-Elemente nach `input` und vergibt Sterne (5/7/9 richtige = 1/2/3) und
 XP (10 je richtige Antwort, 20 je Stern). Ergebnisse landen im Store unter der
 Stufen-ID.
 
-- `ui`: `{ staff, feedback, count, dots, answers, typed, piano, helps, helpsBody, next }` (DOM-Elemente;
-  `typed` zeigt den getippten Namen, nur bei Stufen mit Namensraster; `helps` ist das `<details>` der
-  Hilfen, `helpsBody` sein Inhalt; `next` ist der Knopf „Nächste Aufgabe“ `#pNext` direkt unter den
-  Antwortknöpfen)
+- `ui`: `{ staff, feedback, count, dots, answers, typed, piano, helps, helpsTitle, helpsBody, next, origin }`
+  (DOM-Elemente; `typed` zeigt den getippten Namen, nur bei Stufen mit Namensraster; `helps` ist das
+  `<details>` der Hilfen, `helpsTitle` sein `<summary>`, `helpsBody` sein Inhalt; `next` ist der Knopf „Nächste
+  Aufgabe“ `#pNext` direkt unter den Antwortknöpfen; `origin` (seit Welle 11, optional) die Herkunftszeile
+  `#pOrigin` der gemischten Runde, in der normalen Runde verborgen)
+- Gemischte Runde (seit Welle 11, Schritt 6; Runden „Wiederholen“ und „Grundlagen wiederholen“): Die reine
+  Funktion `makeMixed(packs, plan, ctx, rand)` erzeugt zu `plan = [{ id, n }]` je Stufe `n` Aufgaben über
+  `level.question(prev, ctx)` (`prev` und `ctx.round` je Stufe, damit Regeln wie „Prime höchstens einmal“ und
+  „nie dieselbe Aufgabe zweimal hintereinander“ je Stufe gelten) und gibt sie als flache Kopien mit `q.from`
+  (Stufe) und `q.fromPack` (Paket) zurück, gemischt: immer die Stufe mit den meisten übrigen Aufgaben außer der
+  zuletzt gezogenen (Gleichstand per `rand`), also nie zwei Aufgaben derselben Stufe hintereinander, solange es
+  anders geht. Eine unbekannte ID ist ein Fehler. `startMixed({ kind, items, plan? }, ui, hooks)` führt die
+  Runde (`kind` aus `MIXED_KINDS` in `store.js`: `"wiederholen"`, `"grundlagen"`). Überall, wo die Engine sonst
+  `r.level` fragt, steht `cur(r)`: in der gemischten Runde die Herkunft der aktuellen Aufgabe (`q.from`), sonst
+  die Stufe der Runde. So richten sich Eingabeart, `check`, Ziffern, Namensraster und das Warten
+  (`waitsAfter(cur(r), …)`) nach der Aufgabe; der Antwortbereich wird vor jeder Aufgabe neu aufgebaut
+  (`setupAnswers`, Klassen und `--cols` der vorigen Aufgabe fallen weg; lag der Fokus auf einem Antwortknopf,
+  geht er auf den Antwortbereich). Keine Hilfen, kein „Vorführen“, keine Sterne. Über der Notenzeile steht die
+  Herkunft (`originText(pack, level)` → „Intervalle · Stufe 4“, `#pOrigin` mit `aria-live="polite"`; gleicher
+  Text wird nicht neu gesetzt, damit nur ein Wechsel der Stufe angesagt wird). Ende über
+  `store.recordMixedRound` (kein Eintrag in `s.levels`).
+- Protokoll der Runde (seit Welle 11, `r.log`): je Aufgabe `{ id, ok, oks }` – Stufe, Ergebnis, Ergebnis je
+  Schritt (`oks` bei einschrittigen Aufgaben `[ok]`). Es geht in beiden Rundenarten an `onFinish` (`log`) und
+  ist die Grundlage der Fehlermuster (`repeat.gapsOf`) und der Ergebnisse je Stufe in der gemischten Runde
+  (`perLevelOf(log, order)` → `[{ id, n, ok }]`, zuerst in der Reihenfolge des Plans).
 - Weiter zur nächsten Aufgabe (seit Welle 10, A1): Nach der letzten Antwort einer Aufgabe entscheidet die reine
   Funktion `waitsAfter(level, ok, text)`: Stufe mit `helps` (`waitsForNext(level)`, Sonderfall, z. B. „Intervalle“
   1, 3, 5, 8, „Tonleitern“ 1, 2, 4, 6, 8, 10, 12, „Notenwerte“ 1, 2, 4, 6, 8) → warten; daneben (auch
@@ -703,10 +763,13 @@ Stufen-ID.
   (`textContent`); Ergebniskarte mit eigener Zeile zur Freischaltung (`resultInfo`, siehe Fortschritt) und
   „Ø 2,3 s pro Aufgabe“ (Dezimalkomma, „pro Note“ nur in „Noten lesen“; `resultLine`).
 - `hooks`: `{ state, save, onFinish(result) }`; `result` ist
-  `{ correct, total, stars, gained, avg, results }`
+  `{ correct, total, stars, gained, avg, results, log }`, in der gemischten Runde
+  `{ kind, correct, total, gained, avg, results, perLevel, log }`
 - weitere Funktionen für die Ansichten: `stop()` (laufende Runde abbrechen,
   Zeitgeber löschen), `isRunning()`, `setInput(pref)`,
-  `handleKey(e)` (gibt `true` zurück, wenn die Taste verwendet wurde)
+  `handleKey(e)` (gibt `true` zurück, wenn die Taste verwendet wurde); für Tests und die Browserprüfung
+  `isWaiting()` und `currentQuestion()` (die aktuelle Aufgabe oder `null`)
+- seit Welle 11, rein und getestet: `makeMixed`, `originText`, `perLevelOf`
 - reine Hilfsfunktionen (getestet): `starsHtml`, `effectiveInput`, `makeRound`,
   `findLevel(packs, id)`, `nextLevel(pack, level)`, `countAnswer`,
   `feedbackText`, `resultMessage`, `dotsHtml`, `lettersHtml`, `choicesHtml`,
@@ -746,22 +809,116 @@ Ein Wechsel des Tabs beendet eine laufende Runde (Üben und Blitz) ohne Eintrag.
 ## Ansichten (`src/views/*.js`) und `src/app.js`
 
 Jede Ansicht exportiert `init(ctx)` (einmal beim Start, Ereignisse binden) und
-`render()` (bei jedem Wechsel auf den Tab). Üben und Blitz exportieren
-zusätzlich `stop()` und `handleKey(e)`. `app.js` baut den gemeinsamen Kontext:
+`render(arg)` (bei jedem Wechsel auf den Tab; `arg` optional, seit Welle 11). Üben und Blitz exportieren
+zusätzlich `stop()` und `handleKey(e)`. Die Ansicht `lehrkraft` hat keinen Reiter in der unteren Leiste.
+`app.js` baut den gemeinsamen Kontext:
 
 ```js
 const ctx = {
   state,        // aktueller Zustand aus store.load(); wird beim Zurücksetzen ersetzt,
                 // Ansichten lesen ihn deshalb immer als ctx.state
   save,         // () => store.save(ctx.state)
-  show,         // (view) => Tab wechseln: "home" | "practice" | "learn" | "blitz" | "stats"
+  show,         // (view, arg) => Ansicht wechseln: "home" | "practice" | "learn" | "blitz" | "stats" | "lehrkraft";
+                // arg (optional, seit Welle 11) geht an render der Ansicht, z. B. { tab } für „Lernen“
   renderTop,    // Kopfzeile (Serie, XP, Ton-Knopf) neu zeichnen
   packs,        // PACKS aus src/packs/index.js
 };
 ```
 
 Tastendrücke mit Strg, Alt oder Cmd werden ignoriert, alle anderen gehen an
-`handleKey` der aktiven Ansicht.
+`handleKey` der aktiven Ansicht (nicht, solange die Bestätigung des Jahrgangs oder der große QR-Code offen ist).
+`store.load` bekommt beim Start `boxIds(PACKS)` aus `repeat.js` (für die Umstellung „wiederholen“).
+
+Adress-Angaben (seit Welle 11, in `app.js`; gelesen beim Start und bei `hashchange`):
+- `#lehrkraft` öffnet die Seite „Für Lehrkräfte“ (`views/lehrkraft.js`, kein Reiter in der unteren Leiste;
+  erreichbar auch über den Textlink am Ende der Statistik). Jeder andere Ansichtswechsel nimmt `#lehrkraft` aus
+  der Adresszeile (`history.replaceState`); verschwindet die Angabe (Zurück im Browser), geht es zur Startseite.
+- `#klasse=…` (Formen und Prüfung in `klasse.js`, siehe unten): `readKlasseLink` prüft jede Angabe mit
+  `klasse`, `zweig` oder `dran` (`isKlasseLink`, auch in falscher Schreibweise). Passt der Link nicht
+  (`parseLink` → `null`), erscheint über der unteren Leiste der Hinweis `#klasseBar` „Der Link passt nicht zu
+  dieser App-Version.“, der Spielstand bleibt unberührt. Ist dieselbe Einstellung schon gesetzt (bzw. es gibt
+  nichts zu entfernen), fragt die App nicht. Sonst fragt sie **einmal** im `<dialog id="klasseDialog">`
+  (`showModal`): „Einstellung deiner Lehrkraft übernehmen?“ mit `klasseText` und „Bisher: …“, bzw. „Jahrgang
+  entfernen?“. Erst „Übernehmen“ bzw. „Entfernen“ ruft `store.setKlasse` bzw. `store.clearKlasse`, speichert und
+  zeigt die Startseite; Escape und „Nicht übernehmen“ ändern nichts. In jedem Fall verschwindet die Angabe danach
+  aus der Adresszeile (`history.replaceState`, kein neuer Eintrag im Verlauf), damit ein Neuladen nicht noch
+  einmal fragt. Kommt bei offener Frage ein zweiter Link, wechselt nur der Inhalt (kein `close()`). In der App
+  gibt es keinen Schalter, mit dem Schülerinnen und Schüler den Jahrgang ändern.
+
+Startseite (`src/views/home.js`, seit Welle 11, Schritt 8 und 12; reine Teile getestet in
+`test/views/home.test.js`):
+- Ganz oben die Karte „Heute“ (statt der großen Trefferquote): `todayCard(state, packs, heute)` →
+  `{ title, line, review, cont, small }`. Ist etwas fällig (`repeat.reviewPlan` nicht leer): Titel
+  „Wiederholen“, Zeile `reviewListText` („10 Aufgaben aus Intervalle 4, Tonleitern 5 und Noten lesen 7“),
+  Hauptknopf `#homeReview` „Wiederholung starten“ (`ctx.show("practice", { mode: "wiederholen" })`), daneben
+  „Weiter üben: …“. Sonst „Bereit für eine Runde?“ mit dem Satz zur Tagesserie (`streakText`), „Weiter üben“
+  als Hauptknopf und klein `#homeSmall` „Nächste Wiederholung: morgen“ bzw. bei leerem Kasten
+  `BOX_EMPTY_TEXT`. Kein Zähler für Versäumtes. `continueText` („Weiter üben: Tonleitern, Stufe 6“ bzw.
+  „Starten: …“), `continueId(state, packs)` = `klasse.nextUp` oder `state.current`; „Weiter üben“ und „Erst
+  anschauen“ (Reiter aus `learn.learnTabOf`) nehmen diese Stufe.
+- Stufenkarten: `levelHtml(s, pack, l, dueSet, withPack, cur)`; fällige Stufen (`repeat.due`) tragen die Marke
+  „↻ wieder dran“ (`againHtml`, das Zeichen ist `aria-hidden`); umrandet ist die Stufe von „Weiter üben“.
+  `packShort(pack)` (Kurzname `pack.short`, sonst `title`) wird auch in `practice.js` genutzt.
+- Ohne Jahrgang je Paket ein Abschnitt. Mit Jahrgang `homeSections(state, packs)` aus `klasse.sections`: klein
+  der Hinweis „Jahrgang 6 · über den Link deiner Lehrkraft“ (`klasseHint`), „Jetzt dran“ (Stufenkarten mit
+  Paket-Kurzname in der Unterzeile; leer: `nothingNewText` „In Jahrgang 9 kommt nichts Neues dazu. …“ bzw.
+  `allDoneText` „Was in Jahrgang 7 neu ist, hast du mit mindestens 8 von 10 geschafft. …“), „Schon dran gewesen“
+  (je Paket), „Darüber hinaus“ (`<details>`, zugeklappt, je Paket). Titel in `SECTION_TITLES`.
+
+Üben (`src/views/practice.js`; reine Teile getestet in `test/views/practice.test.js`):
+- `render(arg)`: ohne `arg` die Startkarte der aktuellen Stufe; `{ mode: "grundlagen", levelId, only }` startet
+  „Grundlagen wiederholen“ zur Stufe (`only`: nur diese Grundlage(n), nach einem Fehlermuster); `{ mode:
+  "wiederholen" }` startet die Runde „Wiederholen“ aus `repeat.reviewPlan` (ist nichts fällig: Startseite).
+  Beide laufen über `playMixed` → `engine.makeMixed` und `engine.startMixed`; Kopf `MIXED_HEAD`, Titel
+  `basicsTitle` („für Intervalle, Stufe 3“) bzw. `reviewTitle` („10 Aufgaben aus 3 Stufen“); die Wahl
+  Buchstaben/Klaviatur ist dort verborgen.
+- Startkarte einer Stufe mit Voraussetzungen: `#pNeeds` „Dafür brauchst du: …“ (`needsHtml`, je Voraussetzung
+  ein Knopf, der ihre Startkarte öffnet) und `#pBasics` „Grundlagen wiederholen · 6 Aufgaben“
+  (`BASICS_LABEL`). Mit Empfehlung (`repeat.basicsOffer`: nie gespielt, wieder dran oder zuletzt unter 8 von
+  10) steht der Grund darüber (`#pBasicsWhy`, `reasonText`: „Empfohlen: „Noten mit Vorzeichen“ hast du hier
+  noch nicht geübt.“) und der Knopf als Hauptknopf vor „Runde starten“; sonst ruhig darunter. Nie Pflicht.
+- Ergebniskarte der normalen Runde: dazu `repeatNote` (Karteikasten über `repeat.afterRound`: „Neu im Kasten:
+  …“ bzw. „Wiederholung: sitzt · wieder in 7 Tagen.“) und `resultBasics(packs, pack, level, correct, log)`
+  → `{ first, gaps, only }`: je Fehlermuster ein Satz (`gapText`, z. B. „Dreimal lag der erste Schritt daneben
+  (Notenstufen zählen). Das übst du in Intervalle, Stufe 2.“) mit Knopf „… öffnen“ bzw. „Stufe 3 mit Hilfen
+  üben“ (`openLabel`), und **ein** Knopf „Grundlagen wiederholen“ (nach Mustern nur deren Grundlagen, sonst
+  bei weniger als 5 Richtigen, `BASICS_BELOW`, alle Voraussetzungen).
+- Ergebniskarte „Wiederholen“: je Stufe `reviewLine` („Intervalle 4 · sitzt · wieder in 7 Tagen“ bzw. „… · noch
+  wacklig · morgen noch einmal“, `verdictText`), bei „noch wacklig“ ein Knopf `practiceOffer` („Stufe 4 mit
+  Hilfen üben“ bzw. „Stufe 5 üben“), „Noch eine Wiederholung“ nur, wenn weiter etwas fällig ist; Sterne nur als
+  Anzeige. Ergebniskarte „Grundlagen wiederholen“: `perLevelLine` je Stufe, „Zurück zu Stufe n“, „Nochmal“.
+- `open(arg)` (für die Konsole und `docs/screens/ueberlauf.mjs`) = `ctx.show("practice", arg)`.
+
+Lernen (`src/views/learn.js`, seit Welle 11, Schritt 2, W3; reine Teile getestet in `test/views/learn.test.js`):
+- Reiter je Inhalt `LEARN_TABS`: Tonhöhen (`noten`) · Notenwerte · Takt · Intervalle · Tonleitern · Dreiklänge
+  (`akkorde`), Reihenfolge wie `PACKS`, „Takt“ hinter „Notenwerte“ (Test). Ein Reiter mit der `id` eines Pakets
+  zeigt dessen Tafeln ohne eigenes `tab`; „Tonhöhen“ zeigt zusätzlich die Notenzeile zum Antippen und „Alle
+  Namen zeigen“. `learnCardsHtml(packs, clef, c, tab)` und `mountCards(packs, clef, root, tab)` nehmen den
+  Reiter.
+- ARIA-Muster „Tabs“ (`role="tab"`, `aria-selected`, `aria-controls="lPanel"`), Aktivierung beim Fokus,
+  wandernder Tabindex; Pfeiltasten umlaufend, Pos1/Ende (`nextTab(ids, cur, key)`); der Tastatur-Handler hängt
+  an der Leiste `#lTabs`, nicht an `document`. Bei schmalen Fenstern rollt die Leiste in sich
+  (`overflow-x: auto`, Einrasten am Anfang eines Reiters); `tabScroll(…)` rechnet die kleinste Rollweite, bei
+  der der gewählte Reiter ganz sichtbar ist, nur beim Öffnen der Ansicht und beim Wechsel des Reiters.
+- Die Schlüsselwahl erscheint nur, wenn der Reiter eine Tafel je Schlüssel hat oder „Tonhöhen“ ist
+  (`tabHasClef`). Der gewählte Reiter bleibt für die Sitzung (`lTab`); `render({ tab })` öffnet einen Reiter
+  („Erst anschauen“, `learnTabOf(packs, levelId)`: `level.learnTab`, sonst die `id` des Pakets).
+
+Für Lehrkräfte (`src/views/lehrkraft.js`, seit Welle 11, Schritt 12; reine Teile getestet in
+`test/views/lehrkraft.test.js`): Anrede „Sie“. Die Seite setzt **nichts** auf dem Gerät (kein `ctx.state`, kein
+`ctx.save`, kein `localStorage`; Test), sie erzeugt nur Link und Code; jedes Öffnen beginnt mit Jahrgang 5 und
+seiner Voreinstellung. Auswahl Jahrgang 5 bis 13, Kästchen „Musisches Gymnasium“, je Paket „bis Stufe …“
+(`optionsFor(pack)`: 0 = „noch nichts“, sonst Nummer und Titel); ein Wechsel von Jahrgang oder Zweig setzt die
+Auswahl auf die Voreinstellung (`presetForm`), der Knopf „Voreinstellung für Jahrgang n“ ist nur bei eigener
+Auswahl aktiv (`isPreset`). Link: `linkFor(base, form, packs)` über `klasse.buildLink` (nur Abweichungen von der
+Voreinstellung), Basis `baseOf(location)` = `origin + pathname`; dazu `removeLinkFor(base)` (`#klasse=keine`).
+Beide als Text (markierbar, „Link kopieren“ mit Rückmeldung „Kopiert“; ohne Zugriff auf die Zwischenablage wird
+der Text markiert) und als QR-Code (`qrHtml(link, label, scale)`, Klasse 8 px je Modul `QR_SCALE`, Entfernen
+6 px `QR_SCALE_SMALL`, beide mit Ruhezone; passt der Text nicht in einen Code, steht `QR_TOO_LONG`).
+Beschriftung für Screenreader `qrLabel(form)` („QR-Code für Jahrgang 6“) bzw. `REMOVE_LABEL`. „QR-Code groß
+zeigen“ öffnet `<dialog id="qrBig">` (füllt die Breite; Esc oder „Schließen“, Fokus zurück auf den Knopf).
+„Zurück zur App“ führt zur Startseite. Farben des Codes über die Tokens `--qr-dark`/`--qr-light` (hell und
+dunkel gleich: schwarz auf weiß, Test in `test/css.test.js`).
 
 Statistik (`src/views/stats.js`, seit Paket F) exportiert reine Hilfsfunktionen
 (getestet in `test/views/stats.test.js`):
@@ -769,12 +926,18 @@ Statistik (`src/views/stats.js`, seit Paket F) exportiert reine Hilfsfunktionen
 - `weakList(notes, limit = 6)`: Einträge aus `state.notes` mit `bad > 0`,
   absteigend nach `bad` (Gleichstand nach Name), `[{ key, bad, ok, pct }]`;
   `pct` ist der Balken relativ zum größten Wert
-- `levelRow(level, entry)`: `{ id, no, title, played, best, stars, pct }`
-  für eine Stufe (`pct` = `best · 10`)
-- `levelGroups(packs, levels)`: Stufen je Paket in der Reihenfolge der
+- `levelRow(level, entry, repEntry)`: `{ id, no, title, played, best, stars, pct, fach, zuletzt }`
+  für eine Stufe (`pct` = `best · 10`); seit Welle 11 `fach` (1 bis 5, nur bei Stufen ohne Hilfen mit Eintrag
+  in `state.rep`, sonst `null`) und `zuletzt` (der spätere Tag aus `rep.zuletzt` und der letzten normalen
+  Runde `levels[id].day`)
+- `levelGroups(packs, levels, rep)`: Stufen je Paket in der Reihenfolge der
   Registry, je Gruppe `{ id, title, rows, played, stars, maxStars }`;
   unbekannte IDs in `state.levels` werden übergangen
 - `levelRowText(row)`: „8/10 · 3× gespielt“ bzw. „noch nicht gespielt“
+- seit Welle 11: `boxHtml(fach)` (das Fach als fünf Kästchen, `role="img"`, „Fach 3 von 5“), `lastText(day)`
+  („zuletzt geübt am 24.11.“), `BOX_NOTE` (Erklärung über der Liste, nur wenn etwas im Kasten ist),
+  `klasseNote(k)` („Jahrgang 6 (über den Link deiner Lehrkraft)“, `#sKlasse`); am Ende der Statistik der
+  Textlink „Für Lehrkräfte“ (`href="#lehrkraft"`)
 - Notenkarte (seit Paket G, Container `#sHeat`): `heatRows(notes, clef, perRow = 7)`
   liefert für `"treble"` oder `"bass"` die Stammtöne aus `HEAT_NOTES` in
   `packs/noten.js` (Violin c' bis a'', Bass E bis c') als Zeilen zu höchstens
@@ -804,10 +967,16 @@ langsam: 2, sicher: 1 }`, `FENSTER = 12`, `ZEIT_DECKEL = 10`, `MIN_ZEITEN = 3`
   `"unsicher"` (Trefferquote unter 70 %), `"langsam"` (sonst, wenn mindestens
   3 Zeiten gemessen sind und die richtigen Antworten im Schnitt über 4 s
   dauern; Einträge ohne Zeitmessung nie), `"sicher"`
-- `weight(entry)`: Gewicht nach `GEWICHT`
+- `weight(entry, heute)`: Gewicht nach `GEWICHT`; seit Welle 11 (Schritt 9) bekommt eine sichere Aufgabe,
+  deren `last` mindestens `TAGE_WIE_NEU` = 7 Tage vor `heute` liegt, das Gewicht von „neu“ (fehlendes,
+  beschädigtes oder künftiges `last` und ein Aufruf ohne `heute` ändern nichts)
 - `pickWeighted(items, keyOf, notes, prev, rand = Math.random)`: nie dieselbe
   Aufgabe wie `prev` (Vergleich über `keyOf`); mit Wahrscheinlichkeit 0,3
   gleichverteilt, sonst nach Gewicht; ohne `notes` gleichverteilt
+- `pickAmong(cands, keyOf, notes, rand, heute, baseOf)` (seit Welle 11): gewichtete Wahl aus einer schon
+  gefilterten Liste, ohne eigene Regel zu `prev` (die Regeln der Vorräte wendet das Paket vorher an); mit
+  Wahrscheinlichkeit 0,3 (und immer ohne `notes`) zählt nur das Grundgewicht `baseOf` (sonst 1, z. B. die
+  seltene Prime), sonst `baseOf · weight(…, heute)`
 - `countUnsure(notes, keys)`: Anzahl unsicherer Einträge (Hinweis auf der
   Startseite bei „Noten lesen“, Schlüssel aus `NOTE_KEYS` in `packs/noten.js`;
   Text aus `unsureText(k)` in `views/home.js`)
@@ -815,9 +984,105 @@ langsam: 2, sicher: 1 }`, `FENSTER = 12`, `ZEIT_DECKEL = 10`, `MIN_ZEITEN = 3`
 Die Engine ruft `question(prev, ctx)` mit `ctx = { notes: state.notes, state }`
 (`makeRound(level, count, ctx)`; `state` seit Welle 10 für den gewählten Merkspruch in der Rückmeldung,
 `ctx.round` enthält die bisher erzeugten Aufgaben der Runde). Pakete ohne zweiten Parameter laufen
-unverändert. Bisher nutzt nur „Noten lesen“ (Stufen 1 bis 8) die gewichtete
-Auswahl, Blitz nicht. Die Aufgaben einer Runde entstehen beim Start, die
-Gewichte wirken also ab der nächsten Runde.
+unverändert. Die gewichtete Auswahl nutzen „Noten lesen“ (Stufen 1 bis 8, `pickWeighted`) und seit Welle 11
+„Intervalle“ und „Tonleitern“ (`pickAmong`, siehe Themenpakete), Blitz nicht. Die Aufgaben einer Runde
+entstehen beim Start, die Gewichte wirken also ab der nächsten Runde.
+
+## Wiederholung über Tage und Voraussetzungen (`src/repeat.js`, seit Welle 11)
+
+Rein, ohne DOM und ohne Speicher, getestet in `test/repeat.test.js` und `test/repeat.sim.test.js`. Nur `enter`,
+`applyReview`, `afterRound` (verändern `state.rep`) und `afterBasics` (verändert `state.basics`) schreiben in den
+übergebenen Zustand. Tage sind Texte `"JJJJ-MM-TT"` (örtlich, `store.today`). Leitsatz: Nichts hier sperrt eine
+Stufe; was fällig ist, ist ein Angebot.
+
+Karteikasten nach Leitner (Schritte 4 und 8). Konstanten (Sandra, 24.11.2026, bzw. Feinplan): `ABSTAENDE = [1, 3,
+7, 14, 30]` (Fach 1 … 5), `FAECHER`, `RUNDE_WIEDERHOLEN = 10`, `RUNDE_GRUNDLAGEN = 6`, `MAX_STUFEN = 3`,
+`MIN_AUFGABEN_RATEN = 4`.
+- Einheit ist die **Stufe ohne Hilfen** (`inBox(level)`); innerhalb der Stufe wählt die gewichtete Auswahl der
+  Pakete die Aufgaben. `boxIds(packs)`: alle Stufen ohne Hilfen in der Reihenfolge der Pakete.
+- `enter(state, id, heute)`: neu in Fach 1, fällig morgen (nur ohne vorhandenen Eintrag).
+- `due(state, packs, heute)`: fällige Stufen, am längsten fällig zuerst, bei Gleichstand Grundlagen vor dem, was
+  auf ihnen aufbaut (Reihenfolge der Pakete, dann der Stufen); Einträge zu unbekannten Stufen oder Stufen mit
+  Hilfen bleiben außen vor. `nextDue(state, heute)`: frühester künftiger Tag oder `null`.
+- `reviewPlan(state, packs, heute)` → `[{ id, n }]` für die Runde „Wiederholen“: die ersten höchstens drei
+  fälligen Stufen, zusammen 10 Aufgaben (10 / 5 + 5 / 4 + 3 + 3); Stufen mit `guess` bekommen den größten Anteil
+  und mindestens 4 Aufgaben – reicht das bei drei Stufen nicht, kommen nur die ersten zwei (5 + 5), die dritte
+  bleibt fällig. Leer, wenn nichts fällig ist. Nach langer Pause zeigt die App so immer nur die nächste Runde.
+- `passed(n, fehler)`: „sitzt“ bei höchstens ⌊n / 5⌋ Fehlern (3 oder 4 Aufgaben: alle richtig; 5: einer daneben;
+  10: zwei, also 8 von 10). `applyReview(state, perLevel, heute)` mit `perLevel = [{ id, n, ok }]`: sitzt → ein
+  Fach weiter (höchstens 5), fällig nach dessen Abstand; sonst ein Fach zurück (nicht unter 1), morgen wieder
+  fällig. Fach 5 bleibt 5 und kommt alle 30 Tage. Ergebnis je Stufe `{ id, sitzt, fach, inTagen }`.
+- `afterRound(state, level, correct, heute)` nach einer normalen Runde: Stufe mit Hilfen → nichts; noch nicht im
+  Kasten → ab 8 Richtigen in Fach 1 (`neu: true`); im Kasten und fällig → wie eine Wiederholung mit 10 Aufgaben;
+  nicht fällig → nichts (viel Üben am selben Tag verlängert den Abstand nicht).
+- Texte: `dueText(inTagen)` („heute“, „morgen“, „in 3 Tagen“), `dayText(day)` („24.11.“).
+
+Voraussetzungen (Schritt 5): `needsOf(packs, id)` (`level.needs` oder die Voreinstellung, siehe Themenpakete),
+`stepNeedsOf(level, q, i)` (`q.steps[i].needs`, sonst `level.stepNeeds[i]`, sonst `null` = die Stufe sagt nichts
+je Schritt), `skillOf(level)` (`skill`, sonst Titel), `needsText(packs, id)` („Noten mit Vorzeichen ·
+Notenstufen zählen (Prime bis Oktave)“).
+
+„Grundlagen wiederholen“ und Fehlermuster (Schritt 7):
+- `basicsPlan(packs, id, n = 6, only)` → `[{ id, n }]` aus `needsOf`, gleich verteilt, der Rest an die ersten
+  (6 / 3 + 3 / 2 + 2 + 2 / 2 + 2 + 1 + 1); `only` (ID oder Liste) nach einem Fehlermuster.
+- `basicsOffer(state, packs, id, heute)` → `{ show, recommend, reason }`: `show`, wenn die Stufe
+  Voraussetzungen hat; `recommend`, wenn eine Voraussetzung nie gespielt wurde (auch eine über den Jahrgang
+  geöffnete), fällig ist oder zuletzt unter 8 von 10 lag (`levels[id].last`) – und seit dem Merker
+  `state.basics[id]` (Tag der letzten Grundlagen-Runde mit höchstens einem Fehler, `afterBasics`) kein Auslöser
+  neu zutraf. `reason = { kind: "nie" | "faellig" | "schwach", id }`.
+- `gapsOf(packs, level, log)` → `[{ need, count, step, helps? }]` mit `count ≥ LUECKE_AB` (3): je Aufgabe mit
+  Schritt `i` daneben zählt jede Grundlage aus `stepNeedsOf(level, null, i)` einmal; sagt die Stufe nichts je
+  Schritt, zählt eine Antwort daneben für `needsOf` als Ganzes. Sonderfall Intervalle 4 (zweiter Schritt ohne
+  Grundlage, Stufe davor mit Hilfen): der Eintrag nennt jene Stufe mit `helps: true` („Stufe 3 mit Hilfen
+  üben“). In gemischten Runden gibt es keine Muster.
+- Die Grundlagen-Runde trägt keine Sterne ein, schaltet nichts frei und ändert den Karteikasten nicht; jede
+  Antwort zählt in der Statistik ihrer eigenen Stufe (über `statKey`).
+
+## Jahrgang (`src/klasse.js`, seit Welle 11)
+
+Rein, ohne Seite und ohne Speicher, getestet in `test/klasse.test.js`. Der Jahrgang kommt **nur** über einen Link
+der Lehrkraft auf das Gerät und wird erst nach der Bestätigung gespeichert (`app.js`, `store.setKlasse`).
+Leitsatz: Der Jahrgang ordnet und öffnet, er sperrt nie etwas.
+- Tabelle „dran bis Stufe n“ je Paket (`DRAN`, `DRAN_MUG` für das Musische Gymnasium; `JAHRGAENGE` 5 bis 13,
+  `ZWEIGE = ["mug"]`), Quelle LehrplanPLUS Gymnasium Bayern, Musik (Zitate und Begründung in `docs/PLAN.md`,
+  Welle 11, Abschnitt 4, als Kommentar im Modul). Jahrgang 5: Noten lesen 8, Notenwerte 10, Intervalle 2,
+  Tonleitern 9, Dreiklänge 0; Jahrgang 6: Intervalle 4, Tonleitern 13, Dreiklänge 4; ab Jahrgang 7: Dreiklänge 6;
+  Musisches Gymnasium ab Jahrgang 6 Intervalle 10. `dranFor(jahrgang, zweig)` gibt eine Kopie.
+- Formen des Links (nur diese Angaben, keine Namen, keine Ergebnisse): `#klasse=6`, `#klasse=6&zweig=mug`,
+  `#klasse=6&dran=intervalle:6,akkorde:1` (nur die Pakete, die von der Voreinstellung abweichen; `n` von 0 bis
+  zur Zahl der Stufen), `#klasse=keine` (entfernen). `parseLink(hash, packs)` → `{ jahrgang, zweig, dran }`
+  (`dran` vollständig je Paket), `{ keine: true }` oder `null`; streng: unbekannte, doppelte oder leere
+  Angaben, unbekannte oder doppelte Pakete, Zahlen außerhalb, führende Null, Großschreibung und `zweig`/`dran`
+  ohne `klasse` verwerfen den ganzen Link (Reihenfolge der Angaben beliebig, prozentkodiert erlaubt).
+  `buildLink(base, k, packs)`: der kürzeste Link, `parseLink(buildLink(…))` ergibt wieder `k` (Test für alle
+  Einstellungen). `isKlasseLink(hash)`: Angabe mit `klasse`, `zweig` oder `dran` (auch falsch geschrieben).
+- `sameKlasse(a, b)`, `klasseText(k)` („Jahrgang 6“, „Jahrgang 6, Musisches Gymnasium“, „…, eigene Auswahl“),
+  `dranOf(k, packId)`.
+- `sections(state, packs)` → `{ jetzt, gewesen, hinaus }` (Listen von Stufen-IDs) oder `null` ohne Jahrgang:
+  „Jetzt dran“ ist, was in diesem Jahrgang neu dazukommt (über „dran“ der Voreinstellung des Vorjahrs im selben
+  Zweig, bis „dran“) und noch nicht geschafft ist (beste Runde unter 8); „Schon dran gewesen“ alles bis „dran“
+  des Vorjahrs und das Geschaffte; „Darüber hinaus“ alles über „dran“. `nextUp(state, packs)`: erste Stufe aus
+  „Jetzt dran“ oder `null`.
+- Grenze: Der Link ist eine Adresse, kein Schloss; wer ihn kennt, kann ihn öffnen. Ein echter Schutz
+  ginge nur mit einem Server.
+
+## QR-Code (`src/qr.js`, seit Welle 11)
+
+Eigener kleiner Encoder, ohne Abhängigkeit, ohne Netz, ohne DOM, getestet in `test/qr.test.js` (Rücklesen mit
+`test/qrleser.js`) und gegengeprüft mit `docs/screens/qr-gegenprobe.py`. Umfang: QR-Code Modell 2, Byte-Modus
+(UTF-8), Fehlerkorrektur M, Versionen 1 bis 10 (bis 213 Bytes); längerer Text → `null`. Feste Tabellen und
+Verfahren nach ISO/IEC 18004 (Blockaufteilung, Restbits, Ausrichtungsmuster, Format- und Versionsangabe,
+Reed-Solomon über GF(256) mit 0x11D, Zickzack, acht Masken, vier Strafregeln; Strafregel 3 zählt die Ruhezone als
+hell).
+- `qrMatrix(text, { mask })` → `{ version, size, mask, modules }` oder `null` (`modules[zeile][spalte]`, `true` =
+  dunkel; `mask` nur für Tests, sonst – auch bei ungültigem Wert – Wahl nach den Strafregeln, bei Gleichstand die
+  kleinere Nummer).
+- `qrSvg(text, { scale = 6, margin = 4, label })` → SVG-Text oder `null`: ein `<path>` für die dunklen Module auf
+  heller Fläche, Ruhezone `margin` Module, `shape-rendering="crispEdges"`, `role="img"`, `aria-label` (`label`,
+  sonst „QR-Code: <Text>“). Farben `var(--qr-dark, #000)` und `var(--qr-light, #fff)`, in hell und dunkel gleich
+  (schwarz auf weiß; ein umgekehrter Code ist für viele Scanner unlesbar).
+- Weitere Exporte für Tests: `rsRemainder`, `formatBits`, `versionBits`, `strafe`, `versionFor`, `DATENBYTES`,
+  `KAPAZITAET`, `MAX_VERSION`.
 
 ## Offline und Updates (`sw.js`, `src/app.js`)
 
@@ -826,8 +1091,10 @@ Gewichte wirken also ab der nächsten Runde.
 „Cache zuerst“ aus; Seitenaufrufe ohne Netz bekommen `index.html`.
 `test/sw.test.js` prüft, dass jede Datei aus `src/`, `css/`, `fonts/` und
 `icons/` (aus dem Dateibaum gelesen) sowie `index.html`, das Manifest und alle von dort verlinkten Dateien in
-`PRECACHE` stehen, jeder Eintrag als Datei existiert und die Cache-Version seit Welle 10 mindestens
-`notenheld-v0.2.0-13` ist. Beim Aktivieren löscht der Worker alte Caches
+`PRECACHE` stehen, die Liste genau den Dateibaum abdeckt (nichts fehlt, nichts zu viel; dazu ausdrücklich
+`src/repeat.js`, `src/klasse.js`, `src/qr.js` und `src/views/lehrkraft.js`, damit Seite und QR-Code auch offline
+erscheinen), jeder Eintrag als Datei existiert und die Cache-Version seit Welle 11 mindestens
+`notenheld-v0.2.0-14` ist (Stand: `notenheld-v0.2.0-14`). Beim Aktivieren löscht der Worker alte Caches
 der App und übernimmt die offenen Seiten (`clients.claim`).
 
 Updates (seit Paket F): Der neue Worker ruft beim Installieren **kein**
@@ -848,14 +1115,46 @@ Zustand (persistiert unter `localStorage["notenheld.v2"]`):
 ```js
 {
   xp, dayStreak, lastDay,
-  levels: { "noten-1": { stars, best, played } },
+  levels: { "noten-1": { stars, best, played, last, day } },   // last, day seit Welle 11: Richtige und örtlicher Tag der letzten Runde
   notes: { "G (g', Violin)": { ok, bad, sec, timed, last, hist, hsec } },   // je Aufgabe (statKey)
   answered, correct, bestCombo, blitzRecord,
   unlockAll, muted, input, current: "noten-1",
-  migrated: ["intervalle-neu", "tonleitern-neu", "notenwerte-neu"],   // einmalige Umstellungen, die schon gelaufen sind (seit Welle 7)
+  migrated: ["intervalle-neu", "tonleitern-neu", "notenwerte-neu", "wiederholen"],   // einmalige Umstellungen, die schon gelaufen sind (seit Welle 7)
   sprueche: { "kreuze": { wahl: 1 }, "violin-linien": { eigen: "…" } },   // gewählte Merksprüche (seit Welle 10)
+  rep: { "intervall-4": { fach: 3, faellig: "2026-12-02", zuletzt: "2026-11-25" } },   // Karteikasten (seit Welle 11)
+  klasse: null,   // oder { jahrgang: 6, zweig: "mug" | null, dran: { noten: 8, notenwerte: 10, intervalle: 4, … } } (seit Welle 11)
+  basics: { "intervall-3": "2026-11-25" },   // Tag der letzten „Grundlagen wiederholen“-Runde mit höchstens einem Fehler (seit Welle 11)
 }
 ```
+
+Welle 11 (Schritte 4, 6, 7, 11) bringt nur zusätzliche Felder, keinen neuen Schlüssel:
+- `rep`: je Stufe ohne Hilfen `{ fach: 1…5, faellig, zuletzt }` (Tage als `"JJJJ-MM-TT"`, örtlich), gelesen und
+  geschrieben nur über `src/repeat.js`. Fortschritt: `reset` löscht ihn.
+- `klasse`: die Einstellung der Lehrkraft, geschrieben **nur** über `setKlasse(s, k)` (prüft Jahrgang 5 bis 13,
+  Zweig `null`/`"mug"`, `dran` mit ganzen Zahlen ≥ 0; sonst Fehler, der Stand bleibt) und `clearKlasse(s)`, beide
+  erst nach der Bestätigung in `app.js` mit dem Ergebnis von `klasse.parseLink`. `dran` wird beim Übernehmen
+  vollständig eingetragen (nicht bei jedem Laden neu aus der Tabelle berechnet, damit ein Update der Tabelle die
+  Einstellung nicht stillschweigend ändert). Einstellung, kein Fortschritt: `reset` behält sie.
+- `basics`: Merker zu „Grundlagen wiederholen“ (`repeat.afterBasics`). Fortschritt: `reset` löscht ihn.
+- `levels[id].last` und `.day` (`recordRound`): für „zuletzt unter 8 von 10“ in `repeat.basicsOffer`.
+- Fehlt ein Feld, setzt `load` über `fresh()` den leeren Wert; ein alter Stand wird dadurch nicht neu
+  gespeichert (Test).
+
+Örtliches Datum (seit Welle 11, Schritt 4): `localDay(now, offsetMin)` und `today(now, offsetMin)` rechnen den
+Tag in Ortszeit (bis Welle 10 in UTC; der Tag wechselte in Malaysia um 8 Uhr morgens, in Bayern um 1 bzw. 2 Uhr
+nachts); `offsetMin` wie `Date#getTimezoneOffset`, für Tests einstellbar. `addDays(day, n)` und `dayDiff(a, b)`
+rechnen nur auf dem Text des Tages (über `Date.UTC`, unabhängig von Sommerzeit). Fälligkeiten, Tagesserie und
+`notes[key].last` nutzen das örtliche Datum. `touchStreak(s, now, offsetMin)`: Die Serie reißt bei der
+Umstellung nicht ab (westlich von Greenwich gilt ein `lastDay` in der Zukunft als heute; östlich gleicht
+`migrateWiederholen` eine Runde von gestern früh, die als „vorgestern“ im Stand steht, einmalig aus).
+
+Umstellung „wiederholen“ (Welle 11, `migrateWiederholen(s, boxIds, heute, offsetMin)`, Marker `"wiederholen"`,
+ein frischer Stand trägt alle vier Marker; ein übernommener v1-Stand durchläuft sie): Jede schon geschaffte Stufe ohne Hilfen
+(beste Runde ≥ 8) kommt in Fach 1; die Fälligkeiten werden verteilt, in der Reihenfolge von `boxIds` (Pakete wie
+`PACKS`, Grundlagen zuerst) je Tag `UMSTELLUNG_JE_TAG` = 3 Stufen (so viele, wie eine Wiederholungsrunde fasst;
+ein Test prüft die Gleichheit mit `repeat.MAX_STUFEN`), beginnend heute, `zuletzt: null`. Vorhandene Einträge
+bleiben. `store.js` kennt die Pakete nicht: `app.js` übergibt `boxIds(PACKS)` an `load(storage, now, boxIds)`;
+ohne Liste läuft die Umstellung nicht. `migrateAll` ruft sie als vierte und letzte auf.
 
 Umstellung „Intervalle neu“ (Welle 7, `migrateIntervalle(s)`): läuft beim Laden genau einmal (Marker
 `"intervalle-neu"` in `migrated`; ein frischer Stand trägt ihn schon). Sie benennt `intervalle-5` →
@@ -876,7 +1175,8 @@ alte, offene, aber nie gespielte Stufe öffnet sich erst wieder über die neue S
 Umstellung „Notenwerte gehirngerecht“ (Welle 9, `migrateNotenwerte(s)`, Marker `"notenwerte-neu"`, ein frischer
 Stand trägt alle drei Marker): `notenwerte-1→1, 2→2, 3→5, 4→7, 5→9, 6→10`, in einem Durchgang in ein neues
 `levels`-Objekt (sonst verkettet 3→5 mit 5→9), `current` entsprechend, `notes` bleibt (keine statKeys im Paket).
-`migrateAll` ruft alle drei auf (`a || b || c`); die Reihenfolge ist für die Notenwerte unkritisch. Folge der
+`migrateAll` ruft alle Umstellungen auf (jede läuft, das Ergebnis ist `a || b || c || d`; seit Welle 11 als vierte
+`migrateWiederholen`); die Reihenfolge ist für die Notenwerte unkritisch. Folge der
 Freischaltung bei einem alten Stand, der alles geschafft hatte: 4 bleibt zu, bis 3 geschafft ist (im Test).
 
 Feld `sprueche` (Welle 10, Schritt 4): je Kennung aus `MERKHILFEN` entweder `{ wahl: n }` (Nummer des
@@ -918,15 +1218,29 @@ sich dadurch nicht. Alte Daten unter `notenheld.v1` werden beim ersten
 Start übernommen (Stufe `n` wird zu `noten-n`, `current: n` zu `"noten-n"`)
 und als v2 gespeichert; der v1-Eintrag bleibt unverändert.
 
+Jahrgang und Freischaltung (seit Welle 11, Schritt 11): Mit gesetztem `klasse` ist zusätzlich alles bis „dran“
+des Pakets sofort offen (`klasseDran(s, packId)`, auch die Stufen in „Jetzt dran“; Entscheidung Sandra 8). Die
+Regel kommt nur dazu (oder-verknüpft): Der Jahrgang öffnet, er schließt nie (Test: für jede Einstellung und jeden
+Spielstand ist die Menge der offenen Stufen mit Jahrgang eine Obermenge der ohne). „Darüber hinaus“ folgt der
+üblichen Regel. Fällige Wiederholungen und Voraussetzungen sperren nichts.
+
 Exporte (alle rein bis auf das Verändern des übergebenen Zustands; nur `load`
 und `save` greifen auf `localStorage` zu): `KEY_V1`, `KEY_V2`, `fresh()`,
-`load()`, `save(s)`, `migrateV1(v1)`, `migrateIntervalle(s)` (→ `true`, wenn geändert), `MIGRATION_INTERVALLE`,
-`RENAMED_INTERVALLE`, `today(now)`, `touchStreak(s, now)`,
-`isUnlocked(s, pack, levelId)`, `unlockedBy(pack, levelId)`, `unlocks(pack, levelId)`, `starsFor(correct)`,
-`recordRound(s, levelId, correct)` → `{ stars, gained }`,
+`load(storage, now, boxIds)`, `save(s)`, `migrateV1(v1)`, `migrateIntervalle(s)` (→ `true`, wenn geändert),
+`migrateTonleitern(s)`, `migrateNotenwerte(s)`, `migrateWiederholen(s, boxIds, heute, offsetMin)`,
+`migrateAll(s, boxIds, heute, offsetMin)`, `MIGRATION_INTERVALLE`, `MIGRATION_TONLEITERN`,
+`MIGRATION_NOTENWERTE`, `MIGRATION_WIEDERHOLEN`, `UMSTELLUNG_JE_TAG`, `RENAMED_INTERVALLE`, `RENAMED_TONLEITERN`,
+`RENAMED_NOTENWERTE`, `localDay(now, offsetMin)`, `today(now, offsetMin)`, `addDays(day, n)`, `dayDiff(a, b)`,
+`touchStreak(s, now, offsetMin)`,
+`isUnlocked(s, pack, levelId)`, `unlockedBy(pack, levelId)`, `unlocks(pack, levelId)`, `klasseDran(s, packId)`,
+`setKlasse(s, k)`, `clearKlasse(s)`, `starsFor(correct)`,
+`recordRound(s, levelId, correct, now)` → `{ stars, gained }` (seit Welle 11 auch `last` und `day`),
+`MIXED_KINDS`, `recordMixedRound(s, kind, correct, total, now)` → `{ gained, total }` (gemischte Runde: 10 XP je
+richtige Antwort, bei `"wiederholen"` dazu `20 · starsFor(correct)`; Tagesserie wie eine normale Runde; kein
+Eintrag in `s.levels`, keine Sterne),
 `recordAnswer(s, key, ok, sec, now)` (`sec` optional, zählt nur bei richtigen Antworten), `recordBlitz(s, score, bestCombo)` →
-`{ record, gained }`, `reset(s)` (behält nur `muted`, `input` und `sprueche`),
-`accuracy(s)`.
+`{ record, gained }`, `reset(s)` (behält nur `muted`, `input`, `sprueche` und `klasse`; `rep` und `basics`
+werden gelöscht), `accuracy(s)`.
 
 ## Tests
 
@@ -938,6 +1252,16 @@ importiert; aus den Ansichten nur reine Exporte wie `learnCardsHtml`
 `test/texte.test.js` prüft `index.html` und `src/` auf Wörter, die laut
 Konzept nicht vorkommen sollen (Tonfall). Für Module, die den DOM brauchen, gibt es keine Tests; sie sollen
 deshalb so dünn wie möglich sein und ihre Logik in reine Module auslagern.
+
+Seit Welle 11: `test/repeat.test.js` (Karteikasten, die Tabelle der Voreinstellungen aller 47 Stufen,
+Graph ohne Kreis, „Grundlagen wiederholen“, Fehlermuster), `test/repeat.sim.test.js` (Lauf über 40 Tage mit
+verstellter Uhr, rein, mit echten Paketen und örtlichem Datum in Kuala Lumpur und Bayern; zu keinem Zeitpunkt
+schließt sich eine offene Stufe), `test/klasse.test.js` (Tabelle, `parseLink` mit fehlerhaften Links,
+Rundlauf `buildLink` → `parseLink`, der Jahrgang öffnet nur), `test/qr.test.js` (Bezugswerte, Struktur der
+Versionen 1 bis 10, alle acht Masken, Rücklesen mit dem eigenen Testleser `test/qrleser.js`, der nicht aus
+`src/qr.js` übernommen ist), `test/views/lehrkraft.test.js` (Link je Auswahl, nur Abweichungen, Musisches
+Gymnasium, Codes zurückgelesen, die Seite schreibt keinen Spielstand). Gegenprobe des QR-Codes mit unabhängigen
+Lesern (OpenCV, WeChat, zbar): `docs/screens/qr-gegenprobe.py`, nicht Teil von `npm test`.
 
 Überlauf im Browser (seit Welle 10, Prüfung Schritt 8): `node docs/screens/ueberlauf.mjs` bei laufendem Server
 (Playwright wie bei `screenshots.mjs`, keine Abhängigkeit der App, läuft nicht in `npm test`). Das Skript findet

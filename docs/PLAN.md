@@ -2357,7 +2357,7 @@ liegt:
 **Abnahme.** Intervalle 3 wie auf dem Bildschirmfoto (Hilfen offen, Vorführung offen): ein Knopf. Vorführung
 zu: ein Knopf unter den Antworten. In allen fünf Paketen bei 320 und 420 px kein Zustand mit zwei Knöpfen.
 
-**Umgesetzt (25.11.2026, Opus).** Wie geplant: `openDemo` verbirgt `ui.next`, es bleibt der Knopf am Ende der
+**Umgesetzt (25.11.2026, Opus).** Commit 8b7d499 (Prüfung: 679e454). Wie geplant: `openDemo` verbirgt `ui.next`, es bleibt der Knopf am Ende der
 Vorführung (Voreinstellung aus Abschnitt 8, Punkt 2). Ergänzt, weil Sandra Handys (320 px, Hilfen unter den
 Antworten) und Tastatur ausdrücklich nannte:
 - **Fokus.** „Vorführen“ verschwindet beim Öffnen der Vorführung; hatte er den Fokus, geht er auf „Abspielen“.
@@ -2446,7 +2446,7 @@ Pakets: `docs/ARCHITEKTUR.md` Zeilen 82, 333, 561, 633 (Wortlaut), `README.md` f
 **Abnahme.** Stufen 4 bis 7 und 10 je eine Runde bei 320 und 420 px: Frage in höchstens drei Zeilen, kein
 Überlauf; Vorführung und Lerntafeln mit dem neuen Wortlaut. Fable prüft den Wortlaut (Sandra: „Fable prüft“).
 
-**Umgesetzt (25.11.2026, Opus).** Wortlaut wie in der Tabelle; `BEAT_UNIT`, `BEAT_RULE`, `beatsPrompt(e)`,
+**Umgesetzt (25.11.2026, Opus).** Commit 1a4db0e (Prüfung: f188573). Wortlaut wie in der Tabelle; `BEAT_UNIT`, `BEAT_RULE`, `beatsPrompt(e)`,
 `DAUERT` in `src/packs/notenwerte.js`, `METER` entfällt, `displayOf(e, paren)` gibt „Name = Dauer“ bzw. mit
 `paren` (Stufen 2, 3) „Name (dauert …)“, `revealName(e)` ohne zweiten Parameter. `BEAT_UNIT` ganz mit geschützten
 Leerzeichen: Die Frage steht bei 320 und 420 px in genau zwei Zeilen (gemessen in den Stufen 4, 5, 6, 7, 10; bei
@@ -2529,7 +2529,7 @@ Antippen, „Gewählte Note“, darunter **alle** Lerntafeln aller Pakete untere
 mit der Tastatur sind alle Reiter und ihr Inhalt erreichbar; Schlüssel wechseln in „Tonleitern“ lässt den
 Reiter stehen; Merkspruch-Wahl in „Tonhöhen“ und „Tonleitern“ funktioniert wie bisher.
 
-**Umgesetzt (25.11.2026, Opus).** Reiter wie in der Tabelle, Technik wie geplant (`LEARN_TABS`, `nextTab`,
+**Umgesetzt (25.11.2026, Opus).** Commit 52234e0 (Prüfung: fac2c1e). Reiter wie in der Tabelle, Technik wie geplant (`LEARN_TABS`, `nextTab`,
 `tabHasClef`, `learnCardsHtml`/`mountCards` mit Reiter, `show(v, arg)`, „Erst anschauen“ mit `{ tab }`,
 `lTab` in der Sitzung). `notenwerte.js`: `valuesHtml()` und `beamsHtml()`, `learnHtml()` bleibt als beides
 zusammen für die Wortprüfung der Tests; in „Balken“ entfällt nur die Zwischenüberschrift (jetzt Titel der Tafel).
@@ -2580,7 +2580,7 @@ und Reiter bleiben in der Sitzung, nach Neuladen „Tonhöhen“. Korrekturen:
 - Abnahme: Startseite, Statistik und „Lernen“ zeigen Noten lesen → Notenwerte und Pausen → Intervalle →
   Tonleitern → Dreiklänge und Quintenzirkel; `docs/screens/screenshots.mjs` läuft.
 
-**Umgesetzt (25.11.2026, Opus).** `PACKS = [noten, notenwerte, intervalle, tonleitern, akkorde]`; Startseite,
+**Umgesetzt (25.11.2026, Opus).** Commit 942a5f0. `PACKS = [noten, notenwerte, intervalle, tonleitern, akkorde]`; Startseite,
 Statistik und „Lernen“ folgen von selbst (mit Playwright bei 420 px hell und 320 px dunkel nachgesehen: Noten
 lesen → Notenwerte und Pausen → Intervalle → Tonleitern → Dreiklänge und Quintenzirkel, kein Seitenüberlauf).
 - Tests: `tonleitern.test.js` (Reihenfolge der IDs); `learn.test.js` prüft jetzt `LEARN_TABS` ohne „takt“ =
@@ -2649,7 +2649,7 @@ drei Stufen, Grundlagen zuerst; während des ganzen Laufs bleibt jede Stufe offe
 **Abnahme.** `npm test` grün; in der Oberfläche ändert dieser Schritt nichts außer dem Tageswechsel um
 Mitternacht Ortszeit.
 
-**Umgesetzt (25.11.2026, Opus).** `store.js`: `localDay`, `today(now, offsetMin)`, `addDays`, `dayDiff` (für die
+**Umgesetzt (25.11.2026, Opus).** Commit a266868 (Prüfung: e234360). `store.js`: `localDay`, `today(now, offsetMin)`, `addDays`, `dayDiff` (für die
 Texte in Schritt 8), `touchStreak(s, now, offsetMin)` mit örtlichem Tag; `fresh()` mit `rep: {}`, `klasse: null`
 und dem Marker `"wiederholen"`; `migrateWiederholen(s, boxIds, heute)` als vierte Umstellung in `migrateAll`;
 `load(storage, now, boxIds)`; `reset` behält `klasse`. `app.js` übergibt `boxIds(PACKS)`. Neues reines Modul
@@ -2717,7 +2717,7 @@ Cache wird erst in Schritt 13 hochgezählt). In der Oberfläche ändert sich nic
   Ziel hat `skill`; `stepNeeds` hat so viele Einträge wie die Stufe Schritte.
 - Keine Änderung der Oberfläche in diesem Schritt.
 
-**Umgesetzt (25.11.2026, Opus).** Je Paket eine Tabelle `VORAUSSETZUNGEN` (Stufennummer → `needs`, `stepNeeds`,
+**Umgesetzt (25.11.2026, Opus).** Commit 1e3d729 (Prüfung: 1f32217). Je Paket eine Tabelle `VORAUSSETZUNGEN` (Stufennummer → `needs`, `stepNeeds`,
 `skill`, `guess`), beim Bau der Stufen eingemischt; `needs` nur dort, wo die Voreinstellung etwas anderes ergäbe
 (ein Test prüft das), also auch `needs: []` an `noten-2`, `-4`, `-5`. `src/repeat.js`: `needsOf`, `stepNeedsOf`,
 `skillOf`, `needsText`. Keine Änderung der Oberfläche (kein Überlauf-Lauf nötig).
@@ -2824,7 +2824,7 @@ Richtige (kürzere Runden kleinerer Bonus, in 8 im Blick); `ueberlauf.mjs` dauer
 - Abnahme: Startkarte von Intervalle 3 und Tonleitern 12 bei 320 px ohne Überlauf; Grundlagen-Runde zu
   Dreiklänge 1 (aus `intervall-4` und `noten-8`) läuft; nach der Runde ist die Empfehlung weg.
 
-**Umgesetzt (25.11.2026, Opus):** Commit siehe `git log` („Welle 11, Schritt 7“). `repeat.js`: `LUECKE_AB = 3`,
+**Umgesetzt (25.11.2026, Opus):** Commit 5b768dd. `repeat.js`: `LUECKE_AB = 3`,
 `basicsPlan` (gleich verteilt, Rest an die ersten: 6 / 3+3 / 2+2+2 / 2+2+1+1; `only` als ID oder Liste),
 `basicsOffer`, `afterBasics` (Merker `s.basics`), `gapsOf`. `practice.js`: Startkarte mit `#pNeeds`,
 `#pBasicsWhy`, `#pBasics`; `render(arg)` mit `mode: "grundlagen"` (und vorläufig `mode: "wiederholen"` mit festem
@@ -2860,7 +2860,7 @@ ersetzt (Konsole/Playwright: `practice.open(arg)` = `ctx.show("practice", arg)`)
   (Texte der Start- und Ergebniskarte, `resultBasics`). `ueberlauf.mjs`: zwei Grundlagen-Runden über die
   Startkarte (Intervalle 3, Dreiklänge 1) und eine Ergebniskarte mit Muster (Intervalle 4, alles daneben).
 
-**Prüfung (25.11.2026, Fable): bestanden nach Korrektur** (Commit „Prüfung Schritt 7“):
+**Prüfung (25.11.2026, Fable): bestanden nach Korrektur** (Commit d6c347f):
 - **Ein Knopf „Grundlagen wiederholen“ je Ergebniskarte:** Bei zwei Mustern (z. B. Intervalle 5–7, beide Schritte
   daneben) standen zwei gleich beschriftete Hauptknöpfe mit verschiedener Wirkung untereinander. Jetzt steht unter
   jedem Satz nur „Stufe n öffnen“ bzw. „Stufe 3 mit Hilfen üben“ und in der Knopfzeile ein einziger Hauptknopf
@@ -2912,7 +2912,7 @@ ersetzt (Konsole/Playwright: `practice.open(arg)` = `ctx.show("practice", arg)`)
   die Ergebniskarte nennt je Stufe das Urteil, die Statistik die Fächer; nichts ist rot, kein Zähler für
   Versäumtes; kein Überlauf bei 320 px.
 
-**Umgesetzt (25.11.2026, Opus):** Commit siehe `git log` („Welle 11, Schritt 8“).
+**Umgesetzt (25.11.2026, Opus):** Commit 1730832.
 - `views/home.js`: Karte „Heute“ über `todayCard(state, packs, heute)` → `{ title, line, review, cont, small }`
   (drei Fälle wie oben); `index.html`: Knopf `#homeReview` „Wiederholung starten“ (Hauptknopf, wenn etwas fällig
   ist; „Weiter üben“ dann normaler Knopf), Zeile `#homeSmall`; die große Trefferquote ist entfernt, `.hero`
@@ -2954,7 +2954,7 @@ ersetzt (Konsole/Playwright: `practice.open(arg)` = `ctx.show("practice", arg)`)
   „… üben“ öffnet die Startkarte, danach „Heute“ ohne Fälliges mit „Nächste Wiederholung“), eine normale Runde
   ganz richtig („Neu im Kasten“), Statistik mit Kästchen; „Kasten leer“ ist die erste Startseite.
 
-**Prüfung (25.11.2026, Fable): bestanden nach Korrektur** (Commit „Prüfung Schritt 8“):
+**Prüfung (25.11.2026, Fable): bestanden nach Korrektur** (Commit bdfa074):
 - **Statistik bei 320 px:** `.level-stat-name` trug `min-width: 0`; lange Wörter („Bassschlüssel“,
   „Violinschlüssel“) ragten damit in „noch nicht gespielt“ hinein (in allen Zeilen, auch ohne Kasten;
   `ueberlauf.mjs` sieht Überlappung innerhalb einer Zeile nicht). Ohne `min-width: 0` ist die Spalte wieder so
@@ -3001,7 +3001,7 @@ ersetzt (Konsole/Playwright: `practice.open(arg)` = `ctx.show("practice", arg)`)
   Dieser Schritt ist von den anderen unabhängig; zeigt die Prüfung Nebenwirkungen in den Vorräten, wird er
   zurückgenommen, ohne dass etwas anderes davon abhängt.
 
-**Umgesetzt (25.11.2026, Opus):** Commit siehe `git log` („Welle 11, Schritt 9“). `adapt.js`: `TAGE_WIE_NEU = 7`,
+**Umgesetzt (25.11.2026, Opus):** Commit bcf50a8 (Prüfung: e055125). `adapt.js`: `TAGE_WIE_NEU = 7`,
 `weight(entry, heute)` (nur „sicher“ wird nach 7 Tagen wie „neu“; fehlendes, beschädigtes oder künftiges `last` ändert
 nichts), `pickAmong(cands, keyOf, notes, rand, heute, baseOf)`. Die Pakete bekommen je Stufe eine Funktion, die den
 `statKey` einer Aufgabe aus dem Vorrat liefert (`numberStat`, `twoStepStat`, `buildStat`, `checkStat`; `stepStat`,
@@ -3211,7 +3211,7 @@ ist, hast du mit 8 von 10 geschafft …“. Rücklesen der Codes aus der Seite (
 mit der GitHub-Adresse im Test ab V7) mit dem Testleser und mit OpenCV WeChat: alle gleich dem Link. 518 Tests grün,
 Überlauf 0 bei 320 und 420 px. Offen für Sandra: Handy-Scan (8.14).
 
-**Geprüft (26.11.2026, Fable): bestanden nach Korrektur.** Im Browser unter der echten Adresse
+**Geprüft (26.11.2026, Fable): bestanden nach Korrektur** (Commit aa4bfa5). Im Browser unter der echten Adresse
 `https://sandrastoerkel.github.io/notenlernapp/` (Dateien lokal untergeschoben) bei 420 px hell und 320 px dunkel:
 Startseite ohne Jahrgang zeichengleich mit dem Stand nach Schritt 8 (bdfa074); mit Jahrgang 5, 7, 9, 13 und 6 MuG
 stimmen die Abschnitte mit `klasse.sections` überein, die Karte „Heute“ steht zuoberst, „Darüber hinaus“ ist
