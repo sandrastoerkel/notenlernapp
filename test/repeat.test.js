@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   ABSTAENDE, FAECHER, RUNDE_WIEDERHOLEN, RUNDE_GRUNDLAGEN, MAX_STUFEN, MIN_AUFGABEN_RATEN,
-  inBox, boxIds, enter, due, nextDue, reviewPlan, passed, applyReview, afterRound, dueText, dayText, withGuess,
+  inBox, boxIds, enter, due, nextDue, reviewPlan, passed, applyReview, afterRound, dueText, dayText, withGuess, verdictOf,
   needsOf, stepNeedsOf, skillOf, needsText,
   basicsPlan, basicsOffer, afterBasics, gapsOf, LUECKE_AB,
 } from "../src/repeat.js";
@@ -182,10 +182,10 @@ test("applyReview: Fach 1 → 2 → 3 → 4 → 5 mit 1, 3, 7, 14, 30 Tagen; Fac
 
 test("applyReview: nicht bestanden → ein Fach zurück (nicht unter 1), morgen wieder", () => {
   const s = withRep({ "noten-7": { fach: 3, faellig: T, zuletzt: null }, "noten-3": { fach: 1, faellig: T, zuletzt: null } });
-  const res = applyReview(s, [{ id: "noten-7", n: 4, ok: 3 }, { id: "noten-3", n: 3, ok: 0 }], T);
+  const res = applyReview(s, [{ id: "noten-7", n: 4, ok: 2 }, { id: "noten-3", n: 3, ok: 0 }], T);
   assert.deepEqual(res, [
-    { id: "noten-7", sitzt: false, fach: 2, inTagen: 1 },
-    { id: "noten-3", sitzt: false, fach: 1, inTagen: 1 },
+    { id: "noten-7", n: 4, richtig: 2, urteil: "wacklig", sitzt: false, fach: 2, inTagen: 1, faellig: "2026-11-26" },
+    { id: "noten-3", n: 3, richtig: 0, urteil: "wacklig", sitzt: false, fach: 1, inTagen: 1, faellig: "2026-11-26" },
   ]);
   assert.deepEqual(s.rep["noten-7"], { fach: 2, faellig: "2026-11-26", zuletzt: T });
   assert.deepEqual(s.rep["noten-3"], { fach: 1, faellig: "2026-11-26", zuletzt: T });
@@ -193,7 +193,46 @@ test("applyReview: nicht bestanden → ein Fach zurück (nicht unter 1), morgen 
   assert.equal(applyReview(s, [{ id: "noten-7", n: 5, ok: 4 }], T)[0].sitzt, true);
   // beschädigter Eintrag gilt als Fach 1
   const b = withRep({ "noten-1": { fach: "x", faellig: T } });
-  assert.deepEqual(applyReview(b, [{ id: "noten-1", n: 10, ok: 10 }], T)[0], { id: "noten-1", sitzt: true, fach: 2, inTagen: 3 });
+  assert.deepEqual(applyReview(b, [{ id: "noten-1", n: 10, ok: 10 }], T)[0],
+    { id: "noten-1", n: 10, richtig: 10, urteil: "sitzt", sitzt: true, fach: 2, inTagen: 3, faellig: "2026-11-28" });
+});
+
+test("applyReview (W-B2): ein Fehler bei 3 oder 4 Aufgaben → „fast“, Fach bleibt, morgen wieder; zurück erst ab zwei", () => {
+  const s = withRep({ "noten-7": { fach: 3, faellig: T, zuletzt: null }, "noten-3": { fach: 2, faellig: T, zuletzt: null },
+    "intervall-2": { fach: 4, faellig: T, zuletzt: null } });
+  const res = applyReview(s, [{ id: "noten-7", n: 4, ok: 3 }, { id: "noten-3", n: 3, ok: 2 }, { id: "intervall-2", n: 3, ok: 1 }], T);
+  assert.deepEqual(res.map((r) => [r.id, r.urteil, r.fach, r.inTagen, r.richtig, r.n]), [
+    ["noten-7", "fast", 3, 1, 3, 4],
+    ["noten-3", "fast", 2, 1, 2, 3],
+    ["intervall-2", "wacklig", 3, 1, 1, 3],
+  ]);
+  assert.deepEqual(s.rep["noten-7"], { fach: 3, faellig: "2026-11-26", zuletzt: T });
+  assert.equal(res[0].sitzt, false);
+  // n ≥ 5 wie bisher: ⌊n / 5⌋ Fehler sitzen, darüber ein Fach zurück (kein „fast“)
+  assert.deepEqual(applyReview(s, [{ id: "noten-7", n: 5, ok: 3 }], T).map((r) => [r.urteil, r.fach]), [["wacklig", 2]]);
+  assert.deepEqual(applyReview(s, [{ id: "noten-7", n: 10, ok: 7 }], T).map((r) => [r.urteil, r.fach]), [["wacklig", 1]]);
+  // Fach 1 bleibt bei „fast“ Fach 1
+  const t = withRep({ "noten-3": { fach: 1, faellig: T, zuletzt: null } });
+  assert.deepEqual(applyReview(t, [{ id: "noten-3", n: 3, ok: 2 }], T).map((r) => [r.urteil, r.fach]), [["fast", 1]]);
+  // Ratestufe: ein Fehler bei 4 oder 5 Aufgaben → „fast“ (kein Aufstieg, kein Rückschritt), zwei → zurück
+  const g = withRep({ "tonleitern-3": { fach: 3, faellig: T, zuletzt: null } });
+  assert.deepEqual(applyReview(g, [{ id: "tonleitern-3", n: 5, ok: 4, guess: true }], T).map((r) => [r.urteil, r.fach]), [["fast", 3]]);
+  assert.deepEqual(applyReview(g, [{ id: "tonleitern-3", n: 4, ok: 2, guess: true }], T).map((r) => [r.urteil, r.fach]), [["wacklig", 2]]);
+});
+
+test("verdictOf: sitzt / fast / wacklig für n = 3, 4, 5, 10 (mit und ohne guess)", () => {
+  const row = (n, guess) => Array.from({ length: n + 1 }, (_, f) => verdictOf(n, f, guess)[0]).join("");
+  // s = sitzt, f = fast, w = wacklig; Index = Zahl der Fehler
+  assert.equal(row(3), "sfww");
+  assert.equal(row(4), "sfwww");
+  assert.equal(row(5), "sswwww");
+  assert.equal(row(10), "ssswwwwwwww");
+  assert.equal(row(4, true), "sfwww");
+  assert.equal(row(5, true), "sfwwww");
+  assert.equal(row(10, true), "ssswwwwwwww");
+  // bei 1 oder 2 Aufgaben kein „fast“ (ein Fehler wäre die Hälfte)
+  assert.equal(verdictOf(2, 1), "wacklig");
+  assert.equal(verdictOf(1, 1), "wacklig");
 });
 
 test("afterRound: normale Runde nimmt auf, zählt nur, wenn fällig", () => {
@@ -212,9 +251,11 @@ test("afterRound: normale Runde nimmt auf, zählt nur, wenn fällig", () => {
   assert.equal(afterRound(s, level("intervall-2"), 2, T), null);
   assert.deepEqual(s.rep["intervall-2"], { fach: 1, faellig: "2026-11-26", zuletzt: T });
   // fällig und ≥ 8: wie bestanden
-  assert.deepEqual(afterRound(s, level("intervall-2"), 8, "2026-11-26"), { id: "intervall-2", sitzt: true, fach: 2, inTagen: 3 });
+  assert.deepEqual(afterRound(s, level("intervall-2"), 8, "2026-11-26"),
+    { id: "intervall-2", n: 10, richtig: 8, urteil: "sitzt", sitzt: true, fach: 2, inTagen: 3, faellig: "2026-11-29" });
   // fällig und < 8: wie nicht bestanden
-  assert.deepEqual(afterRound(s, level("intervall-2"), 7, "2026-11-30"), { id: "intervall-2", sitzt: false, fach: 1, inTagen: 1 });
+  assert.deepEqual(afterRound(s, level("intervall-2"), 7, "2026-11-30"),
+    { id: "intervall-2", n: 10, richtig: 7, urteil: "wacklig", sitzt: false, fach: 1, inTagen: 1, faellig: "2026-12-01" });
   assert.deepEqual(s.rep["intervall-2"], { fach: 1, faellig: "2026-12-01", zuletzt: "2026-11-30" });
 });
 

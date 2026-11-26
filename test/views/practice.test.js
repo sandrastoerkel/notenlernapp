@@ -299,12 +299,26 @@ test("Runde „Wiederholen“: Kopf, Urteil je Stufe, Knopf bei „noch wacklig�
   assert.equal(reviewTitle([{ id: "a", n: 4 }, { id: "b", n: 3 }, { id: "c", n: 3 }]), "10 Aufgaben aus 3 Stufen");
   assert.equal(reviewTitle([{ id: "a", n: 5 }, { id: "b", n: 5 }]), "10 Aufgaben aus 2 Stufen");
   assert.equal(reviewTitle([{ id: "a", n: 10 }]), "10 Aufgaben aus einer Stufe");
-  assert.equal(verdictText({ sitzt: true, fach: 3, inTagen: 7 }), "sitzt · wieder in 7 Tagen");
+  // Zahl und Einheit mit geschütztem Leerzeichen (Korrektur W-B2/J-B3)
+  assert.equal(verdictText({ sitzt: true, fach: 3, inTagen: 7 }), `sitzt · wieder in${NB}7${NB}Tagen`);
   assert.equal(verdictText({ sitzt: false, fach: 1, inTagen: 1 }), "noch wacklig · morgen noch einmal");
-  assert.equal(verdictText({ sitzt: true, fach: 1, inTagen: 1, neu: true }), "neu im Kasten · morgen zum Wiederholen");
-  assert.equal(reviewLine(PACKS, { id: "intervall-4", sitzt: true, fach: 3, inTagen: 7 }), `Intervalle${NB}4 · sitzt · wieder in 7 Tagen`);
-  assert.equal(reviewLine(PACKS, { id: "tonleitern-5", sitzt: false, fach: 1, inTagen: 1 }), `Tonleitern${NB}5 · noch wacklig · morgen noch einmal`);
-  assert.equal(reviewLine(PACKS, { id: "akkorde-1", sitzt: true, fach: 5, inTagen: 30 }), `Dreiklänge${NB}1 · sitzt · wieder in 30 Tagen`);
+  assert.equal(verdictText({ urteil: "fast", sitzt: false, fach: 2, inTagen: 1 }), "fast · morgen noch einmal");
+  assert.equal(verdictText({ urteil: "wacklig", sitzt: false, fach: 1, inTagen: 1 }), "noch wacklig · morgen noch einmal");
+  assert.equal(verdictText({ sitzt: true, fach: 1, inTagen: 1, neu: true }), "geschafft · morgen zum Wiederholen");
+  // Zeile mit der Zahl der Richtigen und einem Zeichen (✓ bzw. ↻, nur zur Unterscheidung, aria-hidden, nicht rot)
+  const OK = `<span aria-hidden="true">✓</span>${NB}`, AGAIN = `<span aria-hidden="true">↻</span>${NB}`;
+  assert.equal(reviewLine(PACKS, { id: "noten-7", n: 4, richtig: 4, urteil: "sitzt", sitzt: true, fach: 3, inTagen: 7 }),
+    `Noten lesen${NB}7 · 4${NB}von${NB}4 · ${OK}sitzt · wieder in${NB}7${NB}Tagen`);
+  assert.equal(reviewLine(PACKS, { id: "notenwerte-5", n: 3, richtig: 2, urteil: "fast", sitzt: false, fach: 2, inTagen: 1 }),
+    `Notenwerte${NB}5 · 2${NB}von${NB}3 · ${AGAIN}fast · morgen noch einmal`);
+  assert.equal(reviewLine(PACKS, { id: "tonleitern-5", n: 3, richtig: 1, urteil: "wacklig", sitzt: false, fach: 1, inTagen: 1 }),
+    `Tonleitern${NB}5 · 1${NB}von${NB}3 · ${AGAIN}noch wacklig · morgen noch einmal`);
+  assert.equal(reviewLine(PACKS, { id: "akkorde-1", n: 10, richtig: 10, urteil: "sitzt", sitzt: true, fach: 5, inTagen: 30 }),
+    `Dreiklänge${NB}1 · 10${NB}von${NB}10 · ${OK}sitzt · wieder in${NB}30${NB}Tagen`);
+  // ältere Ergebnisse ohne Zahlen: ohne „… von …“
+  assert.equal(reviewLine(PACKS, { id: "intervall-4", sitzt: true, fach: 3, inTagen: 7 }), `Intervalle${NB}4 · ${OK}sitzt · wieder in${NB}7${NB}Tagen`);
+  // nichts Rotes: keine Klasse für „bad“ in der Zeile
+  assert.ok(!/class=/.test(reviewLine(PACKS, { id: "tonleitern-5", n: 3, richtig: 0, urteil: "wacklig", sitzt: false, fach: 1, inTagen: 1 })));
   // Stufe mit Hilfen direkt davor: „Stufe 4 mit Hilfen üben“; sonst die Stufe selbst
   assert.deepEqual(practiceOffer(PACKS, "tonleitern-5"), { id: "tonleitern-4", label: `Stufe${NB}4 mit Hilfen üben` });
   assert.deepEqual(practiceOffer(PACKS, "intervall-4"), { id: "intervall-3", label: `Stufe${NB}3 mit Hilfen üben` });
@@ -313,7 +327,7 @@ test("Runde „Wiederholen“: Kopf, Urteil je Stufe, Knopf bei „noch wacklig�
   assert.deepEqual(practiceOffer(PACKS, "akkorde-2"), { id: "akkorde-2", label: `Stufe${NB}2 üben` });
   // Satz auf der Ergebniskarte einer normalen Runde
   assert.equal(repeatNote(null), "");
-  assert.equal(repeatNote({ id: "noten-3", sitzt: true, fach: 1, inTagen: 1, neu: true }), "Neu im Kasten: kommt morgen zum Wiederholen wieder.");
-  assert.equal(repeatNote({ id: "noten-3", sitzt: true, fach: 2, inTagen: 3 }), "Wiederholung: sitzt · wieder in 3 Tagen.");
+  assert.equal(repeatNote({ id: "noten-3", sitzt: true, fach: 1, inTagen: 1, neu: true }), "Geschafft – kommt morgen zum Wiederholen wieder.");
+  assert.equal(repeatNote({ id: "noten-3", sitzt: true, fach: 2, inTagen: 3 }), `Wiederholung: sitzt · wieder in${NB}3${NB}Tagen.`);
   assert.equal(repeatNote({ id: "noten-3", sitzt: false, fach: 1, inTagen: 1 }), "Wiederholung: noch wacklig · morgen noch einmal.");
 });

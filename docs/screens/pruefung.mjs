@@ -273,7 +273,8 @@ const SCENES = [
     await shot(pg, "startkarte-intervall-3-grund-schwach", "Startkarte Intervalle 3: Empfehlung, weil „Noten mit Vorzeichen“ zuletzt unter 8 von 10 lag");
   }],
   ["wiederholen", async ({ page, shot, need }) => {
-    // Runde 1: Noten lesen 7 alles richtig (sitzt), Notenwerte 5 einmal daneben, Intervalle 4 einmal Teilerfolg
+    // Runde 1: Noten lesen 7 alles richtig (sitzt), Notenwerte 5 einmal daneben, Intervalle 4 einmal Teilerfolg (beide
+    // „fast“: ein Fehler bei 3 oder 4 Aufgaben, Korrektur W-B2)
     let pg = await page(faellig());
     await pg.click("#homeReview"); await pg.waitForTimeout(300);
     const seen = new Set(), wrong = new Set();
@@ -290,7 +291,7 @@ const SCENES = [
       await goOn(pg);
     }
     if (await need(pg, "#pResult .review-line", "Urteilszeilen")) {
-      await shot(pg, "wiederholen-ergebnis-sitzt-wacklig", "Ergebniskarte „Wiederholung beendet“: Noten lesen 7 „sitzt“, Notenwerte 5 und Intervalle 4 „noch wacklig“ mit „Stufe 4 mit Hilfen üben“ bzw. „Stufe 3 mit Hilfen üben“, „Noch eine Wiederholung“");
+      await shot(pg, "wiederholen-ergebnis-sitzt-wacklig", "Ergebniskarte „Wiederholung beendet“: Noten lesen 7 „sitzt“, Notenwerte 5 und Intervalle 4 „fast“ (je mit „… von …“) mit „Stufe 4 mit Hilfen üben“ bzw. „Stufe 3 mit Hilfen üben“, „Noch eine Wiederholung“");
     }
     // Runde 2 über „Noch eine Wiederholung“: nur Tonleitern 3 (zwei Knöpfe), alles richtig
     if (await need(pg, "#rMore", "„Noch eine Wiederholung“")) {
@@ -313,7 +314,7 @@ const SCENES = [
       await answerShot(pg, shot, right, right ? {} : { last: ["wiederholen-daneben-intervall-9", "Runde „Wiederholen“, Intervalle 9 daneben (nur Namensraster)"] });
       await goOn(pg);
     }
-    await shot(pg, "wiederholen-3-ergebnis", "Ergebniskarte der dritten Runde: Noten lesen 3 und Dreiklänge 6 „sitzt“, Intervalle 9 „noch wacklig“");
+    await shot(pg, "wiederholen-3-ergebnis", "Ergebniskarte der dritten Runde: Noten lesen 3 und Dreiklänge 6 „sitzt“, Intervalle 9 „fast“");
     // Runde 4 mit der Eingabe „Klaviatur“ (Prüfung Schritt 13b): Noten lesen 3 auf der Klaviatur, Intervalle 9 bleibt
     // beim Namensraster, Dreiklänge 6 mit Auswahlknöpfen – je erste Aufgabe, dazu Noten lesen 3 nach „daneben“
     pg = await page({ ...weit(), input: "keys" });
@@ -354,7 +355,7 @@ const SCENES = [
     pg = await page(LEER);
     await openLevel(pg, "noten-1"); await startRound(pg);
     for (let k = 0; k < 12 && !(await vis(pg, "#pResult")); k++) { await answerQuestion(pg, true, null, errors); await goOn(pg); }
-    if (await need(pg, "#rRepeat", "„Neu im Kasten“")) await shot(pg, "ergebnis-neu-im-kasten", "Ergebniskarte Noten lesen 1, 10 von 10: „Neu im Kasten: kommt morgen zum Wiederholen wieder.“, „Stufe 2 ist offen.“");
+    if (await need(pg, "#rRepeat", "„Geschafft – kommt morgen …“")) await shot(pg, "ergebnis-neu-im-kasten", "Ergebniskarte Noten lesen 1, 10 von 10: „Geschafft – kommt morgen zum Wiederholen wieder.“, „Stufe 2 ist offen.“");
   }],
   ["lernen", async ({ page, shot }) => {
     const pg = await page(fort());

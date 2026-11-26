@@ -228,17 +228,30 @@ export function reviewTitle(plan) {
   return `${total} Aufgaben aus ${plan.length === 1 ? "einer Stufe" : `${plan.length} Stufen`}`;
 }
 
+// Zahl und Einheit bleiben zusammen („in 7 Tagen“, „2 von 3“)
+const nb = (t) => String(t).replace(/(\d) /g, "$1\u00a0").replace(/ (\d)/g, "\u00a0$1");
+// Urteil eines Eintrags (urteil aus repeat.applyReview; ältere Ergebnisse ohne urteil über sitzt)
+const urteilOf = (v) => v.urteil || (v.sitzt ? "sitzt" : "wacklig");
+export const URTEIL_TEXT = { sitzt: "sitzt", fast: "fast", wacklig: "noch wacklig" };
+
 // Urteil je Stufe (v aus repeat.applyReview bzw. afterRound, rein, getestet):
-// „sitzt · wieder in 7 Tagen“, „noch wacklig · morgen noch einmal“, neu aufgenommen „neu im Kasten · morgen zum Wiederholen“
+// „sitzt · wieder in 7 Tagen“, „fast · morgen noch einmal“, „noch wacklig · morgen noch einmal“,
+// neu aufgenommen „geschafft · morgen zum Wiederholen“
 export function verdictText(v) {
-  if (v.neu) return `neu im Kasten · ${dueText(v.inTagen)} zum Wiederholen`;
-  return v.sitzt ? `sitzt · wieder ${dueText(v.inTagen)}` : `noch wacklig · ${dueText(v.inTagen)} noch einmal`;
+  if (v.neu) return nb(`geschafft · ${dueText(v.inTagen)} zum Wiederholen`);
+  const u = urteilOf(v);
+  return nb(u === "sitzt" ? `sitzt · wieder ${dueText(v.inTagen)}` : `${URTEIL_TEXT[u]} · ${dueText(v.inTagen)} noch einmal`);
 }
 
-// Zeile der Ergebniskarte „Wiederholen“: „Intervalle 4 · sitzt · wieder in 7 Tagen“ (rein, getestet)
+// Zeile der Ergebniskarte „Wiederholen“ (rein, getestet; Korrektur W-B2/J-B3): mit der Zahl der Richtigen, damit
+// man sieht, warum etwas „fast“ oder „noch wacklig“ ist, z. B. „Noten lesen 7 · 4 von 4 · ✓ sitzt · wieder in 7
+// Tagen“, „Notenwerte 5 · 2 von 3 · ↻ fast · morgen noch einmal“. Zeichen nur zur Unterscheidung (aria-hidden, nicht
+// rot), Zahl und Einheit mit geschütztem Leerzeichen. HTML (wird mit innerHTML eingesetzt; nur eigene Texte).
 export function reviewLine(packs, v) {
   const { pack, level } = engine.findLevel(packs, v.id);
-  return `${packShort(pack)}\u00a0${level.no} · ${verdictText(v)}`;
+  const count = Number.isInteger(v.n) && Number.isInteger(v.richtig) ? ` · ${v.richtig}\u00a0von\u00a0${v.n}` : "";
+  const mark = `<span aria-hidden="true">${urteilOf(v) === "sitzt" ? "✓" : "↻"}</span>\u00a0`;
+  return `${packShort(pack)}\u00a0${level.no}${count} · ${mark}${verdictText(v)}`;
 }
 
 // Knopf unter „noch wacklig“ (rein, getestet): die Stufe mit Hilfen direkt davor, falls es sie gibt („Stufe 4 mit
@@ -251,10 +264,11 @@ export function practiceOffer(packs, id) {
   return { id: level.id, label: engine.keepStufe(`Stufe ${level.no} üben`) };
 }
 
-// Satz auf der Ergebniskarte einer normalen Runde (v aus repeat.afterRound oder null, rein, getestet)
+// Satz auf der Ergebniskarte einer normalen Runde (v aus repeat.afterRound oder null, rein, getestet).
+// Neu geschafft: „Geschafft – kommt morgen zum Wiederholen wieder.“ (Korrektur J-B8, statt „Neu im Kasten“).
 export function repeatNote(v) {
   if (!v) return "";
-  if (v.neu) return "Neu im Kasten: kommt morgen zum Wiederholen wieder.";
+  if (v.neu) return nb(`Geschafft – kommt ${dueText(v.inTagen)} zum Wiederholen wieder.`);
   return `Wiederholung: ${verdictText(v)}.`;
 }
 

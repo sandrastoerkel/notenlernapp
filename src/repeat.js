@@ -106,26 +106,40 @@ export const withGuess = (perLevel, plan) => perLevel.map((e) => {
   return p && p.guess ? { ...e, guess: true } : e;
 });
 
+// Urteil je Stufe (Korrektur nach der Prüfung, W-B2): "sitzt" (passed), "fast" (genau ein Fehler, aber nicht
+// bestanden – bei 3 oder 4 Aufgaben bzw. bei Ratestufen mit 4 oder 5) oder "wacklig" (zwei und mehr Fehler über der
+// Grenze). Ein einzelner Fehler stuft damit nie zurück: Wer 90 % kann, bekäme sonst bei 4 + 3 + 3 Aufgaben in zwei
+// von drei Runden ein „noch wacklig“. Bei 5 und mehr Aufgaben gilt ⌊n / 5⌋ unverändert (ein Fehler sitzt dort ohnehin).
+// „fast“ erst ab 3 Aufgaben (bei 1 oder 2 wäre ein Fehler die Hälfte und mehr; reviewPlan plant nie weniger als 3).
+export function verdictOf(n, fehler, guess = false) {
+  if (passed(n, fehler, guess)) return "sitzt";
+  return fehler === 1 && n >= 3 ? "fast" : "wacklig";
+}
+
 // Ergebnis einer Wiederholung eintragen. perLevel = [{ id, n, ok, guess? }] (n Aufgaben, ok davon richtig).
-// Sitzt: ein Fach weiter (höchstens FAECHER), fällig nach dem Abstand des neuen Fachs. Sonst: ein Fach zurück
-// (nicht unter 1), morgen wieder fällig. Fach 5 bleibt 5 und kommt alle 30 Tage wieder.
-// Gibt je Stufe { id, sitzt, fach, inTagen } zurück (für die Ergebniskarte).
+// sitzt: ein Fach weiter (höchstens FAECHER), fällig nach dem Abstand des neuen Fachs. fast: Fach bleibt, morgen
+// wieder fällig. wacklig: ein Fach zurück (nicht unter 1), morgen wieder fällig. Fach 5 bleibt 5 und kommt alle 30
+// Tage wieder. Gibt je Stufe { id, n, richtig, urteil, sitzt, fach, inTagen, faellig } zurück (für die Ergebniskarte;
+// sitzt = urteil === "sitzt").
 export function applyReview(state, perLevel, heute) {
   const rep = repOf(state);
   return perLevel.map(({ id, n, ok, guess }) => {
     const alt = rep[id] ? clampFach(rep[id].fach) : 1;
-    const sitzt = passed(n, n - ok, guess === true);
-    const fach = sitzt ? Math.min(FAECHER, alt + 1) : Math.max(1, alt - 1);
+    const urteil = verdictOf(n, n - ok, guess === true);
+    const sitzt = urteil === "sitzt";
+    const fach = sitzt ? Math.min(FAECHER, alt + 1) : urteil === "fast" ? alt : Math.max(1, alt - 1);
     const inTagen = sitzt ? ABSTAENDE[fach - 1] : 1;
-    rep[id] = { fach, faellig: addDays(heute, inTagen), zuletzt: heute };
-    return { id, sitzt, fach, inTagen };
+    const faellig = addDays(heute, inTagen);
+    rep[id] = { fach, faellig, zuletzt: heute };
+    return { id, n, richtig: ok, urteil, sitzt, fach, inTagen, faellig };
   });
 }
 
 // Nach einer normalen Runde (10 Aufgaben) in level mit correct Richtigen:
 // - Stufe mit Hilfen: nichts (null);
 // - noch nicht im Kasten: ab 8 Richtigen in Fach 1, fällig morgen ({ id, sitzt: true, fach: 1, inTagen: 1, neu: true });
-// - im Kasten und fällig: zählt wie eine Wiederholung mit 10 Aufgaben (sitzt ab 8 Richtigen, sonst ein Fach zurück);
+// - im Kasten und fällig: zählt wie eine Wiederholung mit 10 Aufgaben (sitzt ab 8 Richtigen, sonst ein Fach zurück;
+//   „fast“ gibt es bei 10 Aufgaben nicht, ein Fehler sitzt);
 // - im Kasten, nicht fällig: nichts (viel Üben am selben Tag soll den Abstand nicht verlängern).
 export function afterRound(state, level, correct, heute) {
   if (!inBox(level)) return null;

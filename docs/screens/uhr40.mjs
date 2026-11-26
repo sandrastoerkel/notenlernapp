@@ -4,12 +4,15 @@
 //
 // - Vorbereitung: Die Stufen vor den drei Stufen des Laufs gelten als früher geschafft (ohne Eintrag im Kasten), damit
 //   Noten lesen 3 (A), Notenwerte 5 (C) und Intervalle 2 (B) offen sind und der Kasten genau sie enthält.
-// - Tag 0: A, C und B je mit 9 von 10 spielen → „Neu im Kasten“, Karte „Heute“: „Nächste Wiederholung: morgen“.
+// - Tag 0: A, C und B je mit 9 von 10 spielen → „Geschafft – kommt morgen zum Wiederholen wieder.“, Karte „Heute“:
+//   „Nächste Wiederholung: morgen“.
 // - Jeden Tag die Uhr einen Tag vorstellen, die App neu laden und die Karte „Heute“ prüfen (Titel, „10 Aufgaben aus …“
 //   bzw. „Nächste Wiederholung: …“, „↻ wieder dran“ genau an den fälligen Stufen). Fällige Runden über „Wiederholung
-//   starten“ spielen, alles richtig; an Tag 4 liegt die erste Aufgabe aus C bewusst daneben. Ferien von Tag 12 bis 26:
+//   starten“ spielen, alles richtig; an Tag 4 liegen die ersten zwei Aufgaben aus C bewusst daneben (1 von 3: „noch
+//   wacklig“, ein Fach zurück; seit der Korrektur W-B2 wäre ein einzelner Fehler „fast“). Ferien von Tag 12 bis 26:
 //   die Karte wird angesehen, aber nicht gespielt (kein Zähler für Versäumtes).
-// - Jede Ergebniskarte: Aufgaben je Stufe und Urteil („sitzt · wieder in 7 Tagen“, „noch wacklig · morgen noch einmal“).
+// - Jede Ergebniskarte: Aufgaben je Stufe und Urteil mit der Zahl der Richtigen („Noten lesen 3 · 4 von 4 · ✓ sitzt ·
+//   wieder in 7 Tagen“, „Notenwerte 5 · 1 von 3 · ↻ noch wacklig · morgen noch einmal“).
 // - Leitsatz 3: Keine Stufe, die einmal offen war, ist später zu.
 // - Ende (Tag 40): Kästchen der Statistik und Fälligkeiten im Speicher gleich der Erwartung aus test/repeat.sim.test.js
 //   (A und B in Fach 5, fällig an Tag 57; C in Fach 4, fällig an Tag 41; Runden an den Tagen 1, 4, 5, 8, 11, 27).
@@ -29,7 +32,7 @@ const playwright = loadPlaywright();
 const ZONEN = (process.env.ZONEN || "Asia/Kuala_Lumpur,Europe/Berlin").split(",");
 const START = new Date("2026-11-24T23:30:00Z");
 const DAY0 = "2026-11-25";
-const TAGE = 40, PAUSE = [12, 26], FEHLER_TAG = 4;
+const TAGE = 40, PAUSE = [12, 26], FEHLER_TAG = 4, FEHLER_ZAHL = 2;
 const A = "noten-3", C = "notenwerte-5", B = "intervall-2";
 const NAME = { [A]: "Noten lesen 3", [C]: "Notenwerte 5", [B]: "Intervalle 2" };
 // Erwartung aus test/repeat.sim.test.js (Lauf mit Ferien): Tage mit Runde, Plan an Tag 27, Ende
@@ -62,7 +65,8 @@ async function run(browser, zone) {
   pg.on("pageerror", (e) => bad.push(`Seite: ${e}`));
   pg.on("console", (m) => { if (m.type() === "error") bad.push(`Konsole: ${m.text()}`); });
 
-  // Erwartung, Tag für Tag fortgeschrieben (Abstände 1 · 3 · 7 · 14 · 30, „noch wacklig“: ein Fach zurück, morgen)
+  // Erwartung, Tag für Tag fortgeschrieben (Abstände 1 · 3 · 7 · 14 · 30; „fast“: Fach bleibt, morgen; „noch wacklig“:
+  // ein Fach zurück, morgen)
   const model = { fach: {}, faellig: {} };
   const dueIds = (d) => [A, C, B].filter((id) => model.faellig[id] <= d)
     .sort((x, y) => model.faellig[x] - model.faellig[y] || PACK_INDEX[x] - PACK_INDEX[y]);
@@ -109,11 +113,11 @@ async function run(browser, zone) {
     const big = norm(await pg.locator("#pResult .big").first().textContent());
     if (big !== "9 / 10") fail(d, `${id}: Ergebnis „${big}“ statt „9 / 10“`);
     const rep = (await vis(pg, "#rRepeat")) ? norm(await pg.locator("#rRepeat").textContent()) : "";
-    if (rep !== "Neu im Kasten: kommt morgen zum Wiederholen wieder.") fail(d, `${id}: „${rep}“ statt „Neu im Kasten …“`);
+    if (rep !== "Geschafft – kommt morgen zum Wiederholen wieder.") fail(d, `${id}: „${rep}“ statt „Geschafft – kommt morgen …“`);
     model.fach[id] = 1; model.faellig[id] = d + ABSTAENDE[0];
     checks += 2;
   };
-  // Runde „Wiederholen“ über die Karte; an FEHLER_TAG die erste Aufgabe aus C daneben
+  // Runde „Wiederholen“ über die Karte; an FEHLER_TAG die ersten FEHLER_ZAHL Aufgaben aus C daneben
   const reviewRound = async (d) => {
     const due = dueIds(d).slice(0, 3);
     await pg.click("#homeReview"); await pg.waitForTimeout(300);
@@ -121,13 +125,13 @@ async function run(browser, zone) {
     const expHead = `10 Aufgaben aus ${due.length === 1 ? "einer Stufe" : `${due.length} Stufen`}`;
     if (head !== expHead) fail(d, `Kopf „${head}“ statt „${expHead}“`);
     const n = {}, ok = {};
-    let missed = false;
+    let missed = 0;
     for (let k = 0; k < 14 && !(await vis(pg, "#pResult")); k++) {
       const info = await pg.evaluate(CUR);
       if (!info) break;
       if (!due.includes(info.id)) fail(d, `Aufgabe aus ${info.id}, nicht fällig`);
-      const right = !(d === FEHLER_TAG && info.id === C && !missed);
-      if (!right) missed = true;
+      const right = !(d === FEHLER_TAG && info.id === C && missed < FEHLER_ZAHL);
+      if (!right) missed++;
       n[info.id] = (n[info.id] || 0) + 1; ok[info.id] = (ok[info.id] || 0) + (right ? 1 : 0);
       await answerQuestion(pg, right, null, bad); await goOn(pg);
     }
@@ -138,14 +142,17 @@ async function run(browser, zone) {
       const got = due.map((id) => [id, n[id]]);
       if (JSON.stringify(got) !== JSON.stringify(SIM.plan27)) fail(d, `Plan ${JSON.stringify(got)} statt ${JSON.stringify(SIM.plan27)} (repeat.sim.test.js)`);
     }
-    // Erwartete Urteile; sitzt: höchstens ⌊n / 5⌋ Fehler
+    // Erwartete Urteile (keine Ratestufe im Lauf): sitzt bei höchstens ⌊n / 5⌋ Fehlern; sonst ein Fehler „fast“
+    // (Fach bleibt), zwei und mehr „noch wacklig“ (ein Fach zurück); beides morgen wieder
     const lines = (await pg.locator("#pResult .review-line").allTextContents()).map(norm);
     const expect = due.map((id) => {
-      const sitzt = n[id] - ok[id] <= Math.floor(n[id] / 5);
-      model.fach[id] = sitzt ? Math.min(FAECHER, model.fach[id] + 1) : Math.max(1, model.fach[id] - 1);
-      const days = sitzt ? ABSTAENDE[model.fach[id] - 1] : 1;
+      const f = n[id] - ok[id];
+      const urteil = f <= Math.floor(n[id] / 5) ? "sitzt" : f === 1 ? "fast" : "wacklig";
+      model.fach[id] = urteil === "sitzt" ? Math.min(FAECHER, model.fach[id] + 1) : urteil === "fast" ? model.fach[id] : Math.max(1, model.fach[id] - 1);
+      const days = urteil === "sitzt" ? ABSTAENDE[model.fach[id] - 1] : 1;
       model.faellig[id] = d + days;
-      return `${NAME[id]} · ${sitzt ? `sitzt · wieder ${dueText(days)}` : "noch wacklig · morgen noch einmal"}`;
+      const text = urteil === "sitzt" ? `✓ sitzt · wieder ${dueText(days)}` : `↻ ${urteil === "fast" ? "fast" : "noch wacklig"} · morgen noch einmal`;
+      return `${NAME[id]} · ${ok[id]} von ${n[id]} · ${text}`;
     });
     if (lines.join(" | ") !== expect.join(" | ")) fail(d, `Urteile „${lines.join(" | ")}“ statt „${expect.join(" | ")}“`);
     played.push(d);

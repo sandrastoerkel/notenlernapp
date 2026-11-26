@@ -16,7 +16,7 @@ const openSet = (s) => allLevels.filter(([p, id]) => isUnlocked(s, p, id)).map((
 const A = "noten-3", C = "notenwerte-5", B = "intervall-2";
 
 // Uhr: Tag d um 10 Uhr Ortszeit (start = Tag 0 als UTC-Zeitpunkt)
-function run({ start, offset, pause = null, failC = 4, days = 40 }) {
+function run({ start, offset, pause = null, failC = 4, errorsC = 2, days = 40 }) {
   const clock = (d) => new Date(start.getTime() + d * 864e5);
   const s = fresh();
   const day0 = today(clock(0), offset);
@@ -39,8 +39,9 @@ function run({ start, offset, pause = null, failC = 4, days = 40 }) {
     plans[d] = { due: due(s, PACKS, heute), plan };
     assert.ok(plan.length <= MAX_STUFEN);
     assert.equal(plan.reduce((a, e) => a + e.n, 0), RUNDE_WIEDERHOLEN);
-    // alles richtig, nur C liegt an Tag failC einmal daneben
-    const perLevel = plan.map(({ id, n }) => ({ id, n, ok: id === C && d === failC ? n - 1 : n }));
+    // alles richtig, nur C liegt an Tag failC zweimal daneben (1 von 3: „noch wacklig“, ein Fach zurück; ein einzelner
+    // Fehler wäre seit der Korrektur W-B2 „fast“, siehe den Lauf unten)
+    const perLevel = plan.map(({ id, n }) => ({ id, n, ok: id === C && d === failC ? n - errorsC : n }));
     touchStreak(s, clock(d), offset);
     for (const r of applyReview(s, perLevel, heute)) faellig[r.id].push(dayDiff(day0, s.rep[r.id].faellig));
   }
@@ -83,6 +84,16 @@ test("Lauf in Bayern (MEZ): gleiche Fälligkeiten, Tageswechsel um Mitternacht O
   assert.equal(day0, "2026-11-25");
   assert.deepEqual(faellig[A], [1, 4, 11, 25, 55]);
   assert.deepEqual(faellig[C], [1, 4, 5, 8, 15, 29, 59]);
+});
+
+test("Lauf über 40 Tage (W-B2): ein einzelner Fehler an Tag 4 – „fast“, Fach bleibt, an Tag 5 wieder fällig", () => {
+  const { s, faellig, plans } = run({ start: new Date("2026-11-25T02:00:00Z"), offset: KL, errorsC: 1 });
+  // A und B wie im Lauf oben; C hält an Tag 4 Fach 2 (2 von 3), an Tag 5 alles richtig → Fach 3 (7 Tage), dann 14, 30
+  assert.deepEqual(faellig[A], [1, 4, 11, 25, 55]);
+  assert.deepEqual(faellig[C], [1, 4, 5, 12, 26, 56]);
+  assert.deepEqual(Object.keys(plans).map(Number), [1, 4, 5, 11, 12, 25, 26]);
+  assert.deepEqual(plans[5].plan, [{ id: C, n: 10 }]);
+  assert.deepEqual([s.rep[A].fach, s.rep[B].fach, s.rep[C].fach], [5, 5, 5]);
 });
 
 test("nach langer Pause mit vielen fälligen Stufen: immer nur eine Runde, Grundlagen zuerst, nichts geht verloren", () => {
