@@ -24,7 +24,7 @@ anzufassen.
 | 9     | Notenwerte gehirngerecht                  | drittes Paket nach KONZEPT-gehirngerecht |
 | 10    | Korrekturen aus der Prüfung (drei Perspektiven) | A-Befunde und kleine B-Befunde der ganzen App, Notenwerte-Befunde, wählbare Merksprüche; vor den nächsten großen Paketen |
 | 11    | Wiederholen                               | zuerst Sandras Wünsche vom 25.11.2026 (ein Knopf „Nächste Aufgabe“, Wortlaut „Dauer in Schlägen“, „Lernen“ mit Reitern) und die neue Paketreihenfolge (Intervalle vor Tonleitern); dann Voraussetzungen je Stufe, „Grundlagen wiederholen“, Wiederholung über Tage, Jahrgang über den Lehrkraft-Link mit QR-Code (Feinplan vom 25.11.2026) |
-| danach | Noten lesen gehirngerecht → Dreiklänge Schritt für Schritt (bis zum Dominantseptakkord) → Hörstufen | Reihenfolge Sandra; Vorgabe zum Dominantseptakkord im Abschnitt nach Welle 11 |
+| danach | Noten lesen gehirngerecht (mit Vorzeichen im Bassschlüssel) → Dreiklänge Schritt für Schritt (bis zum Dominantseptakkord) → Hörstufen; dazu eine eigene Welle „Ganz- und Halbtonschritte vor Intervalle 3“ (Zeitpunkt offen) | Reihenfolge Sandra; Vorgaben im Abschnitt „Vorgaben für die nächsten Wellen“ (Sandra, 26.11.2026) und zum Dominantseptakkord im Abschnitt danach |
 
 Vor Welle 2 muss Welle 1 gemergt und `npm test` grün sein. Welle 2 kann mit
 vier Agenten gleichzeitig laufen (am besten je ein Git-Worktree oder je ein
@@ -2281,13 +2281,14 @@ wird je gesperrt):
 
 | Jahrgang | Noten lesen (8) | Notenwerte und Pausen (10) | Intervalle (10) | Tonleitern (13) | Dreiklänge und Quintenzirkel (6) | Quelle und Begründung |
 |---|---|---|---|---|---|---|
-| 5 | 8 | 10 | 2 | 9 | 0 | Mu5 LB 4. Noten lesen 1–8: Violin- und Bassschlüssel, ♯/♭. Notenwerte 1–5: Werte und Pausen bis zum Sechzehntel; **6–10 (Punktierung, Takt füllen) nicht wörtlich genannt**, der Kompetenzerwartung „lesen und schreiben traditionelle Notenschrift …“ zugeordnet [OFFEN Sandra]. Intervalle 1–2: „diatonische Intervalle“ (nur die Zahl, ohne Vorzeichen). Tonleitern 1–3: „Ganz- und Halbtonschritt“, 4–9: „Dur-Tonleitern mit unterschiedlichen Grundtönen“ (App: bis 4 Vorzeichen; Zahl im Lehrplan offen). Dreiklänge: „Dur-Dreiklang (Grundform)“ hat in der App keine eigene Stufe (Stufe 1 fragt Dur **oder Moll**) → 0 [OFFEN Sandra] |
-| 6 | 8 | 10 | 4 (MuG: 10) | 13 | 4 | Mu6 LB 4. Intervalle 3–4: „rein, groß und klein“; 5–10 enthalten alle verminderte und übermäßige Intervalle → nur MuG. Tonleitern 12–13 (parallele Molltonart): „Tonleitern … in Dur und Moll“ (Auslegung); **10–11 (Tonart aus den Vorzeichen, 15 Tonarten) nicht wörtlich genannt**, liegen in der Reihe davor [OFFEN Sandra]. Dreiklänge 1, 3, 4: „Dreiklänge in Dur und Moll; Dreiklangsumkehrung“; **Stufe 2 (vermindert, übermäßig) nicht genannt**, liegt in der Reihe davor [OFFEN Sandra] |
-| 7 | 8 | 10 | 4 (MuG: 10) | 13 | 6 | Mu7 LB 4. Dreiklänge 6: „Haupt- und Nebenstufen“; **Stufe 5 (Quintenzirkel) im Lehrplan nicht genannt**, liegt in der Reihe davor [OFFEN Sandra]. Dominantseptakkord: kommt mit dem Paket „Dreiklänge Schritt für Schritt“ |
-| 8 bis 13 | 8 | 10 | 4 (MuG: 10) | 13 | 6 | Mu8 bis Mu13: keine weiteren Inhalte aus dem Umfang der App; alles ist Wiederholung. Intervalle 5–10 sind außerhalb des MuG in keinem Jahrgang zugeordnet und bleiben deshalb „Darüber hinaus“ (offen nach der üblichen Regel, über den eigenen Zuschnitt jederzeit als „dran“ wählbar) [OFFEN Sandra] |
+| 5 | 8 | 10 | 2 | 9 | 0 | Mu5 LB 4. Noten lesen 1–8: Violin- und Bassschlüssel, ♯/♭. Notenwerte 1–5: Werte und Pausen bis zum Sechzehntel; **6–10 (Punktierung, Takt füllen) nicht wörtlich genannt**, der Kompetenzerwartung „lesen und schreiben traditionelle Notenschrift …“ zugeordnet [Sandra 26.11.2026: passt so]. Intervalle 1–2: „diatonische Intervalle“ (nur die Zahl, ohne Vorzeichen). Tonleitern 1–3: „Ganz- und Halbtonschritt“, 4–9: „Dur-Tonleitern mit unterschiedlichen Grundtönen“ (App: bis 4 Vorzeichen; Zahl im Lehrplan offen). Dreiklänge: „Dur-Dreiklang (Grundform)“ hat in der App keine eigene Stufe (Stufe 1 fragt Dur **oder Moll**) → 0 [Sandra 26.11.2026: passt so] |
+| 6 | 8 | 10 | 4 (MuG: 10) | 13 | 4 | Mu6 LB 4. Intervalle 3–4: „rein, groß und klein“; 5–10 enthalten alle verminderte und übermäßige Intervalle → nur MuG. Tonleitern 12–13 (parallele Molltonart): „Tonleitern … in Dur und Moll“ (Auslegung); **10–11 (Tonart aus den Vorzeichen, 15 Tonarten) nicht wörtlich genannt**, liegen in der Reihe davor [Sandra 26.11.2026: passt so]. Dreiklänge 1, 3, 4: „Dreiklänge in Dur und Moll; Dreiklangsumkehrung“; **Stufe 2 (vermindert, übermäßig) nicht genannt**, liegt in der Reihe davor [Sandra 26.11.2026: passt so] |
+| 7 | 8 | 10 | 4 (MuG: 10) | 13 | 6 | Mu7 LB 4. Dreiklänge 6: „Haupt- und Nebenstufen“; **Stufe 5 (Quintenzirkel) im Lehrplan nicht genannt**, liegt in der Reihe davor [Sandra 26.11.2026: passt so]. Dominantseptakkord: kommt mit dem Paket „Dreiklänge Schritt für Schritt“ |
+| 8 bis 13 | 8 | 10 | 4 (MuG: 10) | 13 | 6 | Mu8 bis Mu13: keine weiteren Inhalte aus dem Umfang der App; alles ist Wiederholung. Intervalle 5–10 sind außerhalb des MuG in keinem Jahrgang zugeordnet und bleiben deshalb „Darüber hinaus“ (offen nach der üblichen Regel, über den eigenen Zuschnitt jederzeit als „dran“ wählbar) [Sandra 26.11.2026: nur Musisches Gymnasium, so wie gebaut] |
 
 Die Angabe ist je Paket eine Zahl („bis Stufe n“). Darum zieht eine spätere Stufe die Stufen davor mit (Dreiklänge
-2 und 5, Tonleitern 10–11). Das ist als [OFFEN Sandra] markiert und über den eigenen Zuschnitt änderbar; mit dem
+2 und 5, Tonleitern 10–11). Das war als [OFFEN Sandra] markiert (Sandra, 26.11.2026: passt so) und ist über den
+eigenen Zuschnitt änderbar; mit dem
 Paket „Dreiklänge Schritt für Schritt“ wird die Reihe ohnehin neu geordnet.
 
 **Was die Einstellung ändert.**
@@ -2834,7 +2835,8 @@ Richtige (kürzere Runden kleinerer Bonus, in 8 im Blick); `ueberlauf.mjs` dauer
     Oktave)“ (jeder Eintrag ein Knopf, öffnet die Startkarte jener Stufe) und der Knopf `#pBasics` „Grundlagen
     wiederholen · 6 Aufgaben“. Bei `recommend` steht er als erster, hervorgehoben, mit dem Grund darüber:
     „Empfohlen: ‚Noten mit Vorzeichen‘ hast du hier noch nie geübt.“ / „… ist wieder dran.“ / „… lag zuletzt
-    unter 8 von 10.“ Sonst steht er unter „Runde starten“ als ruhiger Knopf (`btn ghost`).
+    unter 8 von 10.“ (Wortlaut seit 26.11.2026: „Tipp: … hast du in der App noch nicht geübt.“, Abschnitt 8,
+    Punkt 18.) Sonst steht er unter „Runde starten“ als ruhiger Knopf (`btn ghost`).
   - `render(arg)`: `arg.mode` „grundlagen“ (mit `arg.levelId`, optional `arg.only`) startet `startMixed`;
     Kopf: „Grundlagen wiederholen“ / „für Intervalle, Stufe 3“; die Wahl Buchstaben/Klaviatur ist verborgen.
   - Ergebniskarte normale Runde: bei weniger als 5 Richtigen „Grundlagen wiederholen“ als erster Knopf; bei
@@ -3487,62 +3489,90 @@ drei Stufen bleiben):
 
 ### 8. Offen für Sandra (Welle 11)
 
-Gebaut wird jeweils die genannte Voreinstellung.
+Gebaut wird jeweils die genannte Voreinstellung. Sandras Antworten vom 26.11.2026 stehen je Punkt unter
+„Entscheidung Sandra“. Offen bleiben 12 (bis zum Test mit einem Kind), 14 (QR-Code scannen) und 15
+(Dominantseptakkord); zwei Aufgaben für später (7 und 17) stehen in der Übersicht „Reihenfolge“ und im Abschnitt
+„Vorgaben für die nächsten Wellen“.
 1. **W1 Wortlaut:** „Wie viele Schläge dauert diese Note? (1 Schlag = 1 Viertelnote)“, Rückmeldung „Richtig!
    Achtelnote = ½ Schlag“, in den Stufen 1–3 „(dauert ½ Schlag)“, Titel „Dauer in Schlägen“ – so recht?
+   **Entscheidung Sandra (26.11.2026):** so lassen.
 2. **W2:** Bei offener Vorführung bleibt der Knopf am Ende der Vorführung, der unter den Antworten verschwindet
    (sonst umgekehrt). Oder soll immer nur der Knopf unter den Antworten stehen?
+   **Entscheidung Sandra (26.11.2026):** so lassen.
 3. **W3 Reiter:** Tonhöhen · Notenwerte · Takt · Intervalle · Tonleitern · Dreiklänge. „Takt“ enthält „So
    zählst du einen Takt“ und „Balken“; der Quintenzirkel steht unter „Tonleitern“ (Tafel mit Merksprüchen) und
    unter „Dreiklänge“ (Ring). Eigener Reiter „Quintenzirkel“ gewünscht? Schlüsselwahl in „Notenwerte“ und
    „Takt“ ausgeblendet – recht?
+   **Entscheidung Sandra (26.11.2026):** so lassen.
 4. **Lehrplan, nicht wörtlich belegt** (Tabelle in 4): Punktierung und „Takt füllen“ in Jahrgang 5
    (Notenwerte 6–10); Tonart aus den Vorzeichen bis 7 Vorzeichen und parallele Molltonart in Jahrgang 6
    (Tonleitern 10–13); Dreiklänge 2 (vermindert, übermäßig) in Jahrgang 6 und 5 (Quintenzirkel) in Jahrgang 7,
    weil die Angabe „bis Stufe n“ sie mitzieht; Dreiklänge in Jahrgang 5 gar nicht (Stufe 1 fragt Dur oder
    Moll).
+   **Entscheidung Sandra (26.11.2026):** passt so.
 5. **Verminderte und übermäßige Intervalle** (Intervalle 5–10): laut Lehrplan nur am Musischen Gymnasium
    (Jahrgang 6). Am übrigen Gymnasium in keinem Jahrgang „dran“, sondern „Darüber hinaus“ – oder ab einem
    bestimmten Jahrgang für alle?
+   **Entscheidung Sandra (26.11.2026):** nur Musisches Gymnasium (so wie gebaut).
 6. **Musisches Gymnasium** als eigene Voreinstellung (Kästchen auf der Lehrkraft-Seite, `zweig=mug`) – gewünscht?
+   **Entscheidung Sandra (26.11.2026):** so lassen.
 7. **Halbtöne vor Intervalle 3?** Seit „Intervalle“ vor „Tonleitern“ steht, kommen „Ganz- und Halbtonschritte“
    (Tonleitern 1–3) erst nach „rein, klein, groß“. Intervalle 3 erklärt das Zählen der Halbtöne selbst mit
    Klaviatur. So lassen, oder die drei Stufen später vorziehen (eigene Welle)?
+   **Entscheidung Sandra (26.11.2026):** später vorziehen – eigene Welle: „Ganz- und Halbtonschritte“ vor
+   Intervalle 3, dort Grundlage für Schritt 2. Noch nicht gebaut (Aufgabe für später, siehe „Reihenfolge“ und
+   „Vorgaben für die nächsten Wellen“).
 8. **Lehrkraft-Seite:** erreichbar über die Adresse `…/#lehrkraft` und einen unauffälligen Textlink am Ende der
    Statistik – oder nur über die Adresse? Anrede dort „Sie“ – recht?
+   **Entscheidung Sandra (26.11.2026):** so lassen.
 9. **Schutz:** Der Link ist kein Schloss. Wer die Lehrkraft-Seite findet, kann sich selbst einen Link bauen.
    Mehr geht ohne Server nicht. In Ordnung?
+   **Entscheidung Sandra (26.11.2026):** so lassen.
 10. **Namen der Abschnitte** mit Jahrgang: „Jetzt dran“ · „Schon dran gewesen“ · „Darüber hinaus“ (statt
     „Wiederholen“ und „Später“, weil „Wiederholen“ jetzt die Runde heißt und „Später“ in Jahrgang 13 nicht
     passt).
+    **Entscheidung Sandra (26.11.2026):** so lassen.
 11. **Startseite:** Die große Trefferquote oben entfällt (steht in der Statistik). Recht?
+    **Entscheidung Sandra (26.11.2026):** so lassen.
 12. **Wiederholungsrunde:** höchstens drei Stufen (4 + 3 + 3 Aufgaben), „sitzt“ nur ohne Fehler bei 3 oder 4
     Aufgaben. Nach dem Test mit Kindern nachstellen? **Gebaut seit der Korrektur nach der Prüfung (26.11.2026):**
     mildere Rückstufung – ein Fehler bei 3 oder 4 Aufgaben ist „fast“ (Fach bleibt, morgen wieder), zurück erst ab
     zwei Fehlern; die Zeile nennt die Zahl („2 von 3“). Sandras Zahlen sind unverändert. Offen bleibt, ob nach dem
     Test mit einem Kind ein Fehler bei 4 Aufgaben schon „sitzt“ sein soll.
+    **Entscheidung Sandra (26.11.2026):** offen bis zum Test mit einem Kind.
 13. **Nach dem Update:** Schon geschaffte Stufen kommen in Fach 1, je Tag drei, beginnend am ersten Tag.
+    **Entscheidung Sandra (26.11.2026):** so lassen.
 14. **QR-Code:** Bitte vor dem Push einmal mit der Handykamera scannen (Tafel/Beamer und Bildschirm).
+    **Entscheidung Sandra (26.11.2026):** offen – Sandra scannt den QR-Code selbst.
 15. **Dominantseptakkord** (nächster Abschnitt): die markierten Punkte.
+    **Entscheidung Sandra (26.11.2026):** offen – kommt mit dem Paket „Dreiklänge Schritt für Schritt“ (Punkte im
+    Abschnitt „Vorgabe für das Paket …“).
 16. **Parallele Molltonart (Tonleitern 12/13), zweiter Schritt:** Gebaut ist „Ganz- und Halbtonschritte“
     (`tonleitern-3`) als Grundlage für „drei Halbtöne abwärts“. Seit „Intervalle“ vor „Tonleitern“ steht, träfe
     „Intervalle rein, klein, groß“ (`intervall-4`: kleine Terz = 3 Halbtöne) die Sache genauer, ist aber die
     schwerere Stufe (alle Intervalle, Vorzeichen). So lassen oder umhängen? (Prüfung Schritt 5)
+    **Entscheidung Sandra (26.11.2026):** so lassen.
 17. **Vorzeichen im Bassschlüssel werden nirgends eigens geübt** (am Vorrat geprüft, je 600 Aufgaben):
     „Noten mit Vorzeichen“ (`noten-7`) und der Vorzeichen-Anteil von `noten-8` stehen nur im Violinschlüssel;
     Intervalle 4 und 6, Tonleitern 3, 5, 7, 9 und Dreiklänge 1–4, 6 zeigen aber Noten mit ♯/♭ im Bassschlüssel.
     Die Kanten stimmen trotzdem (Bassschlüssel über `noten-6`, Vorzeichen über `noten-7`). Vorschlag: im Paket
     „Noten lesen“ (nächste Welle) Vorzeichen auch im Bassschlüssel aufnehmen. (Prüfung Schritt 5)
+    **Entscheidung Sandra (26.11.2026):** ja – Vorzeichen im Bassschlüssel ins Paket „Noten lesen“. Noch nicht
+    gebaut (Aufgabe für später, siehe „Reihenfolge“ und „Vorgaben für die nächsten Wellen“).
 18. **Empfehlung auf der Startkarte, Wortlaut:** Gebaut ist „Empfohlen: „Noten mit Vorzeichen“ hast du hier noch
     nicht geübt.“ / „… ist wieder dran.“ / „… lag zuletzt unter 8 von 10.“ Recht so, oder lieber ohne das Wort
     „Empfohlen“, z. B. „Tipp: …“? Und: Wer „Intervalle“ beginnt, ohne „Noten lesen“ 3 hier gespielt zu haben,
     sieht „Grundlagen wiederholen“ als Hauptknopf vor „Runde starten“ – in Ordnung? (Prüfung Schritt 7)
+    **Entscheidung Sandra (26.11.2026):** „Tipp: … in der App“ – gebaut: „Tipp: „Noten mit Vorzeichen“ hast du in
+    der App noch nicht geübt.“ / „Tipp: … ist wieder dran.“ / „Tipp: … lag zuletzt unter 8 von 10.“ (`reasonText`);
+    die Reihenfolge der Knöpfe bleibt („Grundlagen wiederholen“ mit Empfehlung vor „Runde starten“). – 45cc666
 19. **Lehrkraft-Seite und Startseite mit Jahrgang:** Die Seite beginnt immer mit Jahrgang 5; ein Wechsel von
     Jahrgang oder „Musisches Gymnasium“ setzt eine eigene Auswahl auf die Voreinstellung zurück – recht so? Mit
     Jahrgang führt „Weiter üben“ immer zur ersten offenen Stufe aus „Jetzt dran“ (auch wenn zuletzt etwas anderes
     geübt wurde); ist „Jetzt dran“ leer, steht dort „In Jahrgang 9 kommt nichts Neues dazu. Alles hier ist zum
     Wiederholen da.“ bzw. „Was in Jahrgang 7 neu ist, hast du mit mindestens 8 von 10 geschafft. …“ – Wortlaut
     recht? (Prüfung Schritt 12)
+    **Entscheidung Sandra (26.11.2026):** so lassen.
 20. **Startkarte, lange Hinweise (Rest von J-B1):** Seit der Korrektur stehen die Knöpfe direkt unter dem Hinweis.
     Bei 320 × 640 px mit Empfehlung liegt der erste Knopf trotzdem noch unter dem ersten Bildschirm (Grenze 580 px)
     bei Intervalle 3 (593 px), Tonleitern 10 (756 px) und Tonleitern 12 (616 px), weil deren Hinweise fünf bis
@@ -3550,6 +3580,24 @@ Gebaut wird jeweils die genannte Voreinstellung.
     über den Inhalt: kürzere Hinweise, oder die Reihenfolge der Vorzeichen in Tonleitern 10 zum Aufklappen bzw. nur
     in der Lerntafel. Gebaut: alles bleibt sichtbar (der Hinweis ist die Strategie der Stufe). Kürzen oder
     aufklappbar – und wenn ja, welche Zeilen? (Nachprüfung Welle 11)
+    **Entscheidung Sandra (26.11.2026):** Vorzeichen-Reihenfolge aufklappbar, Intervalle 3 und Tonleitern 12 leicht
+    kürzen – gebaut:
+    - Tonleitern 10: die Reihenfolge der ♯ und ♭ samt gewähltem Merkspruch in einem nativen `<details>`
+      „Reihenfolge der Vorzeichen“ unter dem Hinweis (zu Beginn zu, Tastatur, Tippfläche 44 px; Inhalt
+      unverändert, `level.hintMore`). – d1bdfeb
+    - Intervalle 3: die beiden Familien in einer Zeile, Wortlaut unverändert. Tonleitern 12: „2. Drei Halbtöne
+      abwärts: So bekommt er sein Vorzeichen.“ und „Zusammen: kleine Terz abwärts. Stammton = Note ohne Vorzeichen.
+      Moll wird klein geschrieben.“ in einer Zeile. Strategie und Fachwörter bleiben. – a099b00
+    - Gemessen bei 320 × 640 mit Empfehlung (oberer Rand des ersten Knopfs, Grenze 580 px; `ueberlauf.mjs`
+      `startCards`): Intervalle 3 593 → 569, Tonleitern 12 616 → 569 (beide im ersten Bildschirm, seitdem von
+      `ueberlauf.mjs` geprüft, `FIRST_SCREEN_320`), Tonleitern 10 756 → 641 – **nicht** im ersten Bildschirm: Der
+      Rest des Hinweises (zwei Schritte, „Ein einzelnes Be: F-Dur.“) ist die Strategie der Stufe; weiter ginge es
+      nur mit weniger Inhalt. Ohne Empfehlung „Runde starten“: 545 → 522, 689 → 594, 568 → 522. Bei 420 × 640
+      mit Empfehlung: 561 (gleich), 654 → 605, 608 (gleich).
+
+Dazu die Regel aus `LESSONS.md` (Lehre „Zusagen nicht stärker als der Code“, Zähler 2): Sandra (26.11.2026): ja –
+in CLAUDE.md übernommen („Zusagen an Lernende und Lehrkräfte … nie stärker formulieren, als der Code hält“, mit
+Test über alle Zustandswechsel). – 3dafaa9
 
 ### 9. Korrektur nach der Prüfung aus drei Perspektiven (26.11.2026)
 
@@ -3683,6 +3731,23 @@ bei 320 px bricht „8 Oktave“ um); L-C1 bis L-C6, L-C8 bis L-C10; W-C2 (Sorti
 (Umbenennungen von Stufen-IDs nehmen `rep`, `basics` und `basicsOk` mit), W-C7 (Fokus im Entfernen-Dialog), W-C9
 (Notenbilder ohne Beschriftung), W-C10 (Kindertest); geschützte Leerzeichen in den Vorführungstexten
 (`demo.js`, „3 Halbtöne“).
+
+## Vorgaben für die nächsten Wellen (Sandra, 26.11.2026)
+
+Aus „Offen für Sandra“ (Welle 11, Abschnitt 8, Punkte 7 und 17). In Welle 11 wird davon nichts gebaut; die
+Einzelheiten legt jeweils der Feinplan fest.
+
+1. **Eigene Welle „Ganz- und Halbtonschritte vor Intervalle 3“** (Punkt 7): Die Stufen „Ganz- und
+   Halbtonschritte“ (heute Tonleitern 1–3) kommen vor Intervalle 3 („Rein, klein, groß“) und sind dort die
+   Grundlage für Schritt 2 (Feinbestimmung aus den Halbtönen). Hintergrund: Seit „Intervalle“ vor „Tonleitern“
+   steht (Welle 11), kommen sie erst nach „rein, klein, groß“; Intervalle 3 erklärt das Zählen der Halbtöne bis
+   dahin selbst mit Klaviatur. Zeitpunkt der Welle offen. [OFFEN Feinplan] wie (Stufen verschieben oder neu
+   anlegen, IDs, Kanten in `VORAUSSETZUNGEN`, Umstellung gespeicherter Stände, Zuordnung in der Jahrgangstabelle).
+2. **Paket „Noten lesen“ (nächste Welle): Vorzeichen auch im Bassschlüssel** (Punkt 17): Heute stehen „Noten mit
+   Vorzeichen“ (`noten-7`) und der Vorzeichen-Anteil von `noten-8` nur im Violinschlüssel, während Intervalle 4
+   und 6, Tonleitern 3, 5, 7, 9 und Dreiklänge 1–4, 6 Noten mit ♯/♭ im Bassschlüssel zeigen (am Vorrat geprüft,
+   Prüfung Schritt 5). Das Paket „Noten lesen“ nimmt Vorzeichen im Bassschlüssel auf. [OFFEN Feinplan] in
+   welchen Stufen und mit welchen Kanten.
 
 ## Vorgabe für das Paket „Dreiklänge Schritt für Schritt“ (nach Welle 11): bis zum Dominantseptakkord
 
