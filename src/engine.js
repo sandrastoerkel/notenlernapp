@@ -611,6 +611,11 @@ function markRight(r, q) {
     ? letterButton(r.ui.answers, a)
     : all(r.ui.answers, ".btn[data-choice]").find((b) => set.choices && set.choices[+b.dataset.choice] === a);
   if (right) markAnswer(right, "ok");
+  // Eingabe „Klaviatur“: die richtige Taste grün wie der richtige Knopf bei den anderen Eingaben (Korrektur nach
+  // der Prüfung Welle 11, J-B4); beim oberen und unteren C beide, denn beide wären richtig gewesen
+  if (r.ui.piano && !r.ui.piano.hidden) {
+    all(r.ui.piano, "rect[data-semi]").filter((k) => cur(r).check(q, +k.dataset.semi)).forEach((k) => markAnswer(k, "ok"));
+  }
 }
 
 // Zweischrittige Aufgabe: Schritt auswerten; nach dem letzten Schritt wie eine einfache Antwort weiter

@@ -262,7 +262,11 @@ section { display: grid; gap: 14px; }
 .wkey:hover { fill: var(--key-white-hover); }
 .bkey { fill: var(--key-black); stroke: var(--key-black-edge); cursor: pointer; }
 .bkey:hover { fill: var(--key-black-hover); }
-.wkey.ok { fill: var(--ok-soft); } .wkey.bad { fill: var(--bad-soft); }
+.wkey.ok { fill: var(--ok-soft); stroke: var(--ok); stroke-width: 2; } .wkey.bad { fill: var(--bad-soft); stroke: var(--bad); stroke-width: 2; }
+/* Beschriftung auf einer markierten weißen Taste (richtig grün, daneben rot): Schrift wie der Text der Seite, im
+   Dunklen hell auf der dunklen soft-Fläche, mindestens 4,5 : 1 (J-B4, test/css.test.js). Die Beschriftung steht im
+   SVG direkt hinter ihrer Taste (staff.js pianoSvg). */
+.wkey.ok + .klabel, .wkey.bad + .klabel { fill: var(--fg); font-weight: 700; }
 .bkey.ok { fill: var(--ok); } .bkey.bad { fill: var(--bad); }
 .klabel { font-family: var(--display); font-size: 11px; fill: var(--key-label); pointer-events: none; }
 

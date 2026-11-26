@@ -192,3 +192,29 @@ test("QR-Code: --qr-dark und --qr-light auf :root, in hell und dunkel gleich (sc
   // keine dunkle Variante: die Tokens stehen nur im hellen Block
   assert.ok(!/--qr-/.test(blocks["dunkel (System)"]) && !/--qr-/.test(blocks["dunkel (Schalter)"]));
 });
+
+// Korrektur nach der Prüfung Welle 11, J-B4: Klaviatur nach der Antwort – im Dunklen war „C“ auf der roten Taste
+// mit 1,4 : 1 kaum zu lesen (--key-label auf --bad-soft). Die Beschriftung einer markierten weißen Taste nimmt --fg.
+test("Klaviatur: Beschriftung auf markierten weißen Tasten mindestens 4,5 : 1, hell und dunkel; richtige Taste grün", () => {
+  const rule = plain.match(/\.wkey\.ok \+ \.klabel, \.wkey\.bad \+ \.klabel \{([^}]*)\}/);
+  assert.ok(rule, "Regel für die Beschriftung markierter Tasten fehlt");
+  const fill = rule[1].match(/fill:\s*var\((--[a-z0-9-]+)\)/)[1];
+  for (const name of Object.keys(blocks)) {
+    const t = theme(name);
+    for (const bg of ["--ok-soft", "--bad-soft"]) {
+      const c = contrast(t[fill], t[bg]);
+      assert.ok(c >= 4.5, `${name}: ${fill} auf ${bg} ${c.toFixed(2)}`);
+    }
+    // ohne die Regel (Gegenprobe): --key-label auf --bad-soft ist im Dunklen zu schwach
+    if (name !== "hell") assert.ok(contrast(t["--key-label"], t["--bad-soft"]) < 4.5);
+  }
+  // Fläche und Rand in der Farbe von richtig bzw. daneben (Rand wie bei den Antwortknöpfen)
+  assert.match(plain, /\.wkey\.ok \{ fill: var\(--ok-soft\); stroke: var\(--ok\);/);
+  assert.match(plain, /\.wkey\.bad \{ fill: var\(--bad-soft\); stroke: var\(--bad\);/);
+  // die Beschriftung folgt im SVG direkt ihrer Taste (sonst griffe der Nachbar-Selektor nicht)
+  const staff = readFileSync(new URL("../src/staff.js", import.meta.url), "utf8");
+  assert.match(staff, /s \+= `<rect class="wkey\$\{keyCls\(semi, oo\)\}"[^\n]*\n\s*s \+= `<text class="klabel/);
+  // nach „daneben“ wird die richtige Taste grün markiert (engine.markRight), wie der richtige Knopf
+  const engine = readFileSync(new URL("../src/engine.js", import.meta.url), "utf8");
+  assert.match(engine, /all\(r\.ui\.piano, "rect\[data-semi\]"\)\.filter\(\(k\) => cur\(r\)\.check\(q, \+k\.dataset\.semi\)\)\.forEach\(\(k\) => markAnswer\(k, "ok"\)\)/);
+});
