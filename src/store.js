@@ -12,6 +12,8 @@ export const MIGRATION_INTERVALLE = "intervalle-neu";
 export const MIGRATION_TONLEITERN = "tonleitern-neu";
 export const MIGRATION_NOTENWERTE = "notenwerte-neu";
 export const MIGRATION_WIEDERHOLEN = "wiederholen";
+// Welle 12 (migrateNoten): noch nicht in fresh() und migrateAll, das Paket hat noch die alten Nummern (Schritt 2)
+export const MIGRATION_NOTEN = "noten-neu";
 
 // Stufen je Tag bei der Umstellung "wiederholen": so viele, wie eine Wiederholungsrunde fasst
 // (repeat.js MAX_STUFEN; hier als eigene Zahl, weil repeat.js dieses Modul einbindet – ein Test prüft die Gleichheit).
@@ -52,7 +54,8 @@ export function migrateV1(v1) {
   s.current = typeof (v1 && v1.current) === "number" ? "noten-" + v1.current : "noten-1";
   // v1 kannte nur „Noten lesen“: die Umstellungen der anderen Pakete braucht es nicht, wohl aber "wiederholen"
   // (geschaffte Stufen kommen in den Karteikasten)
-  s.migrated = s.migrated.filter((m) => m !== MIGRATION_WIEDERHOLEN);
+  // "noten-neu" ebenso: v1 hat die alten Nummern noten-1 … -8 (sobald fresh() den Marker trägt, Welle 12, Schritt 2)
+  s.migrated = s.migrated.filter((m) => m !== MIGRATION_WIEDERHOLEN && m !== MIGRATION_NOTEN);
   return s;
 }
 
@@ -127,6 +130,97 @@ export function migrateNotenwerte(s) {
   s.levels = levels;
   if (RENAMED_NOTENWERTE[s.current]) s.current = RENAMED_NOTENWERTE[s.current];
   s.migrated = [...done, MIGRATION_NOTENWERTE];
+  return true;
+}
+
+// "noten-neu" (Welle 12 „Noten lesen gehirngerecht“, PLAN Welle 12, Abschnitt 10): aus 8 werden 15 Stufen. Jede alte
+// Stufe landet auf der Stufe gleichen Inhalts: 1→1, 2→2, 3→5, 4→6, 5→7, 6→10, 7→12, 8→15 (1, 2, 4, 5 jetzt mit Hilfen).
+// Läuft nach den drei Umbenennungen der anderen Pakete und vor migrateWiederholen (die legt Einträge mit den neuen
+// IDs an). migrateV1 nimmt den Marker heraus (v1 hat die alten Nummern).
+export const RENAMED_NOTEN = Object.fromEntries([[1, 1], [2, 2], [3, 5], [4, 6], [5, 7], [6, 10], [7, 12], [8, 15]]
+  .map(([a, b]) => [`noten-${a}`, `noten-${b}`]));
+// Karteikasten und basicsOk (Stufen ohne Hilfen bzw. Voraussetzungen): 3→5, 6→10, 7→12, 8→15 einzeln; die Paare
+// 1 + 2 → 3 und 4 + 5 → 8 nur, wenn beide Einträge da sind (Sandra 26.11.2026, Frage 6 a); ein einzelner entfällt.
+export const BOX_NOTEN = { "noten-3": "noten-5", "noten-6": "noten-10", "noten-7": "noten-12", "noten-8": "noten-15" };
+export const PAARE_NOTEN = [["noten-1", "noten-2", "noten-3"], ["noten-4", "noten-5", "noten-8"]];
+// „dran bis Stufe n“ (klasse.dran.noten, klasseOffen.noten): 0→0, 1→1, 2→3, 3→5, 4→6, 5→8, 6→10, 7→12, 8→15 – die
+// Festigungsstufen 3 und 8 gehören dazu, sobald ihre beiden Teile dran waren.
+export const DRAN_NOTEN = { 0: 0, 1: 1, 2: 3, 3: 5, 4: 6, 5: 8, 6: 10, 7: 12, 8: 15 };
+const NOTEN_ALT = 8;
+const nr = (id) => Number(String(id).slice("noten-".length));
+const isMap = (m) => !!m && typeof m === "object" && !Array.isArray(m);
+const isDay = (d) => typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d);
+const minDay = (a, b) => (a <= b ? a : b);
+const maxDay = (a, b) => (a >= b ? a : b);
+
+// Zwei Karteikasten-Einträge eines Paars zu einem (vorsichtig): kleineres Fach, frühere Fälligkeit, späteres „zuletzt“
+// (null zählt nur, wenn beide null sind). Ungültige Fälligkeit: der gültige Tag des anderen; beide ungültig: der erste.
+function mergeRep(a, b) {
+  const fa = Number.isInteger(a.fach) ? a.fach : null, fb = Number.isInteger(b.fach) ? b.fach : null;
+  const fach = fa === null ? fb : fb === null ? fa : Math.min(fa, fb);
+  const faellig = isDay(a.faellig) && isDay(b.faellig) ? minDay(a.faellig, b.faellig) : isDay(a.faellig) ? a.faellig : isDay(b.faellig) ? b.faellig : a.faellig;
+  const zuletzt = isDay(a.zuletzt) && isDay(b.zuletzt) ? maxDay(a.zuletzt, b.zuletzt) : isDay(a.zuletzt) ? a.zuletzt : isDay(b.zuletzt) ? b.zuletzt : null;
+  return { ...a, ...b, fach, faellig, zuletzt };
+}
+
+// Einträge je Stufen-ID nach BOX_NOTEN und PAARE_NOTEN umziehen (rep, basicsOk); alle anderen Schlüssel bleiben.
+// pair(a, b) führt die beiden Einträge eines Paars zusammen, ok(e) sagt, ob ein Eintrag für ein Paar zählt.
+function moveBox(map, pair, ok) {
+  if (!isMap(map)) return map;
+  const out = {};
+  for (const [id, e] of Object.entries(map)) {
+    if (BOX_NOTEN[id]) out[BOX_NOTEN[id]] = e;
+    else if (!PAARE_NOTEN.some(([a, b]) => id === a || id === b)) out[id] = e;
+  }
+  for (const [a, b, to] of PAARE_NOTEN) if (ok(map[a]) && ok(map[b])) out[to] = pair(map[a], map[b]);
+  return out;
+}
+
+// Gibt true zurück, wenn sie gelaufen ist. Alles in einem Durchgang in neue Objekte (sonst verkettet 3→5 mit 5→7).
+// „Was offen war, bleibt offen“: Vor dem Umbenennen wird nach der alten Regel (der Reihe nach ab 8 von 10, ohne
+// unlockAll – das ist die Demo-Freischaltung und bleibt ein Schalter; ohne Jahrgang – dessen Marke rechnet DRAN_NOTEN
+// um) bestimmt, welche alten Stufen offen waren. Jede davon ohne gespielte Runde, deren neue Stufe davor nicht mit
+// 8 von 10 geschafft ist (alt 3, 6, 7, 8: neu davor 4, 9, 11, 14), bekommt unter der neuen ID den Merker offen: true
+// ({ stars: 0, best: 0, played: 0, offen: true }); isUnlocked liest ihn. Der Merker zählt nicht als gespielt.
+export function migrateNoten(s) {
+  const done = Array.isArray(s.migrated) ? s.migrated : [];
+  if (done.includes(MIGRATION_NOTEN)) return false;
+  const old = isMap(s.levels) ? s.levels : {};
+  const best = (id) => ((old[id] || {}).best || 0);
+  const played = (id) => ((old[id] || {}).played || 0) > 0;
+  // levels: der ganze Eintrag wandert; falls die neue ID schon belegt ist (nur bei beschädigten Ständen), geht nichts
+  // verloren (bester Wert, Runden zusammen)
+  const levels = {};
+  const put = (to, st) => { levels[to] = levels[to] ? { ...levels[to], ...st, ...mergeLevel(levels[to], st) } : st; };
+  for (const [id, st] of Object.entries(old)) if (!RENAMED_NOTEN[id]) put(id, st);
+  for (const [id, st] of Object.entries(old)) if (RENAMED_NOTEN[id]) put(RENAMED_NOTEN[id], st);
+  for (let i = 1; i <= NOTEN_ALT; i++) {
+    const id = `noten-${i}`, to = RENAMED_NOTEN[id];
+    const warOffen = i === 1 || best(`noten-${i - 1}`) >= 8;
+    if (!warOffen || played(id) || nr(to) === 1) continue;
+    if (((levels[`noten-${nr(to) - 1}`] || {}).best || 0) >= 8) continue;
+    levels[to] = { stars: 0, best: 0, played: 0, ...(levels[to] || {}), offen: true };
+  }
+  s.levels = levels;
+  if (RENAMED_NOTEN[s.current]) s.current = RENAMED_NOTEN[s.current];
+  // Karteikasten (W-C6): Fach, Fälligkeit und „zuletzt“ unverändert; Paar → mergeRep
+  if (isMap(s.rep)) s.rep = moveBox(s.rep, mergeRep, isMap);
+  // basics (Merker je Zielstufe): wie levels
+  if (isMap(s.basics)) {
+    const b = {};
+    for (const [id, d] of Object.entries(s.basics)) if (!RENAMED_NOTEN[id]) b[id] = d;
+    for (const [id, d] of Object.entries(s.basics)) if (RENAMED_NOTEN[id]) b[RENAMED_NOTEN[id]] = d;
+    s.basics = b;
+  }
+  // basicsOk (Merker je Voraussetzung): wie rep, beim Paar der frühere Tag
+  if (isMap(s.basicsOk)) s.basicsOk = moveBox(s.basicsOk, minDay, isDay);
+  // Jahrgang: dran und Hochwassermarke nach DRAN_NOTEN; ein Wert über 8 (gab es nicht) heißt „alles“ → 15
+  const dran = (n) => (Number.isInteger(n) && n >= 0 ? (n > NOTEN_ALT ? DRAN_NOTEN[NOTEN_ALT] : DRAN_NOTEN[n]) : n);
+  if (isMap(s.klasse) && isMap(s.klasse.dran) && "noten" in s.klasse.dran) {
+    s.klasse = { ...s.klasse, dran: { ...s.klasse.dran, noten: dran(s.klasse.dran.noten) } };
+  }
+  if (isMap(s.klasseOffen) && "noten" in s.klasseOffen) s.klasseOffen = { ...s.klasseOffen, noten: dran(s.klasseOffen.noten) };
+  s.migrated = [...done, MIGRATION_NOTEN];
   return true;
 }
 
@@ -273,11 +367,14 @@ export const unlocks = (pack, levelId) => pack.levels.filter((l) => {
 // Gelesen wird die Hochwassermarke (klasseOffenBis, W-A1): Was ein Jahrgang einmal geöffnet hat, bleibt offen, auch
 // nach „Jahrgang entfernen“ oder einem niedrigeren Jahrgang. Abschnitte, „Jetzt dran“ und „Weiter üben“ folgen
 // weiter der aktuellen Einstellung (klasse.js sections, nextUp).
+// Merker offen: true im Eintrag (Welle 12, migrateNoten): eine Stufe, die vor der Umnummerierung offen war, aber noch
+// nie gespielt wurde, bleibt offen. Der Merker zählt nicht als gespielt (played bleibt 0).
 export function isUnlocked(s, pack, levelId) {
   const i = pack.levels.findIndex((l) => l.id === levelId);
   if (i < 0) return false;
   if (s.unlockAll) return true;
   if (((s.levels[levelId] || {}).played || 0) > 0) return true;
+  if ((s.levels[levelId] || {}).offen === true) return true;
   if ((pack.levels[i].no ?? i + 1) <= klasseOffenBis(s, pack.id)) return true;
   const by = unlockedBy(pack, levelId);
   if (!by) return i === 0 && pack.levels[i].requires === undefined;
