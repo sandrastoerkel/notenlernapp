@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   ABSTAENDE, FAECHER, RUNDE_WIEDERHOLEN, RUNDE_GRUNDLAGEN, MAX_STUFEN, MIN_AUFGABEN_RATEN,
-  inBox, boxIds, enter, due, nextDue, reviewPlan, passed, applyReview, afterRound, dueText, dayText,
+  inBox, boxIds, enter, due, nextDue, reviewPlan, passed, applyReview, afterRound, dueText, dayText, withGuess,
   needsOf, stepNeedsOf, skillOf, needsText,
   basicsPlan, basicsOffer, afterBasics, gapsOf, LUECKE_AB,
 } from "../src/repeat.js";
@@ -104,12 +104,12 @@ test("reviewPlan: höchstens drei Stufen, 10 / 5 + 5 / 4 + 3 + 3, Reihenfolge wi
 
 test("reviewPlan: Stufen mit zwei Knöpfen (guess) bekommen den größten Anteil, mindestens vier", () => {
   // eine Ratestufe unter drei: sie bekommt die 4, auch wenn sie nicht vorn steht
-  assert.deepEqual(reviewPlan(dueOn(["a-1", "a-2", "a-3"]), FAKE, T), [{ id: "a-1", n: 3 }, { id: "a-2", n: 4 }, { id: "a-3", n: 3 }]);
+  assert.deepEqual(reviewPlan(dueOn(["a-1", "a-2", "a-3"]), FAKE, T), [{ id: "a-1", n: 3 }, { id: "a-2", n: 4, guess: true }, { id: "a-3", n: 3 }]);
   // zwei Ratestufen unter drei fälligen: 4 + 4 + 2 ließe der dritten nur zwei Aufgaben → nur die ersten zwei (5 + 5)
-  assert.deepEqual(reviewPlan(dueOn(["a-1", "a-2", "b-2"]), FAKE, T), [{ id: "a-1", n: 5 }, { id: "a-2", n: 5 }]);
-  assert.deepEqual(reviewPlan(dueOn(["a-2", "b-2", "b-4"]), FAKE, T), [{ id: "a-2", n: 5 }, { id: "b-2", n: 5 }]);
+  assert.deepEqual(reviewPlan(dueOn(["a-1", "a-2", "b-2"]), FAKE, T), [{ id: "a-1", n: 5 }, { id: "a-2", n: 5, guess: true }]);
+  assert.deepEqual(reviewPlan(dueOn(["a-2", "b-2", "b-4"]), FAKE, T), [{ id: "a-2", n: 5, guess: true }, { id: "b-2", n: 5, guess: true }]);
   // zwei Stufen: 5 + 5 reicht auch für zwei Ratestufen
-  assert.deepEqual(reviewPlan(dueOn(["b-2", "a-3"]), FAKE, T), [{ id: "a-3", n: 5 }, { id: "b-2", n: 5 }]);
+  assert.deepEqual(reviewPlan(dueOn(["b-2", "a-3"]), FAKE, T), [{ id: "a-3", n: 5 }, { id: "b-2", n: 5, guess: true }]);
   // die Stufe mit Hilfen (b-1) kommt nie in die Runde
   assert.deepEqual(reviewPlan(dueOn(["b-1"]), FAKE, T), []);
 });
@@ -119,6 +119,50 @@ test("passed: höchstens ⌊n / 5⌋ Fehler", () => {
   assert.ok(passed(4, 0)); assert.ok(!passed(4, 1));
   assert.ok(passed(5, 1)); assert.ok(!passed(5, 2));
   assert.ok(passed(10, 2)); assert.ok(!passed(10, 3)); // 8 von 10
+});
+
+// Wahrscheinlichkeit, mit Raten (jede Antwort mit Wahrscheinlichkeit q richtig) zu bestehen
+const binom = (n, k) => { let r = 1; for (let i = 1; i <= k; i++) r = (r * (n - k + i)) / i; return r; };
+const passChance = (n, guess, q = 0.5) => {
+  let p = 0;
+  for (let f = 0; f <= n; f++) if (passed(n, f, guess)) p += binom(n, f) * q ** (n - f) * (1 - q) ** f;
+  return p;
+};
+
+test("passed für Ratestufen (W-B1): höchstens 2 · ⌊n / 10⌋ Fehler; Raten besteht höchstens in 6,3 %", () => {
+  // 4 und 5 Aufgaben: alle richtig; 10: zwei daneben erlaubt (wie 8 von 10)
+  assert.ok(passed(4, 0, true)); assert.ok(!passed(4, 1, true));
+  assert.ok(passed(5, 0, true)); assert.ok(!passed(5, 1, true));
+  assert.ok(passed(10, 2, true)); assert.ok(!passed(10, 3, true));
+  // Zahlen aus dem Bericht Wissenschaft (B1): bisher 5 Aufgaben 18,8 %, 4 Aufgaben 6,3 %, 10 Aufgaben 5,5 %
+  assert.equal(Math.round(passChance(5, false) * 1000) / 10, 18.8);
+  assert.equal(Math.round(passChance(4, true) * 1000) / 10, 6.3);
+  assert.equal(Math.round(passChance(5, true) * 1000) / 10, 3.1);
+  assert.equal(Math.round(passChance(10, true) * 1000) / 10, 5.5);
+  for (const n of [4, 5, 10]) assert.ok(passChance(n, true) <= 0.063, `${n} Aufgaben`);
+  // Tonleitern 3 mit „immer Ganzton“ (Anteil der Halbtonschritte HALF_P = 0,4): bisher bei 5 Aufgaben 33,7 %, jetzt 7,8 %
+  assert.equal(Math.round(passChance(5, false, 0.6) * 1000) / 10, 33.7);
+  assert.equal(Math.round(passChance(5, true, 0.6) * 1000) / 10, 7.8);
+  // ohne guess bleibt alles wie bisher
+  assert.equal(passed(5, 1), true);
+});
+
+test("withGuess und applyReview: Ratestufe mit 5 Aufgaben und einem Fehler sitzt nicht mehr", () => {
+  const plan = [{ id: "tonleitern-3", n: 5, guess: true }, { id: "noten-3", n: 5 }];
+  const perLevel = withGuess([{ id: "tonleitern-3", n: 5, ok: 4 }, { id: "noten-3", n: 5, ok: 4 }], plan);
+  assert.deepEqual(perLevel, [{ id: "tonleitern-3", n: 5, ok: 4, guess: true }, { id: "noten-3", n: 5, ok: 4 }]);
+  const s = withRep({ "tonleitern-3": { fach: 2, faellig: T, zuletzt: null }, "noten-3": { fach: 2, faellig: T, zuletzt: null } });
+  const [g, n] = applyReview(s, perLevel, T);
+  assert.equal(g.sitzt, false);
+  assert.equal(n.sitzt, true);
+  // ohne Fehler sitzt auch die Ratestufe
+  assert.equal(applyReview(s, [{ id: "tonleitern-3", n: 5, ok: 5, guess: true }], T)[0].sitzt, true);
+  // echte Pakete: reviewPlan trägt guess an Tonleitern 3 und Dreiklänge 1
+  const plan2 = reviewPlan(dueOn(["noten-3", "tonleitern-3"]), PACKS, T);
+  assert.deepEqual(plan2, [{ id: "noten-3", n: 5 }, { id: "tonleitern-3", n: 5, guess: true }]);
+  // normale Runde in einer Ratestufe: 10 Aufgaben, 8 von 10 wie bisher
+  const t = withRep({ "akkorde-1": { fach: 1, faellig: T, zuletzt: null } });
+  assert.equal(afterRound(t, level("akkorde-1"), 8, T).sitzt, true);
 });
 
 test("applyReview: Fach 1 → 2 → 3 → 4 → 5 mit 1, 3, 7, 14, 30 Tagen; Fach 5 bleibt und kommt nach 30 Tagen wieder", () => {
@@ -367,7 +411,7 @@ test("guess: genau die Stufen mit zwei Antwortknöpfen (Tonleitern 1–3, Dreikl
   }
   // in der Runde „Wiederholen“ bekommt Dreiklänge 1 den größten Anteil
   assert.deepEqual(reviewPlan(dueOn(["noten-3", "intervall-2", "akkorde-1"]), PACKS, T),
-    [{ id: "noten-3", n: 3 }, { id: "intervall-2", n: 3 }, { id: "akkorde-1", n: 4 }]);
+    [{ id: "noten-3", n: 3 }, { id: "intervall-2", n: 3 }, { id: "akkorde-1", n: 4, guess: true }]);
 });
 
 /* ---------- „Grundlagen wiederholen“ und Fehlermuster (Welle 11, Schritt 7) ---------- */

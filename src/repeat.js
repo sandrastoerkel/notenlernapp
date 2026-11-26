@@ -71,11 +71,12 @@ const levelOf = (packs, id) => { const pos = position(packs, id); return pos ? p
 // Aufteilung von total Aufgaben auf k Stufen: gleich, der Rest an die ersten (10 → 10 / 5+5 / 4+3+3)
 const split = (total, k) => Array.from({ length: k }, (_, i) => Math.floor(total / k) + (i < total % k ? 1 : 0));
 
-// Plan für die nächste Runde „Wiederholen“: [{ id, n }] aus den am längsten fälligen Stufen (Reihenfolge wie due),
+// Plan für die nächste Runde „Wiederholen“: [{ id, n, guess? }] aus den am längsten fälligen Stufen (Reihenfolge wie due),
 // höchstens MAX_STUFEN, zusammen RUNDE_WIEDERHOLEN Aufgaben. Eine Stufe mit nur zwei Knöpfen (level.guess) bekommt
 // den größten Anteil und mindestens MIN_AUFGABEN_RATEN Aufgaben. Reicht das bei drei Stufen nicht für alle
 // (zwei oder drei Ratestufen: 4 + 4 + 2 ließe einer Stufe nur zwei Aufgaben), kommen nur die ersten zwei Stufen
 // in die Runde (5 + 5); die dritte bleibt fällig und kommt in der nächsten Runde. Leer, wenn nichts fällig ist.
+// guess: true steht nur an Ratestufen (für das strengere Urteil in passed, Korrektur W-B1).
 export function reviewPlan(state, packs, heute) {
   let ids = due(state, packs, heute).slice(0, MAX_STUFEN);
   const isGuess = (id) => (levelOf(packs, id) || {}).guess === true;
@@ -90,21 +91,30 @@ export function reviewPlan(state, packs, heute) {
   // Anteile verteilen: zuerst die Ratestufen (in der Reihenfolge von due), dann die übrigen
   const order = [...ids.filter(isGuess), ...ids.filter((id) => !isGuess(id))];
   const n = Object.fromEntries(order.map((id, i) => [id, shares[i]]));
-  return ids.map((id) => ({ id, n: n[id] }));
+  return ids.map((id) => (isGuess(id) ? { id, n: n[id], guess: true } : { id, n: n[id] }));
 }
 
-// Urteil „sitzt“: bei n Aufgaben höchstens ⌊n / 5⌋ Fehler (3 oder 4: alle richtig; 5: einer daneben; 10: zwei)
-export const passed = (n, fehler) => fehler <= Math.floor(n / 5);
+// Urteil „sitzt“: bei n Aufgaben höchstens ⌊n / 5⌋ Fehler (3 oder 4: alle richtig; 5: einer daneben; 10: zwei).
+// Ratestufen (guess, nur zwei Knöpfe; Korrektur W-B1): höchstens 2 · ⌊n / 10⌋ Fehler (4 und 5 Aufgaben: alle
+// richtig, 10: zwei daneben). Wer nur rät, besteht so höchstens in 6,3 % der Runden (4 Aufgaben: 1/16; 5: 1/32;
+// 10: 56/1024 = 5,5 %, so selten wie die Freischaltung mit 8 von 10); mit ⌊5 / 5⌋ waren es bei 5 Aufgaben 18,8 %.
+export const passed = (n, fehler, guess = false) => fehler <= (guess ? 2 * Math.floor(n / 10) : Math.floor(n / 5));
 
-// Ergebnis einer Wiederholung eintragen. perLevel = [{ id, n, ok }] (n Aufgaben, ok davon richtig).
+// Ergebnis der gemischten Runde (engine: [{ id, n, ok }]) mit guess aus dem Plan (reviewPlan) ergänzen
+export const withGuess = (perLevel, plan) => perLevel.map((e) => {
+  const p = (plan || []).find((x) => x.id === e.id);
+  return p && p.guess ? { ...e, guess: true } : e;
+});
+
+// Ergebnis einer Wiederholung eintragen. perLevel = [{ id, n, ok, guess? }] (n Aufgaben, ok davon richtig).
 // Sitzt: ein Fach weiter (höchstens FAECHER), fällig nach dem Abstand des neuen Fachs. Sonst: ein Fach zurück
 // (nicht unter 1), morgen wieder fällig. Fach 5 bleibt 5 und kommt alle 30 Tage wieder.
 // Gibt je Stufe { id, sitzt, fach, inTagen } zurück (für die Ergebniskarte).
 export function applyReview(state, perLevel, heute) {
   const rep = repOf(state);
-  return perLevel.map(({ id, n, ok }) => {
+  return perLevel.map(({ id, n, ok, guess }) => {
     const alt = rep[id] ? clampFach(rep[id].fach) : 1;
-    const sitzt = passed(n, n - ok);
+    const sitzt = passed(n, n - ok, guess === true);
     const fach = sitzt ? Math.min(FAECHER, alt + 1) : Math.max(1, alt - 1);
     const inTagen = sitzt ? ABSTAENDE[fach - 1] : 1;
     rep[id] = { fach, faellig: addDays(heute, inTagen), zuletzt: heute };
@@ -126,7 +136,7 @@ export function afterRound(state, level, correct, heute) {
     return { id: level.id, sitzt: true, fach: 1, inTagen: ABSTAENDE[0], neu: true };
   }
   if (typeof e.faellig === "string" && e.faellig > heute) return null;
-  return applyReview(state, [{ id: level.id, n: RUNDE_WIEDERHOLEN, ok: correct }], heute)[0];
+  return applyReview(state, [{ id: level.id, n: RUNDE_WIEDERHOLEN, ok: correct, guess: level.guess === true }], heute)[0];
 }
 
 /* ---------- Voraussetzungen (Welle 11, Schritt 5) ----------

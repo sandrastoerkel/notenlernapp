@@ -2,7 +2,7 @@
 import { isUnlocked, unlockedBy, unlocks, today, starsFor } from "../store.js";
 import * as engine from "../engine.js";
 import { needsOf, skillOf, basicsPlan, basicsOffer, afterBasics, gapsOf, RUNDE_GRUNDLAGEN,
-  reviewPlan, applyReview, afterRound, dueText, inBox } from "../repeat.js";
+  reviewPlan, applyReview, afterRound, dueText, inBox, withGuess } from "../repeat.js";
 import { packShort } from "./home.js";
 
 const $ = (s) => document.querySelector(s);
@@ -263,7 +263,7 @@ function startReview() {
   if (!plan.length) return ctx.show("home");
   return playMixed("wiederholen", plan, MIXED_HEAD.wiederholen, reviewTitle(plan), (res) => {
     // Urteil je Stufe in den Karteikasten (Fach weiter bzw. zurück); Sterne trägt die Runde bei keiner Stufe ein
-    const verdicts = applyReview(ctx.state, res.perLevel, today());
+    const verdicts = applyReview(ctx.state, withGuess(res.perLevel, plan), today());
     ctx.save();
     showReviewResult(res, verdicts);
   });
