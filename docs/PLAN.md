@@ -4346,6 +4346,41 @@ steht in diesem Plan oder wird aus `music.js`/`staffPos` gerechnet; Unklares als
 - Akzeptanz: Browser: alle Lerntafel-Vorführungen in beiden Schlüsseln bis zum letzten Bild, „Vorführen“ in je
   einer Aufgabe der acht Stufen (nach der Antwort, „Nächste Aufgabe“ nur einmal), Knöpfe und Bildzähler bei
   320 px in einer Zeile, Reiterwechsel hält die Vorführung an.
+- **Umgesetzt und geprüft (26.11.2026, Prüfung B).** Wie geplant (56c51c2, 42dd69e; `q.spruch` über 46aaa52;
+  Korrektur der Prüfung cef3853). Mit `node` nachgerechnet: alle Lerntafel-Beispiele und je eine Aufgabe der acht
+  Stufen gegen `staffPos` (g' 2. Linie, c'' 3. Zwischenraum, f 4. Linie, c 2. Zwischenraum; Zählwege G – A – H,
+  E – D – C, F – G – A bzw. F – E – D, G – F – E, A – H – C; fis'/b' und fis/B mit Stammton F bzw. H), Töne in jedem
+  Zähl-Bild und im Ergebnis. Im Bild angesehen (420 hell, 320 dunkel): alle 14 Lerntafel-Vorführungen Bild für Bild
+  und „Vorführen“ in den Stufen 1, 4, 6, 9, 11, 13 – Bassschlüssel nach Bravura (Kopf auf der F-Linie, Punkte darüber
+  und darunter), Rahmen um das Vorzeichen auf der Höhe des Kopfs, Klaviatur (B = schwarze Taste zwischen A und H, As
+  zwischen G und A), unter 600 px die Reihenfolge Marken · Knöpfe · Notenzeile · Spruch bzw. Klaviatur · Satz (jedes
+  Teil der Bühne hat ein `order`). Eigener Merkspruch („Eine Gans Hat Drei Federn<i>&“): erscheint nach der Wahl
+  sofort in der Tafel (neu aufgesetzt, Bild 1) und in „Vorführen“ der Stufe 1, als Text maskiert; ein Spruch mit
+  falschen Anfangsbuchstaben gilt nicht (Voreinstellung). Reiterwechsel hält die Vorführung an.
+  - Korrektur der Prüfung (J-C7, cef3853): Die Schlüsselwahl stand **nicht** in allen Reitern an derselben Stelle
+    (420 px: in „Tonhöhen“ unter der Aufforderung bei 16/145, sonst rechts oben bei 170/76; die Leiste der Reiter
+    sprang zwischen 193, 173 und 129 px). Jetzt: Überschrift · Leiste · im Inhalt des Reiters zuerst die
+    Schlüsselwahl, darunter (nur „Tonhöhen“) „Tippe auf die Notenzeile“ direkt über der Notenzeile. Gemessen bei
+    320, 420 und 800 px: Leiste immer bei 129, Schlüsselwahl immer bei 199. Test in `test/views/learn.test.js`.
+    Dazu die Ziffern der Linien/Zwischenräume in „So liest du eine Note“ 11,5 statt 10 (bei 320 px vorher rund 8 px).
+  - Befund aus dem Zusammenführen (A, von Prüfung A in e68d6db behoben, hier nichts geändert): Schritt 4 und 5
+    benutzten dieselben Klassennamen (`nl-namen`, `nl-name`, `nl-keys`); `.nl-namen td { min-width: 4em }` der Tafel
+    „Alle 21 Namen“ traf die Namensleiste der Stufen 4 und 9 (`ueberlauf.mjs` auf ce53adf: 35 Treffer bei 320 px,
+    25 bei 420 px, alle dort). Die Klassen gehören jetzt der Vorführung, die Hilfen heißen anders.
+  - Entscheidungen der Prüfung zu dem, was der Plan offen ließ – alle bleiben so:
+    - Beispiel-Knöpfe nennen, was das Beispiel zeigt („2. Linie“, „vom Schlüssel“, „unter der Zeile“, „mit ♯“), nie
+      den Notennamen – wie die Knöpfe der anderen Pakete („Viertelnote“, „G-Dur“). Die Lage steht damit schon auf
+      dem Knopf; in einer Lerntafel (vorgemachtes Beispiel, keine Aufgabe) ist das in Ordnung.
+    - Klaviatur der Vorzeichen-Vorführung: Stammton violett (bleibt bis zum Ergebnis stehen), Note mit Vorzeichen
+      grün – die Farben der beiden Schritte, wie in Abschnitt 4 beschrieben.
+    - Satz zum Schlüsselton (nur Lerntafel „vom Schlüssel“): „Der Kringel des Schlüssels umschließt die G-Linie:
+      das G (g').“ bzw. „Die zwei Punkte des Schlüssels umschließen die F-Linie: das F (f).“; Marke „Schlüssel:
+      G-Linie“. In den Stufen 4 und 9 ist der Bezugston immer die äußere Linie (Entscheidung 2 a; Test über alle
+      Aufgaben).
+    - Die Vorführung liest den Merkspruch als Text aus `q.spruch` (die Engine ruft `level.demo(q)` ohne Spielstand);
+      die Lerntafel aus dem Spielstand. `spruch: true` an der Tafel: nur sie wird nach einer neuen Wahl neu aufgesetzt.
+  - Klein, nicht geändert (C): „Die unterste Linie ist das G (großes G).“ nennt den Namen doppelt (`displayName`
+    der großen Oktave, `noten-lage.js`).
 
 #### Schritt 6 – Statistik, Notenkarte, Browser-Skripte (parallel zu 3, 4, 5)
 - Dateien: `src/views/stats.js`, `test/views/stats.test.js`, `docs/screens/ueberlauf.mjs`, `pruefung.mjs`,
@@ -4358,6 +4393,32 @@ steht in diesem Plan oder wird aus `music.js`/`staffPos` gerechnet; Unklares als
   `/tmp/notenheld-pruefung-w12/`.
 - Akzeptanz: `npm test` grün; `node docs/screens/ueberlauf.mjs --selftest` in Ordnung (der volle Lauf folgt in
   Schritt 7).
+- **Umgesetzt und geprüft (26.11.2026, Prüfung B).** Wie geplant (a532521, d279388, 374f798; Korrektur der Prüfung
+  b23b095). Statistik im Bild (320 dunkel, 420 hell): zwei Listen
+  „Vorzeichen im Violinschlüssel“ / „Vorzeichen im Bassschlüssel“ mit je acht Noten, Stufe 3 und 8 nach der
+  Umstellung mit Kästchen, „zuletzt geübt am …“ und „noch keine eigene Runde“.
+  - Zusage „noch keine eigene Runde“ mit dem Code abgeglichen – sie hält über alle Zustände: Der Text erscheint genau
+    bei `played === 0` und einem Eintrag im Kasten. `played` zählt nur `recordRound` (normale Runde der Stufe);
+    `recordMixedRound` („Wiederholen“, „Grundlagen wiederholen“) schreibt nichts nach `state.levels` (Test seit
+    Welle 11); auch v1-Stände tragen `played`; der Merker `offen` hat `played: 0`. Einträge im Kasten ohne eigene
+    Runde entstehen nur aus dem Paar bei der Umstellung. Test über alle Kombinationen von Eintrag, Kasten und Tag.
+    Unverändert seit Welle 11 (C): Eine Stufe ohne Kasten-Eintrag, aus der nur in „Grundlagen wiederholen“ Aufgaben
+    kamen, heißt weiter „noch nicht gespielt“ – gemeint ist die Runde der Stufe.
+  - Skripte: Stufen „früherer Bedeutung“ über `RENAMED_NOTEN[…]` mit Prüfung der Eigenschaft (ohne Hilfen, im Kasten,
+    Namensraster; Abbruch, wenn sie nicht stimmt), Stufen, Spielstände und Grundlagen aus `PACKS`/`needsOf`. Fest
+    bleiben die drei Startkarten `noten-4`, `-12`, `-13` (so im Plan) und die erfundenen Zahlen in `screenshots.mjs`
+    (dort gegen `PACKS` geprüft). Korrektur: `openAll` in `ueberlauf.mjs` liest erst den Stand, klickt nur bei „aus“
+    und prüft danach (LESSONS: Umschalter nie blind klicken).
+  - Browser auf dem zusammengeführten Stand mit den Korrekturen beider Prüfungen (Prüfung B + Prüfung A bis 414e2bc,
+    Port 8181): Selbsttest in Ordnung; `ueberlauf.mjs` 320 px (dunkel) und 420 px (hell) je **0 Treffer, 0
+    Konsolenfehler**, Ende mit Code 0 – damit ist auch `PICK` mit `checkStep` an den echten zweischrittigen Stufen
+    gelaufen (jede Stufe abwechselnd richtig und daneben). Auf ce53adf allein: Code 1 (nur die Namensleiste, siehe
+    Schritt 5). `uhr40.mjs`: Kuala Lumpur und Berlin wie erwartet, je 119 Prüfungen (Runden an den Tagen 1, 4, 5, 8,
+    11, 27; Noten lesen 5 Fach 5, Notenwerte 5 Fach 4, Intervalle 2 Fach 5).
+  - Startkarten bei 320 × 640 (erster Bildschirm bis 580 px; oberer Rand erster Knopf / „Runde starten“), mit
+    Empfehlung: Noten lesen 4 568/638, **Noten lesen 12 622/692**, Noten lesen 13 502/572; ohne Empfehlung 501, 575,
+    454. Stufe 12 beginnt mit Empfehlung nicht im ersten Bildschirm (wie Tonleitern 10 mit 641); kürzer wird die
+    Karte nur über den Hinweis der Stufe in `noten.js` → Frage an Sandra bzw. Schritt 7.
 
 #### Schritt 7 – Zusammenführen, Doku, Cache, Bildschirmfotos (zuletzt, allein)
 - Zusammenführen der Arbeitsbäume 3 bis 6 (Konflikte nur in den vereinbarten Abschnitten zu erwarten), `npm test`.

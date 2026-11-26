@@ -1,4 +1,5 @@
 import { test } from "node:test";
+import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
 import { learnCardsHtml, mountCards, LEARN_TABS, tabHasClef, nextTab, tabScroll, learnTabOf } from "../../src/views/learn.js";
 import { PACKS } from "../../src/packs/index.js";
@@ -142,4 +143,14 @@ test("„Erst anschauen“: Reiter zur Stufe – der des Pakets, bei „Takt fü
   assert.equal(learnTabOf(PACKS, "notenwerte-10"), "notenwerte");
   // unbekannte Stufe: erste Stufe des ersten Pakets
   assert.equal(learnTabOf(PACKS, "gibt-es-nicht"), "noten");
+});
+
+// J-C7 (PLAN Welle 12, Abschnitt 5): die Schlüsselwahl steht in allen Reitern an derselben Stelle – als erste Zeile
+// im Inhalt des Reiters, unter der Leiste (die deshalb beim Wechsel nicht springt); die Aufforderung darunter
+test("index.html: Schlüsselwahl und Aufforderung stehen im Inhalt des Reiters, nicht im Kopf über der Leiste", () => {
+  const html = readFileSync(new URL("../../index.html", import.meta.url), "utf8");
+  const at = (s) => { const i = html.indexOf(s); assert.ok(i >= 0, s); return i; };
+  const order = ['id="lHead"', 'id="lTabs"', 'id="lPanel"', 'id="lClefs"', 'id="lTip"', 'id="lStaff"'].map(at);
+  assert.deepEqual(order, [...order].sort((a, b) => a - b));
+  assert.match(html, /<h2 id="lHead">Tonhöhen<\/h2>/);
 });

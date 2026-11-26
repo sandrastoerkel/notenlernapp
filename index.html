@@ -104,20 +104,20 @@
 
   <!-- LERNEN -->
   <section id="view-learn" hidden>
-    <div class="row between">
-      <div>
-        <p class="eyebrow">Lernen</p>
-        <h2 id="lHead">Tonhöhen</h2>
-        <p class="muted small" id="lTip">Tippe auf die Notenzeile</p>
-      </div>
-      <div class="seg" role="group" aria-label="Schlüssel" id="lClefs">
-        <button id="lTreble" class="on">Violinschlüssel</button>
-        <button id="lBass">Bassschlüssel</button>
-      </div>
+    <div>
+      <p class="eyebrow">Lernen</p>
+      <h2 id="lHead">Tonhöhen</h2>
     </div>
     <!-- Reiter je Inhalt (Welle 11, W3); die Knöpfe setzt learn.js aus LEARN_TABS -->
     <div class="ltabs" role="tablist" aria-label="Lerninhalte" id="lTabs"></div>
     <div class="lpanel" role="tabpanel" id="lPanel" aria-labelledby="ltab-noten" tabindex="0">
+      <!-- Schlüsselwahl in jedem Reiter an derselben Stelle (J-C7): direkt unter den Reitern, die deshalb beim
+           Wechsel nicht springen; die Aufforderung des Reiters „Tonhöhen“ steht darunter, über der Notenzeile -->
+      <div class="seg" role="group" aria-label="Schlüssel" id="lClefs">
+        <button id="lTreble" class="on">Violinschlüssel</button>
+        <button id="lBass">Bassschlüssel</button>
+      </div>
+      <p class="muted small" id="lTip">Tippe auf die Notenzeile</p>
       <div class="card staff-card" id="lStaff"></div>
       <div class="card row between" id="lNote">
         <div>

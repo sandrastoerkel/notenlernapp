@@ -798,7 +798,7 @@ svg.ok .beam { fill: var(--ok); } svg.bad .beam { fill: var(--bad); }
 .nl-ring { fill: none; stroke-width: 2.2; }
 .nl-ring.s1 { stroke: var(--step1); } .nl-ring.s2 { stroke: var(--step2); }
 .nl-num circle { fill: var(--surface); stroke: var(--muted); stroke-width: 1; }
-.nl-num text { font-family: var(--display); font-weight: 800; font-size: 10px; fill: var(--muted); }
+.nl-num text { font-family: var(--display); font-weight: 800; font-size: 11.5px; fill: var(--muted); }
 .nl-num.on circle { fill: var(--step1-soft); stroke: var(--step1); stroke-width: 1.4; }
 .nl-num.on text { fill: var(--step1-ink); }
 .nl-refline { stroke: var(--step1); stroke-width: 3; stroke-linecap: round; }
@@ -817,3 +817,7 @@ svg.ok .beam { fill: var(--ok); } svg.bad .beam { fill: var(--bad); }
 .nl-vz-board > p { margin: 0; }
 .nl-namen td { min-width: 4em; }
 @media (max-width: 380px) { [data-nl-board] .demo-pick .btn { padding: 6px 8px; font-size: .88rem; } }
+/* Reiter „Lernen“ (J-C7): Schlüsselwahl als erste Zeile des Reiter-Inhalts, in jedem Reiter an derselben Stelle;
+   die Aufforderung „Tippe auf die Notenzeile“ dicht über der Notenzeile */
+#lClefs { justify-self: start; }
+#lTip { margin: 0 0 -8px; }

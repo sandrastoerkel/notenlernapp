@@ -159,7 +159,8 @@ function drawTabs() {
   }
   $("#lPanel").setAttribute("aria-labelledby", "ltab-" + lTab);
   const notes = lTab === "noten";
-  // Überschrift = Name des Reiters, im Reiter „Tonhöhen“ die Aufforderung als Zeile darunter (J-C7)
+  // Überschrift = Name des Reiters (J-C7). Schlüsselwahl und – nur im Reiter „Tonhöhen“ – die Aufforderung stehen
+  // als erste Zeilen im Inhalt des Reiters (index.html): gleiche Stelle in jedem Reiter, die Leiste springt nicht
   $("#lHead").textContent = LEARN_TABS.find((t) => t.id === lTab).label;
   $("#lTip").hidden = !notes;
   $("#lStaff").hidden = !notes;

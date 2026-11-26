@@ -56,7 +56,7 @@ export function lageNums(n, clef) {
     // Kreis hinter jeder Nummer, damit die Linie die Ziffer nicht durchstreicht (Abstand der Stellen: 12)
     s += `<g class="nl-num${on ? " on" : ""}" data-nr="${k}" data-pos="${p}">`
       + `<circle cx="${NUM_X}" cy="${y}" r="${on ? 6.5 : 5.8}"/>`
-      + `<text x="${NUM_X}" y="${r2(y + 3.5)}" text-anchor="middle">${k}</text></g>`;
+      + `<text x="${NUM_X}" y="${r2(y + 4)}" text-anchor="middle">${k}</text></g>`;
   }
   return s + "</g>";
 }
@@ -203,8 +203,9 @@ function schlicht(steps, n, clef) {
 
 /* ---------- Lerntafeln des Reiters „Tonhöhen“ (PLAN Abschnitt 5) ---------- */
 
-// Feste Beispiele je Schlüssel (PLAN Abschnitt 4; der Test prüft jede Zeile gegen staffPos). label: Knopf,
-// der die Antwort nicht verrät.
+// Feste Beispiele je Schlüssel (PLAN Abschnitt 4; der Test prüft jede Zeile gegen staffPos). label: Knopf –
+// er nennt, was das Beispiel zeigt (die Lage, den Bezug, das Zeichen), nie den Notennamen (wie die Beispiel-Knöpfe
+// der anderen Pakete: „Viertelnote“, „G-Dur“).
 export const BEISPIELE = {
   lage: {
     treble: [{ n: N("G", 4), label: "2. Linie" }, { n: N("C", 5), label: "3. Zwischenraum" }],

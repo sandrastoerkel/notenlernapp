@@ -356,12 +356,19 @@ const INTRO = () => {
     .map((e) => { const r = e.getBoundingClientRect(); return { id: e.id, btn: e.tagName === "BUTTON", top: Math.round(r.top + scrollY), bottom: Math.round(r.bottom + scrollY) }; });
   return { parts, lim: innerHeight - document.querySelector(".tabs").offsetHeight };
 };
+// „Alle Stufen offen“ einschalten: #unlockAll ist ein Umschalter – nie blind klicken (LESSONS, Welle 12, Schritt 4:
+// ein zweiter Klick schaltet wieder aus). Erst den gespeicherten Stand lesen, nur bei „aus“ klicken, danach prüfen.
+async function openAll(pg) {
+  const on = () => pg.evaluate((k) => { try { return JSON.parse(localStorage.getItem(k) || "{}").unlockAll === true; } catch { return false; } }, KEY);
+  if (!(await on())) { await pg.click("#unlockAll"); await pg.waitForTimeout(300); }
+  if (!(await on())) throw new Error("ueberlauf.mjs: „Alle Stufen offen“ ist nach dem Klick nicht an");
+}
 async function startCards(browser, width, scheme) {
   const ctx = await browser.newContext({ viewport: { width, height: 640 }, colorScheme: scheme, serviceWorkers: "block" });
   const pg = await ctx.newPage();
   const errs = [], lines = [];
   await pg.goto(BASE); await pg.waitForTimeout(500);
-  await pg.click("#unlockAll"); await pg.waitForTimeout(300);
+  await openAll(pg);
   for (const mit of [true, false]) {
     if (!mit) { await pg.evaluate(SETBASICS, ALL_CARDS); await pg.reload(); await pg.waitForTimeout(500); }
     const row = [];
@@ -433,7 +440,7 @@ async function run(browser, width, scheme) {
   // eine Aufgabe beantworten (aktuelle Aufgabe über engine.currentQuestion), nach jedem Schritt prüfen
   const answer = (w, right) => answerQuestion(pg, right, (label) => chk(`${w} ${label}`), errs);
   await chk("Start (gesperrt)");
-  await pg.click("#unlockAll"); await pg.waitForTimeout(300); await chk("Start (offen)");
+  await openAll(pg); await chk("Start (offen)");
   const levels = await pg.evaluate("[...document.querySelectorAll('.level[data-id]')].map((e) => e.dataset.id)");
   for (const lid of levels) {
     await pg.click('.tab[data-view="home"]'); await pg.waitForTimeout(120);
