@@ -12,7 +12,7 @@ export const MIGRATION_INTERVALLE = "intervalle-neu";
 export const MIGRATION_TONLEITERN = "tonleitern-neu";
 export const MIGRATION_NOTENWERTE = "notenwerte-neu";
 export const MIGRATION_WIEDERHOLEN = "wiederholen";
-// Welle 12 (migrateNoten): noch nicht in fresh() und migrateAll, das Paket hat noch die alten Nummern (Schritt 2)
+// Welle 12 (migrateNoten, „Noten lesen“ mit 15 Stufen): seit Schritt 2 in fresh() und migrateAll
 export const MIGRATION_NOTEN = "noten-neu";
 
 // Stufen je Tag bei der Umstellung "wiederholen": so viele, wie eine Wiederholungsrunde fasst
@@ -22,7 +22,7 @@ export const UMSTELLUNG_JE_TAG = 3;
 export const fresh = () => ({
   xp: 0, dayStreak: 0, lastDay: null, levels: {}, notes: {}, answered: 0, correct: 0,
   bestCombo: 0, blitzRecord: 0, unlockAll: false, muted: false, input: "letters", current: "noten-1",
-  migrated: [MIGRATION_INTERVALLE, MIGRATION_TONLEITERN, MIGRATION_NOTENWERTE, MIGRATION_WIEDERHOLEN],
+  migrated: [MIGRATION_INTERVALLE, MIGRATION_TONLEITERN, MIGRATION_NOTENWERTE, MIGRATION_NOTEN, MIGRATION_WIEDERHOLEN],
   // Gewählte Merksprüche (Welle 10, Schritt 4): je Kennung { wahl: n } oder { eigen: "…" }, siehe sprueche.js.
   // Ältere Stände ohne das Feld bekommen beim Laden {} aus fresh() und werden deshalb nicht neu gespeichert.
   sprueche: {},
@@ -54,7 +54,7 @@ export function migrateV1(v1) {
   s.current = typeof (v1 && v1.current) === "number" ? "noten-" + v1.current : "noten-1";
   // v1 kannte nur „Noten lesen“: die Umstellungen der anderen Pakete braucht es nicht, wohl aber "wiederholen"
   // (geschaffte Stufen kommen in den Karteikasten)
-  // "noten-neu" ebenso: v1 hat die alten Nummern noten-1 … -8 (sobald fresh() den Marker trägt, Welle 12, Schritt 2)
+  // "noten-neu" ebenso: v1 hat die alten Nummern noten-1 … -8 (fresh() trägt den Marker seit Welle 12, Schritt 2)
   s.migrated = s.migrated.filter((m) => m !== MIGRATION_WIEDERHOLEN && m !== MIGRATION_NOTEN);
   return s;
 }
@@ -264,20 +264,22 @@ export function migrateKlasseOffen(s) {
 
 // Alle Umstellungen in der festen Reihenfolge; jede läuft (nicht mit || verketten, sonst liefe die zweite
 // beim ersten Laden nicht). true, wenn eine etwas geändert hat. migrateNotenwerte fasst nur notenwerte-* an
-// und steht nur der Ordnung halber als dritte; migrateWiederholen kommt nach den Umbenennungen (braucht die neuen
+// und steht nur der Ordnung halber als dritte; migrateNoten (Welle 12) folgt nach den drei Umbenennungen und vor
+// migrateWiederholen (die legt Einträge mit den neuen IDs an); migrateWiederholen kommt nach den Umbenennungen (braucht die neuen
 // Stufen-IDs); migrateKlasseOffen hebt zuletzt die Marke zum Jahrgang (läuft bei jedem Laden, ändert selten etwas).
 export function migrateAll(s, boxIds, heute = today(), offsetMin = new Date().getTimezoneOffset()) {
   const a = migrateIntervalle(s), b = migrateTonleitern(s), c = migrateNotenwerte(s);
+  const n = migrateNoten(s);
   const d = migrateWiederholen(s, boxIds, heute, offsetMin);
   const e = migrateKlasseOffen(s);
-  return a || b || c || d || e;
+  return a || b || c || n || d || e;
 }
 
 const defaultStorage = () => { try { return globalThis.localStorage || null; } catch (e) { return null; } };
 
 // Zustand laden: zuerst v2, sonst v1 übernehmen und als v2 speichern (v1 bleibt unverändert).
 // Danach die einmaligen Umstellungen (migrateAll: migrateIntervalle, migrateTonleitern, migrateNotenwerte,
-// migrateWiederholen mit boxIds und dem örtlichen Tag von now); geändert wird nur einmal gespeichert.
+// migrateNoten, migrateWiederholen mit boxIds und dem örtlichen Tag von now); geändert wird nur einmal gespeichert.
 export function load(storage = defaultStorage(), now = new Date(), boxIds = null) {
   try {
     if (!storage) return fresh();

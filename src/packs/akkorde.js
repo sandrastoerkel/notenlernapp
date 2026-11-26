@@ -386,9 +386,9 @@ function degreeLevel() {
 // stepNeeds = Voraussetzung je Denkschritt, skill = was man in der Stufe kann („Dafür brauchst du: …“),
 // guess = nur zwei Antwortknöpfe (Raten; mehr Aufgaben in der Runde „Wiederholen“). Siehe src/repeat.js.
 const VORAUSSETZUNGEN = {
-  1: { needs: ["intervall-4", "noten-8"], guess: true, skill: "Dur- und Moll-Dreiklang" },
+  1: { needs: ["intervall-4", "noten-15"], guess: true, skill: "Dur- und Moll-Dreiklang" },
   2: { needs: ["akkorde-1", "intervall-4"], skill: "Dreiklangstypen" },
-  3: { needs: ["noten-8"] },
+  3: { needs: ["noten-15"] },
   4: { needs: ["akkorde-1", "intervall-2"] },
   5: { needs: ["tonleitern-11"] },
   6: { needs: ["tonleitern-9", "akkorde-2"] },

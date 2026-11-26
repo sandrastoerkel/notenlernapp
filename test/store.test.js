@@ -5,7 +5,7 @@ import {
   starsFor, recordRound, recordAnswer, recordBlitz, reset, accuracy, unlockedBy, unlocks,
   migrateIntervalle, MIGRATION_INTERVALLE, migrateTonleitern, MIGRATION_TONLEITERN, RENAMED_TONLEITERN, migrateAll,
   migrateNotenwerte, MIGRATION_NOTENWERTE, RENAMED_NOTENWERTE,
-  MIGRATION_WIEDERHOLEN, UMSTELLUNG_JE_TAG, migrateWiederholen, localDay, addDays, dayDiff,
+  MIGRATION_WIEDERHOLEN, MIGRATION_NOTEN, UMSTELLUNG_JE_TAG, migrateWiederholen, localDay, addDays, dayDiff,
   recordMixedRound, MIXED_KINDS,
 } from "../src/store.js";
 import noten from "../src/packs/noten.js";
@@ -124,7 +124,7 @@ test("Umstellung: alter Spielstand mit intervalle-1 … -12, über load danach a
   assert.equal(s.current, "tonleitern-11");
   assert.deepEqual(s.notes, OLD_V2().notes);
   assert.equal(s.xp, 1200);
-  assert.deepEqual(s.migrated, [MIGRATION_INTERVALLE, MIGRATION_TONLEITERN, MIGRATION_NOTENWERTE]);
+  assert.deepEqual(s.migrated, [MIGRATION_INTERVALLE, MIGRATION_TONLEITERN, MIGRATION_NOTENWERTE, MIGRATION_NOTEN]);
   assert.deepEqual(JSON.parse(storage.data[KEY_V2]), s);
   // gespielte Stufen bleiben offen, obwohl die Stufen davor nicht geschafft sind; 10 ist zu (9 hat best 6),
   // 12 offen (11 hat best 9)
@@ -153,7 +153,7 @@ test("Umstellung: läuft nur einmal (Marker), bereits umgestellte Stände bleibe
   assert.deepEqual(again, first);
   assert.equal(migrateIntervalle(again), false);
   assert.equal(migrateTonleitern(again), false);
-  assert.deepEqual(again.migrated, [MIGRATION_INTERVALLE, MIGRATION_TONLEITERN, MIGRATION_NOTENWERTE]);
+  assert.deepEqual(again.migrated, [MIGRATION_INTERVALLE, MIGRATION_TONLEITERN, MIGRATION_NOTENWERTE, MIGRATION_NOTEN]);
   assert.notEqual(storage.data[KEY_V2], saved);
   // auch ein Eintrag mit altem Namen bleibt nach der Umstellung, wie er ist
   const t = Object.assign(fresh(), { levels: { "intervalle-3": { stars: 1, best: 5, played: 1 } } });
@@ -167,7 +167,7 @@ test("Umstellung: frischer Stand, v1-Stand und schon vorhandenes tonleitern-7", 
   assert.deepEqual(s, fresh());
   assert.equal(empty.data[KEY_V2], undefined);
   // ein frischer Stand trägt den Marker schon; ein Stand ohne Marker und ohne Intervalle bekommt ihn
-  assert.deepEqual(fresh().migrated, [MIGRATION_INTERVALLE, MIGRATION_TONLEITERN, MIGRATION_NOTENWERTE, MIGRATION_WIEDERHOLEN]);
+  assert.deepEqual(fresh().migrated, [MIGRATION_INTERVALLE, MIGRATION_TONLEITERN, MIGRATION_NOTENWERTE, MIGRATION_NOTEN, MIGRATION_WIEDERHOLEN]);
   assert.equal(migrateIntervalle(fresh()), false);
   const s2 = { ...fresh(), migrated: undefined };
   assert.equal(migrateIntervalle(s2), true);
@@ -179,7 +179,7 @@ test("Umstellung: frischer Stand, v1-Stand und schon vorhandenes tonleitern-7", 
   const s3 = load(v1);
   assert.deepEqual(s3.levels, { "noten-1": { stars: 2, best: 8, played: 1 } });
   assert.equal(s3.current, "noten-2");
-  assert.deepEqual(s3.migrated, [MIGRATION_INTERVALLE, MIGRATION_TONLEITERN, MIGRATION_NOTENWERTE]);
+  assert.deepEqual(s3.migrated, [MIGRATION_INTERVALLE, MIGRATION_TONLEITERN, MIGRATION_NOTENWERTE, MIGRATION_NOTEN]);
   // gab es tonleitern-7 schon (z. B. mit Demo-Freischaltung gespielt), werden beide zusammengeführt
   const s4 = Object.assign(fresh(), { migrated: [], levels: { "tonleitern-7": { stars: 1, best: 6, played: 1 }, "intervalle-5": { stars: 2, best: 8, played: 3 } } });
   migrateIntervalle(s4);
@@ -230,7 +230,7 @@ test("Umstellung Tonleitern: über load nach migrateIntervalle, auch bei v1 und 
   assert.equal(s.levels["tonleitern-13"].best, 8);
   assert.equal(s.levels["tonleitern-8"], undefined);
   assert.equal(s.current, "tonleitern-4");
-  assert.deepEqual(JSON.parse(st.data[KEY_V2]).migrated, [MIGRATION_INTERVALLE, MIGRATION_TONLEITERN, MIGRATION_NOTENWERTE]);
+  assert.deepEqual(JSON.parse(st.data[KEY_V2]).migrated, [MIGRATION_INTERVALLE, MIGRATION_TONLEITERN, MIGRATION_NOTENWERTE, MIGRATION_NOTEN]);
   // ganz alter Stand ohne Marker: alte Intervalle und alte Tonleitern gemischt, beide Umstellungen nacheinander
   const mixed = { current: "intervalle-6", levels: { "tonleitern-6": { stars: 2, best: 8, played: 2 }, "intervalle-5": { stars: 1, best: 6, played: 1 }, "intervalle-6": { stars: 3, best: 10, played: 2 }, "intervalle-9": { stars: 1, best: 5, played: 1 } } };
   const s2 = load(memStorage({ [KEY_V2]: JSON.stringify(mixed) }));
@@ -251,8 +251,9 @@ test("Umstellung Tonleitern: über load nach migrateIntervalle, auch bei v1 und 
   assert.equal(migrateAll(fresh()), false);
   const v1 = memStorage({ [KEY_V1]: JSON.stringify({ xp: 50, levels: { 3: { stars: 2, best: 8, played: 1 } }, current: 3 }) });
   const s3 = load(v1);
-  assert.deepEqual(s3.levels, { "noten-3": { stars: 2, best: 8, played: 1 } });
-  assert.deepEqual(s3.migrated, [MIGRATION_INTERVALLE, MIGRATION_TONLEITERN, MIGRATION_NOTENWERTE]);
+  // v1 hat die alten Nummern von „Noten lesen“: alt 3 ist seit Welle 12 noten-5
+  assert.deepEqual(s3.levels, { "noten-5": { stars: 2, best: 8, played: 1 } });
+  assert.deepEqual(s3.migrated, [MIGRATION_INTERVALLE, MIGRATION_TONLEITERN, MIGRATION_NOTENWERTE, MIGRATION_NOTEN]);
 });
 
 test("Umstellung Tonleitern: Freischaltung danach (bewusst hingenommene Folgen)", () => {
@@ -283,6 +284,8 @@ test("Umstellung Tonleitern: Freischaltung danach (bewusst hingenommene Folgen)"
 /* ---------- Umstellung „Notenwerte gehirngerecht“ (Welle 9, 20.11.2026) ---------- */
 
 const ALL3 = [MIGRATION_INTERVALLE, MIGRATION_TONLEITERN, MIGRATION_NOTENWERTE];
+// nach migrateAll bzw. load seit Welle 12 dazu "noten-neu" (migrateNoten nach den drei Umbenennungen)
+const ALL4 = [...ALL3, MIGRATION_NOTEN];
 // Stand vor Welle 9: Intervalle und Tonleitern schon umgestellt, Notenwerte noch mit sechs Stufen
 const OLD_NW = () => ({
   xp: 300, current: "notenwerte-5", migrated: [MIGRATION_INTERVALLE, MIGRATION_TONLEITERN],
@@ -330,7 +333,7 @@ test("Umstellung Notenwerte: über load, auch zusammen mit alten Intervall- und 
   assert.equal(s.levels["notenwerte-10"].best, 8);
   assert.equal(s.levels["notenwerte-6"], undefined);
   assert.equal(s.current, "notenwerte-9");
-  assert.deepEqual(JSON.parse(st.data[KEY_V2]).migrated, ALL3);
+  assert.deepEqual(JSON.parse(st.data[KEY_V2]).migrated, ALL4);
   // ganz alter Stand ohne Marker: alte Intervalle, alte Tonleitern und alte Notenwerte gemischt
   const mixed = { current: "notenwerte-4", levels: {
     "intervalle-5": { stars: 1, best: 6, played: 1 }, "intervalle-2": { stars: 1, best: 5, played: 1 }, "tonleitern-3": { stars: 2, best: 8, played: 2 },
@@ -342,7 +345,7 @@ test("Umstellung Notenwerte: über load, auch zusammen mit alten Intervall- und 
     "notenwerte-5": { stars: 2, best: 8, played: 2 }, "notenwerte-9": { stars: 3, best: 9, played: 3 }, "notenwerte-10": { stars: 1, best: 5, played: 1 },
   });
   assert.equal(s2.current, "notenwerte-7");
-  assert.deepEqual(s2.migrated, ALL3);
+  assert.deepEqual(s2.migrated, ALL4);
   // wo migrateNotenwerte läuft, ist gleich (die anderen beiden fassen notenwerte-* nicht an)
   const other = { ...mixed, levels: { ...mixed.levels }, migrated: [] };
   migrateNotenwerte(other); migrateIntervalle(other); migrateTonleitern(other);
@@ -350,16 +353,16 @@ test("Umstellung Notenwerte: über load, auch zusammen mit alten Intervall- und 
   // migrateAll: jede Umstellung läuft, auch wenn nur die dritte etwas ändert
   const onlyNw = { ...OLD_NW(), levels: { ...OLD_NW().levels } };
   assert.equal(migrateAll(onlyNw), true);
-  assert.deepEqual(onlyNw.migrated, ALL3);
+  assert.deepEqual(onlyNw.migrated, ALL4);
   assert.equal(migrateAll(onlyNw), false);
   const noMarker = { ...fresh(), migrated: [] };
   assert.equal(migrateAll(noMarker), true);
-  assert.deepEqual(noMarker.migrated, ALL3);
+  assert.deepEqual(noMarker.migrated, ALL4);
   assert.equal(migrateAll(fresh()), false);
-  // v1-Stand: alle drei Marker, nichts umgestellt
+  // v1-Stand: alle drei Marker und "noten-neu", noten-2 bleibt noten-2 (Welle 12: 2→2)
   const v1 = load(memStorage({ [KEY_V1]: JSON.stringify({ xp: 10, levels: { 2: { stars: 1, best: 6, played: 1 } }, current: 2 }) }));
   assert.deepEqual(v1.levels, { "noten-2": { stars: 1, best: 6, played: 1 } });
-  assert.deepEqual(v1.migrated, ALL3);
+  assert.deepEqual(v1.migrated, ALL4);
 });
 
 test("Umstellung Notenwerte: Freischaltung danach (bewusst hingenommen: 4 zu, 5 offen)", () => {
@@ -480,7 +483,7 @@ test("migrateV1", () => {
 test("load: v1 wird übernommen und als v2 gespeichert, v1 bleibt", () => {
   const st = memStorage({ [KEY_V1]: JSON.stringify(V1) });
   const s = load(st);
-  assert.equal(s.current, "noten-3");
+  assert.equal(s.current, "noten-5");
   assert.ok(st.data[KEY_V2]);
   assert.equal(st.data[KEY_V1], JSON.stringify(V1));
   // v2 hat Vorrang
@@ -559,7 +562,7 @@ test("Paketreihenfolge: gespeicherte Spielstände bleiben unverändert (Fortschr
   // Stand nach allen Umstellungen, mit Fortschritt in jedem Paket und current in den Intervallen
   const saved = {
     ...fresh(), xp: 1234, streak: 3, lastDay: "2026-11-24", answered: 300, correct: 250,
-    current: "intervall-4", migrated: [MIGRATION_INTERVALLE, MIGRATION_TONLEITERN, MIGRATION_NOTENWERTE],
+    current: "intervall-4", migrated: [MIGRATION_INTERVALLE, MIGRATION_TONLEITERN, MIGRATION_NOTENWERTE, MIGRATION_NOTEN],
     levels: {
       "noten-1": { stars: 3, best: 10, played: 4 }, "noten-2": { stars: 2, best: 8, played: 2 },
       "notenwerte-1": { stars: 2, best: 8, played: 1 },
@@ -589,7 +592,7 @@ test("Paketreihenfolge: gespeicherte Spielstände bleiben unverändert (Fortschr
     levels: { "intervalle-5": { stars: 2, best: 8, played: 3 }, "intervalle-6": { stars: 1, best: 6, played: 1 }, "notenwerte-3": { stars: 1, best: 6, played: 1 } } }) }));
   assert.deepEqual(old.levels, { "tonleitern-11": { stars: 2, best: 8, played: 3 }, "tonleitern-13": { stars: 1, best: 6, played: 1 }, "notenwerte-5": { stars: 1, best: 6, played: 1 } });
   assert.equal(old.current, "tonleitern-13");
-  assert.deepEqual(old.migrated.slice().sort(), [MIGRATION_INTERVALLE, MIGRATION_NOTENWERTE, MIGRATION_TONLEITERN].sort());
+  assert.deepEqual(old.migrated.slice().sort(), [MIGRATION_INTERVALLE, MIGRATION_NOTENWERTE, MIGRATION_TONLEITERN, MIGRATION_NOTEN].sort());
 });
 
 /* ---------- Welle 11, Schritt 4: örtliches Datum, Felder rep und klasse, Umstellung "wiederholen" ---------- */
@@ -718,11 +721,12 @@ test("touchStreak: die Serie reißt beim Wechsel von UTC auf Ortszeit nicht ab",
   assert.equal(r.dayStreak, 3);
 });
 
-test("fresh: Felder rep und klasse, alle vier Marker; ein alter Stand ohne die Felder lädt", () => {
+test("fresh: Felder rep und klasse, alle fünf Marker; ein alter Stand ohne die Felder lädt", () => {
   assert.deepEqual(fresh().rep, {});
   assert.equal(fresh().klasse, null);
-  assert.deepEqual(fresh().migrated, [MIGRATION_INTERVALLE, MIGRATION_TONLEITERN, MIGRATION_NOTENWERTE, MIGRATION_WIEDERHOLEN]);
-  // Stand von Welle 10 (drei Marker, ohne rep/klasse), ohne Liste: lädt, nichts wird gespeichert
+  assert.deepEqual(fresh().migrated, [MIGRATION_INTERVALLE, MIGRATION_TONLEITERN, MIGRATION_NOTENWERTE, MIGRATION_NOTEN, MIGRATION_WIEDERHOLEN]);
+  // Stand von Welle 10 (drei Marker, ohne rep/klasse), ohne Liste: lädt; "wiederholen" läuft nicht, nur "noten-neu"
+  // (Welle 12, braucht keine Liste; noten-1 bleibt noten-1) – dafür wird einmal gespeichert
   const old = { xp: 70, dayStreak: 2, lastDay: "2026-11-24", levels: { "noten-1": { stars: 3, best: 10, played: 1 } }, notes: {},
     migrated: [MIGRATION_INTERVALLE, MIGRATION_TONLEITERN, MIGRATION_NOTENWERTE] };
   const st = memStorage({ [KEY_V2]: JSON.stringify(old) });
@@ -730,7 +734,9 @@ test("fresh: Felder rep und klasse, alle vier Marker; ein alter Stand ohne die F
   assert.deepEqual(s.rep, {});
   assert.equal(s.klasse, null);
   assert.equal(s.xp, 70);
-  assert.equal(st.data[KEY_V2], JSON.stringify(old), "ohne Liste keine Umstellung, kein Speichern");
+  const saved = JSON.parse(st.data[KEY_V2]);
+  assert.deepEqual(saved.migrated, [...old.migrated, MIGRATION_NOTEN], "ohne Liste nur noten-neu");
+  assert.deepEqual(saved.levels, old.levels);
   assert.ok(!s.migrated.includes(MIGRATION_WIEDERHOLEN));
 });
 
@@ -747,8 +753,9 @@ test("migrateWiederholen: geschaffte Stufen ohne Hilfen in Fach 1, je Tag drei, 
       "intervall-2": { stars: 3, best: 10, played: 2 },
       "intervall-1": { stars: 3, best: 10, played: 1 }, // mit Hilfen: nicht in den Kasten
       "noten-3": { stars: 2, best: 8, played: 1 },
-      "noten-1": { stars: 3, best: 9, played: 1 },
-      "noten-2": { stars: 2, best: 7, played: 3 }, // nicht geschafft
+      "noten-5": { stars: 3, best: 9, played: 1 },
+      "noten-1": { stars: 3, best: 9, played: 1 }, // mit Hilfen (seit Welle 12): nicht in den Kasten
+      "noten-8": { stars: 2, best: 7, played: 3 }, // nicht geschafft
       "notenwerte-5": { stars: 3, best: 9, played: 1 },
       "notenwerte-4": { stars: 3, best: 10, played: 1 }, // mit Hilfen
       "tonleitern-5": { stars: 2, best: 8, played: 1 },
@@ -757,8 +764,8 @@ test("migrateWiederholen: geschaffte Stufen ohne Hilfen in Fach 1, je Tag drei, 
   };
   assert.equal(migrateWiederholen(s, BOX, "2026-11-25"), true);
   assert.deepEqual(s.rep, {
-    "noten-1": { fach: 1, faellig: "2026-11-25", zuletzt: null },
     "noten-3": { fach: 1, faellig: "2026-11-25", zuletzt: null },
+    "noten-5": { fach: 1, faellig: "2026-11-25", zuletzt: null },
     "notenwerte-5": { fach: 1, faellig: "2026-11-25", zuletzt: null },
     "intervall-2": { fach: 1, faellig: "2026-11-26", zuletzt: null },
     "tonleitern-5": { fach: 1, faellig: "2026-11-26", zuletzt: null },
@@ -820,7 +827,8 @@ test("Umstellung: wer gestern vor dem alten Tageswechsel geübt hat, behält die
 });
 
 test("load mit Liste: alter Stand bekommt die Umstellung einmal, danach wird nicht mehr neu gespeichert", () => {
-  const old = { xp: 70, levels: { "noten-1": { stars: 3, best: 10, played: 1 }, "intervall-2": { stars: 2, best: 8, played: 1 } },
+  // Stand von vor Welle 12 mit den alten Nummern: alt noten-3 wird erst noten-5 (migrateNoten), dann kommt es in den Kasten
+  const old = { xp: 70, levels: { "noten-3": { stars: 3, best: 10, played: 1 }, "intervall-2": { stars: 2, best: 8, played: 1 } },
     migrated: [MIGRATION_INTERVALLE, MIGRATION_TONLEITERN, MIGRATION_NOTENWERTE] };
   const st = memStorage({ [KEY_V2]: JSON.stringify(old) });
   // 25.11. 00:30 in Kuala Lumpur (in UTC noch der 24.): örtlicher Tag des Geräts; hier über die Verschiebung des
@@ -828,7 +836,7 @@ test("load mit Liste: alter Stand bekommt die Umstellung einmal, danach wird nic
   const now = new Date("2026-11-24T16:30:00Z");
   const s = load(st, now, BOX);
   assert.deepEqual(s.rep, {
-    "noten-1": { fach: 1, faellig: today(now), zuletzt: null },
+    "noten-5": { fach: 1, faellig: today(now), zuletzt: null },
     "intervall-2": { fach: 1, faellig: today(now), zuletzt: null },
   });
   const saved = st.data[KEY_V2];
@@ -840,7 +848,7 @@ test("load mit Liste: alter Stand bekommt die Umstellung einmal, danach wird nic
   // v1-Stand (nur Noten lesen): bekommt die Umstellung ebenfalls
   const v1 = memStorage({ [KEY_V1]: JSON.stringify({ xp: 50, levels: { 3: { stars: 2, best: 8, played: 1 }, 4: { stars: 1, best: 6, played: 1 } }, current: 4 }) });
   const s1 = load(v1, now, BOX);
-  assert.deepEqual(Object.keys(s1.rep), ["noten-3"]);
+  assert.deepEqual(Object.keys(s1.rep), ["noten-5"]);
   assert.ok(s1.migrated.includes(MIGRATION_WIEDERHOLEN));
   // frischer Stand mit Liste: nichts zu tun, nichts gespeichert
   const empty = memStorage();

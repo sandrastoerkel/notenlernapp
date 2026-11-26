@@ -13,7 +13,7 @@ const allLevels = PACKS.flatMap((p) => p.levels.map((l) => [p, l.id]));
 const openSet = (s) => allLevels.filter(([p, id]) => isUnlocked(s, p, id)).map(([, id]) => id);
 
 // Drei Stufen ohne Hilfen aus drei Paketen (A ist die Grundlage im ersten Paket)
-const A = "noten-3", C = "notenwerte-5", B = "intervall-2";
+const A = "noten-5", C = "notenwerte-5", B = "intervall-2";
 
 // Uhr: Tag d um 10 Uhr Ortszeit (start = Tag 0 als UTC-Zeitpunkt)
 function run({ start, offset, pause = null, failC = 4, errorsC = 2, days = 40 }) {
@@ -98,7 +98,7 @@ test("Lauf über 40 Tage (W-B2): ein einzelner Fehler an Tag 4 – „fast“, F
 
 test("nach langer Pause mit vielen fälligen Stufen: immer nur eine Runde, Grundlagen zuerst, nichts geht verloren", () => {
   const heute = "2026-12-22";
-  const ids = ["tonleitern-5", "akkorde-3", "intervall-4", "noten-7", "notenwerte-9", "noten-3", "intervall-2"];
+  const ids = ["tonleitern-5", "akkorde-3", "intervall-4", "noten-12", "notenwerte-9", "noten-5", "intervall-2"];
   const s = { ...fresh(), rep: Object.fromEntries(ids.map((id) => [id, { fach: 2, faellig: "2026-12-01", zuletzt: "2026-11-28" }])) };
   const rounds = [];
   while (due(s, PACKS, heute).length) {
@@ -108,7 +108,7 @@ test("nach langer Pause mit vielen fälligen Stufen: immer nur eine Runde, Grund
     applyReview(s, plan.map(({ id, n }) => ({ id, n, ok: n })), heute);
   }
   assert.deepEqual(rounds, [
-    ["noten-3", "noten-7", "notenwerte-9"],
+    ["noten-5", "noten-12", "notenwerte-9"],
     ["intervall-2", "intervall-4", "tonleitern-5"],
     ["akkorde-3"],
   ]);

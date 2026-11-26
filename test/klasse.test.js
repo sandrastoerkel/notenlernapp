@@ -48,10 +48,10 @@ test("Tabelle: Jahrgänge 5 bis 13, je Paket eine Zahl 0 … Stufenzahl", () => 
   }
 });
 
-test("Tabelle wie im PLAN (Welle 11, Abschnitt 4)", () => {
-  assert.deepEqual(dranFor(5), { noten: 8, notenwerte: 10, intervalle: 2, tonleitern: 9, akkorde: 0 });
-  assert.deepEqual(dranFor(6), { noten: 8, notenwerte: 10, intervalle: 4, tonleitern: 13, akkorde: 4 });
-  for (const j of [7, 8, 9, 10, 11, 12, 13]) assert.deepEqual(dranFor(j), { noten: 8, notenwerte: 10, intervalle: 4, tonleitern: 13, akkorde: 6 }, `${j}`);
+test("Tabelle wie im PLAN (Welle 11, Abschnitt 4; Noten lesen 1–15 seit Welle 12)", () => {
+  assert.deepEqual(dranFor(5), { noten: 15, notenwerte: 10, intervalle: 2, tonleitern: 9, akkorde: 0 });
+  assert.deepEqual(dranFor(6), { noten: 15, notenwerte: 10, intervalle: 4, tonleitern: 13, akkorde: 4 });
+  for (const j of [7, 8, 9, 10, 11, 12, 13]) assert.deepEqual(dranFor(j), { noten: 15, notenwerte: 10, intervalle: 4, tonleitern: 13, akkorde: 6 }, `${j}`);
   // Musisches Gymnasium: ab Jahrgang 6 verminderte und übermäßige Intervalle (Intervalle bis 10), sonst gleich
   assert.deepEqual(dranFor(5, "mug"), dranFor(5));
   for (const j of JAHRGAENGE.slice(1)) assert.deepEqual(dranFor(j, "mug"), { ...dranFor(j), intervalle: 10 }, `${j}`);
@@ -59,7 +59,7 @@ test("Tabelle wie im PLAN (Welle 11, Abschnitt 4)", () => {
   assert.equal(dranFor(14), null);
   // neues Objekt: Ändern verändert die Tabelle nicht
   const d = dranFor(6); d.noten = 0;
-  assert.equal(dranFor(6).noten, 8);
+  assert.equal(dranFor(6).noten, 15);
 });
 
 test("Tabelle aufsteigend: kein Jahrgang hat weniger als der davor (beide Zweige), MuG nie weniger", () => {
@@ -92,7 +92,7 @@ test("parseLink: ungültige Links werden als Ganzes verworfen", () => {
   const BAD = [
     "", "#", "#klasse", "#klasse=", "#klasse=4", "#klasse=14", "#klasse=0", "#klasse=-6", "#klasse=6.0", "#klasse=06",
     "#klasse=sechs", "#klasse= 6", "#klasse=6 ",
-    "#klasse=6&dran=noten:9", "#klasse=6&dran=foo:1", "#klasse=6&dran=noten:x", "#klasse=6&dran=noten:-1",
+    "#klasse=6&dran=noten:16", "#klasse=6&dran=foo:1", "#klasse=6&dran=noten:x", "#klasse=6&dran=noten:-1",
     "#klasse=6&dran=noten:01", "#klasse=6&dran=noten", "#klasse=6&dran=", "#klasse=6&dran=noten:3,", "#klasse=6&dran=,noten:3",
     "#klasse=6&dran=noten:3,noten:4", "#klasse=6&dran=akkorde:7", "#klasse=6&dran=tonleitern:14",
     "#klasse=6&foo=1", "#klasse=6&", "#klasse=6&&zweig=mug", "#klasse=6&klasse=7", "#klasse=6&zweig=mug&zweig=mug",
@@ -119,7 +119,7 @@ test("buildLink: nur Abweichungen von der Voreinstellung; Rundlauf mit parseLink
   for (const k of EINSTELLUNGEN) assert.deepEqual(parseLink(buildLink(BASE, k, PACKS), PACKS), k, JSON.stringify(k));
   assert.deepEqual(parseLink(buildLink(BASE, null, PACKS), PACKS), { keine: true });
   assert.throws(() => buildLink(BASE, { jahrgang: 4, zweig: null, dran: {} }, PACKS));
-  assert.throws(() => buildLink(BASE, { jahrgang: 6, zweig: null, dran: { ...dranFor(6), noten: 9 } }, PACKS));
+  assert.throws(() => buildLink(BASE, { jahrgang: 6, zweig: null, dran: { ...dranFor(6), noten: 16 } }, PACKS));
 });
 
 test("sameKlasse und klasseText", () => {
@@ -193,9 +193,9 @@ test("setKlasse / clearKlasse: nur klasse und die Marke ändern sich; unbrauchba
   const t = setKlasse(clone(s), parseLink("#klasse=6", PACKS));
   assert.deepEqual({ ...t, klasse: null, klasseOffen: {} }, { ...before, klasse: null, klasseOffen: {} });
   assert.deepEqual(t.klasse, { jahrgang: 6, zweig: null, dran: dranFor(6) });
-  assert.deepEqual(t.klasseOffen, { noten: 8, notenwerte: 10, intervalle: 4, tonleitern: 13, akkorde: 4 });
+  assert.deepEqual(t.klasseOffen, { noten: 15, notenwerte: 10, intervalle: 4, tonleitern: 13, akkorde: 4 });
   assert.deepEqual(clearKlasse(t).klasse, null);
-  assert.deepEqual(t.klasseOffen, { noten: 8, notenwerte: 10, intervalle: 4, tonleitern: 13, akkorde: 4 });
+  assert.deepEqual(t.klasseOffen, { noten: 15, notenwerte: 10, intervalle: 4, tonleitern: 13, akkorde: 4 });
   for (const bad of [null, { keine: true }, { jahrgang: 4, zweig: null, dran: {} }, { jahrgang: 6, zweig: "x", dran: {} },
     { jahrgang: 6, zweig: null }, { jahrgang: 6, zweig: null, dran: { noten: -1 } }, { jahrgang: 6, zweig: null, dran: { noten: 1.5 } }]) {
     const u = clone(s);
@@ -211,7 +211,7 @@ test("Ungültiger Link fasst den Spielstand nicht an (auch nicht im Speicher)", 
   setKlasse(s, parseLink("#klasse=5", PACKS));
   save(s, storage);
   const raw = data.get(KEY_V2);
-  for (const h of ["#klasse=99", "#klasse=6&dran=noten:9", "#klasse=6&foo=1", "#Klasse=6"]) {
+  for (const h of ["#klasse=99", "#klasse=6&dran=noten:16", "#klasse=6&foo=1", "#Klasse=6"]) {
     assert.equal(parseLink(h, PACKS), null);
     assert.equal(data.get(KEY_V2), raw);
   }
@@ -302,12 +302,12 @@ test("reset behält klasse und die Marke", () => {
   assert.deepEqual(r.klasse, { jahrgang: 7, zweig: "mug", dran: dranFor(7, "mug") });
   assert.deepEqual(r.levels, {});
   // nach dem Zurücksetzen ist alles bis „dran“ weiter offen
-  assert.ok(superset(offen(r), new Set(["intervall-10", "akkorde-6", "noten-8"])));
+  assert.ok(superset(offen(r), new Set(["intervall-10", "akkorde-6", "noten-15"])));
   // Marke wie die Einstellung: bleibt, auch nach Entfernen und Zurücksetzen (was der Jahrgang geöffnet hat)
   clearKlasse(s);
   const r2 = reset(s);
   assert.deepEqual(r2.klasseOffen, dranFor(7, "mug"));
-  assert.ok(superset(offen(r2), new Set(["intervall-10", "akkorde-6", "noten-8"])));
+  assert.ok(superset(offen(r2), new Set(["intervall-10", "akkorde-6", "noten-15"])));
 });
 
 /* ---------- Abschnitte der Startseite ---------- */

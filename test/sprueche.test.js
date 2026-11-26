@@ -205,15 +205,15 @@ test("Auswahl-HTML: Vorschläge, eigener Spruch, Hervorhebung, zugänglich", () 
   assert.equal(wahlHtml(s, "bes"), "", "bes hat keine eigene Wahl");
 });
 
-test("B3: Lage einer Note für alle Noten der Stufen 3 und 6", () => {
+test("B3: Lage einer Note für alle Noten der Stufen 5 und 10 (bis Welle 11: 3 und 6)", () => {
   const T = ["auf der Hilfslinie unter der Zeile", "unter der Zeile, ohne Hilfslinie", "1. Linie von unten", "1. Zwischenraum von unten",
     "2. Linie von unten", "2. Zwischenraum von unten", "3. Linie von unten", "3. Zwischenraum von unten", "4. Linie von unten",
     "4. Zwischenraum von unten", "5. Linie von unten", "über der Zeile, ohne Hilfslinie", "auf der Hilfslinie über der Zeile"];
   const want = {
-    3: ["c'", "d'", "e'", "f'", "g'", "a'", "h'", "c''", "d''", "e''", "f''", "g''", "a''"],
-    6: ["E", "F", "G", "A", "H", "c", "d", "e", "f", "g", "a", "h", "c'"],
+    5: ["c'", "d'", "e'", "f'", "g'", "a'", "h'", "c''", "d''", "e''", "f''", "g''", "a''"],
+    10: ["E", "F", "G", "A", "H", "c", "d", "e", "f", "g", "a", "h", "c'"],
   };
-  for (const no of [3, 6]) {
+  for (const no of [5, 10]) {
     const l = noten.levels[no - 1];
     assert.deepEqual(l.items.map((it) => helm(it.n)), want[no]);
     l.items.forEach((it, i) => assert.equal(lageText(it.n, it.clef), T[i], `${no} ${helm(it.n)}`));
@@ -253,9 +253,9 @@ test("B3: Frage, Name der großen Oktave, Rückmeldung mit dem gewählten Spruch
     assert.ok(feedbackText(q, true).length <= 45, "richtig: kurz, läuft von selbst weiter");
   }
   // statKey und Antwortprüfung unverändert
-  const q = makeRound(noten.levels[3], 1, { state: s })[0];
+  const q = makeRound(noten.levels[5], 1, { state: s })[0];
   assert.match(q.statKey, /^[A-H]\w* \(.+, Bass\)$/);
-  assert.ok(noten.levels[3].check(q, q.answer));
+  assert.ok(noten.levels[5].check(q, q.answer));
 });
 
 test("Abschlussprüfung Welle 10: Rückmeldung markiert das Wort des Spruchs zur Stelle der Note", () => {
@@ -273,8 +273,8 @@ test("Abschlussprüfung Welle 10: Rückmeldung markiert das Wort des Spruchs zur
   assert.deepEqual(mark(N("C", 4), "treble"), []);
   assert.deepEqual(mark(N("F", 4, 1), "treble"), []);
   // Teile ergeben genau den Text; für alle Noten der Stufen 1, 2, 4, 5 genau ein markiertes Wort mit dem
-  // richtigen Anfangsbuchstaben
-  for (const no of [1, 2, 4, 5]) for (const it of noten.levels[no - 1].items) {
+  // richtigen Anfangsbuchstaben (seit Welle 12 Stufen 1, 2, 6, 7)
+  for (const no of [1, 2, 6, 7]) for (const it of noten.levels[no - 1].items) {
     const parts = revealParts(it.n, it.clef, s);
     assert.equal(parts.map((x) => x.t).join(""), revealText(it.n, it.clef, s));
     const m = parts.filter((x) => x.mark);
@@ -292,18 +292,18 @@ test("Abschlussprüfung Welle 10: Rückmeldung markiert das Wort des Spruchs zur
   assert.equal(feedbackParts({ reveal: "x" }, "x"), null);
 });
 
-test("Hinweise Noten 1, 2, 4, 5 mit dem gewählten Spruch; Bass mit Sandras Sprüchen", () => {
+test("Hinweise Noten 1, 2, 6, 7 (bis Welle 11: 1, 2, 4, 5) mit dem gewählten Spruch; Bass mit Sandras Sprüchen", () => {
   const s = fresh();
   const H = (no, st) => textOf(noten.levels[no - 1].hint, { state: st });
   assert.ok(H(1, s).includes("Merkspruch: „Es Geht Hurtig Durch Fleiß“."));
   assert.ok(H(2, s).includes("Merkspruch: „Fritz Aß Citronen-Eis“."));
-  assert.ok(H(4, s).includes("Merkspruch: „Gute Hunde Dürfen Fast Alles“."));
-  assert.ok(H(5, s).includes("Merkspruch: „Alle Clowns Essen Gern“."));
+  assert.ok(H(6, s).includes("Merkspruch: „Gute Hunde Dürfen Fast Alles“."));
+  assert.ok(H(7, s).includes("Merkspruch: „Alle Clowns Essen Gern“."));
   // ohne ctx: Voreinstellung
-  assert.ok(textOf(noten.levels[3].hint).includes("Gute Hunde Dürfen Fast Alles"));
+  assert.ok(textOf(noten.levels[5].hint).includes("Gute Hunde Dürfen Fast Alles"));
   setzeEigen(s, "bass-linien", "Grüne Hasen Dürfen Fast Alles");
-  assert.ok(H(4, s).includes("„Grüne Hasen Dürfen Fast Alles“"));
-  assert.ok(startHint(noten.levels[3], { state: s }).includes("Grüne Hasen"));
+  assert.ok(H(6, s).includes("„Grüne Hasen Dürfen Fast Alles“"));
+  assert.ok(startHint(noten.levels[5], { state: s }).includes("Grüne Hasen"));
 });
 
 test("Lerntafel „Merkhilfen“: gewählter Spruch und Auswahl je Schlüssel", () => {

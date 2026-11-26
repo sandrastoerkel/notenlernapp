@@ -570,15 +570,15 @@ const withHelps = (kind, text = HELP_TEXT) => ({
 // und Tabelle ein; „Ganz- und Halbtonschritte“ liegen seit Welle 11 im späteren Paket Tonleitern (PLAN, Abschnitt 1).
 // Aufgaben mit nur einem Schritt (Prime, Quarte, Quinte, Oktave) haben nur Schritt 1 (Notenstufen zählen).
 const VORAUSSETZUNGEN = {
-  1: { needs: ["noten-3"] },
-  2: { needs: ["noten-3", "noten-6"], skill: "Notenstufen zählen (Prime bis Oktave)" },
-  3: { needs: ["intervall-2", "noten-7"], stepNeeds: [["intervall-2"], []] },
-  4: { needs: ["intervall-2", "noten-7"], stepNeeds: [["intervall-2"], []], skill: "Intervalle rein, klein, groß" },
+  1: { needs: ["noten-5"] },
+  2: { needs: ["noten-5", "noten-10"], skill: "Notenstufen zählen (Prime bis Oktave)" },
+  3: { needs: ["intervall-2", "noten-12"], stepNeeds: [["intervall-2"], []] },
+  4: { needs: ["intervall-2", "noten-12", "noten-14"], stepNeeds: [["intervall-2"], []], skill: "Intervalle rein, klein, groß" },
   5: { stepNeeds: [["intervall-2"], ["intervall-4"]] },
   6: { stepNeeds: [["intervall-2"], ["intervall-4"]], skill: "Verminderte und übermäßige Intervalle" },
   7: { stepNeeds: [["intervall-2"], ["intervall-6"]], skill: "Intervalle abwärts" },
-  8: { needs: ["intervall-6", "noten-7"] },
-  9: { needs: ["intervall-7", "noten-7"], skill: "Intervalle bauen" },
+  8: { needs: ["intervall-6", "noten-12"] },
+  9: { needs: ["intervall-7", "noten-12"], skill: "Intervalle bauen" },
 };
 
 const levels = [

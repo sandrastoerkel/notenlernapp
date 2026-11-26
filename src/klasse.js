@@ -9,7 +9,8 @@ export const ZWEIGE = ["mug"]; // Musisches Gymnasium; sonst zweig = null
 // „dran bis Stufe n“ je Paket-ID (0 = noch nichts aus dem Paket). Jeder Jahrgang enthält alles Frühere.
 // Quelle: LehrplanPLUS Gymnasium Bayern, Fachlehrplan Musik, Lernbereich 4 „Musik und ihre Grundlagen“, abgerufen
 // am 25.11.2026 (Zitate und Begründung in docs/PLAN.md, Welle 11, Abschnitt 4):
-// - 5 (Mu5): „Tonhöhen im Violin- und Bassschlüssel, Kreuz- und b-Vorzeichen …“ → Noten lesen 1–8;
+// - 5 (Mu5): „Tonhöhen im Violin- und Bassschlüssel, Kreuz- und b-Vorzeichen …“ → Noten lesen 1–15
+//   (beide Schlüssel und beide Vorzeichen, deshalb auch die Stufen 13 und 14; PLAN Welle 12, Abschnitt 9);
 //   „Noten- und Pausenwerte bis zum Sechzehntelwert“ → Notenwerte 1–5, dazu 6–10 (Punktierung, Takt füllen; nicht
 //   wörtlich genannt, [OFFEN Sandra]); „diatonische Intervalle“ → Intervalle 1–2; „Ganz- und Halbtonschritt“,
 //   „Dur-Tonleitern mit unterschiedlichen Grundtönen“ → Tonleitern 1–9; „Dur-Dreiklang (Grundform)“ hat keine eigene
@@ -22,9 +23,9 @@ export const ZWEIGE = ["mug"]; // Musisches Gymnasium; sonst zweig = null
 //   [OFFEN Sandra]).
 // - 8 bis 13 (Mu8 bis Mu13): keine weiteren Inhalte aus dem Umfang der App; alles ist Wiederholung. Intervalle 5–10
 //   bleiben außerhalb des MuG „Darüber hinaus“ [OFFEN Sandra].
-const D5 = { noten: 8, notenwerte: 10, intervalle: 2, tonleitern: 9, akkorde: 0 };
-const D6 = { noten: 8, notenwerte: 10, intervalle: 4, tonleitern: 13, akkorde: 4 };
-const D7 = { noten: 8, notenwerte: 10, intervalle: 4, tonleitern: 13, akkorde: 6 };
+const D5 = { noten: 15, notenwerte: 10, intervalle: 2, tonleitern: 9, akkorde: 0 };
+const D6 = { noten: 15, notenwerte: 10, intervalle: 4, tonleitern: 13, akkorde: 4 };
+const D7 = { noten: 15, notenwerte: 10, intervalle: 4, tonleitern: 13, akkorde: 6 };
 const mug = (d, j) => (j >= 6 ? { ...d, intervalle: 10 } : { ...d });
 
 export const DRAN = Object.freeze(Object.fromEntries(JAHRGAENGE.map((j) =>

@@ -1001,11 +1001,11 @@ const find = (items, key) => items.find((it) => it.key === key);
 // stepNeeds = Voraussetzung je Denkschritt, skill = was man in der Stufe kann („Dafür brauchst du: …“),
 // guess = nur zwei Antwortknöpfe (Raten; mehr Aufgaben in der Runde „Wiederholen“). Siehe src/repeat.js.
 const VORAUSSETZUNGEN = {
-  1: { needs: ["noten-3", "noten-6"], guess: true },
-  2: { needs: ["noten-7"], guess: true },
-  3: { needs: ["noten-6", "noten-7"], guess: true, skill: "Ganz- und Halbtonschritte" },
-  4: { needs: ["tonleitern-3", "noten-7"], stepNeeds: [["tonleitern-3"], ["noten-7"]] },
-  5: { needs: ["tonleitern-3", "noten-7"], skill: "Dur-Tonleitern" },
+  1: { needs: ["noten-5", "noten-10"], guess: true },
+  2: { needs: ["noten-12"], guess: true },
+  3: { needs: ["noten-12", "noten-14"], guess: true, skill: "Ganz- und Halbtonschritte" },
+  4: { needs: ["tonleitern-3", "noten-12"], stepNeeds: [["tonleitern-3"], ["noten-12"]] },
+  5: { needs: ["tonleitern-3", "noten-12", "noten-14"], skill: "Dur-Tonleitern" },
   8: { needs: ["tonleitern-5"] },
   9: { needs: ["tonleitern-5"], skill: "Vorzeichen der Dur-Tonleitern" },
   11: { skill: "Tonart aus den Vorzeichen" },

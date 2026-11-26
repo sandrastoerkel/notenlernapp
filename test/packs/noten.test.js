@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import noten, { LEGEND, BLITZ_POOL, statKey, checkNote, HEAT_NOTES, NOTE_KEYS } from "../../src/packs/noten.js";
+import noten, { LEGEND, BLITZ_POOL, statKey, checkNote, HEAT_NOTES, NOTE_KEYS, VORRAT, BASS_VERGLEICH, legendHtml } from "../../src/packs/noten.js";
 import { PACKS } from "../../src/packs/index.js";
 import { N, same, staffPos, helm, gName } from "../../src/music.js";
 import { staffSvg, noteSvg } from "../../src/staff.js";
@@ -12,36 +12,100 @@ test("Registry enthält nur fertige Pakete", () => {
   assert.equal(new Set(PACKS.map((p) => p.id)).size, PACKS.length);
 });
 
-test("acht Stufen mit eindeutigen IDs", () => {
-  assert.equal(noten.levels.length, 8);
+test("15 Stufen mit eindeutigen IDs (Welle 12)", () => {
+  assert.equal(noten.levels.length, 15);
   const ids = noten.levels.map((l) => l.id);
-  assert.deepEqual(ids, ["noten-1", "noten-2", "noten-3", "noten-4", "noten-5", "noten-6", "noten-7", "noten-8"]);
-  assert.equal(new Set(ids).size, 8);
+  assert.deepEqual(ids, Array.from({ length: 15 }, (_, i) => `noten-${i + 1}`));
+  assert.equal(new Set(ids).size, 15);
   noten.levels.forEach((l, i) => {
     assert.equal(l.no, i + 1);
     assert.ok(l.title && l.hint && l.subtitle);
     assert.ok(l.example.startsWith("<svg"));
   });
+  // Titel unterscheiden die Schlüssel (Listen „Heute“, Statistik): keine zwei gleich
+  assert.equal(new Set(noten.levels.map((l) => l.title)).size, 15);
 });
 
-test("Vorrat je Stufe", () => {
-  // Ausnahme (Entscheidung der Nutzerin): Stufe 2 und 5 haben nur 4 Noten (die Zwischenräume).
-  // Stufe 1 und 4 (die fünf Linien) haben ebenfalls weniger als 8 Noten; wie im Prototyp belassen.
-  const sizes = noten.levels.map((l) => l.items.length);
-  assert.deepEqual(sizes, [5, 4, 13, 5, 4, 13, 8, 34]);
-  noten.levels.forEach((l) => {
-    if (l.no !== 2 && l.no !== 5 && l.no !== 1 && l.no !== 4) assert.ok(l.items.length >= 8, l.id);
-  });
+// PLAN Welle 12, Abschnitt 2: jede Note mit ihrer Lage (staffPos: 0, 2 … 8 Linien, 1 … 7 Zwischenräume)
+const POS = (l) => l.items.map((it) => staffPos(it.n, it.clef));
+const NAMES = (l) => l.items.map((it) => `${helm(it.n)}`).join(" ");
+test("Vorrat je Stufe wie im Plan (Welle 12, Abschnitt 2)", () => {
+  const L = noten.levels;
+  assert.deepEqual(L.map((l) => l.items.length), [5, 4, 9, 4, 13, 5, 4, 9, 4, 13, 8, 8, 8, 8, 42]);
+  assert.deepEqual(L.map((l) => l.clef), ["treble", "treble", "treble", "treble", "treble", "bass", "bass", "bass", "bass", "bass", "treble", "treble", "bass", "bass", "both"]);
+  assert.equal(NAMES(L[0]), "e' g' h' d'' f''"); assert.deepEqual(POS(L[0]), [0, 2, 4, 6, 8]);
+  assert.equal(NAMES(L[1]), "f' a' c'' e''"); assert.deepEqual(POS(L[1]), [1, 3, 5, 7]);
+  assert.equal(NAMES(L[2]), "e' f' g' a' h' c'' d'' e'' f''"); assert.deepEqual(POS(L[2]), [0, 1, 2, 3, 4, 5, 6, 7, 8]);
+  assert.equal(NAMES(L[3]), "d' c' g'' a''"); assert.deepEqual(POS(L[3]), [-1, -2, 9, 10]);
+  assert.deepEqual(POS(L[4]), Array.from({ length: 13 }, (_, i) => i - 2));
+  assert.equal(NAMES(L[5]), "G H d f a"); assert.deepEqual(POS(L[5]), [0, 2, 4, 6, 8]);
+  assert.equal(NAMES(L[6]), "A c e g"); assert.deepEqual(POS(L[6]), [1, 3, 5, 7]);
+  assert.equal(NAMES(L[7]), "G A H c d e f g a"); assert.deepEqual(POS(L[7]), [0, 1, 2, 3, 4, 5, 6, 7, 8]);
+  assert.equal(NAMES(L[8]), "F E h c'"); assert.deepEqual(POS(L[8]), [-1, -2, 9, 10]);
+  assert.deepEqual(POS(L[9]), Array.from({ length: 13 }, (_, i) => i - 2));
+  assert.equal(NAMES(L[9]), "E F G A H c d e f g a h c'");
+  assert.equal(NAMES(L[4]), "c' d' e' f' g' a' h' c'' d'' e'' f'' g'' a''");
+  // Vorzeichen: die ersten vier ♯ und die ersten vier ♭, in beiden Schlüsseln dieselben Namen, alle in der Zeile
+  const vz = (l) => l.items.map((it) => gName(it.n)).join(" ");
+  for (const i of [10, 11, 12, 13]) {
+    assert.equal(vz(L[i]), "Fis Cis Gis Dis B Es As Des", L[i].id);
+    assert.ok(POS(L[i]).every((p) => p >= 0 && p <= 8), L[i].id);
+    assert.ok(L[i].items.every((it) => it.n.acc !== 0), L[i].id);
+  }
+  assert.equal(NAMES(L[10]), "fis' cis'' gis' dis'' b' es'' as' des''");
+  assert.equal(NAMES(L[12]), "fis cis gis dis B es as des");
+  // Lagen im Bassschlüssel (Abschnitt 2): fis 4. Linie, cis 2. Zwischenraum, gis 4. Zwischenraum, dis 3. Linie,
+  // B 2. Linie, es 3. Zwischenraum, as 5. Linie, des 3. Linie
+  assert.deepEqual(POS(L[12]), [6, 3, 7, 4, 2, 5, 8, 4]);
+  // 11 = 12, 13 = 14; 4/9 = 5/10 ohne 3/8; 3 = 1 + 2, 8 = 6 + 7 (als Menge); 15 = 5 + 10 + 12 + 14
+  const key = (it) => statKey(it.n, it.clef);
+  const keys = (l) => l.items.map(key);
+  assert.deepEqual(keys(L[10]), keys(L[11]));
+  assert.deepEqual(keys(L[12]), keys(L[13]));
+  for (const [aus, alle, zeile] of [[3, 4, 2], [8, 9, 7]]) {
+    assert.deepEqual([...keys(L[aus])].sort(), keys(L[alle]).filter((k) => !keys(L[zeile]).includes(k)).sort());
+  }
+  assert.deepEqual([...keys(L[2])].sort(), [...keys(L[0]), ...keys(L[1])].sort());
+  assert.deepEqual([...keys(L[7])].sort(), [...keys(L[5]), ...keys(L[6])].sort());
+  assert.deepEqual(L[14].items, [...L[4].items, ...L[9].items, ...L[11].items, ...L[13].items]);
+  // keine Note doppelt, in keiner Stufe
+  for (const l of L) assert.equal(new Set(keys(l)).size, l.items.length, l.id);
+  // acc genau in 11–15; Hilfen genau in 1, 2, 4, 6, 7, 9, 11, 13
+  assert.deepEqual(L.filter((l) => l.acc).map((l) => l.no), [11, 12, 13, 14, 15]);
+  assert.deepEqual(L.filter((l) => l.helps).map((l) => l.no), [1, 2, 4, 6, 7, 9, 11, 13]);
+  // benannte Vorräte
+  assert.equal(VORRAT.gemischt.length, 42);
   assert.equal(BLITZ_POOL.length, 26);
-  // Stufe 8 = Stufe 3 + 6 + 7 (beide Schlüssel, mit Vorzeichen); Blitz = Stufe 3 + 6 (ohne Vorzeichen)
-  const [l3, l6, l7, l8] = [2, 5, 6, 7].map((i) => noten.levels[i].items);
-  assert.deepEqual(l8, [...l3, ...l6, ...l7]);
-  assert.deepEqual(BLITZ_POOL, [...l3, ...l6]);
-  assert.ok(l8.some((it) => it.clef === "treble") && l8.some((it) => it.clef === "bass"));
+  assert.deepEqual(BLITZ_POOL, [...L[4].items, ...L[9].items]);
   assert.ok(BLITZ_POOL.every((it) => it.n.acc === 0));
-  // Startkarte zeigt die erste Note des Vorrats wie im Prototyp
+  // Startkarte zeigt die erste Note des Vorrats
   noten.levels.forEach((l) => assert.equal(l.example, staffSvg(l.items[0].clef, noteSvg(l.items[0].n, l.items[0].clef, 170))));
   assert.equal(noten.blitz.example, staffSvg("treble", noteSvg(N("F", 4), "treble", 170)));
+});
+
+test("Stufen mit Hilfen: Überschrift, Satz, Tabelle (Gerüst) und Vorführung; ohne Hilfen nichts davon", () => {
+  const titles = { 1: "Hilfen: Merkspruch für die Linien", 6: "Hilfen: Merkspruch für die Linien", 2: "Hilfen: Merkspruch für die Zwischenräume", 7: "Hilfen: Merkspruch für die Zwischenräume", 4: "Hilfen: Notennamen der Reihe nach", 9: "Hilfen: Notennamen der Reihe nach", 11: "Hilfen: Vorzeichen", 13: "Hilfen: Vorzeichen" };
+  for (const l of noten.levels) {
+    if (titles[l.no]) {
+      assert.deepEqual(l.helps, ["tabelle"], l.id);
+      assert.equal(l.helpsTitle, titles[l.no]);
+      assert.ok(typeof l.helpText === "string" && l.helpText.length > 10);
+      const t = typeof l.helpTable === "function" ? l.helpTable({ state: { sprueche: {} } }) : l.helpTable;
+      assert.ok(typeof t === "string" && t.startsWith("<"), l.id);
+      assert.ok(l.subtitle.endsWith(" · mit Hilfen"), l.id);
+      // Vorführung: gültig für jede Aufgabe der Stufe
+      for (const it of l.items) {
+        const d = l.demo({ note: it.n, clef: it.clef });
+        assert.equal(d.steps.length, 2);
+        assert.ok(d.frames.length >= 2 && d.frames.length <= 5);
+        assert.equal(d.frames[0].step, 0);
+        assert.equal(d.frames.at(-1).step, 3);
+      }
+    } else {
+      assert.ok(!l.helps && !l.demo && !l.helpTable, l.id);
+      assert.ok(!l.subtitle.includes("Hilfen"), l.id);
+    }
+  }
 });
 
 test("statKey und checkNote", () => {
@@ -74,7 +138,7 @@ test("question liefert gültige Aufgaben", () => {
 });
 
 test("Klaviatur: Vergleich nach Tonklasse", () => {
-  const l = noten.levels[6];
+  const l = noten.levels[10];
   let q;
   do { q = l.question(null); } while (!(q.note.letter === "F" && q.note.acc === 1));
   assert.equal(q.display, "Fis (fis')");
@@ -151,9 +215,13 @@ test("HEAT_NOTES und NOTE_KEYS", () => {
   assert.ok(same(HEAT_NOTES.treble[0].n, N("C", 4)) && same(HEAT_NOTES.treble[12].n, N("A", 5)));
   assert.equal(HEAT_NOTES.bass.length, 13);
   assert.ok(same(HEAT_NOTES.bass[0].n, N("E", 2)) && same(HEAT_NOTES.bass[12].n, N("C", 4)));
-  assert.equal(HEAT_NOTES.acc.length, 8);
-  assert.ok(HEAT_NOTES.acc.every((it) => it.n.acc !== 0 && it.clef === "treble"));
-  // eindeutig, und jede Aufgabe aus allen acht Stufen hat einen Schlüssel
+  // Welle 12: Vorzeichen aus Stufe 12 und 14, beide Schlüssel
+  assert.equal(HEAT_NOTES.acc.length, 16);
+  assert.ok(HEAT_NOTES.acc.every((it) => it.n.acc !== 0));
+  assert.deepEqual(HEAT_NOTES.acc, [...noten.levels[11].items, ...noten.levels[13].items]);
+  assert.equal(new Set(HEAT_NOTES.acc.map((it) => statKey(it.n, it.clef))).size, 16);
+  assert.equal(NOTE_KEYS.length, 42);
+  // eindeutig, und jede Aufgabe aus allen Stufen hat einen Schlüssel
   assert.equal(new Set(NOTE_KEYS).size, NOTE_KEYS.length);
   for (const l of noten.levels) for (const it of l.items) assert.ok(NOTE_KEYS.includes(statKey(it.n, it.clef)));
 });
@@ -179,22 +247,42 @@ test("Lerntafeln: Zeilen zu Stellen der Zeile stimmen mit staffPos", () => {
   assert.ok(html.includes("Unterste Linie") && html.includes("Unter der Zeile, ohne Hilfslinie"));
 });
 
-test("Welle 10, B15: Hinweise Stufe 3 und 4 (Namen statt Tonhöhe, „liegt auf“)", async () => {
+test("Welle 10, B15: Hinweise „mit Hilfslinien“ und „Linien im Bassschlüssel“ (seit Welle 12 Stufe 5 und 6)", async () => {
   const noten = (await import("../../src/packs/noten.js")).default;
   const { textOf } = await import("../../src/engine.js");
-  const [, , l3, L4] = noten.levels;
-  const l4 = { hint: textOf(L4.hint) };
-  assert.ok(l3.hint.includes("Das c' liegt auf einer Hilfslinie unter der Zeile.") && !l3.hint.includes("hängt"), l3.hint);
-  // Bezug genannt (Abschlussprüfung Welle 10): dieselbe Linie wie im Violinschlüssel
-  assert.ok(l4.hint.startsWith("Dieselbe Linie wie im Violinschlüssel heißt im Bassschlüssel zwei Notennamen weiter: Aus E wird G, aus G wird H.\n"), l4.hint);
-  assert.ok(!l4.hint.includes("zwei Stufen tiefer"));
+  const l5 = noten.levels[4], l6 = { hint: textOf(noten.levels[5].hint) };
+  assert.ok(l5.hint.includes("Das c' liegt auf einer Hilfslinie unter der Zeile.") && !l5.hint.includes("hängt"), l5.hint);
+  // Bezug (Abschlussprüfung Welle 10): Der Vergleich mit dem Violinschlüssel steht seit Welle 12 unverändert in der
+  // Lerntafel „Merkhilfen“ des Bassschlüssels (PLAN Abschnitt 5), die Stufe beginnt mit dem Weg
+  assert.equal(BASS_VERGLEICH, "Dieselbe Linie wie im Violinschlüssel heißt im Bassschlüssel zwei Notennamen weiter: Aus E wird G, aus G wird H.");
+  assert.ok(legendHtml("bass", {}).includes(BASS_VERGLEICH) && !legendHtml("treble", {}).includes(BASS_VERGLEICH));
+  assert.ok(l6.hint.startsWith("Zähle die Linien von unten.\n"), l6.hint);
+  assert.ok(!l6.hint.includes("Dieselbe Linie") && l6.hint.includes("Die beiden Punkte des Schlüssels umschließen das F."));
+  assert.ok(!l6.hint.includes("zwei Stufen tiefer"));
 });
 
-test("Abschlussprüfung Welle 10: Hinweis Stufe 7 erklärt -is und „aus H wird B“, nennt Dis", async () => {
+test("Welle 12: Hinweise der Startkarten wie im Plan (Abschnitt 2)", async () => {
+  const { textOf } = await import("../../src/engine.js");
+  const h = (no) => textOf(noten.levels[no - 1].hint, { state: { sprueche: {} } });
+  for (const no of [1, 6]) assert.ok(h(no).startsWith("Zähle die Linien von unten."), no);
+  for (const no of [2, 7]) assert.ok(h(no).startsWith("Zähle die Zwischenräume von unten."), no);
+  for (const no of [3, 8]) assert.equal(h(no), "Linien und Zwischenräume gemischt, jetzt ohne Hilfen. Erst die Lage, dann der Name.");
+  assert.ok(h(4).startsWith("Neu sind vier Noten außerhalb der Zeile. Nimm die nächste Linie der Zeile als Bezugston"));
+  assert.ok(h(9).endsWith("Das c' liegt auf einer Hilfslinie über der Zeile, das E auf einer Hilfslinie darunter."));
+  assert.ok(h(11).startsWith("Lies erst den Stammton – die Note ohne Vorzeichen –, dann das Zeichen."));
+  assert.equal(h(11).split("\n").slice(1).join("\n"), h(12));
+  for (const no of [13, 14]) assert.equal(h(no), "♯ und ♭ bedeuten im Bassschlüssel dasselbe. Lies erst den Stammton im Bassschlüssel, dann das Zeichen.");
+  // Merkspruch der Startkarte aus sprueche.js
+  assert.ok(h(1).includes("Es Geht Hurtig Durch Fleiß") && h(7).includes("Alle Clowns Essen Gern"));
+});
+
+test("Abschlussprüfung Welle 10: Hinweis Vorzeichen (seit Welle 12 Stufe 11 und 12) erklärt -is und „aus H wird B“, nennt Dis", async () => {
   const noten = (await import("../../src/packs/noten.js")).default;
-  const h = noten.levels[6].hint;
-  for (const w of ["aus F wird Fis", "Dis", "aus E wird Es", "aus A wird As", "aus H wird B"]) assert.ok(h.includes(w), w);
-  // alle Namen des Vorrats stehen im Hinweis
   const { gName } = await import("../../src/music.js");
-  for (const it of noten.levels[6].items) assert.ok(h.includes(gName(it.n)), gName(it.n));
+  for (const l of [noten.levels[10], noten.levels[11]]) {
+    const h = l.hint;
+    for (const w of ["aus F wird Fis", "Dis", "aus E wird Es", "aus A wird As", "aus H wird B"]) assert.ok(h.includes(w), w);
+    // alle Namen des Vorrats stehen im Hinweis
+    for (const it of l.items) assert.ok(h.includes(gName(it.n)), gName(it.n));
+  }
 });

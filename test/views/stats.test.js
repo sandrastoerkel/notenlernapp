@@ -109,7 +109,10 @@ test("heatCell: Farbe, Quote und Zeit aus dem Fenster, Detail mit Gesamtzahl", (
 
 test("heatAccList, heatCell, heatX, Legende", () => {
   const list = heatAccList({ "Fis (fis', Violin)": { ok: 0, bad: 7 } });
-  assert.deepEqual(list.map((c) => c.name), ["Fis", "Cis", "Gis", "Dis", "B", "Es", "As", "Des"]);
+  // seit Welle 12: Vorzeichen aus Stufe 12 (Violinschlüssel) und 14 (Bassschlüssel), dieselben Namen
+  const VZ = ["Fis", "Cis", "Gis", "Dis", "B", "Es", "As", "Des"];
+  assert.deepEqual(list.map((c) => c.name), [...VZ, ...VZ]);
+  assert.equal(new Set(list.map((c) => c.key)).size, 16);
   assert.equal(list[0].status, "unsicher");
   assert.equal(heatCell(N("F", 4, 1), "treble").key, "Fis (fis', Violin)");
   assert.equal(heatX(0), 88); assert.equal(heatX(6), 288);

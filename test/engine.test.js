@@ -62,7 +62,8 @@ test("findLevel und nextLevel", () => {
   assert.equal(findLevel(PACKS, "gibtsnicht").level.id, "noten-1");
   assert.equal(findLevel(PACKS, 3).level.id, "noten-1");
   assert.equal(nextLevel(noten, noten.levels[0]).id, "noten-2");
-  assert.equal(nextLevel(noten, noten.levels[7]), null);
+  assert.equal(nextLevel(noten, noten.levels[14]), null);
+  assert.equal(noten.levels.length, 15);
 });
 
 test("countAnswer zählt und vermerkt schwache Noten", () => {
@@ -317,7 +318,7 @@ test("usesNames: Namensraster nur bei Buchstaben-Stufen mit Vorzeichen", () => {
   assert.equal(usesNames({ input: "letters", acc: false }), false);
   assert.equal(usesNames({ input: "choices", acc: true }), false);
   assert.equal(usesNames(null), false);
-  assert.deepEqual(noten.levels.filter(usesNames).map((l) => l.id), ["noten-7", "noten-8"]);
+  assert.deepEqual(noten.levels.filter(usesNames).map((l) => l.id), ["noten-11", "noten-12", "noten-13", "noten-14", "noten-15"]);
   assert.deepEqual(akkorde.levels.filter(usesNames).map((l) => l.id), ["akkorde-3"]);
 });
 
@@ -419,12 +420,13 @@ test("waitsAfter: Hilfen, daneben, richtig mit kurzem oder langem Text", () => {
   assert.equal(waitsAfter(plain, true, undefined), false);
   // waitsForNext bleibt der Sonderfall „Stufe mit Hilfen“
   assert.equal(waitsForNext(helps), true); assert.equal(waitsForNext(plain), false);
-  // Noten lesen: alle richtigen Rückmeldungen sind kurz, die Runde läuft weiter wie bisher
+  // Noten lesen: alle richtigen Rückmeldungen sind kurz, die Stufen ohne Hilfen laufen weiter wie bisher; die
+  // Stufen mit Hilfen (seit Welle 12: 1, 2, 4, 6, 7, 9, 11, 13) warten auf „Nächste Aufgabe“
   for (const level of noten.levels) {
     let prev = null;
     for (let i = 0; i < 60; i++) {
       prev = level.question(prev, { notes: {}, round: [] });
-      assert.equal(waitsAfter(level, true, feedbackText(prev, true)), false, `${level.id}: ${feedbackText(prev, true)}`);
+      assert.equal(waitsAfter(level, true, feedbackText(prev, true)), hasHelps(level), `${level.id}: ${feedbackText(prev, true)}`);
     }
   }
 });
@@ -513,6 +515,10 @@ test("helpsTitle: nennt nur, was die Stufe zeigt; alle Stufen mit Klaviatur und 
     if (helpsTitle(level) !== fixed) other.push([level.id, helpsTitle(level)]);
   }
   assert.deepEqual(other, [
+    ["noten-1", "Hilfen: Merkspruch für die Linien"], ["noten-2", "Hilfen: Merkspruch für die Zwischenräume"],
+    ["noten-4", "Hilfen: Notennamen der Reihe nach"], ["noten-6", "Hilfen: Merkspruch für die Linien"],
+    ["noten-7", "Hilfen: Merkspruch für die Zwischenräume"], ["noten-9", "Hilfen: Notennamen der Reihe nach"],
+    ["noten-11", "Hilfen: Vorzeichen"], ["noten-13", "Hilfen: Vorzeichen"],
     ["notenwerte-1", "Hilfen: Merkmale"], ["notenwerte-2", "Hilfen: Pausen"], ["notenwerte-4", "Hilfen: Notenwert-Pyramide"],
     ["notenwerte-6", "Hilfen: Notenwert-Pyramide"], ["notenwerte-8", "Hilfen: Zählleiste und Pyramide"], ["tonleitern-12", "Hilfen: Klaviatur"],
   ]);
@@ -829,7 +835,7 @@ test("Nächste Aufgabe steht nur einmal da (alle Pakete)", () => withDoc(() => {
       }
       stop();
     }
-    assert.equal(withDemo, 15, "Notenwerte 1, 4, 6, 8; Intervalle 1, 3, 5, 8; Tonleitern 1, 2, 4, 6, 8, 10, 12");
+    assert.equal(withDemo, 23, "Noten lesen 1, 2, 4, 6, 7, 9, 11, 13; Notenwerte 1, 4, 6, 8; Intervalle 1, 3, 5, 8; Tonleitern 1, 2, 4, 6, 8, 10, 12");
     assert.ok(without > 0);
   } finally { stop(); mock.timers.reset(); }
 }));
@@ -1155,7 +1161,7 @@ test("makeMixed: Anzahl je Stufe, q.from, prev und ctx.round innerhalb der Stufe
 
 test("makeMixed mit echten Stufen: 4 + 3 + 3 aus drei Paketen, jede Aufgabe stellbar", () => {
   for (let k = 0; k < 20; k++) {
-    const out = makeMixed(PACKS, [{ id: "noten-7", n: 4 }, { id: "notenwerte-5", n: 3 }, { id: "intervall-4", n: 3 }], { notes: {}, state: fresh() });
+    const out = makeMixed(PACKS, [{ id: "noten-12", n: 4 }, { id: "notenwerte-5", n: 3 }, { id: "intervall-4", n: 3 }], { notes: {}, state: fresh() });
     assert.equal(out.length, 10);
     for (let i = 1; i < out.length; i++) assert.notEqual(out[i].from.id, out[i - 1].from.id);
     assert.ok(out.every((q) => q.svg && q.from && q.fromPack.levels.includes(q.from)));
@@ -1188,7 +1194,7 @@ test("Gemischte Runde: jede Eingabeart im Wechsel (Buchstaben, Namensraster, Aus
   try {
     const items = [
       mixedItem("noten-3"),
-      mixedItem("noten-7"),
+      mixedItem("noten-12"),
       mixedItem("notenwerte-5"),
       mixedItem("intervall-2"),
       mixedItem("intervall-4", (q) => q.steps && q.steps.length === 2),
@@ -1225,9 +1231,9 @@ test("Gemischte Runde: jede Eingabeart im Wechsel (Buchstaben, Namensraster, Aus
     assert.equal(handleKey(key(items[0].answer.letter.toLowerCase(), { preventDefault() {} })), true);
     assert.equal(state.answered, 1); assert.equal(state.correct, 1);
     advance(ui);
-    // 2. noten-7: Namensraster, Name tippen und Enter
+    // 2. noten-12: Namensraster, Name tippen und Enter
     assert.equal(ui.count.textContent, "2 / 8");
-    assert.equal(ui.origin.textContent, "Noten lesen · Stufe 7");
+    assert.equal(ui.origin.textContent, "Noten lesen · Stufe 12");
     expectLetters(true);
     for (const ch of gName(N(items[1].answer.letter, 4, items[1].answer.acc)).toLowerCase()) assert.equal(handleKey(key(ch, { preventDefault() {} })), true);
     assert.equal(handleKey(key("Enter", { preventDefault() {} })), true);
@@ -1288,7 +1294,7 @@ test("Gemischte Runde: jede Eingabeart im Wechsel (Buchstaben, Namensraster, Aus
     assert.equal(res.gained, 70, "„grundlagen“: 10 je richtige Antwort, kein Bonus");
     assert.equal(res.stars, undefined);
     assert.deepEqual(res.perLevel, [
-      { id: "intervall-2", n: 1, ok: 1 }, { id: "noten-3", n: 2, ok: 2 }, { id: "noten-7", n: 1, ok: 1 },
+      { id: "intervall-2", n: 1, ok: 1 }, { id: "noten-3", n: 2, ok: 2 }, { id: "noten-12", n: 1, ok: 1 },
       { id: "notenwerte-5", n: 2, ok: 1 }, { id: "intervall-4", n: 1, ok: 1 }, { id: "intervall-9", n: 1, ok: 1 },
     ]);
     assert.deepEqual(res.log.map((e) => e.id), items.map((q) => q.from.id));
@@ -1309,7 +1315,7 @@ test("Gemischte Runde mit Vorliebe „Klaviatur“: Klaviatur bei Buchstaben-Stu
   setMuted(true);
   mock.timers.enable({ apis: ["setTimeout"] });
   try {
-    const items = [mixedItem("noten-3"), mixedItem("notenwerte-5"), mixedItem("noten-7"), mixedItem("intervall-9")];
+    const items = [mixedItem("noten-3"), mixedItem("notenwerte-5"), mixedItem("noten-12"), mixedItem("intervall-9")];
     const ui = mixedUi(), state = fresh();
     state.input = "keys";
     let res = null;
@@ -1326,7 +1332,7 @@ test("Gemischte Runde mit Vorliebe „Klaviatur“: Klaviatur bei Buchstaben-Stu
     assert.ok(ui.answers.classList.contains("choices"));
     clickChoice(ui, items[1].answer);
     advance(ui);
-    // noten-7: Klaviatur (Name tippen geht weiterhin), Zeile für den getippten Namen sichtbar
+    // noten-12: Klaviatur (Name tippen geht weiterhin), Zeile für den getippten Namen sichtbar
     assert.equal(ui.answers.hidden, true); assert.equal(ui.piano.hidden, false); assert.equal(ui.typed.hidden, false);
     ui.piano.onclick({ target: keyRect(items[2]) });
     assert.equal(state.correct, 3);

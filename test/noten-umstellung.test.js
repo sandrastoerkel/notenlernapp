@@ -1,6 +1,5 @@
 // Welle 12, Schritt 1: Umstellung „Noten lesen“ von 8 auf 15 Stufen (migrateNoten, PLAN Welle 12, Abschnitt 10).
-// Die Umstellung ist in diesem Schritt noch nicht in migrateAll und fresh() (das Paket hat noch die alten Nummern):
-// Getestet wird gegen Stummel des alten (8 Stufen der Reihe nach) und des neuen Pakets (15 Stufen der Reihe nach,
+// Seit Schritt 2 eingeschaltet (fresh() trägt den Marker, migrateAll ruft migrateNoten). Getestet wird gegen Stummel des alten (8 Stufen der Reihe nach) und des neuen Pakets (15 Stufen der Reihe nach,
 // Hilfen in 1, 2, 4, 6, 7, 9, 11, 13). Die fünf Zusagen aus Abschnitt 10 über alle Zustände, nicht über Beispiele.
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -66,8 +65,8 @@ test("Umstellung Noten: Tabellen wie im Plan", () => {
     assert.ok(NEW_IDS.has(b));
     assert.ok(DRAN_NOTEN[nr(a)] >= nr(b), `dran ${nr(a)} öffnet ${b}`);
   }
-  // noch nicht eingeschaltet: fresh() trägt den Marker nicht (Schritt 2)
-  assert.ok(!fresh().migrated.includes(MIGRATION_NOTEN));
+  // seit Schritt 2 eingeschaltet: ein frischer Stand trägt den Marker (er braucht die Umstellung nicht)
+  assert.ok(fresh().migrated.includes(MIGRATION_NOTEN));
 });
 
 test("Zusage 1: Sterne, beste Runde und Runden bleiben – alle 3⁸ Stände", () => {
@@ -253,8 +252,8 @@ test("Zusage 4: Jahrgang – dran.noten und Marke 0 … 8 nach DRAN_NOTEN, die a
   assert.equal(s.klasseOffen.noten, "x");
 });
 
-// Reihenfolge, in der Schritt 2 migrateAll baut (Abschnitt 10): drei Umbenennungen, migrateNoten, migrateWiederholen,
-// migrateKlasseOffen. Hier von Hand, solange migrateNoten nicht eingeschaltet ist.
+// Reihenfolge von migrateAll (Abschnitt 10): drei Umbenennungen, migrateNoten, migrateWiederholen,
+// migrateKlasseOffen. Hier von Hand nachgebaut; dass migrateAll dieselbe Folge hat, prüft test/noten-paket.test.js.
 function kette(s, ids = NEW_BOX) {
   const r = [migrateIntervalle(s), migrateTonleitern(s), migrateNotenwerte(s), migrateNoten(s), migrateWiederholen(s, ids, HEUTE, 0), migrateKlasseOffen(s)];
   return r.some(Boolean);
@@ -353,13 +352,13 @@ test("Zusage 5: Stand vor Welle 7, vor Welle 11, frischer Stand – Kette in der
   assert.equal(UMSTELLUNG_JE_TAG, 3);
   for (const id of Object.keys(w.rep)) assert.ok(inBox(NEW.levels.find((l) => l.id === id)));
 
-  // frischer Stand (nach Schritt 2 mit Marker): die Kette ändert nichts
-  const f = fresh(); f.migrated = [...f.migrated, MIGRATION_NOTEN];
+  // frischer Stand (seit Schritt 2 mit Marker): die Kette ändert nichts
+  const f = fresh();
   const vor = JSON.stringify(f);
   assert.equal(kette(f), false);
   assert.equal(JSON.stringify(f), vor);
-  // frischer Stand heute (noch ohne Marker): nur der Marker kommt dazu
-  const g = fresh();
+  // Stand ohne Fortschritt von vor Welle 12 (ohne Marker): nur der Marker kommt dazu
+  const g = oldState();
   kette(g);
   assert.deepEqual({ ...g, migrated: null }, { ...fresh(), migrated: null });
   assert.ok(g.migrated.includes(MIGRATION_NOTEN));
