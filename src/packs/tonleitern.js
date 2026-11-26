@@ -1120,7 +1120,8 @@ const levels = [
     title: "Parallele Molltonart",
     twoSteps: true,
     subtitle: `Violinschlüssel · zwei Schritte · mit Hilfen · ${FIFTHS.length} Molltonarten`,
-    hint: "Zwei Schritte:\n1. Terz abwärts: drei Notenstufen, der Dur-Grundton zählt als 1 (Es, D, C). Das ergibt den Stammton.\n2. Drei Halbtöne abwärts: So bekommt der Stammton sein Vorzeichen.\nZusammen ist das eine kleine Terz abwärts.\nStammton = Note ohne Vorzeichen. Moll wird klein geschrieben.",
+    // Sandra (26.11.2026): leicht gekürzt, damit der erste Knopf bei 320 × 640 im ersten Bildschirm steht
+    hint: "Zwei Schritte:\n1. Terz abwärts: drei Notenstufen, der Dur-Grundton zählt als 1 (Es, D, C). Das ergibt den Stammton.\n2. Drei Halbtöne abwärts: So bekommt er sein Vorzeichen.\nZusammen: kleine Terz abwärts. Stammton = Note ohne Vorzeichen. Moll wird klein geschrieben.",
     items: ITEMS_12,
     example: keySvg({ clef: "treble", fifths: -3 }),
     question(prev, ctx) { return minorStepQuestion(pickKey(ITEMS_12, prev, adaptOf(ctx, minorStat))); },

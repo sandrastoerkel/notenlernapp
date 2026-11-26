@@ -604,7 +604,9 @@ const levels = [
   {
     title: "Rein, klein, groß",
     subtitle: `Violinschlüssel · zwei Schritte · mit Hilfen · ${POOL_3.length} Aufgaben`,
-    hint: "Zwei Schritte:\n1. Grobbestimmung = nur die Zahl: Prime, Sekunde, Terz … – aus den Notenstufen.\n2. Feinbestimmung = rein, klein oder groß – aus den Halbtönen.\nRein sind hier Prime, Quarte, Quinte, Oktave.\nKlein oder groß: Sekunde, Terz, Sexte, Septime.",
+    // Sandra (26.11.2026): die beiden Familien in einer Zeile, damit der erste Knopf bei 320 × 640 im ersten
+    // Bildschirm steht (Wortlaut unverändert)
+    hint: "Zwei Schritte:\n1. Grobbestimmung = nur die Zahl: Prime, Sekunde, Terz … – aus den Notenstufen.\n2. Feinbestimmung = rein, klein oder groß – aus den Halbtönen.\nRein sind hier Prime, Quarte, Quinte, Oktave. Klein oder groß: Sekunde, Terz, Sexte, Septime.",
     items: POOL_3,
     example: intervalSvg(find(POOL_3, N("E", 4), N("G", 4))),
     twoSteps: true,

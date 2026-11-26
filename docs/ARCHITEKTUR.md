@@ -893,7 +893,8 @@ Startseite (`src/views/home.js`, seit Welle 11, Schritt 8 und 12; reine Teile ge
   Fähigkeit ohne Klammerzusatz), der ihre Startkarte öffnet (J-C1). Empfehlung aus `repeat.basicsOffer` (nie
   gespielt, wieder dran oder zuletzt unter 8 von 10), Grund `reasonText`: „Tipp: „Noten mit Vorzeichen“
   hast du in der App noch nicht geübt.“ (Wortlaut Sandra, 26.11.2026). Nie Pflicht. `ueberlauf.mjs` misst die Lage
-  der Knöpfe auf sechs Startkarten (`startCards`).
+  der Knöpfe auf sechs Startkarten (`startCards`); bei 320 × 640 mit Empfehlung beginnt der erste Knopf auf
+  Intervalle 3 und Tonleitern 12 im ersten Bildschirm (geprüft, `FIRST_SCREEN_320`), Tonleitern 10 nicht (641 px).
 - Ergebniskarte der normalen Runde: Satz `engine.resultMessage(stars, { correct, total, short })` (10 von 10
   „Stark, alles richtig.“; mit Fehlermuster oder „Grundlagen wiederholen“ zuerst nur der erste Teil, z. B. „Noch
   wacklig.“), dazu `repeatNote` (Karteikasten über `repeat.afterRound`: „Geschafft – kommt morgen zum Wiederholen

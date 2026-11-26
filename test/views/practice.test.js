@@ -387,8 +387,8 @@ test("Startkarte: Knöpfe direkt unter dem Hinweis, „Dafür brauchst du“ und
 });
 
 // Sandra (26.11.2026, „Offen für Sandra“ 20): Startkarte Tonleitern 10 mit der Reihenfolge der Vorzeichen zum
-// Aufklappen
-test("Startkarte: Zusatz zum Aufklappen nur in Tonleitern 10", () => {
+// Aufklappen; Intervalle 3 und Tonleitern 12 leicht gekürzt, die Strategie bleibt (ueberlauf.mjs misst die Lage)
+test("Startkarte: Zusatz zum Aufklappen nur in Tonleitern 10, Hinweise Intervalle 3 und Tonleitern 12 gekürzt", () => {
   const withMore = PACKS.flatMap((p) => p.levels).filter((l) => startMore(l, {})).map((l) => l.id);
   assert.deepEqual(withMore, ["tonleitern-10"]);
   assert.equal(startMore({ hint: "H." }), null);
@@ -400,6 +400,13 @@ test("Startkarte: Zusatz zum Aufklappen nur in Tonleitern 10", () => {
     && src.includes("p.textContent = more.text;") && !/innerHTML = [^;\n]*more\b/.test(src));
   const css = readFileSync(new URL("../../css/style.css", import.meta.url), "utf8");
   assert.match(css, /\.hint-more > summary \{[^}]*min-height: 44px/);
+  const tl = PACKS.find((p) => p.id === "tonleitern"), I3 = startHint(lv(intervalle, 3)), T12 = startHint(tl.levels[11]);
+  assert.equal(I3, "Zwei Schritte:\n1. Grobbestimmung = nur die Zahl: Prime, Sekunde, Terz … – aus den Notenstufen.\n"
+    + "2. Feinbestimmung = rein, klein oder groß – aus den Halbtönen.\n"
+    + "Rein sind hier Prime, Quarte, Quinte, Oktave. Klein oder groß: Sekunde, Terz, Sexte, Septime.\nBeide Schritte müssen stimmen.");
+  assert.equal(T12, "Zwei Schritte:\n1. Terz abwärts: drei Notenstufen, der Dur-Grundton zählt als 1 (Es, D, C). Das ergibt den Stammton.\n"
+    + "2. Drei Halbtöne abwärts: So bekommt er sein Vorzeichen.\n"
+    + "Zusammen: kleine Terz abwärts. Stammton = Note ohne Vorzeichen. Moll wird klein geschrieben.\nBeide Schritte müssen stimmen.");
 });
 
 // Korrektur nach der Prüfung Welle 11 (J-B6, L-B4, W-B3): „Grundlagen wiederholt“ führt zur schwachen Grundlage

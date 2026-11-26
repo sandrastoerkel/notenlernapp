@@ -312,10 +312,15 @@ async function selftest(browser) {
 // - Reihenfolge: nach dem Hinweis (mit Empfehlung nach deren Satz) kommen sofort die Knöpfe, „Dafür brauchst du“ und
 //   der Tastatur-Hinweis erst danach; zwischen zwei Teilen höchstens der Abstand der Karte;
 // - erster Bildschirm: Auf den Karten, deren Startknopf schon auf main 2f3dfe8 bei 320 px im ersten Bildschirm lag
-//   (FIRST_SCREEN), liegt der erste Knopf ganz darin, ohne Empfehlung auch „Runde starten“.
+//   (FIRST_SCREEN), liegt der erste Knopf ganz darin, ohne Empfehlung auch „Runde starten“;
+// - seit Sandras Entscheidung (26.11.2026, „Offen für Sandra“ 20, Hinweise leicht gekürzt): Bei 320 px beginnt der
+//   erste Knopf auch auf Intervalle 3 und Tonleitern 12 mit Empfehlung im ersten Bildschirm (FIRST_SCREEN_320,
+//   oberer Rand unter der Grenze). Tonleitern 10 (Reihenfolge der Vorzeichen zum Aufklappen) erreicht das ohne
+//   Verlust an Inhalt nicht; seine Lage steht nur in der Ausgabe.
 // Die Lage des ersten Knopfs und von „Runde starten“ steht in der Ausgabe (zum Vergleich mit dem Bericht).
 const START_CARDS = ["intervall-3", "tonleitern-10", "tonleitern-12", "noten-7", "notenwerte-6", "akkorde-1"];
 const FIRST_SCREEN = ["notenwerte-6", "akkorde-1"];
+const FIRST_SCREEN_320 = ["intervall-3", "tonleitern-12"];
 // läuft in der Seite: Teile der Startkarte in ihrer Reihenfolge, Lage im Dokument und Grenze des ersten Bildschirms
 const INTRO = () => {
   const parts = [...document.querySelectorAll("#pIntro > *")].filter((e) => !e.hidden && e.getBoundingClientRect().height > 0)
@@ -348,6 +353,7 @@ async function startCards(browser, width, scheme) {
         if (parts[first].bottom > lim) errs.push(`${where}: erster Knopf nicht ganz im ersten Bildschirm (${parts[first].bottom} > ${lim})`);
         if (!mit && start.bottom > lim) errs.push(`${where}: „Runde starten“ nicht ganz im ersten Bildschirm (${start.bottom} > ${lim})`);
       }
+      if (width === 320 && FIRST_SCREEN_320.includes(id) && parts[first].top >= lim) errs.push(`${where}: erster Knopf beginnt nicht im ersten Bildschirm (${parts[first].top} ≥ ${lim})`);
       row.push(`${id} ${parts[first].top}${parts[first].id === "pStart" ? "" : `/${start.top}`}`);
     }
     lines.push(`  Startkarten ${width} × 640 ${mit ? "mit" : "ohne"} Empfehlung (oberer Rand erster Knopf[/„Runde starten“], erster Bildschirm bis 580 px): ${row.join(", ")}`);
