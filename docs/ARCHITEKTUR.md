@@ -763,6 +763,10 @@ Stufen-ID.
   nach `DELAY_STEP_OK` = 700 ms `steps[1]` mit dessen `prompt`; Schritt 1 daneben → seit Welle 10 **kein
   Zeitgeber**: `#pNext` erscheint mit der Aufschrift „Weiter zu Schritt 2“ (`NEXT_STEP`; Knopf, Enter oder
   Leertaste), danach heißt er wieder „Nächste Aufgabe“ (`DELAY_STEP_BAD` und `DELAY_BAD` gibt es in `engine.js` nicht mehr; „Blitz“ hat sein eigenes `DELAY_BAD` in `views/blitz.js`).
+  Korrektur nach der Prüfung Welle 12: Nach dem Weitergehen über `#pNext`, Enter, Leertaste oder den Knopf am Ende
+  der Vorführung zählt `SWITCH_GUARD` = 380 ms lang keine Antwort (Doppeltipp, J-B2; `isGuarded()` für die
+  Browser-Skripte). Erscheint `#pNext` nicht ganz im Bild (Fensterrand, unteres Menü), rollt `revealNext` ihn hinein
+  (`block: "nearest"`, `scroll-margin-bottom` in `style.css`, ohne Bewegung bei „Bewegung reduzieren“, J-B1).
   Erst nach dem letzten Schritt zählt die Aufgabe, einmal, und nur richtig, wenn alle Schritte stimmen
   (Statistik, Sterne, XP, `statKey` wie bisher). Rückmeldung `stepsFeedback(q, oks)`: alles richtig
   `Richtig! ${display}`, nur der erste Schritt daneben `q.partial` (falls gesetzt), sonst `q.reveal`.
@@ -977,7 +981,10 @@ Startseite (`src/views/home.js`, seit Welle 11, Schritt 8 und 12; reine Teile ge
   Grundlagen dazu findest du in Noten lesen, Stufe 5.“) und darunter genau ein Hauptknopf („Grundlagen
   wiederholen“ mit nur den Grundlagen des Musters, bzw. „Stufe 3 mit Hilfen üben“, `openLabel`), dazu nur
   „Nochmal“ und „Übersicht“. Ohne Muster unter 5 Richtigen (`BASICS_BELOW`) „Grundlagen wiederholen“ mit allen
-  Voraussetzungen zuerst, sonst „Nochmal“, „Stufe n“ (wenn offen), „Übersicht“.
+  Voraussetzungen zuerst, sonst „Nochmal“, „Stufe n“ (wenn offen), „Übersicht“. Rückweg zum Gerüst (Korrektur
+  nach der Prüfung Welle 12, W-B3): Stufe ohne Hilfen unter 8 Richtigen (`HELP_BELOW`), Stufe davor mit Hilfen →
+  `helpOffer` („Stufe 11 mit Hilfen üben“, wie `practiceOffer`) als Hauptknopf, kurzer Ergebnissatz, höchstens drei
+  Knöpfe; Reihenfolge und Wegfall („Stufe n“, dann „Übersicht“) in `resultActions`.
 - Ergebniskarte „Wiederholen“: je Stufe `reviewLine` mit der Zahl der Richtigen („Noten lesen 12 · 4 von 4 · ✓ sitzt
   · wieder in 7 Tagen“, „Notenwerte 5 · 2 von 3 · ↻ fast · morgen noch einmal“, „… · ↻ noch wacklig · …“;
   `verdictText`, `URTEIL_TEXT`; Zeichen `aria-hidden`, nicht rot), nur bei „noch wacklig“ ein Knopf
@@ -1360,7 +1367,9 @@ in Sekunden, `timed` deren Anzahl, `last` der Tag der letzten Antwort
 (`today()`). Jede Zeit zählt höchstens 10 s (`ZEIT_DECKEL`). `hist` ist ein
 Text aus den letzten 12 Ergebnissen (`"1"` richtig, `"0"` falsch, neueste
 hinten), `hsec` die letzten 12 gemessenen Zeiten richtiger Antworten. Blitz
-zählt keine Zeit. Ältere Einträge haben nur `{ ok, bad }`;
+zählt keine Zeit, ebenso Aufgaben mit Schritten (`q.steps`, seit der Korrektur
+nach der Prüfung Welle 12, W-B2: die Zeit enthielte zwei Antworten und die
+Pause `DELAY_STEP_OK`). Ältere Einträge haben nur `{ ok, bad }`;
 fehlende Felder gelten als 0 bzw. `null`, deshalb ist keine Migration nötig
 und der Schlüssel bleibt `notenheld.v2`.
 
