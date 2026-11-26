@@ -3191,6 +3191,26 @@ auf die Startseite; `setKlasse` nur mit Ergebnissen von `parseLink` aufrufen (Sc
   auf weiß; der gescannte Link öffnet die App mit der Bestätigung; offline (Netz aus, nach erstem Laden)
   erscheint der QR-Code weiter.
 
+**Umgesetzt (25.11.2026, Opus):** Commit 094fb13. `src/views/lehrkraft.js` (Anrede „Sie“, setzt nichts auf dem Gerät:
+kein `ctx.state`, kein `ctx.save`, kein `localStorage` – als Test und im Browser geprüft), Ansicht über `#lehrkraft`
+und den Textlink am Ende der Statistik; „Zurück zur App“ und jeder andere Ansichtswechsel nehmen `#lehrkraft` aus
+der Adresszeile. Reine Teile `optionsFor`, `linkFor` (über `klasse.buildLink`, nur Abweichungen), `removeLinkFor`,
+`presetForm`, `isPreset`, `qrLabel` („QR-Code für Jahrgang 6“), `qrHtml`, `baseOf`. QR-Code für die Klasse mit 8 px
+je Modul, Code zum Entfernen mit 6 px (kleiner), beide mit Ruhezone; Tokens `--qr-dark`/`--qr-light` nur auf dem
+hellen `:root` (dunkel gleich, Test in `css.test.js`). „QR-Code groß zeigen“ als `<dialog id="qrBig">` (füllt die
+Breite, Esc bzw. „Schließen“, Fokus zurück auf den Knopf). Startseite mit Jahrgang: `homeSections` (Hinweis, „Jetzt
+dran“ mit Paket-Kurzname in der Unterzeile, „Schon dran gewesen“ je Paket, „Darüber hinaus“ zugeklappt), „Weiter
+üben“ und „Erst anschauen“ über `continueId` (= `klasse.nextUp`, sonst aktuelle Stufe); ohne Jahrgang dieselbe
+Ausgabe wie nach Schritt 8. Statistik: „Jahrgang 6 (über den Link deiner Lehrkraft)“ und Textlink. Fehlermuster-Satz
+und Knopf „… öffnen“ mit `packShort`. Leser der QR-Tests nach `test/qrleser.js` ausgelagert (dazu `svgModule`:
+Module aus dem SVG). `PRECACHE` um die Ansicht ergänzt (Cache bleibt -13). Entscheidungen: Die Seite beginnt immer
+mit Jahrgang 5 (nicht mit der Einstellung des Geräts); Wechsel von Jahrgang oder „Musisches Gymnasium“ setzt die
+Auswahl auf die Voreinstellung, der Knopf „Voreinstellung für Jahrgang n“ ist nur bei eigener Auswahl aktiv; bei
+leerem „Jetzt dran“ unterscheidet die Seite „In Jahrgang 9 kommt nichts Neues dazu …“ von „Was in Jahrgang 7 neu
+ist, hast du mit 8 von 10 geschafft …“. Rücklesen der Codes aus der Seite (kurz V3, lang V6 bei `localhost`;
+mit der GitHub-Adresse im Test ab V7) mit dem Testleser und mit OpenCV WeChat: alle gleich dem Link. 518 Tests grün,
+Überlauf 0 bei 320 und 420 px. Offen für Sandra: Handy-Scan (8.14).
+
 #### Schritt 13 – Doku, Cache, Bildschirmfotos, Überlauf, Lauf über 40 Tage
 
 - Doku: `docs/ARCHITEKTUR.md` (neue Module `repeat.js`, `klasse.js`, `qr.js`, `views/lehrkraft.js`; Engine:
