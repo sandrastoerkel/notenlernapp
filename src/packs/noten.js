@@ -234,7 +234,8 @@ const H_VZ = "Lies erst den Stammton (die Note ohne Vorzeichen), dann das Zeiche
 const helps = (helpsTitle, helpText, helpTable) => ({ helps: ["tabelle"], helpsTitle, helpText, helpTable });
 const mkLinien = (clef) => helps("Hilfen: Merkspruch für die Linien", H_LINIEN, (c) => merkleiste(clef, "linien", c && c.state));
 const mkRaeume = (clef) => helps("Hilfen: Merkspruch für die Zwischenräume", H_RAEUME, (c) => merkleiste(clef, "raeume", c && c.state));
-const mkAussen = () => helps("Hilfen: Notennamen der Reihe nach", H_AUSSEN, () => namensleiste());
+// Namensleiste mit der Zeile „Linien von unten: <Merkspruch>“ des Schlüssels (noten-hilfen.js, Schritt 4)
+const mkAussen = (clef) => helps("Hilfen: Notennamen der Reihe nach", H_AUSSEN, (c) => namensleiste(clef, c && c.state));
 const mkVz = () => helps("Hilfen: Vorzeichen", H_VZ, () => vorzeichenRegel());
 
 // Vorführungen (PLAN Abschnitt 4; Gerüst bis Schritt 5): q ist die eben gelöste Aufgabe
@@ -255,7 +256,7 @@ const RAW = [
   { clef: "treble", title: "Zwischenräume im Violinschlüssel", items: VORRAT.violinRaeume, ...mkRaeume("treble"), ...D_LAGE, ...K_RAEUME,
     hint: (c) => `Zähle die Zwischenräume von unten. Die vier Zwischenräume von unten nach oben: F A C E. Merkspruch: „${merk(c, "violin-raeume")}“.` },
   { clef: "treble", title: "Violinschlüssel: Linien und Zwischenräume", items: VORRAT.violinZeile, hint: ZEILE_HINT },
-  { clef: "treble", title: "Violinschlüssel: über und unter der Zeile", items: VORRAT.violinAussen, ...mkAussen(), ...D_ZAEHLEN,
+  { clef: "treble", title: "Violinschlüssel: über und unter der Zeile", items: VORRAT.violinAussen, ...mkAussen("treble"), ...D_ZAEHLEN,
     hint: "Neu sind vier Noten außerhalb der Zeile. Nimm die nächste Linie der Zeile als Bezugston und zähle von dort weiter: Jede Stelle ist ein Notenname weiter. Das c' liegt auf einer Hilfslinie unter der Zeile." },
   { clef: "treble", title: "Violinschlüssel mit Hilfslinien", items: VORRAT.violin,
     hint: "Alle Noten von c' bis a'' gemischt, jetzt ohne Hilfen. Das c' liegt auf einer Hilfslinie unter der Zeile." },
@@ -264,7 +265,7 @@ const RAW = [
   { clef: "bass", title: "Zwischenräume im Bassschlüssel", items: VORRAT.bassRaeume, ...mkRaeume("bass"), ...D_LAGE, ...K_RAEUME,
     hint: (c) => `Zähle die Zwischenräume von unten. Die Zwischenräume von unten: A C E G. Merkspruch: „${merk(c, "bass-raeume")}“.` },
   { clef: "bass", title: "Bassschlüssel: Linien und Zwischenräume", items: VORRAT.bassZeile, hint: ZEILE_HINT },
-  { clef: "bass", title: "Bassschlüssel: über und unter der Zeile", items: VORRAT.bassAussen, ...mkAussen(), ...D_ZAEHLEN,
+  { clef: "bass", title: "Bassschlüssel: über und unter der Zeile", items: VORRAT.bassAussen, ...mkAussen("bass"), ...D_ZAEHLEN,
     hint: "Neu sind vier Noten außerhalb der Zeile. Nimm die nächste Linie der Zeile als Bezugston und zähle von dort weiter: Jede Stelle ist ein Notenname weiter. Das c' liegt auf einer Hilfslinie über der Zeile, das E auf einer Hilfslinie darunter." },
   { clef: "bass", title: "Bassschlüssel mit Hilfslinien", items: VORRAT.bass,
     hint: "Das c' liegt im Bassschlüssel auf einer Hilfslinie über der Zeile, das E ganz unten." },
