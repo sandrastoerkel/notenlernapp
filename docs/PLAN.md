@@ -3326,6 +3326,84 @@ alle 26 gehören zum genannten Schritt (Umsetzung bzw. Prüfung). `sw.js`: Cache
 - Hinweis an den Koordinator: Schritt 3 hat im PLAN keinen Prüfvermerk und keinen Prüf-Commit; `CLAUDE.md` nennt
   „Schritte 0–12 umgesetzt und geprüft“.
 
+**Umgesetzt (13b: Browser-Skripte; 26.11.2026, Opus):** Commits 632977c (App-Korrektur) und b5b348c (Skripte), auf
+`wiederholen-11` zusammengeführt als d793200; 521 Tests grün.
+- `docs/screens/spiel.mjs` (neu): gemeinsame Bausteine – Playwright laden (eigener Browser über `CHROME=…`),
+  Spielstand und fester Zufall per `addInitScript`, `HOLD_TIMERS` (hält das Weitergehen nach „Richtig!“ für ein
+  Foto an), Aufgabe gezielt richtig oder daneben je Schritt (auch Teilerfolg) über `engine.currentQuestion`, `goOn`,
+  `playRound`.
+- `docs/screens/pruefung.mjs` (neu): 141 Ansichten × 2 = 282 Bilder und 197 Teilbilder langer Seiten, 0 Fehler,
+  etwa 6 Minuten; Ausgabe `/tmp/notenheld-pruefung-w11/` (`420-hell/`, `320-dunkel/`, `*/teile/`, `index.md`).
+  Entscheidungen: „ganze Seite“ heißt, das Fenster wächst auf die Höhe der Seite (mit `fullPage` stand die feste
+  untere Leiste mitten über dem Inhalt); lange Seiten zusätzlich in Teilen zu 1200 px; Dialoge nur als Bildschirm
+  (900 px hoch); Uhr fest 26.11.2026, 10:00 Uhr Europe/Berlin, `SEED` 7; Spielstände mit erfundenen Zahlen, im
+  Index vermerkt. Über den Plan hinaus: die Gründe der Empfehlung (Grundlage fällig, zuletzt unter 8 von 10),
+  Lehrkraft-Seite mit Jahrgang 6 und Musischem Gymnasium, Blitz, erste Aufgabe jeder Stufe.
+- `docs/screens/ueberlauf.mjs`: neu die Überlappung innerhalb einer Zeile (Textzeilen und kleine Bildelemente je
+  Ebene – Seite, fest stehende Leisten, offener Dialog –, Toleranz 1 px, mit Text mindestens die halbe
+  Zeilenhöhe, SVG nur mit SVG; nicht gezählt: Größe null, `aria-hidden`, Marken mit negativem Abstand, von
+  Rollbereichen abgeschnittene Teile) und ein Selbsttest vor jedem Lauf (`--selftest`: findet die alte Regel
+  `min-width: 0` der Statistik und ein verschobenes Wort, meldet Marke, `aria-hidden`, Größe null und den Dialog
+  nicht). Neu besucht: Startkarten ohne Empfehlung, Statistik mit Jahrgang. Abweichung: Die Antworten waren vorher
+  nicht wirklich abwechselnd richtig und daneben (geprüft wurde gegen die zuletzt erzeugte Aufgabe, die Runde
+  erzeugt zehn im Voraus), jetzt gegen die aktuelle Aufgabe; Lauf 11,5 statt über 20 Minuten. Ergebnis: 0 Treffer
+  bei 320 und 420 px, 0 Konsolenfehler.
+- `docs/screens/uhr40.mjs` (neu): Kuala Lumpur und Berlin „wie erwartet“; Runden an den Tagen 1, 4, 5, 8, 11, 27
+  wie in `test/repeat.sim.test.js`; am Ende Noten lesen 3 und Intervalle 2 in Fach 5 (fällig an Tag 57),
+  Notenwerte 5 in Fach 4 (fällig an Tag 41); 119 Prüfungen je Zone, etwa 106 s; keine offene Stufe ging zu;
+  Gegenprobe mit falscher Erwartung endet mit Code 1. Entscheidungen: Tag 0 um 23:30 Uhr UTC (örtlich schon der
+  25.11.: Kuala Lumpur 7:30 Uhr, Berlin 0:30 Uhr); je Zone dieselbe Geschichte mit Ferien und dem Fehler an Tag 4;
+  in den Ferien wird die Karte angesehen, nicht gespielt; die Stufen vor den drei des Laufs gelten als früher
+  geschafft (ohne Eintrag im Kasten).
+- `docs/screens/screenshots.mjs`: feste Uhr, fester Zufall, Stand mit Jahrgang 6 und Karte „Heute“ („Wiederholen“);
+  README-Bilder neu (Start, Üben, Lernen; Blitz und Statistik ohne sichtbare Änderung).
+- App-Korrektur 632977c, gefunden von der neuen Prüfung: In der Notenkarte der Statistik überlappten bei 320 px zwei
+  „100 %“ um 2,1 px. Bis 360 px rückt `.heat-row` 8 px in den Innenrand der Karte, die Quote ist etwas kleiner
+  (.92em); Abstand jetzt 1,9 px (320) bis 6 px (360); `test/css.test.js` rechnet nach.
+- Hinweis ohne Änderung: Die Tippflächen der Notenkarte überlappen bei 320 und 412 px um etwa 2 px (nur die Fläche,
+  nicht der Text). Die Doku (ARCHITEKTUR, README, CLAUDE.md) nannte die neuen Skripte noch nicht.
+
+**Geprüft (26.11.2026, Opus statt Fable): bestanden nach Korrektur** (Commits e92e080, 2374266, c572fe3 und dieser
+Vermerk). 522 Tests grün.
+- Abgleich mit der Liste oben: `pruefung.mjs` hatte jede genannte Ansicht (Startseite in allen Zuständen;
+  Startkarten der vier Pflicht-Stufen mit und ohne Empfehlung; Runden „Wiederholen“ mit Namensraster,
+  Auswahlknöpfen, zwei Schritten, Buchstaben und namesOnly, nach „daneben“, Teilerfolg, „sitzt“ und „noch
+  wacklig“; „Grundlagen wiederholen“; Fehlermuster; „Lernen“ je Reiter und Schlüssel; Notenwerte 4–7 mit allen
+  Bildern der Vorführung, die Lerntafel im Reiter „Notenwerte“; Intervalle 3 mit einem Knopf; Lehrkraft-Seite;
+  Dialoge; Statistik). Zwei Lücken ergänzt (2374266): Die Eingabe „Klaviatur“ kam in keinem Skript vor –
+  `spiel.mjs` antwortet jetzt auch auf der Klaviatur, `ueberlauf.mjs` spielt eine dritte Runde „Wiederholen“ mit
+  Klaviatur und prüft je Aufgabe die Eingabeart (Tasten genau bei Buchstaben-Stufen ohne namesOnly, dann keine
+  Antwortknöpfe), `pruefung.mjs` fotografiert sie; „jede Startkarte mit ‚Dafür brauchst du‘“: jetzt alle 40 Stufen
+  mit Voraussetzungen (bisher die vier Pflicht-Stufen). Neuer Umfang: 181 Ansichten.
+- Überlappungs-Prüfung: Der Selbsttest bildet den Fehler aus Prüfung Schritt 8 (bdfa074, `min-width: 0` an
+  `.level-stat-name`, Statistik bei 320 px) genau nach und findet ihn – die Prüfung hätte ihn gefunden. Gegenprobe
+  mit abgeschalteten Ausschlüssen über Startseite, Statistik (alle Quoten 100 %), alle Reiter von „Lernen“ mit
+  Vorführungen und alle 47 Stufen (Startkarte, Frage, Antwort, Vorführung) bei 320 und 420 px: ohne den Ausschluss
+  `aria-hidden` und ohne den der Marken keine weiteren Treffer; Text gegen SVG nur die gewollten Beschriftungen der
+  Notenkarte; Flächen von Elementen mit Inhalt nur die bekannten 2 px der Tippflächen. Die Ausschlüsse verdecken
+  derzeit also nichts. Blinde Stellen (Text über SVG, Flächen mit Inhalt, Pseudo-Elemente, senkrechtes
+  Abschneiden) stehen jetzt in `docs/ARCHITEKTUR.md`.
+- Läufe: `ueberlauf.mjs --selftest` in Ordnung; `ueberlauf.mjs` voll zweimal (nach der CSS-Korrektur und mit der
+  Runde mit Klaviatur): 0 Treffer bei 320 und 420 px, 0 Fehler, je knapp 12 Minuten. `uhr40.mjs` (mit dem
+  geänderten `spiel.mjs`): beide Zonen wie erwartet, 119 Prüfungen je Zone, 108 s. `pruefung.mjs` zum Schluss neu
+  erzeugt (der Index nennt den Commit).
+- App-Korrektur 632977c: Rechnung und Messung stimmen (1,9 px bei 320). Korrigiert (e92e080): Mit „–“ (noch keine
+  Antworten) war eine Tippfläche nur so breit wie der Name, bei „f“ 9,7 px → `.heat-cell { min-width: 24px }`
+  (WCAG 2.5.8; gemessen mindestens 24 × 35 px, schmale Flächen berühren sich nicht). Die kleinere Quote (9,1 statt
+  9,9 px) galt bis 360 px, also auch für die häufige Breite 360 px, wo sie nicht nötig ist → nur noch bis 340 px
+  (Abstand 341 px: 1,7, 360 px: 3,7, zum Vergleich 412 px: 1,6). Bei 320 px dunkel und 420 px hell angesehen
+  (zweifach vergrößert): lesbar, die Quoten stehen dicht, aber getrennt; der Rahmen der angetippten Note berührt
+  den Text der Nachbarn nicht. `test/css.test.js` rechnet beide Grenzen und die Mindestbreite nach.
+- Erfundene Zahlen: nur in den Spielständen der Skripte (`pruefung.mjs`, `screenshots.mjs`, `uhr40.mjs`), nie in der
+  App. Die README-Bilder zeigen sie; dort steht jetzt, dass es ein vorbereiteter Beispiel-Spielstand mit erfundenen
+  Zahlen ist; `index.md` der Prüfbilder sagt es ausdrücklich.
+- Doku (c572fe3): ARCHITEKTUR (Abschnitt „Browser-Skripte in `docs/screens/`“), README und CLAUDE.md nennen
+  `ueberlauf.mjs` mit Überlappung und `--selftest`, `pruefung.mjs`, `uhr40.mjs` und `spiel.mjs`; CLAUDE.md mit
+  Stand „Schritte 0–13“.
+- Hinweis für die Prüfung aus drei Perspektiven (nicht geändert, schon vor Welle 11 so; Bild
+  `wiederholen-klaviatur-daneben-noten-3`): Nach „daneben“ auf der Klaviatur ist nur die getippte Taste rot, die
+  richtige nicht markiert (die Rückmeldung nennt sie); die Beschriftung der roten Taste ist im Dunklen schwach.
+
 **Spielstände.** Kein Wechsel des Schlüssels (`notenheld.v2`). Neu: `rep`, `klasse`, `basics` und der Marker
 `"wiederholen"`. Stufen-IDs, `statKey`s, Sterne und Freischaltung bleiben; die Einstellung `klasse` öffnet nur.
 Test: alter Stand (ohne die neuen Felder, mit den drei alten Markern) lädt, bekommt einmal die Umstellung und
