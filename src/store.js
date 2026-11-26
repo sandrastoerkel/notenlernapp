@@ -30,6 +30,11 @@ export const fresh = () => ({
   // Jahrgang über den Lehrkraft-Link (Welle 11, Schritt 11): null oder { jahrgang, zweig, dran }. Einstellung der
   // Lehrkraft, kein Fortschritt: bleibt beim Zurücksetzen erhalten.
   klasse: null,
+  // Hochwassermarke zum Jahrgang (Korrektur nach der Prüfung, W-A1): je Paket das höchste „dran bis Stufe n“, das je
+  // übernommen wurde. Wächst nur (setKlasse nimmt das Maximum; clearKlasse und ein niedrigerer Jahrgang lassen sie
+  // stehen), damit eine über den Jahrgang geöffnete Stufe nie wieder zugeht. Gehört zur Einstellung der Lehrkraft wie
+  // klasse: bleibt beim Zurücksetzen erhalten.
+  klasseOffen: {},
   // „Grundlagen wiederholen“ (Welle 11, Schritt 7, repeat.js afterBasics): je Stufe der Tag der letzten
   // Grundlagen-Runde mit höchstens einem Fehler. Fortschritt: wird beim Zurücksetzen gelöscht.
   basics: {},
@@ -149,13 +154,26 @@ export function migrateWiederholen(s, boxIds, heute = today(), offsetMin = new D
   return true;
 }
 
+// Hochwassermarke (W-A1) für Stände, die einen Jahrgang tragen, aber keine (oder eine niedrigere) Marke: die Marke
+// wird auf das aktuelle „dran“ gehoben. Ohne Marker, weil es nichts kaputt machen kann (die Marke wächst nur) und auch
+// einen von Hand gesetzten Stand heilt. Gibt true zurück, wenn sich etwas geändert hat.
+export function migrateKlasseOffen(s) {
+  const k = s && s.klasse && s.klasse.dran && typeof s.klasse.dran === "object" && !Array.isArray(s.klasse.dran) ? s.klasse.dran : null;
+  if (!k) return false;
+  const before = JSON.stringify(s.klasseOffen);
+  raiseKlasseOffen(s, k);
+  return JSON.stringify(s.klasseOffen) !== before;
+}
+
 // Alle Umstellungen in der festen Reihenfolge; jede läuft (nicht mit || verketten, sonst liefe die zweite
 // beim ersten Laden nicht). true, wenn eine etwas geändert hat. migrateNotenwerte fasst nur notenwerte-* an
-// und steht nur der Ordnung halber als dritte; migrateWiederholen kommt zuletzt (braucht die neuen Stufen-IDs).
+// und steht nur der Ordnung halber als dritte; migrateWiederholen kommt nach den Umbenennungen (braucht die neuen
+// Stufen-IDs); migrateKlasseOffen hebt zuletzt die Marke zum Jahrgang (läuft bei jedem Laden, ändert selten etwas).
 export function migrateAll(s, boxIds, heute = today(), offsetMin = new Date().getTimezoneOffset()) {
   const a = migrateIntervalle(s), b = migrateTonleitern(s), c = migrateNotenwerte(s);
   const d = migrateWiederholen(s, boxIds, heute, offsetMin);
-  return a || b || c || d;
+  const e = migrateKlasseOffen(s);
+  return a || b || c || d || e;
 }
 
 const defaultStorage = () => { try { return globalThis.localStorage || null; } catch (e) { return null; } };
@@ -249,12 +267,15 @@ export const unlocks = (pack, levelId) => pack.levels.filter((l) => {
 // tonleitern-7 und -8, auch wenn tonleitern-6 noch nicht geschafft ist).
 // Mit Jahrgang (Welle 11, Schritt 11) ist zusätzlich alles bis „dran“ des Pakets sofort offen, auch die Stufen in
 // „Jetzt dran“ (Entscheidung Sandra 8). Die Regel kommt nur dazu (oder-verknüpft): Der Jahrgang öffnet, er schließt nie.
+// Gelesen wird die Hochwassermarke (klasseOffenBis, W-A1): Was ein Jahrgang einmal geöffnet hat, bleibt offen, auch
+// nach „Jahrgang entfernen“ oder einem niedrigeren Jahrgang. Abschnitte, „Jetzt dran“ und „Weiter üben“ folgen
+// weiter der aktuellen Einstellung (klasse.js sections, nextUp).
 export function isUnlocked(s, pack, levelId) {
   const i = pack.levels.findIndex((l) => l.id === levelId);
   if (i < 0) return false;
   if (s.unlockAll) return true;
   if (((s.levels[levelId] || {}).played || 0) > 0) return true;
-  if ((pack.levels[i].no ?? i + 1) <= klasseDran(s, pack.id)) return true;
+  if ((pack.levels[i].no ?? i + 1) <= klasseOffenBis(s, pack.id)) return true;
   const by = unlockedBy(pack, levelId);
   if (!by) return i === 0 && pack.levels[i].requires === undefined;
   return ((s.levels[by.id] || {}).best || 0) >= 8;
@@ -266,21 +287,47 @@ export function klasseDran(s, packId) {
   return Number.isInteger(n) && n > 0 ? n : 0;
 }
 
+// Hochwassermarke eines Pakets (W-A1): das höchste je übernommene „dran“ (0 ohne Marke oder bei unbrauchbarem Wert)
+export function klasseMarke(s, packId) {
+  const m = s && s.klasseOffen && typeof s.klasseOffen === "object" && !Array.isArray(s.klasseOffen) ? s.klasseOffen[packId] : 0;
+  return Number.isInteger(m) && m > 0 ? m : 0;
+}
+
+// Bis zu welcher Stufe der Jahrgang ein Paket öffnet: das Größere aus Marke und aktueller Einstellung (die Marke
+// trägt die aktuelle Einstellung schon, das Maximum hält auch einen Stand ohne Marke richtig)
+export const klasseOffenBis = (s, packId) => Math.max(klasseMarke(s, packId), klasseDran(s, packId));
+
+// Marke je Paket auf das Maximum aus Marke und dran heben (nur gültige ganze Zahlen ≥ 0; die Marke sinkt nie)
+function raiseKlasseOffen(s, dran) {
+  const m = s.klasseOffen && typeof s.klasseOffen === "object" && !Array.isArray(s.klasseOffen) ? { ...s.klasseOffen } : {};
+  for (const [id, n] of Object.entries(dran || {})) {
+    if (!Number.isInteger(n) || n <= 0) continue;
+    const alt = Number.isInteger(m[id]) && m[id] > 0 ? m[id] : 0;
+    if (n > alt) m[id] = n;
+  }
+  s.klasseOffen = m;
+}
+
 // Jahrgang setzen bzw. entfernen (Welle 11, Schritt 11): die einzigen Stellen, die s.klasse schreiben. app.js ruft
 // sie erst nach der Bestätigung im Dialog auf, mit dem Ergebnis von klasse.parseLink. Fortschritt, Sterne,
 // Erfahrungspunkte und Karteikasten bleiben unberührt. Eine unbrauchbare Einstellung wird abgewiesen (Fehler), der
-// Stand bleibt dann wie er war.
+// Stand bleibt dann wie er war. Beide heben die Hochwassermarke s.klasseOffen (W-A1) auf das Maximum aus Marke,
+// bisheriger und neuer Einstellung: Ein niedrigerer Jahrgang und das Entfernen schließen nichts („Dein Fortschritt
+// bleibt, es schließt sich nichts.“).
 export function setKlasse(s, k) {
   const ok = k && Number.isInteger(k.jahrgang) && k.jahrgang >= 5 && k.jahrgang <= 13
     && (k.zweig === null || k.zweig === undefined || k.zweig === "mug")
     && k.dran && typeof k.dran === "object" && !Array.isArray(k.dran)
     && Object.values(k.dran).every((n) => Number.isInteger(n) && n >= 0);
   if (!ok) throw new Error("Ungültige Einstellung für den Jahrgang");
+  if (s.klasse && s.klasse.dran && typeof s.klasse.dran === "object") raiseKlasseOffen(s, s.klasse.dran);
+  raiseKlasseOffen(s, k.dran);
   s.klasse = { jahrgang: k.jahrgang, zweig: k.zweig ?? null, dran: { ...k.dran } };
   return s;
 }
 
 export function clearKlasse(s) {
+  if (s.klasse && s.klasse.dran && typeof s.klasse.dran === "object") raiseKlasseOffen(s, s.klasse.dran);
   s.klasse = null;
   return s;
 }
@@ -352,11 +399,12 @@ export function recordBlitz(s, score, bestCombo, now = new Date()) {
   return { record, gained };
 }
 
-// Zurücksetzen: Ton, Eingabeart, Merksprüche und der Jahrgang der Lehrkraft (klasse) bleiben erhalten
-// (Einstellungen, kein Fortschritt); der Karteikasten (rep) wird gelöscht.
+// Zurücksetzen: Ton, Eingabeart, Merksprüche, der Jahrgang der Lehrkraft (klasse) und seine Hochwassermarke
+// (klasseOffen) bleiben erhalten (Einstellungen, kein Fortschritt); der Karteikasten (rep) wird gelöscht.
 export const reset = (s) => Object.assign(fresh(), {
   muted: s.muted, input: s.input, sprueche: s.sprueche && typeof s.sprueche === "object" ? s.sprueche : {},
   klasse: s.klasse && typeof s.klasse === "object" ? s.klasse : null,
+  klasseOffen: s.klasseOffen && typeof s.klasseOffen === "object" && !Array.isArray(s.klasseOffen) ? { ...s.klasseOffen } : {},
 });
 
 // Trefferquote in Prozent oder null, wenn noch nichts beantwortet wurde

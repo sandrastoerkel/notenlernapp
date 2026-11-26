@@ -4,7 +4,8 @@ import assert from "node:assert/strict";
 import {
   JAHRGAENGE, DRAN, DRAN_MUG, dranFor, parseLink, buildLink, sameKlasse, klasseText, sections, nextUp, isKlasseLink,
 } from "../src/klasse.js";
-import { fresh, isUnlocked, setKlasse, clearKlasse, reset, recordRound, save, load, KEY_V2 } from "../src/store.js";
+import { fresh, isUnlocked, setKlasse, clearKlasse, reset, recordRound, save, load, KEY_V2, klasseOffenBis,
+  migrateKlasseOffen } from "../src/store.js";
 import { PACKS } from "../src/packs/index.js";
 
 const BASE = "https://sandrastoerkel.github.io/notenlernapp/";
@@ -187,12 +188,14 @@ test("Wechsel 7 → 5 → keine schließt keine gespielte oder nach der übliche
   }
 });
 
-test("setKlasse / clearKlasse: nur klasse ändert sich; unbrauchbare Einstellung wird abgewiesen", () => {
+test("setKlasse / clearKlasse: nur klasse und die Marke ändern sich; unbrauchbare Einstellung wird abgewiesen", () => {
   const s = STAENDE[2], before = clone(s);
   const t = setKlasse(clone(s), parseLink("#klasse=6", PACKS));
-  assert.deepEqual({ ...t, klasse: null }, { ...before, klasse: null });
+  assert.deepEqual({ ...t, klasse: null, klasseOffen: {} }, { ...before, klasse: null, klasseOffen: {} });
   assert.deepEqual(t.klasse, { jahrgang: 6, zweig: null, dran: dranFor(6) });
+  assert.deepEqual(t.klasseOffen, { noten: 8, notenwerte: 10, intervalle: 4, tonleitern: 13, akkorde: 4 });
   assert.deepEqual(clearKlasse(t).klasse, null);
+  assert.deepEqual(t.klasseOffen, { noten: 8, notenwerte: 10, intervalle: 4, tonleitern: 13, akkorde: 4 });
   for (const bad of [null, { keine: true }, { jahrgang: 4, zweig: null, dran: {} }, { jahrgang: 6, zweig: "x", dran: {} },
     { jahrgang: 6, zweig: null }, { jahrgang: 6, zweig: null, dran: { noten: -1 } }, { jahrgang: 6, zweig: null, dran: { noten: 1.5 } }]) {
     const u = clone(s);
@@ -220,16 +223,91 @@ test("Kaputte gespeicherte Einstellung öffnet nichts zusätzlich und sperrt nic
   for (const klasse of [{}, { dran: null }, { dran: { noten: "8" } }, { dran: { noten: -3 } }, { dran: [8] }, "6"]) {
     const s = { ...fresh(), klasse };
     assert.deepEqual(offen(s), offen(fresh()), JSON.stringify(klasse));
+    migrateKlasseOffen(s);
+    assert.deepEqual(offen(s), offen(fresh()), `nach dem Laden: ${JSON.stringify(klasse)}`);
+  }
+  // kaputte Marke ebenso
+  for (const klasseOffen of [null, "8", [8], { noten: "8" }, { noten: -3 }, { noten: 2.5 }]) {
+    assert.deepEqual(offen({ ...fresh(), klasseOffen }), offen(fresh()), JSON.stringify(klasseOffen));
   }
 });
 
-test("reset behält klasse", () => {
+/* ---------- Hochwassermarke (Korrektur nach der Prüfung, W-A1) ---------- */
+
+// Alle Übergänge zwischen zwei Einstellungen (jeder Jahrgang, beide Zweige, eigene Zuschnitte) und das Entfernen:
+// offen danach ⊇ offen davor – für jeden Spielstand. Dann stimmt „Dein Fortschritt bleibt, es schließt sich nichts.“
+test("Marke: Entfernen, Senken und Wechsel schließen nichts (alle Jahrgänge 5–13, MuG, eigene Auswahl)", () => {
+  for (const s0 of STAENDE) {
+    for (const a of EINSTELLUNGEN) {
+      const s = setKlasse(clone(s0), a);
+      const davor = offen(s);
+      const entfernt = offen(clearKlasse(clone(s)));
+      assert.ok(superset(entfernt, davor), `entfernt nach ${klasseText(a)}`);
+      for (const b of EINSTELLUNGEN) {
+        const t = setKlasse(clone(s), b);
+        assert.ok(superset(offen(t), davor), `${klasseText(a)} → ${klasseText(b)}`);
+      }
+    }
+  }
+});
+
+test("Marke: 7 → 5 → keine – alles aus Jahrgang 7 bleibt offen; Abschnitte folgen der aktuellen Einstellung", () => {
+  const s = setKlasse(fresh(), parseLink("#klasse=7", PACKS));
+  const bei7 = offen(s);
+  assert.ok(bei7.has("akkorde-6") && bei7.has("tonleitern-13") && bei7.has("intervall-4"));
+  setKlasse(s, parseLink("#klasse=5", PACKS));
+  assert.ok(superset(offen(s), bei7));
+  // „Jetzt dran“ und „Darüber hinaus“ richten sich nach Jahrgang 5: Dreiklänge sind „Darüber hinaus“, aber offen
+  const sec = sections(s, PACKS);
+  assert.ok(sec.hinaus.includes("akkorde-6") && !sec.jetzt.includes("akkorde-6"));
+  assert.equal(nextUp(s, PACKS), "noten-1");
+  clearKlasse(s);
+  assert.ok(superset(offen(s), bei7));
+  assert.equal(sections(s, PACKS), null);
+  // die Marke ist das Maximum aller übernommenen Einstellungen (MuG: Intervalle bis 10)
+  setKlasse(s, parseLink("#klasse=6&zweig=mug", PACKS));
+  setKlasse(s, parseLink("#klasse=6", PACKS));
+  assert.equal(klasseOffenBis(s, "intervalle"), 10);
+  assert.ok(isUnlocked(s, PACKS.find((p) => p.id === "intervalle"), "intervall-10"));
+  // eine abgewiesene Einstellung lässt auch die Marke, wie sie war
+  const vorher = clone(s);
+  assert.throws(() => setKlasse(s, { jahrgang: 6, zweig: null, dran: { noten: 99.5 } }));
+  assert.deepEqual(s, vorher);
+});
+
+test("Marke: alter Stand mit Jahrgang ohne Marke bekommt beim Laden die Marke = aktuelles „dran“", () => {
+  const data = new Map();
+  const storage = { getItem: (k) => (data.has(k) ? data.get(k) : null), setItem: (k, v) => data.set(k, String(v)) };
+  const old = { ...fresh(), klasse: { jahrgang: 6, zweig: "mug", dran: dranFor(6, "mug") } };
+  delete old.klasseOffen;
+  data.set(KEY_V2, JSON.stringify(old));
+  const s = load(storage);
+  assert.deepEqual(s.klasseOffen, dranFor(6, "mug"));
+  // gespeichert, und beim nächsten Laden ändert sich nichts mehr
+  assert.deepEqual(JSON.parse(data.get(KEY_V2)).klasseOffen, dranFor(6, "mug"));
+  assert.equal(migrateKlasseOffen(s), false);
+  // danach entfernt: alles bleibt offen
+  const davor = offen(s);
+  clearKlasse(s);
+  assert.ok(superset(offen(s), davor));
+  // eine höhere Marke wird nie gesenkt
+  const t = { ...fresh(), klasse: { jahrgang: 5, zweig: null, dran: dranFor(5) }, klasseOffen: { akkorde: 6, intervalle: 10 } };
+  migrateKlasseOffen(t);
+  assert.deepEqual(t.klasseOffen, { ...dranFor(5), akkorde: 6, intervalle: 10 });
+});
+
+test("reset behält klasse und die Marke", () => {
   const s = setKlasse(clone(STAENDE[2]), parseLink("#klasse=7&zweig=mug", PACKS));
   const r = reset(s);
   assert.deepEqual(r.klasse, { jahrgang: 7, zweig: "mug", dran: dranFor(7, "mug") });
   assert.deepEqual(r.levels, {});
   // nach dem Zurücksetzen ist alles bis „dran“ weiter offen
   assert.ok(superset(offen(r), new Set(["intervall-10", "akkorde-6", "noten-8"])));
+  // Marke wie die Einstellung: bleibt, auch nach Entfernen und Zurücksetzen (was der Jahrgang geöffnet hat)
+  clearKlasse(s);
+  const r2 = reset(s);
+  assert.deepEqual(r2.klasseOffen, dranFor(7, "mug"));
+  assert.ok(superset(offen(r2), new Set(["intervall-10", "akkorde-6", "noten-8"])));
 });
 
 /* ---------- Abschnitte der Startseite ---------- */
