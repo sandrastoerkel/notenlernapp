@@ -8,7 +8,7 @@ Schülerinnen und Schüler am Gymnasium, etwa 10 bis 18 Jahre. Die App soll sich
 
 Eine Runde dauert etwa zwei Minuten: zehn Noten, sofortiges Feedback, am Ende Sterne (5 richtig = 1 Stern, 7 = 2, 9 = 3). Richtige Antworten werden grün und die Note erklingt. Bei falschen Antworten wird der richtige Name gezeigt und die Note erklingt trotzdem, damit Auge und Ohr zusammen lernen.
 
-Die acht Stufen folgen der Reihenfolge, in der Noten im Musikunterricht eingeführt werden: zuerst die Linien im Violinschlüssel mit Merkspruch, dann die Zwischenräume, dann Hilfslinien, danach derselbe Weg im Bassschlüssel, zuletzt Vorzeichen und die Mischung aus allem.
+Die 15 Stufen von „Noten lesen“ (seit Welle 12) folgen der Reihenfolge, in der Noten im Musikunterricht eingeführt werden: zuerst die Linien im Violinschlüssel mit Merkspruch, dann die Zwischenräume, beide gemischt, dann die Noten über und unter der Zeile und die Hilfslinien, danach derselbe Weg im Bassschlüssel, dann Vorzeichen im Violin- und im Bassschlüssel, zuletzt die Mischung aus allem. Neues kommt erst mit Hilfen und in zwei Denkschritten (Lage → Name, Bezugston → Zählen, Stammton → Vorzeichen), die Stufe danach festigt es ohne Hilfen.
 
 Die Statistik zeigt die „schwachen Noten“, also die Noten mit den meisten Fehlern. Das ist der Ansatzpunkt für die nächste Übung.
 
@@ -31,7 +31,7 @@ Mit Jahrgang ordnet die Startseite in „Jetzt dran“, „Schon dran gewesen“
 ## Eingabe
 
 - Buchstaben C bis H (deutsche Namen, H statt B)
-- ab Stufe 7 (Vorzeichen) der ganze Name: Raster mit allen 21 Namen (C … H, Cis … His, Ces … B) oder getippt, z. B. „fis“ und Enter
+- ab Stufe 11 (Vorzeichen) der ganze Name: Raster mit allen 21 Namen (C … H, Cis … His, Ces … B) oder getippt, z. B. „fis“ und Enter
 - Klaviatur (eine Oktave) für alle, die ein Tasteninstrument lernen; dort zählt die Taste, Fis und Ges sind dieselbe Taste
 - Computertastatur am Laptop
 
