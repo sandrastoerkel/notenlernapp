@@ -4434,6 +4434,37 @@ steht in diesem Plan oder wird aus `music.js`/`staffPos` gerechnet; Unklares als
   Prüfung aus drei Perspektiven; `screenshots.mjs` für die README-Bilder.
 - Danach wie in Welle 10 und 11: Prüfung aus drei Perspektiven (Lehrkraft, Jugendliche, Wissenschaft) über jede
   Stufe, Hilfe, Vorführung und Lerntafel des Pakets, Korrektur, Nachprüfung. Push und Deploy nur mit Sandras Ja.
+- **Umgesetzt (26.11.2026).** Zusammengeführt war schon vor diesem Schritt (5f81594, 621 Tests grün). Commits:
+  a0726bd („das große G“), 69a7d65 (Hinweis Stufe 12), fa61a45 (Cache), 9b92ef3 (ARCHITEKTUR), KONZEPT, README,
+  CLAUDE.md, README-Bilder, dieser Eintrag. 621 Tests grün.
+  - Entscheidungen des Koordinators, umgesetzt:
+    - **Startkarte „Noten lesen 12“** (Vorzeichen im Violinschlüssel ohne Hilfen): Bei 320 × 640 mit Empfehlung begann
+      der erste Knopf bei 622 px (Grenze 580), jetzt bei **576 px** („Runde starten“ 692 → 646; ohne Empfehlung 528;
+      420 px 586 → 563). Wie Sandras Entscheidung Welle 11, 20 („leicht kürzen“) bei Intervalle 3 und Tonleitern 12:
+      „♯ erhöht um einen Halbton, „-is“: aus F wird Fis, ebenso Cis, Gis, Dis. / ♭ erniedrigt um einen Halbton: aus D
+      wird Des, aus E wird Es, aus A wird As, aus H wird B. Tippe den ganzen Namen an oder schreib ihn.“ Entfallen
+      sind nur „und hängt … an“ und das Beispiel „z. B. „fis“ und Enter“ (steht auf derselben Karte im
+      Tastatur-Hinweis „Namen tippen, z. B. fis es b, dann Enter“); alle acht Namen des Vorrats, „-is“ und „aus H
+      wird B“ bleiben (Test aus Welle 10 unverändert grün). Stufe 11 unverändert. `ueberlauf.mjs` prüft `noten-12`
+      jetzt in `FIRST_SCREEN_320`. Kandidaten wurden Zeile für Zeile im Browser gemessen (16 px, 254 px Textbreite,
+      23,2 px je Zeile: zwei Zeilen weniger waren nötig).
+    - **„Die unterste Linie ist das G (großes G).“** (C-Befund Prüfung B): neu `dasName(n)` in `noten-lage.js`
+      („das große G“, sonst „das E (e')“), benutzt im Satz zum Bezugston der Vorführung (`bezugSatz`). Alle Sätze
+      der Vorführungen und Lerntafeln mit `node` durchgesehen: nur dieser Satz war betroffen. „G (großes G)“ als
+      Name mit Oktave in Titel, Rückmeldung, `display` und Auflösung bleibt (Entscheidung Welle 10, B3).
+  - Doku: ARCHITEKTUR (drei neue Module, Felder `keysHint`, `helpTable` als Funktion, `q.steps[i].note`, `q.spruch`,
+    Baukasten „Noten lesen (Welle 12)“, Engine `stepInput`/`checkStep`/`levelNoteSteps`/`keepFocus`, `pickWeighted`
+    mit `heute`, zwei Listen der Vorzeichen-Noten, Jahrgang 5 „Noten lesen 15“, `migrateNoten` mit W-C6, Merker
+    `offen` und den alten Lehrkraft-Links wie Abschnitt 9, Beispiele mit neuen IDs, 54 Stufen), KONZEPT (15 Stufen,
+    „ab Stufe 11“), README (Stufenliste, Stand, Cache, Tastatur 1–5 für die Lage), CLAUDE.md (Stand Welle 12, Welle
+    11 auf `main` bcd6e85, Entscheidungen vom 26.11.2026, „ab Stufe 11“). Jede Angabe am Code nachgelesen.
+  - Browser (Port 8191): Selbsttest in Ordnung; `ueberlauf.mjs` 320 px (dunkel) und 420 px (hell) je **0 Treffer
+    (0 Überlappung), 0 Konsolenfehler**, Code 0 (im Hintergrund, Zeitlimit 25 Minuten);
+    `uhr40.mjs` Kuala Lumpur und Berlin wie erwartet (Runden an den Tagen 1, 4, 5, 8, 11, 27; je 119 Prüfungen,
+    Code 0); `pruefung.mjs` 586 Bilder (291 Ansichten × 2) und 240 Teilbilder in `/tmp/notenheld-pruefung-w12/`
+    mit `index.md`, Code 0; `screenshots.mjs` README-Bilder neu (acht von zehn Bildern geändert, Blitz gleich).
+  - Startkarten bei 320 × 640 mit Empfehlung (oberer Rand erster Knopf / „Runde starten“): Noten lesen 4 568/638,
+    12 576/646, 13 502/572; Tonleitern 10 bleibt bei 641 (wie entschieden).
 
 **Akzeptanz der Welle.** `npm test` grün; alle 15 Stufen je eine Runde bei 420 und 320 px, hell und dunkel; in den
 acht Stufen mit Hilfen Hilfen auf/zu, beide Schritte, „Vorführen“ bis zum Ergebnis; Lerntafeln in beiden
@@ -4455,6 +4486,16 @@ und Vorführungen unverändert (nur ihre Kanten); Wortliste; Farben nur über To
   und 5), Teil-Stufen im Kasten (L-C5), Hörstufen.
 
 ### 13. Offen für Sandra (Welle 12)
+
+**Nachtrag nach Schritt 7 (26.11.2026), klein, nicht dringend – gebaut ist jeweils der beschriebene Stand:**
+- Startkarte „Noten lesen 11“ (Vorzeichen im Violinschlüssel, mit Hilfen): bei 320 × 640 mit Empfehlung beginnt der
+  erste Knopf bei 641 px (Grenze 580), wie Tonleitern 10. Nicht gekürzt (nicht Teil des Auftrags; der Hinweis trägt
+  den Satz zum Stammton und die ganze Regel). Kürzen wie bei Stufe 12, oder so lassen?
+- „Das war ein G (großes G) – …“ und „G (großes G)“ in Titel und Auflösung: Name mit Oktave nach der Entscheidung
+  Welle 10 (B3). Nur der Satz der Vorführung heißt jetzt „Die unterste Linie ist das große G.“ Soll die Rückmeldung
+  ebenfalls „Das war ein großes G – …“ heißen?
+- Alte Lehrkraft-Links mit eigener Auswahl für „Noten lesen“ (`dran=noten:n`, n < 8) öffnen nach dem Update weniger
+  als gemeint (Abschnitt 9, hingenommen). Falls schon solche Links verteilt sind: neuen Link erzeugen.
 
 **Entschieden (Sandra, 26.11.2026, 19:05 KL):** alle sieben Punkte mit der Voreinstellung –
 1 a) Lage → Name; 2 a) Bezugston ist die äußere Linie der Zeile; 3 a) acht Noten in der Zeile
