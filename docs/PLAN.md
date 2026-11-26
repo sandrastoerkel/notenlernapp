@@ -4465,6 +4465,30 @@ steht in diesem Plan oder wird aus `music.js`/`staffPos` gerechnet; Unklares als
     mit `index.md`, Code 0; `screenshots.mjs` README-Bilder neu (acht von zehn Bildern geändert, Blitz gleich).
   - Startkarten bei 320 × 640 mit Empfehlung (oberer Rand erster Knopf / „Runde starten“): Noten lesen 4 568/638,
     12 576/646, 13 502/572; Tonleitern 10 bleibt bei 641 (wie entschieden).
+- **Geprüft (26.11.2026, Fable): bestanden ohne Korrektur am Code.** 621 Tests grün. Am Code nachgelesen bzw. mit
+  `node` gerechnet: 15 Stufen (Hilfen 1, 2, 4, 6, 7, 9, 11, 13), 54 Stufen in fünf Paketen (15 + 10 + 10 + 13 + 6),
+  Vorräte 5/4/9/4/13 je Schlüssel, Vorzeichen 8 + 8, „Alles gemischt“ 42; Tabellen `RENAMED_NOTEN`, `BOX_NOTEN`,
+  `PAARE_NOTEN`, `DRAN_NOTEN`, Reihenfolge in `migrateAll`, fünf Marker im frischen Stand; Cache
+  `notenheld-v0.2.0-15` in `sw.js`; alle genannten Commits vorhanden, bcd6e85 ist `main` und Vorfahr des Zweigs.
+  Zusagen: „Sterne und Freischaltung bleiben“ (README) und „bleiben vollständig“ (ARCHITEKTUR) sind durch
+  `test/noten-umstellung.test.js` (Zusagen 1 und 2 über alle 3⁸ Stände) gedeckt; der Satz zu alten Lehrkraft-Links
+  verspricht nichts über den Code hinaus (ein alter Link öffnet weniger, die Marke `klasseOffenBis` ist ein Maximum
+  und sinkt nicht). Hinweis Stufe 12: alle acht Namen des Vorrats (Fis, Cis, Gis, Dis · Des, Es, As, B), musikalisch
+  richtig; der Tastatur-Hinweis mit „fis es b … Enter“ steht bei der Eingabe „Namen“ auf der Karte (bei „Klaviatur“
+  ist er ausgeblendet, dort wird nicht getippt). `dasName`: einziger Aufrufer ist `bezugSatz`; die acht Sätze der
+  Stufen 4 und 9 und die sechs Beispiele der Lerntafel lauten „das E (e')“, „das F (f'')“, „das G (g')“, „das große
+  G“, „das A (a)“, „das F (f)“ – Helmholtz richtig (große Oktave = `octave` 2). README-Bilder angesehen (Üben,
+  Lernen, Start dunkel): zeigen den Stand der Welle. Nicht neu gemessen: die Pixelwerte der Startkarten und die
+  Browser-Läufe (kein Eingriff in die Oberfläche).
+  - Klein, nicht geändert (C): „♯ erhöht um einen Halbton, „-is“: …“ ist knapp (Telegrammstil); „(Endung „-is“)“
+    wäre runder, kostet bei 320 px aber voraussichtlich eine Zeile (Abstand zur Grenze 4 px). Für die Prüfung aus
+    drei Perspektiven vormerken.
+  - Zum Nachtrag in Abschnitt 13: keiner der drei Punkte braucht jetzt eine Entscheidung von Sandra.
+    Startkarte 11: lassen (wie Tonleitern 10; die Kürzung von Stufe 12 spart zwei Zeilen = 46 px, 641 → etwa 595,
+    reicht also nicht bis 580 – dafür müsste Inhalt der Regel entfallen, die hier neu eingeführt wird).
+    „Das war ein G (großes G)“: lassen (einheitliche Form „Name (Oktave)“ in Rückmeldung, Titel, Auflösung; Welle 10,
+    B3); mit in die Prüfung aus drei Perspektiven. Alte Lehrkraft-Links: nur ein Hinweis – Welle 11 ist seit dem
+    26.11.2026 live, verteilte Links mit eigener Auswahl für „Noten lesen“ sind kaum zu erwarten.
 
 **Akzeptanz der Welle.** `npm test` grün; alle 15 Stufen je eine Runde bei 420 und 320 px, hell und dunkel; in den
 acht Stufen mit Hilfen Hilfen auf/zu, beide Schritte, „Vorführen“ bis zum Ergebnis; Lerntafeln in beiden
