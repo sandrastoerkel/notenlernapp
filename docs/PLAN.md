@@ -4275,6 +4275,37 @@ steht in diesem Plan oder wird aus `music.js`/`staffPos` gerechnet; Unklares als
 - Akzeptanz: Browser 420 und 320 px, hell und dunkel: in jeder der acht Stufen eine Aufgabe ganz richtig, eine mit
   Schritt 1 daneben (danach Teilerfolg), eine mit Schritt 2 daneben; mit Klaviatur, mit Tastatur (Ziffer, dann
   Buchstabe; „fis“ + Enter), keine Konsolenfehler.
+- **Umgesetzt und geprüft (26.11.2026).** Wie geplant (a19cbd0, bf486b1, 16cb015, 46aaa52, Zusammenführung ce53adf;
+  Korrektur der Prüfung e68d6db, siehe Schritt 4); 620 Tests grün. Mit `node` über alle Aufgaben der acht Stufen
+  nachgelesen (Fragen, Knöpfe, Antworten, Texte nach Schritt 1, `display`, `partial`, `reveal`, Beschriftung der
+  Auflösung): Lage und Name jeder Note, Bezugston (Violinschlüssel E bzw. F, Bassschlüssel G bzw. A), Zählwege
+  („E – D – C“, „F – G – A“, „G – F – E“, „A – H – C“), Stammton und Name mit Vorzeichen (B, Es, As, Des; „aus H
+  wird B“), Oktaven („großes G“, „c'“) stimmen; kein Text nach Schritt 1 nennt die Antwort von Schritt 2.
+  Fehlermuster wie Abschnitt 8 (4/9 Schritt 2 → Stufe 3/8, 11 Schritt 1 → 5, 13 → 10 bzw. 12; sonst keines).
+  Browser (420 hell, 320 dunkel) in allen acht Stufen: ganz richtig, Schritt 1 daneben (Teilerfolg), Schritt 2
+  daneben; Klick, Tastatur (Ziffer bzw. Buchstabe, „fis“ + Enter), Klaviatur; „Vorführen“ nach der Antwort bis zum
+  Ergebnis ohne `NaN`; kein Überlauf, keine Konsolenfehler; eigener Merkspruch mit 76 Zeichen und „<“.
+  - Abweichungen vom Plan, in der Prüfung entschieden – bleiben so:
+    - **Kürzere Hinweise der Startkarte** (damit die Karte mit „Beide Schritte müssen stimmen.“ bei 320 px nicht
+      länger wird als vor Schritt 3; gemessen: „Runde starten“ endet in Stufe 4 bei 680 px, 9 bei 680, 11 bei 753,
+      13 bei 614 – mit dem Tipp „Grundlagen wiederholen“ eines leeren Spielstands, also nicht bei allen im ersten
+      Bildschirm von 640 px; Schritt 7 misst mit `ueberlauf.mjs`). Stufe 4/9: „Nimm die nächste Linie als Bezugston
+      und zähle weiter.“ statt „… der Zeile … von dort weiter: Jede Stelle ist ein Notenname weiter.“ – der
+      entfallene Satz steht wörtlich im Satz der Hilfen. Stufe 9: „das E auf einer darunter“. Stufe 13: „Lies erst
+      den Stammton, dann das Zeichen.“ (ohne „im Bassschlüssel“; Stufe 14 behält den Wortlaut des Plans). Stufe 11:
+      der Satz „Tippe den ganzen Namen an …“ steht dort im Tastatur-Hinweis (`keysHint`), in Stufe 12 im Hinweis.
+      Stufe 5: „Alle Noten von c' bis a'' gemischt, jetzt ohne Hilfen. …“ statt „Jetzt kommen Noten über und unter
+      der Zeile dazu.“ (die kommen seit Welle 12 schon in Stufe 4; Vorgabe aus Schritt 2). Musikalisch und
+      didaktisch in Ordnung: nichts Falsches, nichts Nötiges fehlt.
+    - `keysHint` nur in 1, 2, 6, 7, 11, 13; die Stufen 4 und 9 haben zwei Buchstaben-Schritte und behalten den
+      üblichen Hinweis „C D E … H“.
+    - Nach der Antwort zeigt die Notenzeile beide Schritte (`q.revealSvg`: Linie bzw. Zwischenraum bzw. Bezugslinie
+      violett, darunter „4. Linie · Durch → D“; ein Wort des Spruchs über 12 Zeichen entfällt dort, es bleibt der
+      Name). Steht nicht im Plan, passt zum Baukasten (Farben nur `--step1…`/`--step2…`).
+    - `q.spruch` ist der ganze gültige Merkspruch als reiner Text (nur bei Noten in der Zeile ohne Vorzeichen);
+      `lageDemo(q)` liest `q.note`, `q.clef`, `q.spruch` – `engine.js` blieb unverändert.
+  - Klein, offen (C): Die Beschriftung der Auflösung ist bei 320 px klein (14 px im Bild von 340 px Breite, auf dem
+    Handy etwa 11 px), in Stufe 4/9 am kleinsten („unterste Linie G · G – F – E“); lesbar, in Schritt 7 mit ansehen.
 
 #### Schritt 4 – Hilfen (parallel zu 3, 5, 6)
 - Dateien: `src/packs/noten-hilfen.js`, neu `test/packs/noten-hilfen.test.js`, `css/style.css` nur Abschnitt
@@ -4288,6 +4319,19 @@ steht in diesem Plan oder wird aus `music.js`/`staffPos` gerechnet; Unklares als
 - Akzeptanz: Browser 320 und 420 px, hell und dunkel: Hilfen aller acht Stufen auf und zu, ein eigener Spruch mit
   80 Zeichen bricht um und läuft nicht über; Schriftgrößen wie in den Hilfen der Notenwerte; Farben nur aus Tokens
   (`css.test.js`).
+- **Umgesetzt und geprüft (26.11.2026).** Wie geplant (6fd8d84, 682376a, b47a566; Korrektur der Prüfung e68d6db).
+  Merkleiste (oben die höchste Stelle, Lage violett, Anfangsbuchstabe grün und fett in jeder Zeile gleich, Zeile
+  des Schlüssels nur bei den Linien: Violinschlüssel 2. Linie g', Bassschlüssel 4. Linie f), Namensleiste
+  „C D E F G A H C“ mit „← tiefer / höher →“ und der Zeile „Linien von unten: <Spruch>“, Vorzeichen-Regel im
+  Wortlaut des Plans (auf Handys zweizeilig je Zeichen) mit einer Oktave Klaviatur ohne Markierung: am Bild geprüft
+  bei 420 hell und 320 dunkel, vor und nach der Antwort gleich, gewählter und eigener Spruch (76 Zeichen, mit „<“
+  und „&“: als Text, bricht um, kein Überlauf). „Vorführen“ ist vor der Antwort gesperrt („nach deiner Antwort“).
+  - **Korrektur der Prüfung (A):** Nach dem Zusammenführen mit Schritt 5 trafen zwei Regeln der Vorführung die
+    Hilfen, weil beide Schritte dieselben Klassennamen gewählt hatten: `.nl-namen td { min-width: 4em }` (Tabelle
+    der 21 Namen) machte die Namensleiste der Stufen 4 und 9 443 px breit – waagrechter Überlauf bei 320 und
+    420 px –, `.nl-name` (16 px, fett) vergrößerte die dritte Spalte der Vorzeichen-Regel. Die Hilfen heißen jetzt
+    `nl-reihe`, `nl-endung`, `nl-regel-keys`; ein Test liest den CSS-Abschnitt „Noten lesen: Vorführung“ und lässt
+    dort keine Klasse der Hilfen zu.
 
 #### Schritt 5 – Vorführungen, Lerntafeln, Reiter „Tonhöhen“ (parallel zu 3, 4, 6)
 - Dateien: `src/packs/noten-demo.js`, neu `test/packs/noten-demo.test.js`, `src/views/learn.js` und `index.html`
