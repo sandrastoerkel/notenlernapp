@@ -4000,10 +4000,10 @@ zwei Knöpfen).
 |---|---|---|---|
 | `noten-1`, `-2`, `-6`, `-7` | – (`[]`) | – | Titel |
 | `noten-3` | – (`[]`; erste Stufe ohne Hilfen) | – | „Linien und Zwischenräume im Violinschlüssel“ |
-| `noten-4` | `noten-3` | `[[], ["noten-3"]]` | Titel |
+| `noten-4` | `noten-3` | `[["noten-3"], []]` (Korrektur nach der Prüfung, B1) | Titel |
 | `noten-5` | `noten-3` | – | „Noten im Violinschlüssel“ (wie bisher alt 3) |
 | `noten-8` | – (`[]`) | – | „Linien und Zwischenräume im Bassschlüssel“ |
-| `noten-9` | `noten-8` | `[[], ["noten-8"]]` | Titel |
+| `noten-9` | `noten-8` | `[["noten-8"], []]` (Korrektur nach der Prüfung, B1) | Titel |
 | `noten-10` | `noten-8` | – | „Noten im Bassschlüssel“ (wie bisher alt 6) |
 | `noten-11` | `noten-5` | `[["noten-5"], []]` | Titel |
 | `noten-12` | `noten-5` | – | „Vorzeichen im Violinschlüssel“ |
@@ -4047,9 +4047,10 @@ IDs als ein Test geprüft; die Tiefensuche auf Kreise bleibt.
 - **Runde „Wiederholen“ und „Grundlagen wiederholen“:** Es kommen nur einschrittige Stufen von „Noten lesen“ vor
   (Buchstaben, Namensraster, Klaviatur) – die gemischte Runde kann das schon. Stufe 14 und 15 mit Namensraster.
 - **Fehlermuster** (ab drei Fehlern desselben Schritts, Texte aus `gapText` mit dem `skill` der Grundlage):
-  - Stufe 4 bzw. 9, zweiter Schritt: „Der zweite Schritt (Linien und Zwischenräume im Violinschlüssel) hat oft
-    nicht geklappt. Das übst du in Stufe 3.“ (bzw. Bassschlüssel, Stufe 8). Erster Schritt: kein Muster (neu in der
-    Stufe).
+  - Stufe 4 bzw. 9, erster Schritt (Bezugston = Name der äußeren Linie): „Der erste Schritt (Linien und
+    Zwischenräume im Violinschlüssel) hat oft nicht geklappt. Das übst du in Stufe 3.“ (bzw. Bassschlüssel,
+    Stufe 8). Zweiter Schritt (Weiterzählen): kein Muster (neu in der Stufe). Korrektur nach der Prüfung aus drei
+    Perspektiven (B1): vorher war es umgekehrt eingetragen.
   - Stufe 11, erster Schritt: „Der erste Schritt (Noten im Violinschlüssel) hat oft nicht geklappt. Das übst du in
     Stufe 5.“ Zweiter Schritt: kein Muster (die Regel ist neu in der Stufe).
   - Stufe 13: erster Schritt → Stufe 10 („Noten im Bassschlüssel“), zweiter Schritt → Stufe 12 („Vorzeichen im

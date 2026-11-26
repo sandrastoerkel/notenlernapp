@@ -375,7 +375,7 @@ const NEEDS = {
 };
 // Voraussetzungen je Denkschritt (zweischrittige Stufen laut Tabelle)
 const STEP_NEEDS = {
-  "noten-4": [[], ["noten-3"]], "noten-9": [[], ["noten-8"]],
+  "noten-4": [["noten-3"], []], "noten-9": [["noten-8"], []],
   "noten-11": [["noten-5"], []], "noten-13": [["noten-10"], ["noten-12"]],
   "notenwerte-4": [["notenwerte-3"], []],
   "notenwerte-6": [["notenwerte-3"], ["notenwerte-5"]],

@@ -299,12 +299,12 @@ const VORAUSSETZUNGEN = {
   // 1–5: needs fehlt, die Voreinstellung ergibt schon die Tabelle (1, 2, 3: keine frühere Stufe ohne Hilfen; 4, 5:
   // noten-3). 6, 7, 8: needs leer, sonst gälte noten-5 aus dem Violinschlüssel. 9, 10: Voreinstellung noten-8.
   3: { skill: "Linien und Zwischenräume im Violinschlüssel" },
-  4: { stepNeeds: [[], ["noten-3"]] },
+  4: { stepNeeds: [["noten-3"], []] },
   5: { skill: "Noten im Violinschlüssel" },
   6: { needs: [] },
   7: { needs: [] },
   8: { needs: [], skill: "Linien und Zwischenräume im Bassschlüssel" },
-  9: { stepNeeds: [[], ["noten-8"]] },
+  9: { stepNeeds: [["noten-8"], []] },
   10: { skill: "Noten im Bassschlüssel" },
   11: { needs: ["noten-5"], stepNeeds: [["noten-5"], []] },
   12: { needs: ["noten-5"], skill: "Vorzeichen im Violinschlüssel" },
