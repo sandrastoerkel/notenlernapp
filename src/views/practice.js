@@ -517,13 +517,14 @@ export function helpOffer(packs, level, correct) {
 // - Mit Muster (J-B7/W-B6): ein Knopf zum Muster als Hauptknopf, dazu „Nochmal“ und „Übersicht“.
 // - Ohne Muster: unter 5 Richtigen „Grundlagen wiederholen“ als Hauptknopf, sonst „Nochmal“; „Stufe n“, wenn offen;
 //   „Übersicht“.
-// - Mit help (W-B3): „… mit Hilfen üben“ zuerst und als Hauptknopf, die übrigen ohne Hervorhebung; höchstens drei
+// - Mit help (W-B3): „… mit Hilfen üben“ als Hauptknopf und zuerst in der Knopfzeile (der Knopf eines Musters steht
+//   weiter in dessen Kasten darüber, ohne Hervorhebung), die übrigen ohne Hervorhebung; höchstens drei
 //   Knöpfe (W-B6): es entfallen zuerst „Stufe n“ (nach einer schwachen Runde nicht der nächste Schritt), dann
 //   „Übersicht“ (über das Menü unten erreichbar). Führt das Muster schon zu einer Stufe mit Hilfen, bleibt es bei
 //   seinem Knopf (kein zweiter „… mit Hilfen üben“).
 export function resultActions({ pattern = null, first = false, nextOpen = false, help = null } = {}) {
   const patternKey = !pattern ? null : pattern.helps ? (pattern.open ? "gap-open" : null) : "basics";
-  if (!help || (pattern && pattern.helps)) {
+  if (!help || patternKey === "gap-open") {
     if (pattern) return [patternKey, "again", "home"].filter(Boolean).map((k) => ({ k, main: k === patternKey }));
     return [first && "basics", "again", nextOpen && "next", "home"].filter(Boolean).map((k) => ({ k, main: k === (first ? "basics" : "again") }));
   }

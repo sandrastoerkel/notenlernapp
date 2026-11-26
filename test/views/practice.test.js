@@ -528,6 +528,8 @@ test("resultActions: ohne Rückweg wie bisher; mit Rückweg dieser als Hauptknop
   assert.deepEqual(keys(resultActions({ help, pattern: { helps: false } })), ["*help", "basics", "again"]);
   // Muster führt schon zu einer Stufe mit Hilfen: kein zweiter Knopf „… mit Hilfen üben“
   assert.deepEqual(keys(resultActions({ help, pattern: { helps: true, open: "noten-11" } })), ["*gap-open", "again", "home"]);
+  // Muster „mit Hilfen“ ohne eigenen Knopf (Nachprüfung): der Rückweg fällt nicht weg
+  assert.deepEqual(keys(resultActions({ help, pattern: { helps: true, open: null } })), ["*help", "again", "home"]);
   // nie mehr als ein Hauptknopf; mit Rückweg nie mehr als drei Knöpfe
   for (const pattern of [null, { helps: false }, { helps: true, open: "a" }, { helps: true, open: null }])
     for (const first of [false, true]) for (const nextOpen of [false, true]) for (const h of [null, help]) {
