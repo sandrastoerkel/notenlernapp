@@ -575,11 +575,19 @@ section { display: grid; gap: 14px; }
 .result .review-item { justify-items: center; gap: 6px; max-width: 34rem; }
 .result .review-line { margin: 0; font-weight: 700; }
 .result .gap-line { margin: 0; padding: 8px 14px; border-radius: 12px; border: 1px solid var(--accent); color: var(--fg); font-weight: 700; }
-/* Startkarte: „Dafür brauchst du: …“ (jeder Eintrag ein Knopf im Textfluss) und der Grund der Empfehlung */
-.needs { margin: 0; color: var(--muted); }
-.needs .link { font: inherit; font-weight: 700; color: var(--accent); background: none; border: 0; padding: 6px 0; cursor: pointer;
+/* Startkarte: „Dafür brauchst du: …“ (jeder Eintrag ein Knopf im Textfluss, durch Kommas getrennt, J-B1/J-C1) und
+   der Grund der Empfehlung. Die Knöpfe stehen in der Zeile (inline-block, ohne Abstand nach oben und unten, damit
+   die Zeilen nicht auseinanderrücken); die Tippfläche wächst über einen unsichtbaren Rand nach oben und unten. */
+.needs { margin: 0; color: var(--muted); line-height: 1.7; }
+.needs .link { font: inherit; font-weight: 700; color: var(--accent); background: none; border: 0; padding: 0; margin: 0; cursor: pointer;
+  line-height: inherit; vertical-align: baseline; position: relative;
   text-decoration: underline; text-underline-offset: 2px; text-align: left; overflow-wrap: anywhere; }
-.basics-why { margin: 0; font-weight: 700; }
+.needs .link::after { content: ""; position: absolute; inset: -6px 0; }
+/* Grund der Empfehlung: klein und fett direkt über den Knöpfen (J-B1: so wenig Höhe wie möglich vor dem Start) */
+.basics-why { margin: 0; font-weight: 700; font-size: 0.85rem; }
+/* Startkarte etwas dichter; zweizeilige Knöpfe („Grundlagen wiederholen · 6 Aufgaben“ bei 320 px) mit engerer Zeile */
+#pIntro.stack { gap: 8px; }
+#pIntro .btn.wide { line-height: 1.25; }
 
 .tabs {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 9;

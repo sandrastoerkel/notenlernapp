@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { startLabel, keysHint, lettersLabel, resultInfo, missingText, answersScroll, startHint, TWO_STEPS_NOTE, resultLine, avgText, perLevelLine, MIXED_HEAD,
-  BASICS_LABEL, needsHtml, reasonText, basicsTitle, countWord, gapGroups, placesText, gapText, openLabel, resultBasics,
+  BASICS_LABEL, needsHtml, needLabel, reasonText, basicsTitle, countWord, gapGroups, placesText, gapText, openLabel, resultBasics,
   reviewTitle, verdictText, reviewLine, practiceOffer, repeatNote } from "../../src/views/practice.js";
 import { keepStufe, textOf } from "../../src/engine.js";
 import { PACKS } from "../../src/packs/index.js";
@@ -226,11 +226,20 @@ test("Startkarte: „Dafür brauchst du: …“ mit Knöpfen, Knopf und Grund de
   const h = needsHtml(PACKS, "intervall-3");
   assert.ok(h.startsWith("Dafür brauchst du: "), h);
   assert.deepEqual([...h.matchAll(/data-need="([^"]+)"/g)].map((m) => m[1]), ["intervall-2", "noten-7"]);
-  assert.equal(h.replace(/<[^>]+>/g, ""), "Dafür brauchst du: Notenstufen zählen (Prime bis Oktave) · Noten mit Vorzeichen");
+  // J-B1/J-C1 (Korrektur nach der Prüfung Welle 11): fortlaufend mit Kommas, die Stufe sichtbar (Kurzname des Pakets),
+  // das Komma ohne Leerzeichen am Knopf (kein Komma am Zeilenanfang), kein „·“ mehr
+  assert.equal(h.replace(/<[^>]+>/g, ""), `Dafür brauchst du: Notenstufen zählen (Intervalle${NB}2), Noten mit Vorzeichen (Noten lesen${NB}7)`);
   assert.ok(/<button type="button" class="link"/.test(h));
+  assert.ok(h.includes("</button>, <button") && !h.includes("·"), h);
+  assert.equal(needLabel(PACKS, "notenwerte-3"), `Notenwerte und Pausen erkennen (Notenwerte${NB}3)`);
+  assert.equal(needLabel(PACKS, "intervall-4"), `Intervalle rein, klein, groß (Intervalle${NB}4)`);
+  assert.equal(needLabel(PACKS, "akkorde-1"), `Dur- und Moll-Dreiklang (Dreiklänge${NB}1)`);
+  // der volle Name der Fähigkeit bleibt im title
+  assert.ok(h.includes('title="Notenstufen zählen (Prime bis Oktave)"'), h);
   assert.equal(reasonText(PACKS, { kind: "nie", id: "noten-7" }), "Empfohlen: „Noten mit Vorzeichen“ hast du hier noch nicht geübt.");
   assert.equal(reasonText(PACKS, { kind: "faellig", id: "noten-7" }), "Empfohlen: „Noten mit Vorzeichen“ ist wieder dran.");
-  assert.equal(reasonText(PACKS, { kind: "schwach", id: "intervall-2" }), "Empfohlen: „Notenstufen zählen (Prime bis Oktave)“ lag zuletzt unter 8 von 10.");
+  // Fähigkeit ohne Klammerzusatz wie in „Dafür brauchst du“ (J-B1: kürzer, die Knöpfe rücken nach oben)
+  assert.equal(reasonText(PACKS, { kind: "schwach", id: "intervall-2" }), "Empfohlen: „Notenstufen zählen“ lag zuletzt unter 8 von 10.");
   assert.equal(reasonText(PACKS, null), "");
   assert.equal(basicsTitle(PACKS, "intervall-3"), `für Intervalle, Stufe${NB}3`);
   assert.equal(MIXED_HEAD.grundlagen, "Grundlagen wiederholen");
@@ -316,4 +325,17 @@ test("Runde „Wiederholen“: Kopf, Urteil je Stufe, Knopf bei „noch wacklig�
   assert.equal(repeatNote({ id: "noten-3", sitzt: true, fach: 1, inTagen: 1, neu: true }), "Neu im Kasten: kommt morgen zum Wiederholen wieder.");
   assert.equal(repeatNote({ id: "noten-3", sitzt: true, fach: 2, inTagen: 3 }), "Wiederholung: sitzt · wieder in 3 Tagen.");
   assert.equal(repeatNote({ id: "noten-3", sitzt: false, fach: 1, inTagen: 1 }), "Wiederholung: noch wacklig · morgen noch einmal.");
+});
+
+// Korrektur nach der Prüfung Welle 11, J-B1: Startkarte – die Knöpfe direkt unter dem Hinweis (mit Empfehlung erst
+// deren Satz), „Dafür brauchst du“ und der Tastatur-Hinweis danach
+test("Startkarte: Knöpfe direkt unter dem Hinweis, „Dafür brauchst du“ und Tastatur-Hinweis darunter", () => {
+  const html = readFileSync(new URL("../../index.html", import.meta.url), "utf8");
+  const at = (id) => html.indexOf(`id="${id}"`);
+  const order = ["pHint", "pBasicsWhy", "pStart", "pBasics", "pNeeds", "pKeys"];
+  order.forEach((id) => assert.ok(at(id) > 0, id));
+  for (let i = 1; i < order.length; i++) assert.ok(at(order[i - 1]) < at(order[i]), `${order[i - 1]} vor ${order[i]}`);
+  // mit Empfehlung: Grund, „Grundlagen wiederholen“, „Runde starten“ (renderBasicsOffer schiebt beide vor den Start)
+  const src = readFileSync(new URL("../../src/views/practice.js", import.meta.url), "utf8");
+  assert.match(src, /if \(offer\.recommend\) \{ start\.before\(why\); start\.before\(btn\); \} else start\.after\(btn\);/);
 });

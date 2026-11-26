@@ -26,6 +26,7 @@
 // Jahrgang 5, 7 und 9, die Statistik mit Jahrgang und die Seite „Für Lehrkräfte“ samt „QR-Code groß zeigen“
 // (Schritt 12; dort auch: Esc schließt, Fokus zurück, der gespeicherte Stand bleibt unverändert).
 // In jedem Zustand zählt außerdem ein zweiter sichtbarer Knopf „Nächste Aufgabe“ als Treffer (W2, Welle 11).
+// Dazu je Breite die Lage der Knöpfe auf sechs Startkarten bei einem 640 px hohen Fenster (startCards, J-B1).
 //
 // Playwright ist KEINE Abhängigkeit der App (siehe spiel.mjs). Aufruf bei laufendem Server:
 //   python3 -m http.server 8080 &
@@ -304,6 +305,56 @@ async function selftest(browser) {
   return fails;
 }
 
+// Startkarten (Korrektur nach der Prüfung Welle 11, J-B1): die sechs Karten, die die Prüfung aus Sicht der
+// Jugendlichen gemessen hat, bei width × 640 (etwa 580 px über der unteren Leiste), alles offen und nichts gespielt
+// (mit Empfehlung), danach mit geschafften Grundlagen (ohne Empfehlung). Geprüft wird:
+// - Reihenfolge: nach dem Hinweis (mit Empfehlung nach deren Satz) kommen sofort die Knöpfe, „Dafür brauchst du“ und
+//   der Tastatur-Hinweis erst danach; zwischen zwei Teilen höchstens der Abstand der Karte;
+// - erster Bildschirm: Auf den Karten, deren Startknopf schon auf main 2f3dfe8 bei 320 px im ersten Bildschirm lag
+//   (FIRST_SCREEN), liegt der erste Knopf ganz darin, ohne Empfehlung auch „Runde starten“.
+// Die Lage des ersten Knopfs und von „Runde starten“ steht in der Ausgabe (zum Vergleich mit dem Bericht).
+const START_CARDS = ["intervall-3", "tonleitern-10", "tonleitern-12", "noten-7", "notenwerte-6", "akkorde-1"];
+const FIRST_SCREEN = ["notenwerte-6", "akkorde-1"];
+// läuft in der Seite: Teile der Startkarte in ihrer Reihenfolge, Lage im Dokument und Grenze des ersten Bildschirms
+const INTRO = () => {
+  const parts = [...document.querySelectorAll("#pIntro > *")].filter((e) => !e.hidden && e.getBoundingClientRect().height > 0)
+    .map((e) => { const r = e.getBoundingClientRect(); return { id: e.id, btn: e.tagName === "BUTTON", top: Math.round(r.top + scrollY), bottom: Math.round(r.bottom + scrollY) }; });
+  return { parts, lim: innerHeight - document.querySelector(".tabs").offsetHeight };
+};
+async function startCards(browser, width, scheme) {
+  const ctx = await browser.newContext({ viewport: { width, height: 640 }, colorScheme: scheme, serviceWorkers: "block" });
+  const pg = await ctx.newPage();
+  const errs = [], lines = [];
+  await pg.goto(BASE); await pg.waitForTimeout(500);
+  await pg.click("#unlockAll"); await pg.waitForTimeout(300);
+  for (const mit of [true, false]) {
+    if (!mit) { await pg.evaluate(SETBASICS, START_CARDS); await pg.reload(); await pg.waitForTimeout(500); }
+    const row = [];
+    for (const id of START_CARDS) {
+      await pg.click('.tab[data-view="home"]'); await pg.waitForTimeout(150);
+      await pg.click(`.level[data-id="${id}"]`); await pg.waitForTimeout(250);
+      await pg.evaluate(() => window.scrollTo(0, 0));
+      const { parts, lim } = await pg.evaluate(INTRO);
+      const where = `Startkarte ${id} ${width} px ${mit ? "mit" : "ohne"} Empfehlung`;
+      const ids = parts.map((p) => p.id);
+      const first = parts.findIndex((p) => p.btn), start = parts.find((p) => p.id === "pStart");
+      const lead = mit ? ["pHint", "pBasicsWhy"] : ["pHint"];
+      if (ids.slice(0, first).join() !== lead.join()) errs.push(`${where}: vor dem ersten Knopf steht ${ids.slice(0, first).join(", ")}`);
+      if (parts.slice(first).some((p, i, a) => !p.btn && a.slice(i).some((q) => q.btn))) errs.push(`${where}: Text zwischen den Knöpfen (${ids.join(", ")})`);
+      if (ids.indexOf("pNeeds") >= 0 && ids.indexOf("pNeeds") < first) errs.push(`${where}: „Dafür brauchst du“ vor den Knöpfen`);
+      for (let i = 1; i < parts.length; i++) if (parts[i].top - parts[i - 1].bottom > 12) errs.push(`${where}: Lücke vor ${parts[i].id} (${parts[i].top - parts[i - 1].bottom} px)`);
+      if (FIRST_SCREEN.includes(id)) {
+        if (parts[first].bottom > lim) errs.push(`${where}: erster Knopf nicht ganz im ersten Bildschirm (${parts[first].bottom} > ${lim})`);
+        if (!mit && start.bottom > lim) errs.push(`${where}: „Runde starten“ nicht ganz im ersten Bildschirm (${start.bottom} > ${lim})`);
+      }
+      row.push(`${id} ${parts[first].top}${parts[first].id === "pStart" ? "" : `/${start.top}`}`);
+    }
+    lines.push(`  Startkarten ${width} × 640 ${mit ? "mit" : "ohne"} Empfehlung (oberer Rand erster Knopf[/„Runde starten“], erster Bildschirm bis 580 px): ${row.join(", ")}`);
+  }
+  await ctx.close();
+  return { errs, lines };
+}
+
 async function run(browser, width, scheme) {
   const ctx = await browser.newContext({ viewport: { width, height: 900 }, colorScheme: scheme, serviceWorkers: "block" });
   const pg = await ctx.newPage();
@@ -522,9 +573,12 @@ if (!SELFTEST_ONLY) {
   for (const width of WIDTHS) {
     const scheme = width <= 360 ? "dark" : "light";
     const { hits, errs } = await run(browser, width, scheme);
+    const sc = await startCards(browser, width, scheme);
+    errs.push(...sc.errs);
     bad += hits.length + errs.length;
     const over = hits.filter((h) => h.kind === "Überlappung").length;
     console.log(`${width} px (${scheme === "dark" ? "dunkel" : "hell"}): ${hits.length} Treffer (davon ${over} Überlappung), ${errs.length} Konsolenfehler`);
+    sc.lines.forEach((l) => console.log(l));
     errs.slice(0, 10).forEach((e) => console.log(`  Fehler: ${e}`));
     hits.sort((a, b) => Math.max(b.rechts, b.links) - Math.max(a.rechts, a.links)).forEach((h) => {
       console.log(`  - [${h.kind}] ${h.what}: ${h.kind === "Überlappung" ? `${h.rechts} px breit` : `rechts ${h.rechts} px, links ${h.links} px`}\n      ${h.el}\n      Rahmen: ${h.frame}\n      „${h.text}“ (${h.wo.length}×, z. B. ${h.wo.slice(0, 3).join("; ")})`);

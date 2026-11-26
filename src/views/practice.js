@@ -152,21 +152,32 @@ export function render(arg) {
 export const BASICS_LABEL = `Grundlagen wiederholen\u00a0·\u00a0${RUNDE_GRUNDLAGEN}\u00a0Aufgaben`;
 export const BASICS_SHORT = "Grundlagen wiederholen";
 
-// Startkarte: „Dafür brauchst du: …“ mit je einem Knopf je Voraussetzung (öffnet deren Startkarte), rein, getestet.
-// Leer, wenn die Stufe keine Voraussetzungen hat.
+// „Notenstufen zählen (Prime bis Oktave)“ → „Notenstufen zählen“ (Satz zum Fehlermuster, „Dafür brauchst du“,
+// Grund der Empfehlung)
+const shortSkill = (t) => t.replace(/\s*\([^)]*\)\s*$/, "");
+
+// Startkarte: „Dafür brauchst du: …“ als fortlaufende Zeile mit Kommas (J-B1/J-C1, Korrektur nach der Prüfung
+// Welle 11): je Voraussetzung ein Knopf im Textfluss mit sichtbarer Stufe, z. B. „Notenstufen zählen (Intervalle 2)“
+// (Kurzname des Pakets, Fähigkeit ohne Klammerzusatz); er öffnet die Startkarte jener Stufe. Das Komma hängt ohne
+// Leerzeichen am Knopf (kein Komma am Zeilenanfang). Rein, getestet. Leer, wenn die Stufe keine Voraussetzungen hat.
+export function needLabel(packs, id) {
+  const { pack, level } = engine.findLevel(packs, id);
+  return `${shortSkill(skillOf(level))} (${packShort(pack)} ${level.no})`;
+}
 export function needsHtml(packs, levelId) {
   const ids = needsOf(packs, levelId);
   if (!ids.length) return "";
   return "Dafür brauchst du: " + ids.map((id) => {
-    const { pack, level } = engine.findLevel(packs, id);
-    return `<button type="button" class="link" data-need="${id}" title="${pack.title}, Stufe ${level.no}">${skillOf(level)}</button>`;
-  }).join(" · ");
+    const { level } = engine.findLevel(packs, id);
+    return `<button type="button" class="link" data-need="${id}" title="${skillOf(level)}">${needLabel(packs, id)}</button>`;
+  }).join(", ");
 }
 
-// Grund der Empfehlung auf der Startkarte (rein, getestet): reason aus repeat.basicsOffer
+// Grund der Empfehlung auf der Startkarte (rein, getestet): reason aus repeat.basicsOffer; die Fähigkeit ohne
+// Klammerzusatz wie in „Dafür brauchst du“ (kürzer, die Startknöpfe rücken nach oben)
 export function reasonText(packs, reason) {
   if (!reason) return "";
-  const skill = skillOf(engine.findLevel(packs, reason.id).level);
+  const skill = shortSkill(skillOf(engine.findLevel(packs, reason.id).level));
   const rest = { nie: "hast du hier noch nicht geübt.", faellig: "ist wieder dran.", schwach: "lag zuletzt unter 8 von 10." }[reason.kind];
   return rest ? `Empfohlen: „${skill}“ ${rest}` : "";
 }
@@ -336,8 +347,6 @@ function showReviewResult(res, verdicts) {
 const ZAHLWORT = { 3: "Dreimal", 4: "Viermal", 5: "Fünfmal", 6: "Sechsmal", 7: "Siebenmal", 8: "Achtmal", 9: "Neunmal", 10: "Zehnmal" };
 export const countWord = (n) => ZAHLWORT[n] || `${n}-mal`;
 const ORDINAL = ["erste", "zweite", "dritte"];
-// „Notenstufen zählen (Prime bis Oktave)“ → „Notenstufen zählen“ (in der Klammer des Satzes)
-const shortSkill = (t) => t.replace(/\s*\([^)]*\)\s*$/, "");
 
 // Muster aus repeat.gapsOf zusammenfassen: gleiche Zahl, gleicher Schritt, gleiche Art → ein Satz
 // (einschrittige Stufen mit mehreren Voraussetzungen zählen jede falsche Antwort für alle)
