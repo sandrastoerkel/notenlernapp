@@ -455,6 +455,15 @@ const SCENES = [
       await shot(pg, `stufe-${l.id}`, `${p.title}, Stufe ${l.no} „${l.title}“: erste Aufgabe${l.helps && l.helps.length ? " (Hilfen zugeklappt)" : ""}`);
     }
   }],
+  // Nachprüfung (am Ende, damit die Nummern 001–181 der Berichte gleich bleiben): „Grundlagen wiederholen“ mit einer
+  // fälligen Grundlage (Noten lesen 7), alles richtig → sie zählt als Wiederholung, das Urteil steht in ihrer Zeile
+  ["grundlagen-wiederholung", async ({ page, shot, need }) => {
+    const pg = await page(grundlagenOk({ faellig: true }));
+    await openLevel(pg, "intervall-3");
+    await pg.click("#pBasics"); await pg.waitForTimeout(300);
+    for (let k = 0; k < 8 && !(await vis(pg, "#pResult")); k++) { await answerQuestion(pg, true, null, errors); await goOn(pg); }
+    if (await need(pg, "#pResult .review-line", "Zeilen der Grundlagen")) await shot(pg, "grundlagen-ergebnis-zaehlt-als-wiederholung", "Ergebniskarte „Grundlagen wiederholt“, alles richtig: Noten lesen 7 war fällig und zählt als Wiederholung („· ✓ sitzt · wieder in 7 Tagen“ in ihrer Zeile), Intervalle 2 nur „3 von 3“, „Zurück zu Stufe 3“ als Hauptknopf");
+  }],
 ];
 
 // nur die eigenen Ordner leeren (OUT selbst kann ein anderer Ordner sein)

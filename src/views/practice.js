@@ -227,10 +227,11 @@ function startBasics(levelId, only) {
     // Empfehlung zu den übrigen stehen
     const all = needsOf(ctx.packs, levelId);
     if (!only || all.every((id) => [].concat(only).includes(id))) afterBasics(ctx.state, levelId, res.correct, res.total, today());
-    // je Voraussetzung: fehlerfrei gemerkt, eine fällige bestandene zählt als Wiederholung (Korrektur W-B4)
-    afterBasicsLevels(ctx.state, ctx.packs, res.perLevel, today());
+    // je Voraussetzung: fehlerfrei gemerkt, eine fällige bestandene zählt als Wiederholung (Korrektur W-B4); deren
+    // Urteil zeigt die Ergebniskarte in der Zeile der Grundlage (Nachprüfung)
+    const counted = afterBasicsLevels(ctx.state, ctx.packs, res.perLevel, today());
     ctx.save();
-    showBasicsResult(res, levelId, only);
+    showBasicsResult(res, levelId, only, counted);
   });
 }
 
@@ -329,20 +330,27 @@ export function needOffer(packs, id) {
 
 // Inhalt der Karte „Grundlagen wiederholt“ (rein, getestet): { lines: [{ text, offer, main }], backMain }.
 // - je Grundlage eine Zeile „Intervalle 2 · 0 von 3“, bei Fehlern darunter ein Knopf zum Üben (needOffer);
+// - eine fällige Grundlage, deren Runde als Wiederholung zählte (counted aus repeat.afterBasicsLevels, W-B4 b), zeigt
+//   wie die Karte „Wiederholen“ ihr Urteil in derselben Zeile (reviewLine: „Noten lesen 7 · 3 von 3 · ✓ sitzt ·
+//   wieder in 7 Tagen“) und hat keinen Knopf zum Üben – sonst verschwände sie ohne Erklärung aus „Heute“
+//   (Nachprüfung, keine eigene Zeile, die Karte bleibt knapp);
 // - Hauptknopf ist dieser Knopf, wenn eine Grundlage zur Hälfte oder mehr danebenlag (bei mehreren die mit dem
 //   größten Anteil, bei Gleichstand die erste);
 // - „Zurück zu Stufe n“ ist Hauptknopf nur bei höchstens einem Fehler (und keiner Grundlage zur Hälfte daneben);
 // - dazwischen (zwei oder mehr Fehler verteilt) gibt es keinen Hauptknopf: Üben, Zurück und Nochmal stehen gleich da.
-export function basicsResultPlan(packs, res) {
-  const lines = res.perLevel.map((e) => ({ text: perLevelLine(packs, e), offer: e.ok < e.n ? needOffer(packs, e.id) : null, main: false, part: (e.n - e.ok) / e.n }));
+export function basicsResultPlan(packs, res, counted = []) {
+  const lines = res.perLevel.map((e) => {
+    const v = (counted || []).find((x) => x.id === e.id);
+    return { text: v ? reviewLine(packs, v) : perLevelLine(packs, e), offer: e.ok < e.n && !v ? needOffer(packs, e.id) : null, main: false, part: (e.n - e.ok) / e.n };
+  });
   const weak = lines.filter((l) => l.part >= 0.5).sort((a, b) => b.part - a.part)[0];
   if (weak) weak.main = true;
   return { lines: lines.map(({ part, ...l }) => l), backMain: !weak && res.total - res.correct <= 1 };
 }
 
-function showBasicsResult(res, levelId, only) {
+function showBasicsResult(res, levelId, only, counted = []) {
   const { level } = engine.findLevel(ctx.packs, levelId);
-  const plan = basicsResultPlan(ctx.packs, res);
+  const plan = basicsResultPlan(ctx.packs, res, counted);
   $("#pPlay").hidden = true; $("#pHelps").hidden = true; $("#pOrigin").hidden = true;
   $("#pResult").hidden = false;
   $("#pResult").innerHTML = `

@@ -408,7 +408,18 @@ test("„Grundlagen wiederholt“: Knopf zum Üben je Zeile mit Fehlern, Hauptkn
   // mehrere zur Hälfte daneben: die mit dem größten Anteil
   p = basicsResultPlan(PACKS, res([{ id: "noten-7", n: 3, ok: 1 }, { id: "intervall-2", n: 3, ok: 0 }]));
   assert.deepEqual(p.lines.map((l) => l.main), [false, true]);
-  // die Ansicht nutzt den Plan, „Zurück“ nur mit backMain hervorgehoben
+  // fällige Grundlage, die als Wiederholung zählte (afterBasicsLevels, W-B4 b): Urteil in ihrer Zeile wie auf der Karte
+  // „Wiederholen“, kein Knopf zum Üben (auch nicht mit einem Fehler bei 6 Aufgaben); die übrigen Zeilen wie bisher
+  const OK = `<span aria-hidden="true">✓</span>${NB}`;
+  p = basicsResultPlan(PACKS, res([{ id: "noten-7", n: 3, ok: 3 }, { id: "intervall-2", n: 3, ok: 0 }]),
+    [{ id: "noten-7", n: 3, richtig: 3, urteil: "sitzt", sitzt: true, fach: 3, inTagen: 7 }]);
+  assert.deepEqual(p.lines.map((l) => l.text), [`Noten lesen${NB}7 · 3${NB}von${NB}3 · ${OK}sitzt · wieder in${NB}7${NB}Tagen`, "Intervalle 2 · 0 von 3"]);
+  assert.deepEqual(p.lines.map((l) => [l.offer && l.offer.id, l.main]), [[null, false], ["intervall-1", true]]);
+  p = basicsResultPlan(PACKS, res([{ id: "noten-7", n: 6, ok: 5 }]), [{ id: "noten-7", n: 6, richtig: 5, urteil: "sitzt", sitzt: true, fach: 2, inTagen: 3 }]);
+  assert.ok(p.backMain && !p.lines[0].offer);
+  // die Ansicht nutzt den Plan, „Zurück“ nur mit backMain hervorgehoben, und gibt die Urteile aus afterBasicsLevels weiter
   const src = readFileSync(new URL("../../src/views/practice.js", import.meta.url), "utf8");
   assert.ok(src.includes('<button class="btn${plan.backMain ? " primary" : ""}" id="rBack">'));
+  assert.match(src, /const counted = afterBasicsLevels\(ctx\.state, ctx\.packs, res\.perLevel, today\(\)\);/);
+  assert.match(src, /showBasicsResult\(res, levelId, only, counted\)/);
 });
