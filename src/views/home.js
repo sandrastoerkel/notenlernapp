@@ -48,12 +48,13 @@ export const AGAIN_TEXT = "wieder dran";
 export const againHtml = () => `<span class="again"><span aria-hidden="true">↻</span>\u00a0${AGAIN_TEXT}</span>`;
 
 // Eine Stufenkarte; dueSet: IDs der fälligen Stufen (repeat.due); withPack: Paketname vorn in der Unterzeile
-// (Abschnitt „Jetzt dran“, Stufen aus mehreren Paketen)
-export function levelHtml(s, pack, l, dueSet = new Set(), withPack = false) {
+// (Abschnitt „Jetzt dran“, Stufen aus mehreren Paketen); cur: hervorgehobene Stufe – die, zu der „Weiter üben“
+// führt (mit Jahrgang continueId, sonst die aktuelle Stufe)
+export function levelHtml(s, pack, l, dueSet = new Set(), withPack = false, cur = s.current) {
   const st = s.levels[l.id] || {}, open = isUnlocked(s, pack, l.id);
   const lock = open ? "" : lockText(pack, l);
   const again = dueSet.has(l.id) ? ` · ${againHtml()}` : "";
-  return `<button class="level ${open ? "" : "locked"} ${l.id === s.current ? "current" : ""}" data-id="${l.id}" ${open ? "" : "disabled"}>
+  return `<button class="level ${open ? "" : "locked"} ${l.id === cur ? "current" : ""}" data-id="${l.id}" ${open ? "" : "disabled"}>
         <span class="level-no ${st.stars >= 2 ? "done" : ""}">${open ? l.no : "🔒"}</span>
         <span><span class="level-title">${l.title}</span><br><span class="small muted">${withPack ? `${packShort(pack)} · ` : ""}${l.subtitle || ""}${lock ? ` · ${keepStufe(lock)}` : ""}${st.played ? ` · beste Runde ${st.best}/10` : ""}${again}</span></span>
         ${starsHtml(st.stars || 0)}
@@ -135,7 +136,7 @@ export const SECTION_TITLES = { jetzt: "Jetzt dran", gewesen: "Schon dran gewese
 export const klasseHint = (k) => `${klasseText(k)} · über den Link deiner Lehrkraft`;
 // Satz bei leerem „Jetzt dran“: Kommt im Jahrgang nichts Neues dazu (8 bis 13), oder ist das Neue geschafft?
 export const nothingNewText = (k) => `In Jahrgang ${k.jahrgang} kommt nichts Neues dazu. Alles hier ist zum Wiederholen da.`;
-export const allDoneText = (k) => `Was in Jahrgang ${k.jahrgang} neu ist, hast du mit 8 von 10 geschafft. Alles hier ist zum Wiederholen da.`;
+export const allDoneText = (k) => `Was in Jahrgang ${k.jahrgang} neu ist, hast du mit mindestens 8 von 10 geschafft. Alles hier ist zum Wiederholen da.`;
 
 // Startseite mit Jahrgang: { hint, jetzt: { title, ids, empty }, gewesen: { title, groups }, hinaus: { title, groups } }
 // mit groups = [{ pack, ids }] je Paket (nur Pakete mit Stufen im Abschnitt). null ohne Jahrgang (dann bleibt die
@@ -160,28 +161,30 @@ export function homeSections(state, packs) {
 const unsureHtml = (pack, unsure) => (pack.id === "noten" && unsure ? `<p class="small muted unsure-hint">${unsureText(unsure)}</p>` : "");
 
 // Je Paket ein Abschnitt: Überschrift, dann die Stufen (ohne Jahrgang; mit Jahrgang innerhalb der Abschnitte)
-function packsHtml(s, groups, dueSet, unsure, tag) {
+function packsHtml(s, groups, dueSet, unsure, tag, cur = s.current) {
   return groups.map(({ pack, ids }) => `<section class="levels" data-pack="${pack.id}">
       <${tag}>${pack.title}</${tag}>
       ${unsureHtml(pack, unsure)}
-      ${pack.levels.filter((l) => ids.includes(l.id)).map((l) => levelHtml(s, pack, l, dueSet)).join("")}
+      ${pack.levels.filter((l) => ids.includes(l.id)).map((l) => levelHtml(s, pack, l, dueSet, false, cur)).join("")}
     </section>`).join("");
 }
 
 function sectionsHtml(s, h, dueSet, unsure) {
   const findPack = (id) => findLevel(ctx.packs, id);
+  // hervorgehoben ist die Stufe, die „Weiter üben“ öffnet (sonst zeigte der Knopf auf eine, der Rahmen auf eine andere)
+  const cur = continueId(s, ctx.packs);
   // „Noten sitzen noch nicht“ in „Jetzt dran“, wenn dort Stufen aus „Noten lesen“ stehen (sonst beim Paket)
   const notenNow = h.jetzt.ids.some((id) => findPack(id).pack.id === "noten");
   const jetzt = `<section class="levels klasse-sec" data-sec="jetzt"><h2>${h.jetzt.title}</h2>
       ${notenNow && unsure ? `<p class="small muted unsure-hint">${unsureText(unsure)}</p>` : ""}
-      ${h.jetzt.empty ? `<p class="muted">${h.jetzt.empty}</p>` : h.jetzt.ids.map((id) => { const { pack, level } = findPack(id); return levelHtml(s, pack, level, dueSet, true); }).join("")}
+      ${h.jetzt.empty ? `<p class="muted">${h.jetzt.empty}</p>` : h.jetzt.ids.map((id) => { const { pack, level } = findPack(id); return levelHtml(s, pack, level, dueSet, true, cur); }).join("")}
     </section>`;
   const rest = notenNow ? 0 : unsure;
   const gewesen = h.gewesen.groups.length ? `<section class="levels klasse-sec" data-sec="gewesen"><h2>${h.gewesen.title}</h2>
-      ${packsHtml(s, h.gewesen.groups, dueSet, rest, "h3")}</section>` : "";
+      ${packsHtml(s, h.gewesen.groups, dueSet, rest, "h3", cur)}</section>` : "";
   const shownNoten = notenNow || h.gewesen.groups.some((g) => g.pack.id === "noten");
   const hinaus = h.hinaus.groups.length ? `<details class="levels klasse-sec more" data-sec="hinaus"><summary><h2>${h.hinaus.title}</h2></summary>
-      <div class="levels">${packsHtml(s, h.hinaus.groups, dueSet, shownNoten ? 0 : unsure, "h3")}</div></details>` : "";
+      <div class="levels">${packsHtml(s, h.hinaus.groups, dueSet, shownNoten ? 0 : unsure, "h3", cur)}</div></details>` : "";
   return `<p class="small muted klasse-hint">${h.hint}</p>${jetzt}${gewesen}${hinaus}`;
 }
 

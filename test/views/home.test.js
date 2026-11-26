@@ -159,7 +159,7 @@ test("homeSections: Jahrgang 9 – „Jetzt dran“ leer mit Satz; alles Neue ge
   assert.equal(continueId(mitKlasse(9, null, { current: "tonleitern-6" }), PACKS), "tonleitern-6");
   const done = mitKlasse(7, null, { levels: { "akkorde-5": { best: 8 }, "akkorde-6": { best: 10 } } });
   assert.equal(homeSections(done, PACKS).jetzt.empty, allDoneText({ jahrgang: 7 }));
-  assert.equal(allDoneText({ jahrgang: 7 }), "Was in Jahrgang 7 neu ist, hast du mit 8 von 10 geschafft. Alles hier ist zum Wiederholen da.");
+  assert.equal(allDoneText({ jahrgang: 7 }), "Was in Jahrgang 7 neu ist, hast du mit mindestens 8 von 10 geschafft. Alles hier ist zum Wiederholen da.");
   assert.deepEqual(Object.values(SECTION_TITLES), ["Jetzt dran", "Schon dran gewesen", "Darüber hinaus"]);
   assert.equal(klasseHint({ jahrgang: 6, zweig: null, dran: dranFor(6) }), "Jahrgang 6 · über den Link deiner Lehrkraft");
 });
@@ -168,6 +168,16 @@ test("Stufenkarte in „Jetzt dran“: Paketname (kurz) vorn in der Unterzeile",
   const html = levelHtml(fresh(), pack("akkorde"), lv("akkorde-5"), new Set(), true);
   assert.match(html, /<span class="small muted">Dreiklänge · /);
   assert.ok(!/<span class="small muted">Dreiklänge · /.test(levelHtml(fresh(), pack("akkorde"), lv("akkorde-5"))));
+});
+
+test("Stufenkarte: hervorgehoben ist die Stufe von „Weiter üben“ (mit Jahrgang continueId), sonst die aktuelle", () => {
+  const s = mitKlasse(7, null, { current: "noten-1" });
+  const cur = continueId(s, PACKS);
+  assert.equal(cur, "akkorde-5");
+  assert.match(levelHtml(s, pack("akkorde"), lv("akkorde-5"), new Set(), true, cur), /class="level\s+current"/);
+  assert.ok(!/current/.test(levelHtml(s, pack("noten"), lv("noten-1"), new Set(), false, cur)));
+  // ohne Angabe wie bisher: die aktuelle Stufe
+  assert.match(levelHtml(s, pack("noten"), lv("noten-1")), /class="level\s+current"/);
 });
 
 test("Statistik: Hinweis auf den Jahrgang bzw. nichts", () => {

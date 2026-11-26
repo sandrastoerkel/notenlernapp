@@ -3211,6 +3211,25 @@ ist, hast du mit 8 von 10 geschafft …“. Rücklesen der Codes aus der Seite (
 mit der GitHub-Adresse im Test ab V7) mit dem Testleser und mit OpenCV WeChat: alle gleich dem Link. 518 Tests grün,
 Überlauf 0 bei 320 und 420 px. Offen für Sandra: Handy-Scan (8.14).
 
+**Geprüft (26.11.2026, Fable): bestanden nach Korrektur.** Im Browser unter der echten Adresse
+`https://sandrastoerkel.github.io/notenlernapp/` (Dateien lokal untergeschoben) bei 420 px hell und 320 px dunkel:
+Startseite ohne Jahrgang zeichengleich mit dem Stand nach Schritt 8 (bdfa074); mit Jahrgang 5, 7, 9, 13 und 6 MuG
+stimmen die Abschnitte mit `klasse.sections` überein, die Karte „Heute“ steht zuoberst, „Darüber hinaus“ ist
+zugeklappt, „Weiter üben“ öffnet `klasse.nextUp`; der Jahrgang öffnet nur (`store.isUnlocked`), er sperrt nichts.
+Lehrkraft-Seite: jeder Link wird von `parseLink` angenommen, nur Abweichungen im Link, „Kopiert“ (Zwischenablage
+gleich Link), großer Code mit Esc und „Schließen“, Fokus zurück, gespeicherter Stand unverändert; Codes aus
+Bildschirmfotos (auch dunkel: schwarz auf weiß, Ruhezone) mit OpenCV und OpenCV WeChat zurückgelesen, kurz (V4, V5)
+und lang (V8, 118 Zeichen) gleich dem Link; ohne Netz nach dem ersten Laden erscheinen Seite und Codes weiter.
+Korrekturen: (1) Mit Jahrgang war die Stufe `state.current` umrandet, „Weiter üben“ führte aber zu einer anderen
+(`nextUp`) – umrandet ist jetzt die Stufe von „Weiter üben“ (`levelHtml(…, cur)`, ohne Jahrgang unverändert).
+(2) Satz „… hast du mit mindestens 8 von 10 geschafft“ (vorher „mit 8 von 10“, bei 10 von 10 ungenau). (3) Die zwei
+Knöpfe „Link kopieren“ haben unterscheidbare Namen für Screenreader. Entscheidungen der Umsetzung angenommen: Die
+Seite beginnt mit Jahrgang 5 (sie liest den Stand des Geräts nicht); Wechsel von Jahrgang oder Zweig setzt die
+Auswahl zurück („dran bis“ bezieht sich auf den Jahrgang, der Knopf bliebe sonst mehrdeutig); zwei Sätze bei leerem
+„Jetzt dran“; „… Noten sitzen noch nicht“ nur einmal, beim ersten Abschnitt mit „Noten lesen“. Hinweis: Bei 320 px
+ist der Code zum Entfernen so breit wie der Code der Klasse (beide füllen die Karte); auf breiteren Bildschirmen ist
+er kleiner. 519 Tests grün. Offen für Sandra: 8.14 und 8.19.
+
 #### Schritt 13 – Doku, Cache, Bildschirmfotos, Überlauf, Lauf über 40 Tage
 
 - Doku: `docs/ARCHITEKTUR.md` (neue Module `repeat.js`, `klasse.js`, `qr.js`, `views/lehrkraft.js`; Engine:
@@ -3341,6 +3360,12 @@ Gebaut wird jeweils die genannte Voreinstellung.
     nicht geübt.“ / „… ist wieder dran.“ / „… lag zuletzt unter 8 von 10.“ Recht so, oder lieber ohne das Wort
     „Empfohlen“, z. B. „Tipp: …“? Und: Wer „Intervalle“ beginnt, ohne „Noten lesen“ 3 hier gespielt zu haben,
     sieht „Grundlagen wiederholen“ als Hauptknopf vor „Runde starten“ – in Ordnung? (Prüfung Schritt 7)
+19. **Lehrkraft-Seite und Startseite mit Jahrgang:** Die Seite beginnt immer mit Jahrgang 5; ein Wechsel von
+    Jahrgang oder „Musisches Gymnasium“ setzt eine eigene Auswahl auf die Voreinstellung zurück – recht so? Mit
+    Jahrgang führt „Weiter üben“ immer zur ersten offenen Stufe aus „Jetzt dran“ (auch wenn zuletzt etwas anderes
+    geübt wurde); ist „Jetzt dran“ leer, steht dort „In Jahrgang 9 kommt nichts Neues dazu. Alles hier ist zum
+    Wiederholen da.“ bzw. „Was in Jahrgang 7 neu ist, hast du mit mindestens 8 von 10 geschafft. …“ – Wortlaut
+    recht? (Prüfung Schritt 12)
 
 ## Vorgabe für das Paket „Dreiklänge Schritt für Schritt“ (nach Welle 11): bis zum Dominantseptakkord
 
