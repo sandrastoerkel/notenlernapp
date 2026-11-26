@@ -871,8 +871,8 @@ Startseite (`src/views/home.js`, seit Welle 11, Schritt 8 und 12; reine Teile ge
   `packShort(pack)` (Kurzname `pack.short`, sonst `title`) wird auch in `practice.js` genutzt.
 - Ohne Jahrgang je Paket ein Abschnitt. Mit Jahrgang `homeSections(state, packs)` aus `klasse.sections`: klein
   der Hinweis „Jahrgang 6 · über den Link deiner Lehrkraft“ (`klasseHint`), „Jetzt dran“ (je Paket mit kleiner
-  Überschrift `h3` wie die anderen Abschnitte, `homeSections(…).jetzt.groups`, Korrektur J-B5/L-B2; leer: `nothingNewText` „In Jahrgang 9 kommt nichts Neues dazu. …“ bzw.
-  `allDoneText` „Was in Jahrgang 7 neu ist, hast du mit mindestens 8 von 10 geschafft. …“), „Schon dran gewesen“
+  Überschrift `h3` wie die anderen Abschnitte, `homeSections(…).jetzt.groups`, Korrektur J-B5/L-B2; leer:
+  `nothingNewText` „In Jahrgang 9 kommt nichts Neues dazu. …“ bzw. `allDoneText` „Was in Jahrgang 7 neu ist, hast du mit mindestens 8 von 10 geschafft. …“), „Schon dran gewesen“
   (je Paket), „Darüber hinaus“ (`<details>`, zugeklappt, je Paket). Titel in `SECTION_TITLES`.
 
 Üben (`src/views/practice.js`; reine Teile getestet in `test/views/practice.test.js`):

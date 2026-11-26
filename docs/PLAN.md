@@ -3543,6 +3543,13 @@ Gebaut wird jeweils die genannte Voreinstellung.
     geübt wurde); ist „Jetzt dran“ leer, steht dort „In Jahrgang 9 kommt nichts Neues dazu. Alles hier ist zum
     Wiederholen da.“ bzw. „Was in Jahrgang 7 neu ist, hast du mit mindestens 8 von 10 geschafft. …“ – Wortlaut
     recht? (Prüfung Schritt 12)
+20. **Startkarte, lange Hinweise (Rest von J-B1):** Seit der Korrektur stehen die Knöpfe direkt unter dem Hinweis.
+    Bei 320 × 640 px mit Empfehlung liegt der erste Knopf trotzdem noch unter dem ersten Bildschirm (Grenze 580 px)
+    bei Intervalle 3 (593 px), Tonleitern 10 (756 px) und Tonleitern 12 (616 px), weil deren Hinweise fünf bis
+    sieben Zeilen lang sind (Tonleitern 10 mit der Reihenfolge der ♯ und ♭ samt Merksprüchen). Weiter ginge es nur
+    über den Inhalt: kürzere Hinweise, oder die Reihenfolge der Vorzeichen in Tonleitern 10 zum Aufklappen bzw. nur
+    in der Lerntafel. Gebaut: alles bleibt sichtbar (der Hinweis ist die Strategie der Stufe). Kürzen oder
+    aufklappbar – und wenn ja, welche Zeilen? (Nachprüfung Welle 11)
 
 ### 9. Korrektur nach der Prüfung aus drei Perspektiven (26.11.2026)
 
@@ -3614,6 +3621,68 @@ OBERFLAECHE (Zeilen vom Koordinator nach dem Bericht eingetragen; zusammengefüh
 - (J-B8 und das Kasten-Wort in `repeatNote` siehe LOGIK.) Nicht gemacht: J-C10 (Tastatur-Hinweis steht jetzt ohnehin
   unter den Knöpfen), „3 Halbtöne“ in den Vorführungstexten (`demo.js`).
 - Nach der Zusammenführung: 544 Tests grün.
+
+#### Nachprüfung (26.11.2026, Opus statt Fable)
+
+Geprüft am zusammengeführten Stand (`d235a8f`): jeder A- und B-Befund der drei Berichte an Code, Test und Bild
+(Bilder `pruefung.mjs`, Nummern wie in den Berichten; neu 182). Urteil: **bestanden nach Korrektur** – 22 von 23
+behoben, J-B1 teilweise (Rest als „Offen für Sandra“ 20).
+
+| Befund | Urteil | Beleg |
+|---|---|---|
+| W-A1 Jahrgang schließt beim Entfernen/Senken | behoben | `store.klasseOffen`/`klasseOffenBis` (nur wachsend, `setKlasse`/`clearKlasse` heben, `reset` behält, Umstellung alter Stände); `isUnlocked` liest die Marke, `sections`/`nextUp` die Einstellung. Test „Marke: Entfernen, Senken und Wechsel schließen nichts“ (alle 5–13, MuG, eigene Auswahl). Dialog (093, 094) und Lehrkraft-Seite (088, „Was einmal offen war, bleibt offen.“) stimmen jetzt; Leitsatz 3 hält (Ausnahmen wie vorher: „Fortschritt zurücksetzen“, Demo). |
+| W-B1 Ratestufen bestehen zu leicht | behoben | `passed(n, f, guess)` 2 · ⌊n / 10⌋; `reviewPlan` trägt `guess`, `withGuess` in `startReview`; ebenso `afterRound` und `afterBasicsLevels` (bei 10 Aufgaben gleiche Grenze). Test mit 18,8 % → 3,1 %. |
+| W-B2 / J-B3 ein Fehler stuft zurück, Grund unsichtbar | behoben | `verdictOf` „fast“ (Fach bleibt, morgen), zurück ab zwei Fehlern; `reviewLine` mit „… von …“, ✓/↻ (`aria-hidden`, nicht rot). Tests; 025, 033; `uhr40.mjs` in beiden Zeitzonen wie erwartet. |
+| W-B3 / J-B6 / L-B4 „Grundlagen wiederholt“ ohne Weg | behoben | `basicsResultPlan`, `needOffer`: Knopf je Zeile mit Fehlern, Hauptknopf ab der Hälfte daneben, „Zurück“ nur bei höchstens einem Fehler. Test; 042. |
+| W-B4 Können zählt nur für die Zielstufe | behoben | `basicsOk` je Voraussetzung, `basicsOffer` nimmt den späteren Tag; fällige bestandene Grundlage → `applyReview`. Tests (a) und (b). Dazu Nachprüfung: Urteil in der Zeile der Karte (182). |
+| W-B5 Muster-Behauptung bei einschrittigen Stufen | behoben | `gapText`: „Drei Antworten lagen daneben. Die Grundlagen dazu findest du in …“. Test. |
+| W-B6 / J-B7 zu viele Wege bei Fehlermuster | behoben | höchstens ein Muster (erster Schritt zuerst), ein Hauptknopf + „Nochmal“ + „Übersicht“, kein Lernen-Satz, kein doppeltes „… öffnen“, Satz ohne Rahmen, ohne Nachzählen. Test; 043. |
+| W-B7 schwache Runde in nicht fälliger Stufe ohne Folge | behoben | `afterRound` → `vorgezogen`, morgen fällig, Fach bleibt; „Wiederholung: morgen noch einmal.“ Tests. |
+| W-B8 Satz zum leeren Kasten | behoben | `BOX_EMPTY_TEXT`; 001, 004. |
+| J-B1 Startknopf unter dem ersten Bildschirm | teilweise | Reihenfolge Hinweis → (Grund → „Grundlagen wiederholen“) → „Runde starten“ → „Dafür brauchst du“ (eine Zeile) → Tastatur; `ueberlauf.mjs` misst sechs Karten (`startCards`), Notenwerte 6 und Dreiklänge 1 ganz im ersten Bildschirm, bei Noten lesen 7 beginnt der Knopf darin (567 px). Intervalle 3, Tonleitern 10 und 12 mit Empfehlung noch darunter (593/756/616 px, lange Hinweise) → „Offen für Sandra“ 20. 008–017. |
+| J-B2 / L-B1 Satz verspricht Stern, 10/10 „fast alles“ | behoben | `resultMessage(stars, { correct, total, short })`; 025, 027, 033, 044. Test. |
+| J-B4 Klaviatur nach „daneben“ (dunkel) | behoben | Beschriftung markierter Tasten in `--fg` (≥ 4,5 : 1 hell und dunkel, `css.test.js`), richtige Taste grün (`markRight`); 035. |
+| J-B5 / L-B2 „Jetzt dran“ ohne Paket-Überschriften | behoben | `homeSections(…).jetzt.groups`, `packsHtml` mit h3, Unterzeile ohne Paketnamen. Test; 004–006. |
+| J-B8 „Neu im Kasten“ | behoben | „Geschafft – kommt morgen zum Wiederholen wieder.“ (`repeatNote`); 044; `uhr40.mjs` Tag 0. |
+| J-B9 Dialog „bis dahin“ ohne Bezug | behoben | „Die Startseite zeigt dir dann, was in Jahrgang n dran ist. …“; 092, 093. Test. |
+| J-B10 „App-Version“ ohne nächsten Schritt | behoben | Leiste mit Grund und „Frag deine Lehrkraft …“; 095. Test. |
+| L-B3 Lehrkraft-Seite, zwei Sätze | behoben | „angelehnt an den LehrplanPLUS …“ und „Auf den Geräten der Klasse …“; 088. Test. |
+
+Zusammenspiel der beiden parallelen Änderungen (geprüft, wo nötig korrigiert):
+- „fast“ und die Knöpfe der Karte „Wiederholen“: Die Karte zeigte den Übungsknopf bei jedem Urteil außer „sitzt“,
+  bei 8 von 10 also zwei Knöpfe unter zwei „fast“-Zeilen (025). Jetzt nur unter „noch wacklig“ (`reviewOffers`). –
+  0afb61c
+- `afterBasicsLevels` und die Karte „Grundlagen wiederholt“: Eine fällige Grundlage, die als Wiederholung zählte,
+  verschwand ohne Erklärung aus „Heute“. Entschieden: keine eigene Zeile, sondern ihr Urteil in ihrer Zeile wie auf
+  der Karte „Wiederholen“ („Noten lesen 7 · 3 von 3 · ✓ sitzt · wieder in 7 Tagen“), ohne Übungsknopf (182). –
+  9c4ee8c
+- Raten: `guess` ist überall dieselbe Regel (Wiederholen, normale Runde, Grundlagen-Runde); keine Änderung nötig.
+- Hochwassermarke und Startseite: Abschnitte und „Weiter üben“ folgen der aktuellen Einstellung, über die Marke
+  offene Stufen stehen offen unter „Darüber hinaus“; der Satz der Lehrkraft-Seite stimmt. Keine Änderung nötig.
+- Ergebnissatz kurz (`short`) auch bei „Grundlagen wiederholen“ zuerst (unter 5 Richtigen): „Noch wacklig.“ statt
+  des Lernen-Satzes, passt zum Hauptknopf.
+- `uhr40.mjs` und der reine Lauf: Erwartungen (zwei Fehler an Tag 4) unverändert gültig; Kuala Lumpur und Berlin
+  wie erwartet (je 119 Prüfungen).
+- Statistik: Nach vor- und zurückgestellter Uhr stand „zuletzt geübt am 30.12.“ (Hinweis LOGIK); Tage nach heute
+  zählen nicht mehr. – 5833e63
+- Doku: ARCHITEKTUR (Hinweisleiste, Dialog, Startseite, Startkarte, Ergebniskarten, engine, Statistik, Jahrgang
+  „angelehnt an“, `ueberlauf.mjs`), README und KONZEPT („angelehnt an“, was offen war, bleibt offen, milde
+  Rückstufung), CLAUDE.md (Stand, Entscheidung 5); `pruefung.mjs` Beschreibungen, Bild 044 heißt
+  „ergebnis-geschafft“, Runde 1 zeigt alle drei Urteile, neue Szene 182 am Ende. – ff06d86, 0afb61c, 9c4ee8c
+
+Läufe am Ende: `npm test` 544 grün; `ueberlauf.mjs --selftest` in Ordnung, voller Lauf 320 px (dunkel) und
+420 px (hell) je 0 Treffer, 0 Konsolenfehler (Startkarten wie oben gemessen); `uhr40.mjs` Kuala Lumpur und Berlin
+wie erwartet; `pruefung.mjs` 364 Bilder (182 Ansichten × 2) in `w11/shots-final/`, der Index nennt den Commit
+dieser Nachprüfung.
+
+Bleibt für später (C, nicht in dieser Runde): J-C2 (Satz „Kurz auffrischen …“ auf der Karte „Heute“), J-C5
+(Notenzeile auf Ergebniskarten), J-C6 („→“ gegen „=“), J-C7 (Lernen-Überschrift, Schlüsselwahl), J-C8
+(Statistik-Erklärung), J-C9 (blasse Klaviatur der Vorführung), J-C10 (Tastatur-Hinweis nur mit feinem Zeiger;
+bei 320 px bricht „8 Oktave“ um); L-C1 bis L-C6, L-C8 bis L-C10; W-C2 (Sortierung nach relativer
+Überfälligkeit), W-C3 (Tonleitern 3 ohne Hilfen 50 : 50), W-C4 (`heute` in Noten lesen), W-C5 (Sandra 7), W-C6
+(Umbenennungen von Stufen-IDs nehmen `rep`, `basics` und `basicsOk` mit), W-C7 (Fokus im Entfernen-Dialog), W-C9
+(Notenbilder ohne Beschriftung), W-C10 (Kindertest); geschützte Leerzeichen in den Vorführungstexten
+(`demo.js`, „3 Halbtöne“).
 
 ## Vorgabe für das Paket „Dreiklänge Schritt für Schritt“ (nach Welle 11): bis zum Dominantseptakkord
 
