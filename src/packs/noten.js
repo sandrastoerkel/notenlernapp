@@ -88,10 +88,16 @@ export const LAGE_PROMPT = {
   zwischenraum: "In welchem Zwischenraum liegt die Note? Zähle von unten.",
 };
 export const LAGE_CHOICES = { linie: ["1.", "2.", "3.", "4.", "5."], zwischenraum: ["1.", "2.", "3.", "4."] };
-export const BEZUG_PROMPT = "Bezugston: Wie heißt die nächste Linie der Zeile?";
-export const ZAEHL_PROMPT = "Zähle von dort weiter: Wie heißt die Note?";
+// „nächstgelegene“ statt „nächste“ (Korrektur nach der Prüfung aus drei Perspektiven, L-C1/J-C5: „nächste“ lässt
+// sich als „die folgende Linie“ lesen)
+export const BEZUG_PROMPT = "Bezugston: Wie heißt die nächstgelegene Linie der Zeile?";
 export const STAMM_PROMPT = "Stammton: Wie heißt die Note ohne ihr Vorzeichen?";
-export const VZ_PROMPT = "Und mit dem Vorzeichen?";
+// Schritt 2 nennt das Ergebnis von Schritt 1 (Korrektur nach der Prüfung, J-B3: nach dem Wechsel stand „dort“
+// nirgends mehr), nie die Antwort von Schritt 2: „4. Linie – wie heißt die Note?“, „Zähle vom E weiter: Wie heißt
+// die Note?“, „Stammton F – und mit dem Vorzeichen?“
+export const lageNamePrompt = (ort) => `${ort} – wie heißt die Note?`;
+export const zaehlPrompt = (ref) => `Zähle vom ${ref.letter} weiter: Wie heißt die Note?`;
+export const vzPrompt = (st) => `Stammton ${st.letter} – und mit dem Vorzeichen?`;
 const stepTexts = (fact, badFact = fact) => ({ ok: `Richtig: ${fact}`, bad: `Nicht ganz: ${badFact}` });
 const letterOf = (n) => ({ letter: n.letter, acc: 0 });
 // Längstes Wort des Spruchs, das die Beschriftung der Auflösung noch zeigt (eigene Sprüche: bis 80 Zeichen)
@@ -107,7 +113,7 @@ function zweiSchritte(art, n, clef, state) {
       steps: [
         { prompt: LAGE_PROMPT[l.art], choices: LAGE_CHOICES[l.art].slice(), digits: true, answer: `${l.nr}.`,
           ...stepTexts(`${ort} von unten.`, `Es ist ${LAGE_ART[l.art]} ${ort} von unten.`) },
-        { prompt: PROMPT, note: "letters", answer: letterOf(n) },
+        { prompt: lageNamePrompt(ort), note: "letters", answer: letterOf(n) },
       ],
       display: `${ort} → ${name}`,
       partial: `Der Name stimmt, ${LAGE_ART[l.art]} ${wort} nicht: ${ort} → ${name}.`,
@@ -121,7 +127,7 @@ function zweiSchritte(art, n, clef, state) {
     return {
       steps: [
         { prompt: BEZUG_PROMPT, note: "letters", answer: letterOf(b.ref), ...stepTexts(fact) },
-        { prompt: ZAEHL_PROMPT, note: "letters", answer: letterOf(n) },
+        { prompt: zaehlPrompt(b.ref), note: "letters", answer: letterOf(n) },
       ],
       display: way,
       partial: `Der Name stimmt, der Bezugston nicht: ${way}.`,
@@ -134,7 +140,7 @@ function zweiSchritte(art, n, clef, state) {
   return {
     steps: [
       { prompt: STAMM_PROMPT, note: "letters", answer: letterOf(st), ...stepTexts(`Ohne Vorzeichen ist das ein ${st.letter}.`) },
-      { prompt: VZ_PROMPT, note: "names", answer: { letter: n.letter, acc: n.acc } },
+      { prompt: vzPrompt(st), note: "names", answer: { letter: n.letter, acc: n.acc } },
     ],
     display: way,
     partial: `Der Name stimmt, der Stammton nicht: ${way}.`,
@@ -240,7 +246,7 @@ export const BASS_VERGLEICH = "Dieselbe Linie wie im Violinschlüssel heißt im 
 // Hilfen (PLAN Abschnitt 3): Überschrift, Satz und Tabelle aus noten-hilfen.js (Gerüst bis Schritt 4)
 const H_LINIEN = "Zähle die Linien von unten. Das Wort im Merkspruch beginnt mit dem Notennamen.";
 const H_RAEUME = "Zähle die Zwischenräume von unten. Das Wort im Merkspruch beginnt mit dem Notennamen.";
-const H_AUSSEN = "Nimm die nächste Linie der Zeile als Bezugston. Jede Stelle weiter ist ein Name weiter: nach oben vorwärts, nach unten rückwärts.";
+const H_AUSSEN = "Nimm die nächstgelegene Linie der Zeile als Bezugston. Jede Stelle weiter ist ein Name weiter: nach oben vorwärts, nach unten rückwärts.";
 const H_VZ = "Lies erst den Stammton (die Note ohne Vorzeichen), dann das Zeichen.";
 const helps = (helpsTitle, helpText, helpTable) => ({ helps: ["tabelle"], helpsTitle, helpText, helpTable });
 const mkLinien = (clef) => helps("Hilfen: Merkspruch für die Linien", H_LINIEN, (c) => merkleiste(clef, "linien", c && c.state));
@@ -269,7 +275,7 @@ const RAW = [
     hint: (c) => `Zähle die Zwischenräume von unten. F A C E, Merkspruch: „${merk(c, "violin-raeume")}“.` },
   { clef: "treble", title: "Violinschlüssel: Linien und Zwischenräume", items: VORRAT.violinZeile, hint: ZEILE_HINT },
   { clef: "treble", title: "Violinschlüssel: über und unter der Zeile", items: VORRAT.violinAussen, ...mkAussen("treble"), ...D_ZAEHLEN,
-    hint: "Neu sind vier Noten außerhalb der Zeile. Nimm die nächste Linie als Bezugston und zähle weiter. Das c' liegt auf einer Hilfslinie unter der Zeile." },
+    hint: "Neu sind vier Noten außerhalb der Zeile. Zähle vom Bezugston weiter, der nächstgelegenen Linie. Das c' liegt auf einer Hilfslinie unter der Zeile." },
   { clef: "treble", title: "Violinschlüssel mit Hilfslinien", items: VORRAT.violin,
     hint: "Alle Noten von c' bis a'' gemischt, jetzt ohne Hilfen. Das c' liegt auf einer Hilfslinie unter der Zeile." },
   { clef: "bass", title: "Linien im Bassschlüssel", items: VORRAT.bassLinien, ...mkLinien("bass"), ...D_LAGE, ...K_LINIEN,
@@ -278,7 +284,7 @@ const RAW = [
     hint: (c) => `Zähle die Zwischenräume von unten. A C E G, Merkspruch: „${merk(c, "bass-raeume")}“.` },
   { clef: "bass", title: "Bassschlüssel: Linien und Zwischenräume", items: VORRAT.bassZeile, hint: ZEILE_HINT },
   { clef: "bass", title: "Bassschlüssel: über und unter der Zeile", items: VORRAT.bassAussen, ...mkAussen("bass"), ...D_ZAEHLEN,
-    hint: "Neu sind vier Noten außerhalb der Zeile. Nimm die nächste Linie als Bezugston und zähle weiter. Das c' liegt auf einer Hilfslinie über der Zeile, das E auf einer darunter." },
+    hint: "Neu sind vier Noten außerhalb der Zeile. Zähle vom Bezugston weiter, der nächstgelegenen Linie. Das c' liegt auf einer Hilfslinie über der Zeile, das E auf einer darunter." },
   { clef: "bass", title: "Bassschlüssel mit Hilfslinien", items: VORRAT.bass,
     hint: "Das c' liegt im Bassschlüssel auf einer Hilfslinie über der Zeile, das E ganz unten." },
   { clef: "treble", title: "Vorzeichen im Violinschlüssel", acc: true, items: VORRAT.violinVorzeichen, ...mkVz(), ...D_VZ,

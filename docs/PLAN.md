@@ -3865,7 +3865,7 @@ kommt immer aus `sprueche.js` (gewählter Vorschlag oder eigener Spruch; eigene 
 |---|---|---|---|
 | 1, 6 | „Hilfen: Merkspruch für die Linien“ | Merkleiste Linien | „Zähle die Linien von unten. Das Wort im Merkspruch beginnt mit dem Notennamen.“ |
 | 2, 7 | „Hilfen: Merkspruch für die Zwischenräume“ | Merkleiste Zwischenräume | „Zähle die Zwischenräume von unten. Das Wort im Merkspruch beginnt mit dem Notennamen.“ |
-| 4, 9 | „Hilfen: Notennamen der Reihe nach“ | Namensleiste, darunter die Zeile „Linien von unten: <Merkspruch>“ | „Nimm die nächste Linie der Zeile als Bezugston. Jede Stelle weiter ist ein Name weiter: nach oben vorwärts, nach unten rückwärts.“ |
+| 4, 9 | „Hilfen: Notennamen der Reihe nach“ | Namensleiste, darunter die Zeile „Linien von unten: <Merkspruch>“ | „Nimm die nächstgelegene Linie der Zeile als Bezugston. Jede Stelle weiter ist ein Name weiter: nach oben vorwärts, nach unten rückwärts.“ |
 | 11, 13 | „Hilfen: Vorzeichen“ | Vorzeichen-Regel, darunter eine Oktave Klaviatur ohne Markierung | „Lies erst den Stammton (die Note ohne Vorzeichen), dann das Zeichen.“ |
 
 - **Merkleiste** (`merkleiste(clef, art, state)`): Tabelle in der Reihenfolge der Notenzeile – oben die 5. Linie,
@@ -3967,18 +3967,21 @@ Schritt 1 daneben lag. `reveal` und `revealParts` bleiben in allen 15 Stufen die
 außerhalb der Zeile.
 - Stufen 1, 6 (Linien): Schritt 1 „Auf welcher Linie liegt die Note? Zähle von unten.“ Knöpfe 1. | 2. | 3. | 4. |
   5. (eine Reihe, Ziffern 1–5). Danach „Richtig: 2. Linie von unten.“ bzw. „Nicht ganz: Es ist die 2. Linie von
-  unten.“ Schritt 2 „Wie heißt die Note?“ (C … H, Klaviatur). `display` „2. Linie → G (g')“; `reveal` wie bisher
+  unten.“ Schritt 2 „2. Linie – wie heißt die Note?“ (C … H, Klaviatur; seit der Korrektur nach der Prüfung mit
+  dem Ergebnis von Schritt 1). `display` „2. Linie → G (g')“; `reveal` wie bisher
   mit Spruch und markiertem Wort: „Das war ein G (g') – 2. Linie von unten (Es **Geht** Hurtig Durch Fleiß).“;
   `partial` „Der Name stimmt, die Linie nicht: 2. Linie → G (g').“
 - Stufen 2, 7 (Zwischenräume): genauso mit „In welchem Zwischenraum liegt die Note? Zähle von unten.“ und 1. | 2. |
   3. | 4. Jeder Knopf ist in jeder dieser vier Stufen bei genau einer Note richtig (5 Linien, 4 Zwischenräume).
-- Stufen 4, 9: Schritt 1 „Bezugston: Wie heißt die nächste Linie der Zeile?“ (C … H; richtig ist im
+- Stufen 4, 9: Schritt 1 „Bezugston: Wie heißt die nächstgelegene Linie der Zeile?“ (bis zur Korrektur nach der
+  Prüfung „nächste“) (C … H; richtig ist im
   Violinschlüssel E bei d' und c', F bei g'' und a''; im Bassschlüssel G bei F und E, A bei h und c'). Danach
-  „Richtig: Die unterste Linie ist das E.“ Schritt 2 „Zähle von dort weiter: Wie heißt die Note?“ `display`
+  „Richtig: Die unterste Linie ist das E.“ Schritt 2 „Zähle vom E weiter: Wie heißt die Note?“ (bis zur Korrektur „von dort“). `display`
   „unterste Linie E · abwärts E – D – C → C (c')“; `reveal` „Das war ein C (c') – auf der Hilfslinie unter der
   Zeile (von der untersten Linie abwärts: E – D – C).“; `partial` „Der Name stimmt, der Bezugston nicht: …“.
 - Stufen 11, 13: Schritt 1 „Stammton: Wie heißt die Note ohne ihr Vorzeichen?“ (C … H). Danach „Richtig: Ohne
-  Vorzeichen ist das ein F.“ Schritt 2 „Und mit dem Vorzeichen?“ (Namensraster oder tippen). `display` „Stammton
+  Vorzeichen ist das ein F.“ Schritt 2 „Stammton F – und mit dem Vorzeichen?“ (Namensraster oder tippen; bis zur Korrektur „Und mit dem
+  Vorzeichen?“). `display` „Stammton
   F · ♯ erhöht → Fis (fis')“ bzw. „Stammton H · ♭ erniedrigt → B (b')“; `partial` „Der Name stimmt, der Stammton
   nicht: …“.
 - Stufen ohne Hilfen (einschrittig, Eingabe wie heute; Namensraster in 12, 14, 15 – das sind die bisherigen

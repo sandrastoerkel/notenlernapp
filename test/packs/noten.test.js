@@ -273,8 +273,8 @@ test("Welle 12: Hinweise der Startkarten wie im Plan (Abschnitt 2)", async () =>
   for (const no of [3, 8]) assert.equal(h(no), "Linien und Zwischenräume gemischt, jetzt ohne Hilfen. Erst die Lage, dann der Name.");
   // Schritt 3: die Hinweise der zweischrittigen Stufen gekürzt, weil die Startkarte „Beide Schritte müssen stimmen.“
   // dazubekommt und bei 320 px nicht länger werden soll (gemessen; Zählregel und Eingabe stehen in Hilfen bzw. keysHint)
-  assert.equal(h(4), "Neu sind vier Noten außerhalb der Zeile. Nimm die nächste Linie als Bezugston und zähle weiter. Das c' liegt auf einer Hilfslinie unter der Zeile.");
-  assert.equal(h(9), "Neu sind vier Noten außerhalb der Zeile. Nimm die nächste Linie als Bezugston und zähle weiter. Das c' liegt auf einer Hilfslinie über der Zeile, das E auf einer darunter.");
+  assert.equal(h(4), "Neu sind vier Noten außerhalb der Zeile. Zähle vom Bezugston weiter, der nächstgelegenen Linie. Das c' liegt auf einer Hilfslinie unter der Zeile.");
+  assert.equal(h(9), "Neu sind vier Noten außerhalb der Zeile. Zähle vom Bezugston weiter, der nächstgelegenen Linie. Das c' liegt auf einer Hilfslinie über der Zeile, das E auf einer darunter.");
   assert.ok(h(11).startsWith("Lies erst den Stammton – die Note ohne Vorzeichen –, dann das Zeichen."));
   // 11 = Satz zum Stammton + Regel (ohne den Satz zur Eingabe, den nennt in 11 der Tastatur-Hinweis)
   assert.equal(h(11).split("\n").slice(1).join("\n"), "♯ erhöht um einen Halbton und hängt „-is“ an: aus F wird Fis, ebenso Cis, Gis, Dis.\n♭ erniedrigt um einen Halbton: aus E wird Es, aus A wird As, aus D wird Des – und aus H wird B.");
@@ -351,6 +351,8 @@ test("Schritt 3: Lage → Name – jeder Knopf bei genau einer Note richtig, Nam
       assert.equal(s1.bad, `Nicht ganz: Es ist ${linie ? "die" : "der"} ${nr}. ${linie ? "Linie" : "Zwischenraum"} von unten.`);
       assert.deepEqual(s2.answer, { letter: q.note.letter, acc: 0 });
       assert.equal(s2.note, "letters");
+      // Korrektur nach der Prüfung (J-B3): Schritt 2 nennt das Ergebnis von Schritt 1
+      assert.equal(s2.prompt, `${nr}. ${linie ? "Linie" : "Zwischenraum"} – wie heißt die Note?`);
       assert.ok(checkStep(s2, { letter: q.note.letter, acc: 0 }) && !checkStep(s2, { letter: q.note.letter, acc: 1 }));
       assert.equal(q.display, `${nr}. ${linie ? "Linie" : "Zwischenraum"} → ${q.note.octave === 2 ? `${gName(q.note)} (großes ${gName(q.note)})` : `${gName(q.note)} (${helm(q.note)})`}`);
       assert.equal(q.partial, `Der Name stimmt, ${linie ? "die Linie" : "der Zwischenraum"} nicht: ${q.display}.`);
@@ -372,6 +374,8 @@ test("Schritt 3: Bezugston → Zählen – Bezugston = bezug, Zählweg lückenlo
       assert.equal(s1.answer.letter, want[l.id][q.note.letter], `${l.id} ${q.statKey}`);
       assert.deepEqual(s2.answer, { letter: q.note.letter, acc: 0 });
       assert.equal(s1.ok, `Richtig: Die ${b.linie} Linie ist das ${b.ref.letter}.`);
+      assert.equal(s1.prompt, "Bezugston: Wie heißt die nächstgelegene Linie der Zeile?");
+      assert.equal(s2.prompt, `Zähle vom ${b.ref.letter} weiter: Wie heißt die Note?`);
       // Zählweg: von der Bezugslinie Stelle für Stelle (abwärts rückwärts, aufwärts vorwärts) bis zur Note
       const weg = b.weg.map((x) => x.letter), step = b.richtung === "abwärts" ? -1 : 1;
       assert.equal(weg[0], b.ref.letter); assert.equal(weg.at(-1), q.note.letter);
@@ -398,6 +402,7 @@ test("Schritt 3: Stammton → Vorzeichen – Stammton und Name passen zu gName, 
       assert.deepEqual(s2.answer, { letter: q.note.letter, acc: q.note.acc });
       assert.equal(s2.note, "names");
       assert.equal(s1.ok, `Richtig: Ohne Vorzeichen ist das ein ${q.note.letter}.`);
+      assert.equal(s2.prompt, `Stammton ${q.note.letter} – und mit dem Vorzeichen?`);
       assert.ok(q.display.startsWith(`Stammton ${q.note.letter} · ${q.note.acc > 0 ? "♯ erhöht" : "♭ erniedrigt"} → ${gName(q.note)} (`), q.display);
       assert.ok(q.reveal.includes(`aus ${q.note.letter} wird ${gName(q.note)}`), q.reveal);
       // Klaviatur: Stammton über die weiße Taste, Name nach Tonklasse
