@@ -41,7 +41,10 @@ Für Entwicklerinnen und Entwickler:
 - Welle 10 „Korrekturen aus der Prüfung“ (auf `main` 2f3dfe8): Warten nach „daneben“ und Teilerfolg, Auflösungszeichen, „Stellung“, Bauplan „1 1 ½ 1 1 1 ½“, „Grob- und Feinbestimmung“, sichtbare Freischalt-Regel, wählbare Merksprüche (Tab „Lernen“), Balken und Zählzeiten bei den Notenwerten, Fokus, Kontrast und Zeichen ✓/✗, bessere Lesbarkeit bei 320 px.
 - Welle 11 „Wiederholen“ (Branch `wiederholen-11`, von `main` 2f3dfe8, Cache `notenheld-v0.2.0-14`, noch nicht auf `main`): Voraussetzungen je Stufe und „Grundlagen wiederholen“, Wiederholung über Tage (Karteikasten, Karte „Heute“, Runde „Wiederholen“), Jahrgang über den Lehrkraft-Link mit QR-Code, „Lernen“ mit Reitern, Intervalle vor Tonleitern, Notenwerte mit „Wie viele Schläge dauert diese Note? (1 Schlag = 1 Viertelnote)“.
 - Neue Dateien unter `src/`, `css/`, `fonts/` oder `icons/` in die Liste `PRECACHE` in `sw.js` eintragen; `test/sw.test.js` vergleicht die Liste mit dem Dateibaum und schlägt sonst fehl.
-- Vor einem Release bei laufendem Server `node docs/screens/ueberlauf.mjs` laufen lassen: Das Skript klickt bei 320 px und 420 px durch alle Stufen, Hilfen und Vorführungen und meldet jedes Element, das über seinen Rahmen hinausragt (braucht Playwright wie die Screenshots; keine Abhängigkeit der App).
+- Vor einem Release bei laufendem Server die Browser-Skripte in `docs/screens/` laufen lassen (brauchen Playwright wie die Screenshots, keine Abhängigkeit der App; Adresse über `BASE=…`, gemeinsame Bausteine in `spiel.mjs`):
+  - `node docs/screens/ueberlauf.mjs` klickt bei 320 px und 420 px durch alle Stufen, Hilfen und Vorführungen, die Runden „Wiederholen“ (auch mit Klaviatur) und „Grundlagen wiederholen“, „Lernen“, Statistik und die Seite „Für Lehrkräfte“. Es meldet jedes Element, das über seinen Rahmen hinausragt, Texte und kleine Bildelemente, die sich in einer Zeile überlappen, und einen doppelten Knopf „Nächste Aufgabe“. Vorher zeigt ein Selbsttest, dass die Überlappungs-Prüfung greift (`--selftest` führt nur ihn aus).
+  - `node docs/screens/uhr40.mjs` spielt 40 Tage mit gestellter Uhr (Kuala Lumpur und Berlin) und vergleicht Karte „Heute“, Runden und Fächer mit der Erwartung aus `test/repeat.sim.test.js`.
+  - `node docs/screens/pruefung.mjs` legt Bildschirmfotos aller Ansichten (420 px hell, 320 px dunkel) für eine Prüfung in `/tmp/notenheld-pruefung-w11/` ab, mit `index.md`. Die Spielstände darin sind vorbereitet, ihre Zahlen erfunden.
 - Beim Entwickeln hilft in Chrome DevTools unter Application → Service Workers „Update on reload“, damit Änderungen sofort sichtbar sind.
 - Die Icons in `icons/` sind aus einem Bild im Aquarell-Stil erzeugt, das Sandra Störkel mit Apple Image Playground erstellt hat (KI-generiert) (Violinschlüssel auf Blau, Grün und Gelb). Beim maskierbaren Icon liegt der Schlüssel ganz im sicheren Kreis, der Rand ist mit den verwischten Farben des Bildes aufgefüllt. Nachweise: [THIRD_PARTY.md](THIRD_PARTY.md).
 
@@ -57,7 +60,7 @@ Datenschutz: Der Link enthält nur den Jahrgang und die Auswahl der Stufen, kein
 
 ## Screenshots
 
-Smartphone-Breite (420 px), helles Farbschema. Die dunklen Fassungen liegen daneben in `docs/screens/` (`*-dunkel.png`). Neu erzeugen mit `node docs/screens/screenshots.mjs` bei laufendem Server (braucht Playwright, siehe Kopf des Skripts; keine Abhängigkeit der App).
+Smartphone-Breite (420 px), helles Farbschema. Die dunklen Fassungen liegen daneben in `docs/screens/` (`*-dunkel.png`). Die Bilder zeigen einen vorbereiteten Beispiel-Spielstand (Jahrgang 6, zwei Stufen zum Wiederholen fällig, Uhr fest auf den 26.11.2026); alle Zahlen darin (XP, Serie, Sterne, Trefferquoten) sind erfunden. Neu erzeugen mit `node docs/screens/screenshots.mjs` bei laufendem Server (braucht Playwright, siehe Kopf des Skripts; keine Abhängigkeit der App).
 
 | Start | Üben | Lernen | Blitz | Statistik |
 | ----- | ---- | ------ | ----- | --------- |

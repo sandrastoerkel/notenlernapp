@@ -945,7 +945,8 @@ Statistik (`src/views/stats.js`, seit Paket F) exportiert reine Hilfsfunktionen
   `heatCell(n, clef, entry)` → `{ key, n, clef, name, helm, status, cls, ok,
   total, pct, avg, detail }`. `cls` folgt `HEAT_CLS` (sicher `"ok"`, langsam
   `"warn"`, unsicher `"bad"`, neu `"new"`, grau über `--muted`; das Blau `ghost` bleibt der Ansicht „Lernen“); unter jeder Note stehen Name und
-  Trefferquote, Antippen zeigt `detail`, z. B. „Fis (fis', Violin): 12 von 15
+  Trefferquote (Knopf `.heat-cell`, mindestens 24 px breit; bis 360 px rückt die Zeile 8 px in den Innenrand der
+  Karte, bis 340 px ist die Quote etwas kleiner), Antippen zeigt `detail`, z. B. „Fis (fis', Violin): 12 von 15
   richtig, im Schnitt 2,1 s“. `pct` und `avg` kommen wie die Farbe aus
   `recent` (letzte 12 Antworten); weicht das von der Gesamtzahl ab, lautet
   `detail` z. B. „… zuletzt 11 von 12 richtig (insgesamt 30 von 45) …“.
@@ -1266,16 +1267,54 @@ Versionen 1 bis 10, alle acht Masken, Rücklesen mit dem eigenen Testleser `test
 Gymnasium, Codes zurückgelesen, die Seite schreibt keinen Spielstand). Gegenprobe des QR-Codes mit unabhängigen
 Lesern (OpenCV, WeChat, zbar): `docs/screens/qr-gegenprobe.py`, nicht Teil von `npm test`.
 
-Überlauf im Browser (seit Welle 10, Prüfung Schritt 8): `node docs/screens/ueberlauf.mjs` bei laufendem Server
-(Playwright wie bei `screenshots.mjs`, keine Abhängigkeit der App, läuft nicht in `npm test`). Das Skript findet
-jedes sichtbare Element und jede Textzeile, die waagrecht über den eigenen Rahmen hinausragt (nächster Vorfahr
-mit Rand, eigener Fläche oder abschneidendem `overflow`; Teile eines SVG gegen ihr SVG; dazu das Fenster).
-Geprüft werden bei 320 px dunkel und 420 px hell die Startseite, alle Stufen aller Pakete (Startkarte, Aufgabe
-mit offenen Hilfen, nach jeder Antwort, jede Vorführung Bild für Bild), „Lernen“ in beiden Schlüsseln, Blitz und
-Statistik. Gewollte Rollbereiche (`overflow-x: auto`) und absolut gesetzte Marken mit negativem Abstand (✓/✗ am
-Knopf) zählen nicht. Senkrechtes Abschneiden prüft es nicht. Vor jedem Release laufen lassen. Anlass: Die
-Zählleiste der Hilfen in Notenwerte 8 ragte bei 320 px 26 px über ihren Rahmen; seitdem hat `.nw-count` unter
-380 px kleinere Felder (`--tile` 20 px), die Rechnung dazu steht in `test/css.test.js`.
+Browser-Skripte in `docs/screens/` (Playwright wie bei `screenshots.mjs`, keine Abhängigkeit der App, laufen nicht
+in `npm test`; Aufruf bei laufendem Server, Adresse über `BASE=…`, eigener Browser über `CHROME=…`):
+
+- `ueberlauf.mjs` (seit Welle 10, Prüfung Schritt 8): findet jedes sichtbare Element und jede Textzeile, die
+  waagrecht über den eigenen Rahmen hinausragt (nächster Vorfahr mit Rand, eigener Fläche oder abschneidendem
+  `overflow`; Teile eines SVG gegen ihr SVG; dazu das Fenster). Gewollte Rollbereiche (`overflow-x: auto`) und
+  absolut gesetzte Marken mit negativem Abstand (✓/✗ am Knopf) zählen nicht. Seit Welle 11, Schritt 13 zusätzlich
+  die **Überlappung innerhalb einer Zeile**: sichtbare Textzeilen und kleine Bildelemente (Kästchen, Punkte,
+  Balken; SVG nur mit SVG) derselben Ebene (Seite, fest stehende Leisten, offener Dialog), die sich um mehr als
+  1 px schneiden, mit Text mindestens um die halbe Zeilenhöhe; nicht gezählt werden Größe null, `aria-hidden`,
+  Marken mit negativem Abstand und Teile, die ein Rollbereich abschneidet. Vor jedem Lauf beweist ein Selbsttest,
+  dass die Prüfung die alte Regel `min-width: 0` der Statistik (Prüfung Schritt 8) und ein verschobenes Wort
+  findet und gewollte Fälle nicht meldet (`--selftest` führt nur ihn aus). Ein zweiter sichtbarer Knopf „Nächste
+  Aufgabe“ zählt ebenfalls als Treffer (W2). Geprüft werden bei 320 px dunkel und 420 px hell die Startseite
+  (auch mit Jahrgang 5, 7 und 9), alle Stufen aller Pakete (Startkarte, Aufgabe mit offenen Hilfen, nach jeder
+  Antwort abwechselnd richtig und daneben, jede Vorführung Bild für Bild), drei Runden „Wiederholen“ (die dritte
+  mit der Eingabe „Klaviatur“; je Aufgabe Herkunftszeile und Eingabeart ohne Reste der vorigen), „Grundlagen
+  wiederholen“, die Ergebniskarten (Urteil je Stufe, „Neu im Kasten“, Fehlermuster), Startkarten mit „Dafür
+  brauchst du“ mit und ohne Empfehlung, „Lernen“ je Reiter und Schlüssel, Blitz, Statistik (auch mit Jahrgang),
+  Dialog und Hinweis zum Link der Lehrkraft und die Seite „Für Lehrkräfte“ samt „QR-Code groß zeigen“. Ende mit
+  Code 1 bei Treffern oder Konsolenfehlern; etwa 12 Minuten. Nicht geprüft: senkrechtes Abschneiden, Text über
+  einem SVG (die Beschriftungen der Notenkarte liegen gewollt auf dem Rand der Notenzeile), Flächen von Elementen
+  mit Inhalt (Karten, Knöpfe), Pseudo-Elemente (`::before`, `::after`). Vor jedem Release laufen lassen. Anlässe:
+  Die Zählleiste der Hilfen in Notenwerte 8 ragte bei 320 px 26 px über ihren Rahmen; seitdem hat `.nw-count`
+  unter 380 px kleinere Felder (`--tile` 20 px), die Rechnung dazu steht in `test/css.test.js`. In Welle 11
+  überlappten bei 320 px zwei „100 %“ der Notenkarte; seitdem rückt `.heat-row` bis 360 px 8 px in den Innenrand
+  der Karte und die Quote ist bis 340 px etwas kleiner (ebenfalls in `test/css.test.js` nachgerechnet).
+- `pruefung.mjs` (seit Welle 11, Schritt 13): Bildschirmfotos für die Prüfung aus drei Perspektiven, jede Ansicht
+  bei 420 px hell und 320 px dunkel, ganze Seite (das Fenster wächst auf die Höhe der Seite, damit die untere
+  Leiste unten steht; lange Seiten zusätzlich in Teilen zu 1200 px), mit offenem Dialog nur der Bildschirm. Feste
+  Uhr (26.11.2026, 10:00 Uhr, Europe/Berlin), fester Zufall (`SEED`, beide Farbschemata zeigen dieselben
+  Aufgaben), vorbereitete Spielstände mit erfundenen Zahlen. Ausgabe nach `OUT` (Vorgabe
+  `/tmp/notenheld-pruefung-w11/`, nicht im Repo) mit `index.md` (Commit, Nummer, Name und Inhalt jedes Bildes);
+  `NUR=…` wählt einzelne Szenen. Ende mit Code 1, wenn eine erwartete Ansicht fehlt oder die Seite einen Fehler
+  meldet.
+- `uhr40.mjs` (seit Welle 11, Schritt 13): Lauf über 40 Tage im Browser mit gestellter Uhr (`page.clock`), in
+  `Asia/Kuala_Lumpur` und `Europe/Berlin`, Tag 0 um 23:30 Uhr UTC (örtlich schon der nächste Tag). Dieselbe
+  Geschichte wie in `test/repeat.sim.test.js`: drei Stufen mit 9 von 10, an jedem Tag die Karte „Heute“, fällige
+  Runden über „Wiederholung starten“, ein Fehler an Tag 4, Ferien von Tag 12 bis 26; am Ende Fächer der Statistik
+  und Fälligkeiten im Speicher wie erwartet, zu keinem Zeitpunkt geht eine offene Stufe zu (Leitsatz 3). Ende mit
+  Code 1 bei Abweichung; etwa 2 × 110 s.
+- `screenshots.mjs`: die Bilder im README (420 px, hell und dunkel); seit Welle 11 mit fester Uhr, festem Zufall
+  und einem Beispiel-Spielstand (Jahrgang 6, zwei Stufen fällig; Zahlen erfunden).
+- `spiel.mjs` (seit Welle 11, Schritt 13): gemeinsame Bausteine – Playwright laden, Spielstand (`SEED_STATE`) und
+  fester Zufall (`SEED_RANDOM`) per `addInitScript`, `HOLD_TIMERS` (hält das Weitergehen nach „Richtig!“ für ein
+  Foto an), `answerQuestion` (aktuelle Aufgabe über `engine.currentQuestion`, je Schritt gezielt richtig oder
+  daneben, auch Teilerfolg; Antwortknöpfe oder Klaviatur), `goOn`, `playRound`.
+- `qr-gegenprobe.py`: Gegenprobe des QR-Codes (oben).
 
 ## Stil
 
