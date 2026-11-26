@@ -8,7 +8,7 @@ import {
   playMode, revealedSvg, svgResultClass, playSchedule, rhythmEnd, answerDelay, PLAY_GAP, BEAT_MS, RHYTHM_TAIL, DELAY_OK, AUTO_OK_MAX, waitsAfter, NEXT_STEP, DEMO_WAIT_SHORT, stepsResult,
   choiceSet, setClass, stepsFeedback, digitAction, helpsHtml, hasHelps, HELP_FROM, helpFrom, helpsTitle, DELAY_STEP_OK,
   startRound, stop, handleKey, ROUND_LENGTH, isWaiting, DEMO_LABEL, DEMO_WAIT, DEMO_READY, DEMO_NEXT, waitsForNext, silenceTones,
-  makeMixed, startMixed, originText, perLevelOf, currentQuestion, RESULT_HEAD, ALL_RIGHT, keepTogether, SWITCH_GUARD,
+  makeMixed, startMixed, originText, perLevelOf, currentQuestion, RESULT_HEAD, ALL_RIGHT, keepTogether, SWITCH_GUARD, revealNext,
 } from "../src/engine.js";
 import { mock } from "node:test";
 import { setMuted } from "../src/audio.js";
@@ -1922,4 +1922,53 @@ test("Doppeltipp: nach „Weiter zu Schritt 2“ und „Nächste Aufgabe“ zäh
       stop();
     }
   } finally { stop(); mock.timers.reset(); }
+});
+
+// Korrektur nach der Prüfung Welle 12 (J-B1): „Nächste Aufgabe“ bzw. „Weiter zu Schritt 2“ rückt ins Bild, wenn der
+// Knopf unter dem Fensterrand oder hinter dem unteren Menü läge; steht er ganz im Bild, rollt nichts
+test("revealNext: rollt nur, wenn der Knopf nicht ganz zu sehen ist; „Bewegung reduzieren“ ohne Bewegung", () => {
+  const make = ({ top, bottom, cover = null, reduce = false, h = 640 }) => {
+    const calls = [];
+    const el = { getBoundingClientRect: () => ({ top, bottom, left: 10, width: 300 }), scrollIntoView: (o) => calls.push(o), contains: (x) => x === el };
+    el.ownerDocument = {
+      defaultView: { innerHeight: h, getComputedStyle: () => ({}), matchMedia: (q) => ({ matches: reduce && q.includes("reduce") }) },
+      elementFromPoint: (x, y) => (cover && y >= cover ? { menu: true } : el),
+    };
+    return { el, calls };
+  };
+  let p = make({ top: 460, bottom: 505, cover: 580 });
+  assert.equal(revealNext(p.el), false); assert.equal(p.calls.length, 0, "ganz im Bild: nichts");
+  p = make({ top: 628, bottom: 673, cover: 580 });
+  assert.equal(revealNext(p.el), true); assert.deepEqual(p.calls, [{ block: "nearest", behavior: "smooth" }], "unter dem Rand");
+  p = make({ top: 560, bottom: 605, cover: 580 });
+  assert.equal(revealNext(p.el), true, "Unterkante hinter dem Menü");
+  p = make({ top: 663.3, bottom: 708.45, cover: 708.3, h: 768 });
+  assert.equal(revealNext(p.el), false, "Bruchteil eines Pixels am Menü zählt nicht");
+  p = make({ top: 628, bottom: 673, cover: 580, reduce: true });
+  revealNext(p.el); assert.deepEqual(p.calls, [{ block: "nearest", behavior: "auto" }], "Bewegung reduzieren");
+  p = make({ top: -20, bottom: 25 });
+  assert.equal(revealNext(p.el), true, "über dem oberen Rand");
+  assert.equal(revealNext(null), false); assert.equal(revealNext({}), false, "ohne DOM (Tests): nichts");
+});
+
+test("revealNext wird aufgerufen, wenn „Weiter zu Schritt 2“ bzw. „Nächste Aufgabe“ erscheint; style.css mit Abstand zum Menü", () => {
+  setMuted(true);
+  mock.timers.enable({ apis: ["setTimeout"] });
+  try {
+    const r = runProbe(noten.levels.find((l) => l.id === "noten-11"));
+    const calls = [];
+    // Knopf liegt unter dem Fensterrand (wie bei 320 × 640): jedes Erscheinen rollt ihn ins Bild
+    r.doc.defaultView = { innerHeight: 640, getComputedStyle: () => ({}), matchMedia: () => ({ matches: false }) };
+    Object.assign(r.ui.next, { getBoundingClientRect: () => ({ top: 628, bottom: 673, left: 10, width: 300 }), scrollIntoView: (o) => calls.push([r.ui.next.textContent, o.block]) });
+    const q = currentQuestion();
+    const press = (a) => r.ui.answers.onclick({ target: r.btns().find((x) => x.dataset.letter === a.letter && (x.dataset.acc === undefined || x.dataset.acc === String(a.acc || 0))) });
+    press({ letter: LETTERS.find((x) => x !== q.steps[0].answer.letter), acc: 0 });
+    assert.deepEqual(calls, [[NEXT_STEP, "nearest"]]);
+    r.next();
+    press(q.steps[1].answer);
+    assert.deepEqual(calls[1], [DEMO_NEXT, "nearest"]);
+    assert.equal(r.doc.activeElement, r.doc.body, "der Fokus bleibt, wo er war");
+  } finally { stop(); mock.timers.reset(); }
+  const css = readFileSync(new URL("../css/style.css", import.meta.url), "utf8");
+  assert.match(css, /#pNext \{ scroll-margin-bottom: calc\(\d+px \+ env\(safe-area-inset-bottom, 0px\)\); \}/);
 });

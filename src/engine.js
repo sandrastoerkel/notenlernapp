@@ -745,7 +745,7 @@ function answerStep(r, value, el) {
   // Schritt 1 richtig: kurz weiter. Daneben: kein Zeitgeber, „Weiter zu Schritt 2“ (Knopf, Enter, Leertaste)
   if (ok) { later(r, toNextStep, DELAY_STEP_OK); return; }
   r.advance = toNextStep; r.waiting = true;
-  if (ui.next) { ui.next.textContent = NEXT_STEP; ui.next.hidden = false; }
+  if (ui.next) { ui.next.textContent = NEXT_STEP; ui.next.hidden = false; revealNext(ui.next); }
 }
 
 // Stufe mit Buchstaben-Eingabe: Wechsel zum nächsten Schritt (Welle 12, Schritt 0). Antwortbereich je nach Art
@@ -822,7 +822,7 @@ function finishQuestion(r, ok, text, part = false) {
   // wartet auf „Nächste Aufgabe“ (auch nach der letzten Aufgabe)
   if (waitsAfter(cur(r), ok, text)) {
     r.waiting = true;
-    if (ui.next) { ui.next.textContent = DEMO_NEXT; ui.next.hidden = false; }
+    if (ui.next) { ui.next.textContent = DEMO_NEXT; ui.next.hidden = false; revealNext(ui.next); }
     return;
   }
   r.advanceId = later(r, () => r.advance && r.advance(), answerDelay(q, isMuted()));
@@ -892,6 +892,24 @@ function guardSwitch(r) {
   if (r.guardId) { clearTimeout(r.guardId); r.timers.delete(r.guardId); }
   r.guarded = true;
   r.guardId = later(r, () => { r.guarded = false; r.guardId = null; }, SWITCH_GUARD);
+}
+
+// „Nächste Aufgabe“ bzw. „Weiter zu Schritt 2“ ins Bild holen, wenn der Knopf nicht ganz zu sehen ist (Korrektur
+// nach der Prüfung Welle 12, J-B1: bei 320 × 640 lag er in den Stufen mit Namensraster unter dem unteren Menü).
+// Abstand zum Menü: scroll-margin-bottom von #pNext in style.css. Steht der Knopf schon ganz im Bild (breite und hohe
+// Fenster), rollt nichts. Ohne Bewegung bei „Bewegung reduzieren“. Der Fokus bleibt, wo er ist (nur Rollen).
+export function revealNext(el) {
+  if (!el || typeof el.getBoundingClientRect !== "function" || typeof el.scrollIntoView !== "function") return false;
+  const view = el.ownerDocument && el.ownerDocument.defaultView;
+  if (!view) return false;
+  // ganz zu sehen: im Fenster und oben wie unten nicht vom Menü verdeckt (elementFromPoint, 2 px innen: Bruchteile
+  // eines Pixels Überlappung mit der Oberkante des Menüs zählen nicht)
+  const box = el.getBoundingClientRect(), doc = el.ownerDocument;
+  const free = (y) => { const e = typeof doc.elementFromPoint === "function" ? doc.elementFromPoint(box.left + box.width / 2, y) : el; return !!e && (e === el || (typeof el.contains === "function" && el.contains(e))); };
+  if (box.top >= 0 && box.bottom <= view.innerHeight && free(box.top + 2) && free(box.bottom - 2)) return false;
+  const still = typeof view.matchMedia === "function" && view.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  el.scrollIntoView({ block: "nearest", behavior: still ? "auto" : "smooth" });
+  return true;
 }
 
 function showStaff(el) {
