@@ -18,6 +18,7 @@ import { PACKS } from "../src/packs/index.js";
 import noten from "../src/packs/noten.js";
 import { fresh } from "../src/store.js";
 import { N, same, gName, LETTERS, midi } from "../src/music.js";
+import { status as adaptStatus } from "../src/adapt.js";
 import akkorde from "../src/packs/akkorde.js";
 import notenwerte, { ITEMS_8 } from "../src/packs/notenwerte.js";
 
@@ -1971,4 +1972,38 @@ test("revealNext wird aufgerufen, wenn „Weiter zu Schritt 2“ bzw. „Nächst
   } finally { stop(); mock.timers.reset(); }
   const css = readFileSync(new URL("../css/style.css", import.meta.url), "utf8");
   assert.match(css, /#pNext \{ scroll-margin-bottom: calc\(\d+px \+ env\(safe-area-inset-bottom, 0px\)\); \}/);
+});
+
+// Korrektur nach der Prüfung Welle 12 (W-B2): Zweischrittige Aufgaben tragen keine Antwortzeit in die Notenkarte ein –
+// sonst hieße eine fehlerfrei, aber in 4,4 s (zwei Antworten mit Pause) gelöste Note „langsam“
+test("Zeit je Note: zweischrittige Aufgaben ohne Zeit (nie „langsam“), einschrittige mit Zeit", () => {
+  setMuted(true);
+  mock.timers.enable({ apis: ["setTimeout"] });
+  let now = 0;
+  const clock = mock.method(performance, "now", () => now);
+  try {
+    const lv = (id) => noten.levels.find((l) => l.id === id);
+    const r = runProbe(lv("noten-1"));
+    for (let i = 0; i < 6; i++) {
+      const q = currentQuestion();
+      now += 1500; r.click(q.steps[0].answer);
+      mock.timers.tick(DELAY_STEP_OK); now += DELAY_STEP_OK;
+      now += 2200;
+      r.ui.answers.onclick({ target: r.btns().find((b) => b.dataset.letter === q.steps[1].answer.letter) });
+      assert.equal(r.ui.feedback.className, "feedback ok");
+      const e = r.state.notes[q.statKey];
+      assert.ok(e && e.ok >= 1, "richtig gezählt");
+      assert.equal(e.timed, 0, `${q.statKey}: keine Zeit`); assert.deepEqual(e.hsec, []);
+      assert.notEqual(adaptStatus(e), "langsam");
+      r.next();
+    }
+    stop();
+    // einschrittig (Noten lesen 3, ohne Hilfen): die Zeit zählt wie bisher
+    const s = runProbe(lv("noten-3"));
+    const q = currentQuestion();
+    assert.ok(!q.steps);
+    now += 4400; s.key(q.answer.letter.toLowerCase());
+    assert.equal(s.state.notes[q.statKey].timed, 1);
+    assert.deepEqual(s.state.notes[q.statKey].hsec, [4.4]);
+  } finally { clock.mock.restore(); stop(); mock.timers.reset(); }
 });

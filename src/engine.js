@@ -789,7 +789,11 @@ function finishQuestion(r, ok, text, part = false) {
   r.results.push(ok); r.marks.push(part ? "part" : ok); r.times.push(sec);
   r.log.push({ id: cur(r).id, ok, oks: q.steps ? r.oks.slice() : [ok] });
   if (ok) r.correct++;
-  countAnswer(hooks.state, q, ok, sec);
+  // Aufgaben mit Schritten (q.steps) tragen keine Zeit ein (Korrektur nach der Prüfung Welle 12, W-B2): Gemessen würde
+  // vom Erscheinen bis zur letzten Antwort, mit zwei Antworten, neuem Fragetext und der Pause DELAY_STEP_OK – an der
+  // Grenze für eine Antwort (adapt.LANGSAM_SEK) hieße das oft „langsam“. Richtig/daneben zählt weiter; „langsam“
+  // entsteht nur aus einschrittigen Antworten (wie im Blitz, der gar keine Zeit einträgt).
+  countAnswer(hooks.state, q, ok, q.steps ? undefined : sec);
   hooks.save();
   // q.revealSvg (optional): SVG, das nach der Antwort statt q.svg erscheint, bei richtiger und falscher
   // Antwort, z. B. der vollständige Takt mit dem fehlenden Wert in der Lücke. Ohne revealSvg bleibt q.svg
