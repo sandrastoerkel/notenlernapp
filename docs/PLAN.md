@@ -4162,6 +4162,25 @@ steht in diesem Plan oder wird aus `music.js`/`staffPos` gerechnet; Unklares als
   Buchstabe in einem Auswahl-Schritt wird nicht gewertet, getippter Name mit Enter im Schritt „names“, ungültiger
   Name zählt nicht, Fokus bleibt im Antwortbereich; gemischte Runde unverändert. Browser (420 und 320 px): eine
   vorhandene zweischrittige Stufe (Intervalle 3, Notenwerte 1) verhält sich wie vorher.
+- **Umgesetzt und geprüft (26.11.2026).** Wie geplant; drei Abweichungen, in der Prüfung entschieden:
+  - `stepInput(q, i, level)` mit drittem, optionalem Parameter: ohne `q.steps` gilt die Eingabe der Stufe. Bleibt
+    so (die Engine fragt damit an einer Stelle nach der Art des Antwortbereichs; `stepInput(q, i)` wie im Plan
+    geht weiter).
+  - `levelNoteSteps(level)` (für die Beschriftung „Buchstaben“/„Namen“ der Startkarte) befragt **eine** Aufgabe
+    der Stufe als Probe, ohne Spielstand (`question(null, { notes: {}, round: [] })`). Bleibt so, mit zwei
+    **Vorgaben für Schritt 3**: (1) Alle Aufgaben einer Stufe haben dieselbe Folge von Schrittarten – Test über
+    alle Aufgaben jeder Stufe von „Noten lesen“ (`q.steps.map((_, i) => stepInput(q, i))` gleich, und
+    `levelNoteSteps` passt dazu). (2) `question` kommt ohne `ctx.state` aus (kein Merkspruch nötig, kein Fehler).
+  - Die Fokus-Regel (Fokus bleibt im Antwortbereich, wenn Knöpfe neu entstehen) gilt für Stufen mit
+    Buchstaben-Eingabe und Schritten; Stufen mit `input: "choices"` bleiben wie bisher (Akzeptanz: bestehende
+    Pakete unverändert). Eine Angleichung wäre eine eigene, kleine Aufgabe für alle Pakete, nicht Teil dieser Welle.
+  - Korrekturen der Prüfung: Der Fokus bleibt auch **zur nächsten Aufgabe** im Antwortbereich (dort entstehen die
+    Knöpfe ebenfalls neu; `keepFocus`), und `#pPiano` nimmt den Fokus an (`tabindex="-1"` in `index.html` – eine
+    Datei mehr als vorgesehen; zählt für den Cache in Schritt 7). Browser mit zwei Probe-Stufen (nicht im Repo)
+    bei 420 und 320 px: 82 Prüfungen ohne Fehler; Vergleich alt/neu über 473 Zustände bestehender Stufen
+    (Intervalle 3, Notenwerte 1, Noten lesen 1 und 7 mit Buchstaben und Klaviatur, Tonleitern) ohne Unterschied.
+  - Für Schritt 6 (steht dort schon): `PICK` in `spiel.mjs` vergleicht Schritte noch mit `===` bzw. `level.check`
+    und braucht für Noten-Schritte `checkStep`.
 
 #### Schritt 1 – Spielstand und Gewichtung (parallel zu Schritt 0)
 - Dateien: `src/store.js`, `src/adapt.js`, `test/store.test.js`, `test/adapt.test.js`.
