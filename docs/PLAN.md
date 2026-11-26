@@ -3300,6 +3300,29 @@ Bildschirmfotos sind Teil 13b (eigener Arbeitsbaum) und hier nicht angefasst.
   „siehe `git log`“), 12: Prüfung aa4bfa5. Schritte 6, 10, 11 hatten ihre Hashes schon.
 - Keine Änderung an Oberfläche oder UI-Texten, deshalb kein Überlauf-Lauf.
 
+**Geprüft (26.11.2026, Opus statt Fable): bestanden nach Korrektur** (Commit 9aaaa45). Jede neue Aussage in
+`README.md`, `docs/ARCHITEKTUR.md`, `docs/KONZEPT.md` und `CLAUDE.md` gegen den Code gelesen: alle Namen in
+Backticks gibt es, die Exportlisten von `store.js`, `repeat.js`, `klasse.js`, `qr.js` und der Ansichten stimmen
+mit den Modulen überein, die Zahlen auch (1 · 3 · 7 · 14 · 30, 10 und 6 Aufgaben, höchstens drei Stufen, ⌊n / 5⌋,
+`UMSTELLUNG_JE_TAG` 3, Tabelle `DRAN` 5/6/7 und MuG, Jahrgänge 5 bis 13, QR bis Version 10 = 213 Bytes, 47 Stufen,
+`skill` genau an den Zielen der Kanten, `guess` an Tonleitern 1–3 und Dreiklänge 1, `tab` an „So zählst du einen
+Takt“ und „Balken“, `short` an Notenwerte und Dreiklänge). Paketreihenfolge überall Noten lesen → Notenwerte →
+Intervalle → Tonleitern → Dreiklänge. Entscheidungen 1–9 und W1–W4 wie in der Übergabe; die Aussagen zur
+Forschung und zum Lehrplan stehen so schon im Feinplan (Abschnitte 3 und 4), nichts hinzuerfunden. Hashes im PLAN:
+alle 26 gehören zum genannten Schritt (Umsetzung bzw. Prüfung). `sw.js`: Cache `notenheld-v0.2.0-14` (auf `main`
+-13), `PRECACHE` deckt genau den Dateibaum ab (nachgezählt), 520 Tests grün. Korrekturen:
+- Grenze des Links: README und ARCHITEKTUR nennen jetzt auch, dass man sich über die Seite „Für Lehrkräfte“ selbst
+  einen Link bauen kann (Punkt 9 unten); neben „In der App selbst lässt sich der Jahrgang nicht ändern“ wirkte der
+  Schutz sonst stärker, als er ist.
+- README: „Grundlagen wiederholen“ nur bei Stufen mit Voraussetzungen; in den Kasten kommt, was ohne Hilfen mit
+  mindestens 8 von 10 geschafft ist; „mindestens 8 von 10“ auch bei der Freischaltung und in KONZEPT.
+- CLAUDE.md: Wortlaut W1 und der Platz des Knopfs bei W2 als Voreinstellung gekennzeichnet (Punkte 1 und 2 unten).
+- ARCHITEKTUR: Das Gewicht nach Tagen wirkt nur über `pickAmong` (Intervalle, Tonleitern); `pickWeighted` („Noten
+  lesen“) ruft `weight` ohne `heute` (so gebaut in Schritt 9, dort nicht verlangt); `levelRow.zuletzt` wie `fach`
+  nur mit Eintrag im Kasten.
+- Hinweis an den Koordinator: Schritt 3 hat im PLAN keinen Prüfvermerk und keinen Prüf-Commit; `CLAUDE.md` nennt
+  „Schritte 0–12 umgesetzt und geprüft“.
+
 **Spielstände.** Kein Wechsel des Schlüssels (`notenheld.v2`). Neu: `rep`, `klasse`, `basics` und der Marker
 `"wiederholen"`. Stufen-IDs, `statKey`s, Sterne und Freischaltung bleiben; die Einstellung `klasse` öffnet nur.
 Test: alter Stand (ohne die neuen Felder, mit den drei alten Markern) lädt, bekommt einmal die Umstellung und
