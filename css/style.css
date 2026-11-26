@@ -679,6 +679,8 @@ svg.ok .beam { fill: var(--ok); } svg.bad .beam { fill: var(--bad); }
 }
 .update-bar[hidden] { display: none; }
 .update-actions { display: inline-flex; gap: 6px; }
+/* Hinweis bei einem Link, der nicht passt (J-B10/W-C8): der erste Satz fett, Grund und nächster Schritt normal */
+.update-bar .bar-text { font-weight: 400; } .update-bar .bar-text b { font-weight: 700; }
 .update-bar .btn.small { padding: 6px 12px; }
 
 /* Bestätigung „Einstellung deiner Lehrkraft übernehmen?“ (src/app.js, Welle 11, Schritt 11) */

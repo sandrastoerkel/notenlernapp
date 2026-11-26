@@ -131,3 +131,10 @@ test("Dialog Jahrgang: sagt, was die Startseite zeigt und dass alles bis dahin o
   assert.ok(app.includes("`Die Startseite zeigt dir dann, was in Jahrgang ${k.jahrgang} dran ist. Alle Stufen bis dahin sind sofort offen. Dein Fortschritt bleibt, es schließt sich nichts.`"));
   assert.ok(!app.includes("Alles bis dahin ist dann sofort offen."));
 });
+
+test("Hinweis bei einem Link, der nicht passt: ohne „App-Version“, mit nächstem Schritt (J-B10, W-C8)", () => {
+  const bar = html.match(/<div class="update-bar" id="klasseBar"[^>]*>([\s\S]*?)<\/div>/)[1];
+  const text = plainText(bar.match(/<span class="bar-text"[^>]*>([\s\S]*?)<\/span>/)[1]);
+  assert.equal(text, "Dieser Link funktioniert hier nicht. Er ist unvollständig oder passt nicht zu dieser Version der App. Frag deine Lehrkraft nach einem neuen Link. Dein Fortschritt bleibt.");
+  assert.ok(!/App-Version/.test(bar));
+});
