@@ -536,6 +536,10 @@ section { display: grid; gap: 14px; }
   color: var(--ink); font: inherit; font-size: .72rem; line-height: 1.15; white-space: nowrap; cursor: pointer; }
 .heat-cell b { font-family: var(--display); font-size: .95rem; }
 @media (max-width: 400px) { .heat-cell { font-size: .62rem; letter-spacing: -.02em; } .heat-cell b { font-size: .85rem; } }
+/* Bis 360 px stehen die Beschriftungen dicht: „100 %“ ist etwa 2,9 em breit, die Mitten liegen bei 320 px nur 26,5 px
+   auseinander (zwei Mal „100 %“ nebeneinander überlappten um 2 px, gefunden von ueberlauf.mjs, Welle 11, Schritt 13).
+   Die Zeile nutzt 8 px des Innenrands der Karte, die Quote ist etwas kleiner (test/css.test.js rechnet nach). */
+@media (max-width: 360px) { .heat-row { margin-inline: -8px; } .heat-cell .num { font-size: .92em; } }
 .heat-cell.on, .heat-acc.on { border-color: var(--accent); background: var(--accent-soft); }
 .heat-detail { min-height: 1.4em; }
 .heat-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; }

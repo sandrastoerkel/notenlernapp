@@ -132,6 +132,20 @@ test("Zählleiste der Hilfen (Notenwerte 8) passt bei 320 px in ihren Rahmen", (
   assert.match(css, /\.nw-count-fig \{[^}]*grid-template-columns: minmax\(0, 1fr\)/);
 });
 
+test("Notenkarte der Statistik: „100 %“ neben „100 %“ überlappt bei 320 px nicht (Welle 11, Schritt 13)", () => {
+  // Gefunden von docs/screens/ueberlauf.mjs (Überlappung innerhalb einer Zeile): Bei 320 px lagen die Mitten zweier
+  // Beschriftungen 26,5 px auseinander, „100 %“ war 28,6 px breit (gemessen bei .62rem = 9,92 px: 2,88 em).
+  const narrow = plain.match(/@media \(max-width: 360px\) \{ \.heat-row \{ margin-inline: -(\d+)px; \} \.heat-cell \.num \{ font-size: ([\d.]+)em; \} \}/);
+  assert.ok(narrow, "Regel für schmale Fenster fehlt");
+  const font = +plain.match(/@media \(max-width: 400px\) \{ \.heat-cell \{ font-size: ([\d.]+)rem;/)[1] * 16;
+  // Zeile: 320 px − 2 × 16 (Seite) − 2 × 16 (Karte) − 2 (Rand der Karte) + 2 × Rand der Zeile; Abstand der Noten 200/6 von 320
+  const row = 320 - 32 - 32 - 2 + 2 * +narrow[1];
+  const pitch = (row * 200) / 6 / 320, label = 2.88 * font * +narrow[2];
+  assert.ok(pitch - label >= 1.5, `Abstand ${(pitch - label).toFixed(1)} px`);
+  // ohne die Regel wäre es eine Überlappung (Gegenprobe der Rechnung)
+  assert.ok((254 * 200) / 6 / 320 - 2.88 * font < -1);
+});
+
 /* ---------- Antwortknöpfe und Hilfen (Abschlussprüfung Welle 10) ---------- */
 
 test("Antwortknöpfe: Rahmen immer 2 px, damit sich die Breite nach der Antwort nicht ändert", () => {
