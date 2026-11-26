@@ -129,7 +129,8 @@ test("question liefert gültige Aufgaben", () => {
     assert.ok(q.svg.startsWith("<svg"));
     assert.ok(q.answer && q.display && q.note && q.clef && q.statKey);
     assert.ok(l.items.some((it) => same(it.n, q.note) && it.clef === q.clef), l.id);
-    assert.equal(q.svg, staffSvg(q.clef, noteSvg(q.note, q.clef, 170)));
+    // zweischrittige Stufen (Welle 12, Schritt 3): dieselbe Zeile mit der Klasse nl-zwei (CSS „Noten lesen: Schritte“)
+    assert.equal(q.svg, staffSvg(q.clef, noteSvg(q.note, q.clef, 170), l.twoSteps ? { cls: "nl-zwei" } : undefined));
     assert.deepEqual(q.play, [q.note]);
     assert.ok(l.check(q, q.answer));
     assert.ok(!l.check(q, { letter: "X", acc: 0 }));
@@ -257,7 +258,8 @@ test("Welle 10, B15: Hinweise „mit Hilfslinien“ und „Linien im Bassschlüs
   // Lerntafel „Merkhilfen“ des Bassschlüssels (PLAN Abschnitt 5), die Stufe beginnt mit dem Weg
   assert.equal(BASS_VERGLEICH, "Dieselbe Linie wie im Violinschlüssel heißt im Bassschlüssel zwei Notennamen weiter: Aus E wird G, aus G wird H.");
   assert.ok(legendHtml("bass", {}).includes(BASS_VERGLEICH) && !legendHtml("treble", {}).includes(BASS_VERGLEICH));
-  assert.ok(l6.hint.startsWith("Zähle die Linien von unten.\n"), l6.hint);
+  // Schritt 3: Reihe und Spruch in einer Zeile (Startkarte bei 320 px mit „Beide Schritte müssen stimmen.“ nicht länger)
+  assert.ok(l6.hint.startsWith("Zähle die Linien von unten. G H D F A, Merkspruch: „Gute Hunde Dürfen Fast Alles“.\n"), l6.hint);
   assert.ok(!l6.hint.includes("Dieselbe Linie") && l6.hint.includes("Die beiden Punkte des Schlüssels umschließen das F."));
   assert.ok(!l6.hint.includes("zwei Stufen tiefer"));
 });
@@ -268,11 +270,16 @@ test("Welle 12: Hinweise der Startkarten wie im Plan (Abschnitt 2)", async () =>
   for (const no of [1, 6]) assert.ok(h(no).startsWith("Zähle die Linien von unten."), no);
   for (const no of [2, 7]) assert.ok(h(no).startsWith("Zähle die Zwischenräume von unten."), no);
   for (const no of [3, 8]) assert.equal(h(no), "Linien und Zwischenräume gemischt, jetzt ohne Hilfen. Erst die Lage, dann der Name.");
-  assert.ok(h(4).startsWith("Neu sind vier Noten außerhalb der Zeile. Nimm die nächste Linie der Zeile als Bezugston"));
-  assert.ok(h(9).endsWith("Das c' liegt auf einer Hilfslinie über der Zeile, das E auf einer Hilfslinie darunter."));
+  // Schritt 3: die Hinweise der zweischrittigen Stufen gekürzt, weil die Startkarte „Beide Schritte müssen stimmen.“
+  // dazubekommt und bei 320 px nicht länger werden soll (gemessen; Zählregel und Eingabe stehen in Hilfen bzw. keysHint)
+  assert.equal(h(4), "Neu sind vier Noten außerhalb der Zeile. Nimm die nächste Linie als Bezugston und zähle weiter. Das c' liegt auf einer Hilfslinie unter der Zeile.");
+  assert.equal(h(9), "Neu sind vier Noten außerhalb der Zeile. Nimm die nächste Linie als Bezugston und zähle weiter. Das c' liegt auf einer Hilfslinie über der Zeile, das E auf einer darunter.");
   assert.ok(h(11).startsWith("Lies erst den Stammton – die Note ohne Vorzeichen –, dann das Zeichen."));
-  assert.equal(h(11).split("\n").slice(1).join("\n"), h(12));
-  for (const no of [13, 14]) assert.equal(h(no), "♯ und ♭ bedeuten im Bassschlüssel dasselbe. Lies erst den Stammton im Bassschlüssel, dann das Zeichen.");
+  // 11 = Satz zum Stammton + Regel aus 12 ohne den Satz zur Eingabe (den nennt in 11 der Tastatur-Hinweis)
+  assert.equal(h(11).split("\n").slice(1).join("\n"), h(12).split("\n").slice(0, 2).join("\n"));
+  assert.ok(h(12).endsWith("Tippe den ganzen Namen an oder schreib ihn, z. B. „fis“ und Enter."));
+  assert.equal(h(13), "♯ und ♭ bedeuten im Bassschlüssel dasselbe. Lies erst den Stammton, dann das Zeichen.");
+  assert.equal(h(14), "♯ und ♭ bedeuten im Bassschlüssel dasselbe. Lies erst den Stammton im Bassschlüssel, dann das Zeichen.");
   // Merkspruch der Startkarte aus sprueche.js
   assert.ok(h(1).includes("Es Geht Hurtig Durch Fleiß") && h(7).includes("Alle Clowns Essen Gern"));
 });
@@ -457,8 +464,10 @@ test("Schritt 3: Auflösung zeigt beide Schritte (violett · grün), gleiche Hö
     }
   }
   const { keysHint } = await import("../../src/views/practice.js");
-  assert.ok(keysHint(noten.levels[0]).includes("für die Linie") && keysHint(noten.levels[6]).includes("für den Zwischenraum"));
-  assert.ok(keysHint(noten.levels[10]).includes("fis") && keysHint(noten.levels[12]).includes("Enter"));
+  const k = (i) => keysHint(noten.levels[i]).replace(/<[^>]+>/g, "");
+  assert.equal(k(0), "Tastatur: 1 … 5, dann C … H"); assert.equal(k(5), k(0));
+  assert.equal(k(1), "Tastatur: 1 … 4, dann C … H"); assert.equal(k(6), k(1));
+  assert.equal(k(10), "Tastatur: C … H, dann Namen tippen, z. B. fis Enter"); assert.equal(k(12), k(10));
   // Stufe 5: Hinweis passt zur neuen Reihenfolge (über und unter der Zeile kommt seit Welle 12 in Stufe 4)
   assert.ok(!noten.levels[4].hint.includes("Jetzt kommen"));
 });

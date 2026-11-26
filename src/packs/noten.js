@@ -163,8 +163,12 @@ function revealSvgFor(art, n, clef, marks) {
   }
   const label = `<text class="nl-steps" x="170" y="${MARK_Y}" text-anchor="middle"><tspan class="nl-s1">${esc(marks[0])}</tspan><tspan class="nl-sep"> · </tspan><tspan class="nl-s2">${esc(marks[1])}</tspan></text>`;
   // Die Linie bzw. der Zwischenraum liegt unter der Note (zuerst gezeichnet)
-  return staffSvg(clef, under + noteSvg(n, clef, 170) + label, { cls: "nl-reveal" });
+  return staffSvg(clef, under + noteSvg(n, clef, 170) + label, { cls: `nl-reveal ${ZWEI}` });
 }
+
+// Klasse an der Zeile der zweischrittigen Aufgaben (Frage und Auflösung): Daran richtet der CSS-Abschnitt „Noten
+// lesen: Schritte“ den Antwortbereich aus, damit beim Wechsel Auswahl → Buchstaben nichts springt
+export const ZWEI = "nl-zwei";
 
 function makeQuestion(it, state, art) {
   const base = {
@@ -184,6 +188,7 @@ function makeQuestion(it, state, art) {
   const z = zweiSchritte(art, it.n, it.clef, state);
   return {
     ...base,
+    svg: staffSvg(it.clef, noteSvg(it.n, it.clef, 170), { cls: ZWEI }),
     prompt: z.steps[0].prompt,
     steps: z.steps,
     display: z.display,
@@ -220,7 +225,10 @@ VORRAT.gemischt = [...VORRAT.violin, ...VORRAT.bass, ...VORRAT.violinVorzeichen,
 
 // Hinweise der Startkarte (PLAN Abschnitt 2). Bisherige Hinweise von alt 1 bis 8 unverändert übernommen.
 const merk = (c, id) => spruch(c && c.state, id);
-const VZ_HINT = "♯ erhöht um einen Halbton und hängt „-is“ an: aus F wird Fis, ebenso Cis, Gis, Dis.\n♭ erniedrigt um einen Halbton: aus E wird Es, aus A wird As, aus D wird Des – und aus H wird B.\nTippe den ganzen Namen an oder schreib ihn, z. B. „fis“ und Enter.";
+const VZ_REGEL = "♯ erhöht um einen Halbton und hängt „-is“ an: aus F wird Fis, ebenso Cis, Gis, Dis.\n♭ erniedrigt um einen Halbton: aus E wird Es, aus A wird As, aus D wird Des – und aus H wird B.";
+// Stufe 12 mit dem Satz zur Eingabe; in Stufe 11 sagt ihn der Tastatur-Hinweis (keysHint), damit die Startkarte mit
+// „Beide Schritte müssen stimmen.“ nicht länger wird (Schritt 3, gemessen bei 320 px)
+const VZ_HINT = `${VZ_REGEL}\nTippe den ganzen Namen an oder schreib ihn, z. B. „fis“ und Enter.`;
 const ZEILE_HINT = "Linien und Zwischenräume gemischt, jetzt ohne Hilfen. Erst die Lage, dann der Name.";
 const BASS_VZ_HINT = "♯ und ♭ bedeuten im Bassschlüssel dasselbe. Lies erst den Stammton im Bassschlüssel, dann das Zeichen.";
 // Satz aus dem bisherigen Hinweis der Stufe „Linien im Bassschlüssel“, jetzt in der Lerntafel „Merkhilfen“ (Abschnitt 5)
@@ -242,37 +250,39 @@ const mkVz = () => helps("Hilfen: Vorzeichen", H_VZ, () => vorzeichenRegel());
 // art: die beiden Denkschritte der Stufe (zweiSchritte); keysHint ersetzt den Tastatur-Hinweis der Startkarte.
 // lageDemo bekommt als dritten Parameter den Spruch aus der Aufgabe (q.spruch, siehe spruchZu).
 const kbd = (t) => `<span class="kbd">${t}</span>`;
-const KEYS_LETTERS = `${kbd("C")} ${kbd("D")} ${kbd("E")} … ${kbd("H")}`;
+// Kurz: bei 320 px eine Zeile (Startkarte nicht länger als vor Schritt 3)
+const KEYS_LETTERS = `${kbd("C")} … ${kbd("H")}`;
 const D_LAGE = { art: "lage", demo: (q) => lageDemo(q.note, q.clef, q.spruch) };
 const D_ZAEHLEN = { art: "zaehlen", demo: (q) => zaehlDemo(bezug(q.note, q.clef).ref, q.note, q.clef) };
 const D_VZ = { art: "vorzeichen", demo: (q) => vorzeichenDemo(q.note, q.clef),
-  keysHint: `Tastatur: erst ${KEYS_LETTERS}, dann den Namen tippen, z. B. ${kbd("fis")} und ${kbd("Enter")}` };
-const K_LINIEN = { keysHint: `Tastatur: ${kbd("1")} bis ${kbd("5")} für die Linie, dann ${KEYS_LETTERS}` };
-const K_RAEUME = { keysHint: `Tastatur: ${kbd("1")} bis ${kbd("4")} für den Zwischenraum, dann ${KEYS_LETTERS}` };
+  keysHint: `Tastatur: ${KEYS_LETTERS}, dann Namen tippen, z. B. ${kbd("fis")} ${kbd("Enter")}` };
+const K_LINIEN = { keysHint: `Tastatur: ${kbd("1")} … ${kbd("5")}, dann ${KEYS_LETTERS}` };
+const K_RAEUME = { keysHint: `Tastatur: ${kbd("1")} … ${kbd("4")}, dann ${KEYS_LETTERS}` };
 
 const RAW = [
   { clef: "treble", title: "Linien im Violinschlüssel", items: VORRAT.violinLinien, ...mkLinien("treble"), ...D_LAGE, ...K_LINIEN,
-    hint: (c) => `Zähle die Linien von unten. Die fünf Linien von unten nach oben: E G H D F. Merkspruch: „${merk(c, "violin-linien")}“.` },
+    hint: (c) => `Zähle die Linien von unten. E G H D F, Merkspruch: „${merk(c, "violin-linien")}“.` },
   { clef: "treble", title: "Zwischenräume im Violinschlüssel", items: VORRAT.violinRaeume, ...mkRaeume("treble"), ...D_LAGE, ...K_RAEUME,
-    hint: (c) => `Zähle die Zwischenräume von unten. Die vier Zwischenräume von unten nach oben: F A C E. Merkspruch: „${merk(c, "violin-raeume")}“.` },
+    hint: (c) => `Zähle die Zwischenräume von unten. F A C E, Merkspruch: „${merk(c, "violin-raeume")}“.` },
   { clef: "treble", title: "Violinschlüssel: Linien und Zwischenräume", items: VORRAT.violinZeile, hint: ZEILE_HINT },
   { clef: "treble", title: "Violinschlüssel: über und unter der Zeile", items: VORRAT.violinAussen, ...mkAussen("treble"), ...D_ZAEHLEN,
-    hint: "Neu sind vier Noten außerhalb der Zeile. Nimm die nächste Linie der Zeile als Bezugston und zähle von dort weiter: Jede Stelle ist ein Notenname weiter. Das c' liegt auf einer Hilfslinie unter der Zeile." },
+    hint: "Neu sind vier Noten außerhalb der Zeile. Nimm die nächste Linie als Bezugston und zähle weiter. Das c' liegt auf einer Hilfslinie unter der Zeile." },
   { clef: "treble", title: "Violinschlüssel mit Hilfslinien", items: VORRAT.violin,
     hint: "Alle Noten von c' bis a'' gemischt, jetzt ohne Hilfen. Das c' liegt auf einer Hilfslinie unter der Zeile." },
   { clef: "bass", title: "Linien im Bassschlüssel", items: VORRAT.bassLinien, ...mkLinien("bass"), ...D_LAGE, ...K_LINIEN,
-    hint: (c) => `Zähle die Linien von unten.\nDie Linien von unten: G H D F A.\nMerkspruch: „${merk(c, "bass-linien")}“.\nDie beiden Punkte des Schlüssels umschließen das F.` },
+    hint: (c) => `Zähle die Linien von unten. G H D F A, Merkspruch: „${merk(c, "bass-linien")}“.\nDie beiden Punkte des Schlüssels umschließen das F.` },
   { clef: "bass", title: "Zwischenräume im Bassschlüssel", items: VORRAT.bassRaeume, ...mkRaeume("bass"), ...D_LAGE, ...K_RAEUME,
-    hint: (c) => `Zähle die Zwischenräume von unten. Die Zwischenräume von unten: A C E G. Merkspruch: „${merk(c, "bass-raeume")}“.` },
+    hint: (c) => `Zähle die Zwischenräume von unten. A C E G, Merkspruch: „${merk(c, "bass-raeume")}“.` },
   { clef: "bass", title: "Bassschlüssel: Linien und Zwischenräume", items: VORRAT.bassZeile, hint: ZEILE_HINT },
   { clef: "bass", title: "Bassschlüssel: über und unter der Zeile", items: VORRAT.bassAussen, ...mkAussen("bass"), ...D_ZAEHLEN,
-    hint: "Neu sind vier Noten außerhalb der Zeile. Nimm die nächste Linie der Zeile als Bezugston und zähle von dort weiter: Jede Stelle ist ein Notenname weiter. Das c' liegt auf einer Hilfslinie über der Zeile, das E auf einer Hilfslinie darunter." },
+    hint: "Neu sind vier Noten außerhalb der Zeile. Nimm die nächste Linie als Bezugston und zähle weiter. Das c' liegt auf einer Hilfslinie über der Zeile, das E auf einer darunter." },
   { clef: "bass", title: "Bassschlüssel mit Hilfslinien", items: VORRAT.bass,
     hint: "Das c' liegt im Bassschlüssel auf einer Hilfslinie über der Zeile, das E ganz unten." },
   { clef: "treble", title: "Vorzeichen im Violinschlüssel", acc: true, items: VORRAT.violinVorzeichen, ...mkVz(), ...D_VZ,
-    hint: `Lies erst den Stammton – die Note ohne Vorzeichen –, dann das Zeichen.\n${VZ_HINT}` },
+    hint: `Lies erst den Stammton – die Note ohne Vorzeichen –, dann das Zeichen.\n${VZ_REGEL}` },
   { clef: "treble", title: "Vorzeichen im Violinschlüssel ohne Hilfen", acc: true, items: VORRAT.violinVorzeichen, hint: VZ_HINT },
-  { clef: "bass", title: "Vorzeichen im Bassschlüssel", acc: true, items: VORRAT.bassVorzeichen, ...mkVz(), ...D_VZ, hint: BASS_VZ_HINT },
+  { clef: "bass", title: "Vorzeichen im Bassschlüssel", acc: true, items: VORRAT.bassVorzeichen, ...mkVz(), ...D_VZ,
+    hint: "♯ und ♭ bedeuten im Bassschlüssel dasselbe. Lies erst den Stammton, dann das Zeichen." },
   { clef: "bass", title: "Vorzeichen im Bassschlüssel ohne Hilfen", acc: true, items: VORRAT.bassVorzeichen, hint: BASS_VZ_HINT },
   { clef: "both", title: "Alles gemischt", acc: true, items: VORRAT.gemischt,
     hint: "Beide Schlüssel, alle Lagen, hin und wieder ein Vorzeichen. Schau zuerst auf den Schlüssel. Die Namen ohne Vorzeichen stehen in der obersten Reihe." },
