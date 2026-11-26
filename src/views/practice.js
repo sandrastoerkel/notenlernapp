@@ -500,6 +500,37 @@ export function resultBasics(packs, pack, level, correct, log) {
   return { first, gaps, only };
 }
 
+// Rückweg zum Gerüst (Korrektur nach der Prüfung Welle 12, W-B3): Nach einer Runde unter HELP_BELOW Richtigen in einer
+// Stufe ohne Hilfen, deren Stufe direkt davor Hilfen hat, bietet die Ergebniskarte diese Stufe an – derselbe Knopf wie
+// unter „noch wacklig“ auf der Karte „Wiederholen“ (practiceOffer, „Stufe 11 mit Hilfen üben“). In allen Paketen
+// gleich. Sonst null (Stufe mit Hilfen; Stufe davor ohne Hilfen oder keine; 8 und mehr Richtige). Rein, getestet.
+export const HELP_BELOW = 8;
+export function helpOffer(packs, level, correct) {
+  if (!inBox(level) || correct >= HELP_BELOW) return null;
+  const o = practiceOffer(packs, level.id);
+  return o.id === level.id ? null : o;
+}
+
+// Knöpfe der Ergebniskarte einer normalen Runde in ihrer Reihenfolge (rein, getestet): [{ k, main }] mit k aus
+// "gap-open" (Muster mit Hilfen: „Stufe 3 mit Hilfen üben“, im Kasten des Musters), "basics" („Grundlagen
+// wiederholen“; mit Muster im Kasten des Musters), "help" (helpOffer), "again", "next" („Stufe n“), "home".
+// - Mit Muster (J-B7/W-B6): ein Knopf zum Muster als Hauptknopf, dazu „Nochmal“ und „Übersicht“.
+// - Ohne Muster: unter 5 Richtigen „Grundlagen wiederholen“ als Hauptknopf, sonst „Nochmal“; „Stufe n“, wenn offen;
+//   „Übersicht“.
+// - Mit help (W-B3): „… mit Hilfen üben“ zuerst und als Hauptknopf, die übrigen ohne Hervorhebung; höchstens drei
+//   Knöpfe (W-B6): es entfallen zuerst „Stufe n“ (nach einer schwachen Runde nicht der nächste Schritt), dann
+//   „Übersicht“ (über das Menü unten erreichbar). Führt das Muster schon zu einer Stufe mit Hilfen, bleibt es bei
+//   seinem Knopf (kein zweiter „… mit Hilfen üben“).
+export function resultActions({ pattern = null, first = false, nextOpen = false, help = null } = {}) {
+  const patternKey = !pattern ? null : pattern.helps ? (pattern.open ? "gap-open" : null) : "basics";
+  if (!help || (pattern && pattern.helps)) {
+    if (pattern) return [patternKey, "again", "home"].filter(Boolean).map((k) => ({ k, main: k === patternKey }));
+    return [first && "basics", "again", nextOpen && "next", "home"].filter(Boolean).map((k) => ({ k, main: k === (first ? "basics" : "again") }));
+  }
+  const rest = [patternKey || (first ? "basics" : null), "again", "home", !pattern && nextOpen ? "next" : null].filter(Boolean);
+  return [{ k: "help", main: true }, ...rest.slice(0, 2).map((k) => ({ k, main: false }))];
+}
+
 const playUi = () => ({
   staff: $("#pStaff"), feedback: $("#pFeedback"), count: $("#pCount"), dots: $("#pDots"),
   answers: $("#pAnswers"), typed: $("#pTyped"), piano: $("#pPiano"),
@@ -517,23 +548,35 @@ function startRound() {
 // nächster Schritt als Hauptknopf („Grundlagen wiederholen“ bzw. „Stufe 3 mit Hilfen üben“), dazu nur „Nochmal“ und
 // „Übersicht“ (höchstens drei Knöpfe); der Ergebnissatz ohne den Verweis auf „Lernen“ (das Muster ist die
 // Empfehlung). Ohne Muster wie bisher: unter 5 Richtigen „Grundlagen wiederholen“ zuerst (dann ebenfalls der kurze
-// Ergebnissatz), sonst „Nochmal“, „Stufe n“ (wenn offen), „Übersicht“.
+// Ergebnissatz), sonst „Nochmal“, „Stufe n“ (wenn offen), „Übersicht“. Mit dem Rückweg zur Stufe mit Hilfen
+// (helpOffer, W-B3) ist dieser die Empfehlung: Hauptknopf, kurzer Ergebnissatz, höchstens drei Knöpfe (resultActions).
 function showResult(res) {
   const { pack, level } = current();
   const { correct: c, stars, gained, avg } = res;
   const { next, nextOpen, note } = resultInfo(ctx.state, pack, level, c);
   const basics = resultBasics(ctx.packs, pack, level, c, res.log || []);
   const pattern = basics.gaps[0] || null;
-  const hasBasics = basics.first || basics.only.length > 0;
   // Karteikasten (Welle 11, Schritt 8): neu geschaffte Stufe ohne Hilfen in Fach 1; eine fällige Stufe zählt wie
   // eine Wiederholung; nicht fällig: nichts
   const repeated = afterRound(ctx.state, level, c, today());
   if (repeated) ctx.save();
   const rnote = repeatNote(repeated);
-  const basicsBtn = `<button class="btn primary" id="rBasics">${BASICS_SHORT}</button>`;
-  const action = !pattern ? "" : pattern.helps
-    ? (pattern.open ? `<button class="btn primary" data-gap-open="0">${openLabel(ctx.packs, pack, pattern.open, true)}</button>` : "")
-    : basicsBtn;
+  // Knöpfe und ihre Reihenfolge: resultActions (höchstens drei, sobald der Rückweg zur Stufe mit Hilfen dazukommt)
+  const help = helpOffer(ctx.packs, level, c);
+  const acts = resultActions({ pattern, first: basics.first, nextOpen, help });
+  const cls = (a) => `btn${a.main ? " primary" : a.k === "home" ? " ghost" : ""}`;
+  const btn = (a) => ({
+    "gap-open": () => `<button class="${cls(a)}" data-gap-open="0">${openLabel(ctx.packs, pack, pattern.open, true)}</button>`,
+    basics: () => `<button class="${cls(a)}" id="rBasics">${BASICS_SHORT}</button>`,
+    help: () => `<button class="${cls(a)}" id="rHelp">${help.label}</button>`,
+    again: () => `<button class="${cls(a)}" id="rAgain">Nochmal</button>`,
+    next: () => `<button class="${cls(a)}" id="rNext">Stufe ${next.no}</button>`,
+    home: () => `<button class="${cls(a)}" id="rHome">Übersicht</button>`,
+  })[a.k]();
+  // mit Muster steht dessen Knopf im Kasten unter dem Satz, die übrigen in der Zeile darunter
+  const inGap = (a) => !!pattern && (a.k === "gap-open" || a.k === "basics");
+  const action = acts.filter(inGap).map(btn).join("");
+  const row = acts.filter((a) => !inGap(a)).map(btn).join("\n        ");
   $("#pPlay").hidden = true;
   $("#pHelps").hidden = true;
   $("#pResult").hidden = false;
@@ -541,7 +584,7 @@ function showResult(res) {
       <p class="eyebrow">Runde beendet</p>
       ${engine.starsHtml(stars)}
       <p class="big num">${c} / ${res.total}</p>
-      <p class="muted">${engine.resultMessage(stars, { correct: c, total: res.total, short: !!pattern || basics.first })}</p>
+      <p class="muted">${engine.resultMessage(stars, { correct: c, total: res.total, short: !!pattern || basics.first || !!help })}</p>
       <p class="small muted num">${resultLine(pack, gained, avg)}</p>
       ${note ? `<p class="unlock-line" id="rUnlock">${engine.keepStufe(note)}</p>` : ""}
       ${rnote ? `<p class="small" id="rRepeat">${rnote}</p>` : ""}
@@ -550,20 +593,18 @@ function showResult(res) {
         ${action}
       </div>` : ""}
       <div class="row" style="justify-content:center">
-        ${!pattern && hasBasics ? basicsBtn : ""}
-        <button class="btn${hasBasics || pattern ? "" : " primary"}" id="rAgain">Nochmal</button>
-        ${nextOpen && !pattern ? `<button class="btn" id="rNext">Stufe ${next.no}</button>` : ""}
-        <button class="btn ghost" id="rHome">Übersicht</button>
+        ${row}
       </div>`;
-  $("#rAgain").addEventListener("click", () => render());
+  if ($("#rAgain")) $("#rAgain").addEventListener("click", () => render());
+  if ($("#rHelp")) $("#rHelp").addEventListener("click", () => { ctx.state.current = help.id; ctx.save(); render(); });
   // ein Knopf: nach einem Muster nur dessen Grundlage(n), sonst (unter 5 Richtigen) alle Voraussetzungen
   if ($("#rBasics")) $("#rBasics").addEventListener("click", () =>
     ctx.show("practice", { mode: "grundlagen", levelId: level.id, only: basics.only.length ? basics.only : null }));
   $("#pResult").querySelectorAll("[data-gap-open]").forEach((b) => b.addEventListener("click", () => {
     ctx.state.current = basics.gaps[+b.dataset.gapOpen].open; ctx.save(); ctx.show("practice");
   }));
-  if (nextOpen && !pattern) $("#rNext").addEventListener("click", () => { ctx.state.current = next.id; ctx.save(); render(); });
-  $("#rHome").addEventListener("click", () => ctx.show("home"));
+  if ($("#rNext")) $("#rNext").addEventListener("click", () => { ctx.state.current = next.id; ctx.save(); render(); });
+  if ($("#rHome")) $("#rHome").addEventListener("click", () => ctx.show("home"));
   ctx.renderTop();
 }
 

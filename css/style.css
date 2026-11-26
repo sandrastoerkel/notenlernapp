@@ -165,6 +165,9 @@ section { display: grid; gap: 14px; }
 .staff-card { padding: 10px 12px; }
 /* Nach „Nächste Aufgabe“ am Ende der Vorführung rückt die Notenzeile unter die Kopfleiste (src/engine.js, showStaff) */
 #pStaff { scroll-margin-top: 72px; }
+/* „Nächste Aufgabe“ bzw. „Weiter zu Schritt 2“ rückt über das untere Menü, wenn er sonst darunter läge (J-B1,
+   src/engine.js, revealNext): Höhe des Menüs (gemessen 60 px bei 320 px) und etwas Abstand */
+#pNext { scroll-margin-bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
 .staff-card svg { width: 100%; height: auto; display: block; max-width: 100%; }
 .staff-line { stroke: var(--ink); stroke-width: 1.3; }
 .ledger { stroke: var(--ink); stroke-width: 1.6; }

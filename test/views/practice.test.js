@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { startLabel, keysHint, lettersLabel, resultInfo, missingText, answersScroll, startHint, startMore, TWO_STEPS_NOTE, resultLine, avgText, perLevelLine, MIXED_HEAD,
   BASICS_LABEL, needsHtml, needLabel, reasonText, basicsTitle, countWord, gapGroups, placesText, gapText, openLabel, resultBasics,
-  reviewTitle, verdictText, reviewLine, practiceOffer, repeatNote, needOffer, basicsResultPlan, reviewOffers } from "../../src/views/practice.js";
+  reviewTitle, verdictText, reviewLine, practiceOffer, repeatNote, needOffer, basicsResultPlan, reviewOffers,
+  helpOffer, resultActions, HELP_BELOW } from "../../src/views/practice.js";
 import { keepStufe, textOf } from "../../src/engine.js";
 import { PACKS } from "../../src/packs/index.js";
 import { lockText } from "../../src/views/home.js";
@@ -322,7 +323,8 @@ test("Ergebniskarte: „Grundlagen wiederholen“ zuerst unter 5 Richtigen, sons
   // Ansicht: mit Muster der kurze Ergebnissatz, kein „Stufe n“-Knopf (höchstens drei Knöpfe); Satz ohne Rahmen
   const src = readFileSync(new URL("../../src/views/practice.js", import.meta.url), "utf8");
   assert.ok(src.includes("short: !!pattern || basics.first"));
-  assert.ok(src.includes("${nextOpen && !pattern ? "));
+  // (seit der Korrektur W-B3 über resultActions statt im Quelltext der Ansicht)
+  assert.ok(!resultActions({ pattern: { helps: false }, nextOpen: true }).some((a) => a.k === "next"));
   const css = readFileSync(new URL("../../css/style.css", import.meta.url), "utf8");
   assert.doesNotMatch(css.match(/\.result \.gap-line \{([^}]*)\}/)[1], /border/);
 });
@@ -480,4 +482,58 @@ test("Antwortbereich und Klaviatur nehmen den Fokus an (tabindex=\"-1\")", () =>
   const html = readFileSync(new URL("../../index.html", import.meta.url), "utf8");
   assert.match(html, /<div class="answers" id="pAnswers" role="group" aria-label="Antworten" tabindex="-1">/);
   assert.match(html, /<div class="piano card" id="pPiano" tabindex="-1" hidden>/);
+});
+
+// Korrektur nach der Prüfung Welle 12 (W-B3): Rückweg zum Gerüst auf der Ergebniskarte einer Stufe ohne Hilfen
+test("helpOffer: Stufe ohne Hilfen unter 8 Richtigen → die Stufe mit Hilfen direkt davor, in allen Paketen gleich", () => {
+  const hasHelps = (l) => Array.isArray(l.helps) && l.helps.length > 0;
+  const seen = {};
+  for (const pack of PACKS) pack.levels.forEach((l, i) => {
+    const before = pack.levels[i - 1];
+    const want = !hasHelps(l) && before && hasHelps(before) ? before : null;
+    for (let c = 0; c <= 10; c++) {
+      const o = helpOffer(PACKS, l, c);
+      if (!want || c >= HELP_BELOW) { assert.equal(o, null, `${l.id}, ${c} richtig`); continue; }
+      // derselbe Knopf wie unter „noch wacklig“ (practiceOffer); er führt zu einer Stufe mit Hilfen
+      assert.deepEqual(o, practiceOffer(PACKS, l.id), l.id);
+      assert.equal(o.id, want.id);
+      assert.equal(o.label, keepStufe(`Stufe ${want.no} mit Hilfen üben`));
+      assert.ok(hasHelps(PACKS.flatMap((p) => p.levels).find((x) => x.id === o.id)), `${o.id} hat Hilfen`);
+    }
+    if (want) (seen[pack.id] = seen[pack.id] || []).push(`${l.no}→${want.no}`);
+  });
+  assert.equal(HELP_BELOW, 8);
+  assert.deepEqual(seen, {
+    noten: ["3→2", "5→4", "8→7", "10→9", "12→11", "14→13"],
+    notenwerte: ["3→2", "5→4", "7→6", "9→8"],
+    intervalle: ["2→1", "4→3", "6→5", "9→8"],
+    tonleitern: ["3→2", "5→4", "7→6", "9→8", "11→10", "13→12"],
+  });
+});
+
+test("resultActions: ohne Rückweg wie bisher; mit Rückweg dieser als Hauptknopf und höchstens drei Knöpfe", () => {
+  const keys = (acts) => acts.map((a) => (a.main ? `*${a.k}` : a.k));
+  const help = { id: "noten-11", label: "x" };
+  // ohne Rückweg: unverändert (Welle 11)
+  assert.deepEqual(keys(resultActions({})), ["*again", "home"]);
+  assert.deepEqual(keys(resultActions({ nextOpen: true })), ["*again", "next", "home"]);
+  assert.deepEqual(keys(resultActions({ first: true, nextOpen: true })), ["*basics", "again", "next", "home"]);
+  assert.deepEqual(keys(resultActions({ pattern: { helps: false }, nextOpen: true })), ["*basics", "again", "home"]);
+  assert.deepEqual(keys(resultActions({ pattern: { helps: true, open: "noten-11" } })), ["*gap-open", "again", "home"]);
+  assert.deepEqual(keys(resultActions({ pattern: { helps: true, open: null } })), ["again", "home"]);
+  // mit Rückweg
+  assert.deepEqual(keys(resultActions({ help })), ["*help", "again", "home"]);
+  assert.deepEqual(keys(resultActions({ help, nextOpen: true })), ["*help", "again", "home"], "„Stufe n“ entfällt zuerst");
+  assert.deepEqual(keys(resultActions({ help, first: true, nextOpen: true })), ["*help", "basics", "again"], "dann „Übersicht“");
+  assert.deepEqual(keys(resultActions({ help, pattern: { helps: false } })), ["*help", "basics", "again"]);
+  // Muster führt schon zu einer Stufe mit Hilfen: kein zweiter Knopf „… mit Hilfen üben“
+  assert.deepEqual(keys(resultActions({ help, pattern: { helps: true, open: "noten-11" } })), ["*gap-open", "again", "home"]);
+  // nie mehr als ein Hauptknopf; mit Rückweg nie mehr als drei Knöpfe
+  for (const pattern of [null, { helps: false }, { helps: true, open: "a" }, { helps: true, open: null }])
+    for (const first of [false, true]) for (const nextOpen of [false, true]) for (const h of [null, help]) {
+      const a = resultActions({ pattern, first, nextOpen, help: h });
+      assert.ok(a.filter((x) => x.main).length <= 1);
+      if (h) assert.ok(a.length <= 3);
+      assert.ok(a.some((x) => x.k === "again"), "„Nochmal“ bleibt immer");
+    }
 });

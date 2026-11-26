@@ -28,6 +28,12 @@ export const DELAY_OK = 800;
 // Pause zwischen erstem und zweitem Schritt (q.steps), nur wenn Schritt 1 richtig war; daneben wartet die
 // Runde auf „Weiter zu Schritt 2“
 export const DELAY_STEP_OK = 700;
+// Sperre nach „Weiter zu Schritt 2“ bzw. „Nächste Aufgabe“ (auch Enter, Leertaste, Knopf am Ende der Vorführung;
+// Korrektur nach der Prüfung Welle 12, J-B2): So lange zählt keine Antwort (Knopf, Taste der Klaviatur, Tastatur).
+// Ein Doppeltipp auf den Weiter-Knopf trifft sonst den Antwortbereich, der darunter neu erscheint, und beantwortet
+// den neuen Schritt ungesehen. Nach einer Antwort ist die Runde ohnehin gesperrt (r.locked, DELAY_STEP_OK bzw.
+// DELAY_OK), dort braucht es keine eigene Sperre.
+export const SWITCH_GUARD = 380;
 // Längster Rückmeldetext (Zeichen), nach dem eine richtige Antwort in einer Stufe ohne Hilfen von selbst
 // weitergeht; längere Texte bleiben stehen, bis du tippst. Startwert, nach dem Test mit Kindern anpassen.
 export const AUTO_OK_MAX = 45;
@@ -739,7 +745,7 @@ function answerStep(r, value, el) {
   // Schritt 1 richtig: kurz weiter. Daneben: kein Zeitgeber, „Weiter zu Schritt 2“ (Knopf, Enter, Leertaste)
   if (ok) { later(r, toNextStep, DELAY_STEP_OK); return; }
   r.advance = toNextStep; r.waiting = true;
-  if (ui.next) { ui.next.textContent = NEXT_STEP; ui.next.hidden = false; }
+  if (ui.next) { ui.next.textContent = NEXT_STEP; ui.next.hidden = false; revealNext(ui.next); }
 }
 
 // Stufe mit Buchstaben-Eingabe: Wechsel zum nächsten Schritt (Welle 12, Schritt 0). Antwortbereich je nach Art
@@ -765,7 +771,7 @@ function keepFocus(r, had) {
 }
 
 function answer(r, value, el) {
-  if (run !== r || r.locked) return;
+  if (run !== r || r.locked || r.guarded) return;
   const q = r.items[r.idx];
   if (q.steps) return answerStep(r, value, el);
   const ok = !!cur(r).check(q, value);
@@ -783,7 +789,11 @@ function finishQuestion(r, ok, text, part = false) {
   r.results.push(ok); r.marks.push(part ? "part" : ok); r.times.push(sec);
   r.log.push({ id: cur(r).id, ok, oks: q.steps ? r.oks.slice() : [ok] });
   if (ok) r.correct++;
-  countAnswer(hooks.state, q, ok, sec);
+  // Aufgaben mit Schritten (q.steps) tragen keine Zeit ein (Korrektur nach der Prüfung Welle 12, W-B2): Gemessen würde
+  // vom Erscheinen bis zur letzten Antwort, mit zwei Antworten, neuem Fragetext und der Pause DELAY_STEP_OK – an der
+  // Grenze für eine Antwort (adapt.LANGSAM_SEK) hieße das oft „langsam“. Richtig/daneben zählt weiter; „langsam“
+  // entsteht nur aus einschrittigen Antworten (wie im Blitz, der gar keine Zeit einträgt).
+  countAnswer(hooks.state, q, ok, q.steps ? undefined : sec);
   hooks.save();
   // q.revealSvg (optional): SVG, das nach der Antwort statt q.svg erscheint, bei richtiger und falscher
   // Antwort, z. B. der vollständige Takt mit dem fehlenden Wert in der Lücke. Ohne revealSvg bleibt q.svg
@@ -816,7 +826,7 @@ function finishQuestion(r, ok, text, part = false) {
   // wartet auf „Nächste Aufgabe“ (auch nach der letzten Aufgabe)
   if (waitsAfter(cur(r), ok, text)) {
     r.waiting = true;
-    if (ui.next) { ui.next.textContent = DEMO_NEXT; ui.next.hidden = false; }
+    if (ui.next) { ui.next.textContent = DEMO_NEXT; ui.next.hidden = false; revealNext(ui.next); }
     return;
   }
   r.advanceId = later(r, () => r.advance && r.advance(), answerDelay(q, isMuted()));
@@ -872,12 +882,38 @@ function resume(r) {
   if (r.demo) r.demo.stop();
   r.advance();
   if (run !== r) return; // Runde zu Ende: die Ergebniskarte übernimmt
+  guardSwitch(r);
   // Auf Handys stehen die Hilfen unter den Antworten: Wer am Ende der Vorführung weitergeht, sieht sonst die
   // neue Notenzeile nicht. Sie rückt wieder ins Bild (Abstand zur Kopfleiste: scroll-margin-top in style.css).
   showStaff(r.ui.staff);
   // Fokus nicht auf <body> fallen lassen: auf den Antwortbereich (tabindex="-1"), von dort führt Tab zu den
   // Antworten. Kein Antwortknopf selbst, damit Enter oder Leertaste nicht aus Versehen antworten.
   if (lost) focusEl([r.ui.answers, r.ui.piano].find((e) => e && !e.hidden), { preventScroll: true });
+}
+
+// Nach dem Weitergehen kurz keine Antwort annehmen (SWITCH_GUARD); ein neuer Wechsel beginnt die Sperre neu
+function guardSwitch(r) {
+  if (r.guardId) { clearTimeout(r.guardId); r.timers.delete(r.guardId); }
+  r.guarded = true;
+  r.guardId = later(r, () => { r.guarded = false; r.guardId = null; }, SWITCH_GUARD);
+}
+
+// „Nächste Aufgabe“ bzw. „Weiter zu Schritt 2“ ins Bild holen, wenn der Knopf nicht ganz zu sehen ist (Korrektur
+// nach der Prüfung Welle 12, J-B1: bei 320 × 640 lag er in den Stufen mit Namensraster unter dem unteren Menü).
+// Abstand zum Menü: scroll-margin-bottom von #pNext in style.css. Steht der Knopf schon ganz im Bild (breite und hohe
+// Fenster), rollt nichts. Ohne Bewegung bei „Bewegung reduzieren“. Der Fokus bleibt, wo er ist (nur Rollen).
+export function revealNext(el) {
+  if (!el || typeof el.getBoundingClientRect !== "function" || typeof el.scrollIntoView !== "function") return false;
+  const view = el.ownerDocument && el.ownerDocument.defaultView;
+  if (!view) return false;
+  // ganz zu sehen: im Fenster und oben wie unten nicht vom Menü verdeckt (elementFromPoint, 2 px innen: Bruchteile
+  // eines Pixels Überlappung mit der Oberkante des Menüs zählen nicht)
+  const box = el.getBoundingClientRect(), doc = el.ownerDocument;
+  const free = (y) => { const e = typeof doc.elementFromPoint === "function" ? doc.elementFromPoint(box.left + box.width / 2, y) : el; return !!e && (e === el || (typeof el.contains === "function" && el.contains(e))); };
+  if (box.top >= 0 && box.bottom <= view.innerHeight && free(box.top + 2) && free(box.bottom - 2)) return false;
+  const still = typeof view.matchMedia === "function" && view.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  el.scrollIntoView({ block: "nearest", behavior: still ? "auto" : "smooth" });
+  return true;
 }
 
 function showStaff(el) {
@@ -889,6 +925,8 @@ function showStaff(el) {
 
 // Für Tests und die Browserprüfung: wartet die Runde gerade auf „Nächste Aufgabe“?
 export const isWaiting = () => !!(run && run.waiting);
+// Für die Browserprüfung (docs/screens/spiel.mjs): läuft gerade die Sperre nach dem Weitergehen (SWITCH_GUARD)?
+export const isGuarded = () => !!(run && run.guarded);
 // Für Tests und die Browserprüfung: die aktuelle Aufgabe (oder null)
 export const currentQuestion = () => (run ? run.items[run.idx] || null : null);
 
@@ -933,7 +971,7 @@ export function handleKey(e) {
     resume(r);
     return true;
   }
-  if (run.locked) return false;
+  if (run.locked || run.guarded) return false;
   const kind = kindNow(r);
   if (kind === "choices") {
     // Ziffern bei Knopfsätzen mit digits (Prime … Oktave); in einem Auswahl-Schritt zählt kein Buchstabe
