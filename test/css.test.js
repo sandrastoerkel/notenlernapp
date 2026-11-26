@@ -132,18 +132,30 @@ test("Zählleiste der Hilfen (Notenwerte 8) passt bei 320 px in ihren Rahmen", (
   assert.match(css, /\.nw-count-fig \{[^}]*grid-template-columns: minmax\(0, 1fr\)/);
 });
 
-test("Notenkarte der Statistik: „100 %“ neben „100 %“ überlappt bei 320 px nicht (Welle 11, Schritt 13)", () => {
+test("Notenkarte der Statistik: „100 %“ neben „100 %“ überlappt von 320 bis 400 px nicht (Welle 11, Schritt 13)", () => {
   // Gefunden von docs/screens/ueberlauf.mjs (Überlappung innerhalb einer Zeile): Bei 320 px lagen die Mitten zweier
   // Beschriftungen 26,5 px auseinander, „100 %“ war 28,6 px breit (gemessen bei .62rem = 9,92 px: 2,88 em).
-  const narrow = plain.match(/@media \(max-width: 360px\) \{ \.heat-row \{ margin-inline: -(\d+)px; \} \.heat-cell \.num \{ font-size: ([\d.]+)em; \} \}/);
-  assert.ok(narrow, "Regel für schmale Fenster fehlt");
+  const margin = plain.match(/@media \(max-width: 360px\) \{ \.heat-row \{ margin-inline: -(\d+)px; \} \}/);
+  const small = plain.match(/@media \(max-width: (\d+)px\) \{ \.heat-cell \.num \{ font-size: ([\d.]+)em; \} \}/);
+  assert.ok(margin && small, "Regeln für schmale Fenster fehlen");
   const font = +plain.match(/@media \(max-width: 400px\) \{ \.heat-cell \{ font-size: ([\d.]+)rem;/)[1] * 16;
-  // Zeile: 320 px − 2 × 16 (Seite) − 2 × 16 (Karte) − 2 (Rand der Karte) + 2 × Rand der Zeile; Abstand der Noten 200/6 von 320
-  const row = 320 - 32 - 32 - 2 + 2 * +narrow[1];
-  const pitch = (row * 200) / 6 / 320, label = 2.88 * font * +narrow[2];
-  assert.ok(pitch - label >= 1.5, `Abstand ${(pitch - label).toFixed(1)} px`);
-  // ohne die Regel wäre es eine Überlappung (Gegenprobe der Rechnung)
-  assert.ok((254 * 200) / 6 / 320 - 2.88 * font < -1);
+  // Zeile: Breite − 2 × 16 (Seite) − 2 × 16 (Karte) − 2 (Rand der Karte) + 2 × Rand der Zeile; Abstand der Noten 200/6 von 320
+  const gap = (vw, m, f) => ((vw - 66 + 2 * m) * 200) / 6 / 320 - 2.88 * font * f;
+  const m = +margin[1], bp = +small[1];
+  assert.ok(bp < 360, "die Quote wird bei 360 px (häufige Handybreite) nicht verkleinert");
+  for (const [vw, mm, f] of [[320, m, +small[2]], [bp + 1, m, 1], [360, m, 1], [361, 0, 1]]) {
+    assert.ok(gap(vw, mm, f) >= 1.5, `${vw} px: Abstand ${gap(vw, mm, f).toFixed(1)} px`);
+  }
+  // ohne die Regeln wäre es bei 320 px eine Überlappung (Gegenprobe der Rechnung)
+  assert.ok(gap(320, 0, 1) < -1);
+});
+
+test("Notenkarte der Statistik: jede Note mindestens 24 px breit zum Antippen (Prüfung Schritt 13b)", () => {
+  // Mit „–“ (noch keine Antworten) war die Tippfläche nur so breit wie der Name, bei „f“ 10 px (WCAG 2.5.8: 24 px).
+  const min = +plain.match(/\.heat-cell \{[^}]*min-width: (\d+)px;/)[1];
+  assert.ok(min >= 24);
+  // schmale Flächen berühren sich nicht: Abstand der Mitten bei 320 px (mit Rand der Zeile) größer als die Mindestbreite
+  assert.ok(((320 - 66 + 16) * 200) / 6 / 320 > min);
 });
 
 /* ---------- Antwortknöpfe und Hilfen (Abschlussprüfung Welle 10) ---------- */

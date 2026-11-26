@@ -528,18 +528,21 @@ section { display: grid; gap: 14px; }
 .level-group + .level-group { padding-top: 10px; border-top: 1px solid var(--line); }
 .level-stat { grid-template-columns: 1.4fr 1fr auto; }
 .level-stat.muted .bar { opacity: .5; }
-/* Notenkarte: Notenzeile, darunter Name und Trefferquote je Note an derselben x-Position wie der Kopf */
+/* Notenkarte: Notenzeile, darunter Name und Trefferquote je Note an derselben x-Position wie der Kopf; jede Note
+   mindestens 24 px breit zum Antippen (WCAG 2.5.8), auch mit „–“ (sonst nur 10 px; Prüfung Schritt 13b) */
 .heat-row svg { width: 100%; height: auto; display: block; }
 .heat-labels { position: relative; height: 38px; margin-top: -16px; }
 .heat-cell { position: absolute; top: 0; transform: translateX(-50%); display: grid; justify-items: center; gap: 1px;
-  min-width: 0; padding: 3px 1px; border: 1px solid transparent; border-radius: 8px; background: transparent;
+  min-width: 24px; padding: 3px 1px; border: 1px solid transparent; border-radius: 8px; background: transparent;
   color: var(--ink); font: inherit; font-size: .72rem; line-height: 1.15; white-space: nowrap; cursor: pointer; }
 .heat-cell b { font-family: var(--display); font-size: .95rem; }
 @media (max-width: 400px) { .heat-cell { font-size: .62rem; letter-spacing: -.02em; } .heat-cell b { font-size: .85rem; } }
 /* Bis 360 px stehen die Beschriftungen dicht: „100 %“ ist etwa 2,9 em breit, die Mitten liegen bei 320 px nur 26,5 px
    auseinander (zwei Mal „100 %“ nebeneinander überlappten um 2 px, gefunden von ueberlauf.mjs, Welle 11, Schritt 13).
-   Die Zeile nutzt 8 px des Innenrands der Karte, die Quote ist etwas kleiner (test/css.test.js rechnet nach). */
-@media (max-width: 360px) { .heat-row { margin-inline: -8px; } .heat-cell .num { font-size: .92em; } }
+   Bis 360 px nutzt die Zeile 8 px des Innenrands der Karte; die Quote ist erst bis 340 px etwas kleiner (.92em), damit
+   die häufige Breite 360 px die volle Schriftgröße behält (test/css.test.js rechnet nach). */
+@media (max-width: 360px) { .heat-row { margin-inline: -8px; } }
+@media (max-width: 340px) { .heat-cell .num { font-size: .92em; } }
 .heat-cell.on, .heat-acc.on { border-color: var(--accent); background: var(--accent-soft); }
 .heat-detail { min-height: 1.4em; }
 .heat-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; }
