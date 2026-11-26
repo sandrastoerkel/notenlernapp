@@ -338,7 +338,7 @@ test("Runde „Wiederholen“: Kopf, Urteil je Stufe, Knopf bei „noch wacklig�
   assert.deepEqual(practiceOffer(PACKS, "akkorde-2"), { id: "akkorde-2", label: `Stufe${NB}2 üben` });
   // Satz auf der Ergebniskarte einer normalen Runde
   assert.equal(repeatNote(null), "");
-  assert.equal(repeatNote({ id: "noten-3", sitzt: true, fach: 1, inTagen: 1, neu: true }), "Neu im Kasten: kommt morgen zum Wiederholen wieder.");
+  assert.equal(repeatNote({ id: "noten-3", sitzt: true, fach: 1, inTagen: 1, neu: true }), `Geschafft${NB}– kommt morgen zum Wiederholen wieder.`);
   assert.equal(repeatNote({ id: "noten-3", sitzt: true, fach: 2, inTagen: 3 }), "Wiederholung: sitzt · wieder in 3 Tagen.");
   assert.equal(repeatNote({ id: "noten-3", sitzt: false, fach: 1, inTagen: 1 }), "Wiederholung: noch wacklig · morgen noch einmal.");
 });

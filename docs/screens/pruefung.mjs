@@ -354,7 +354,7 @@ const SCENES = [
     pg = await page(LEER);
     await openLevel(pg, "noten-1"); await startRound(pg);
     for (let k = 0; k < 12 && !(await vis(pg, "#pResult")); k++) { await answerQuestion(pg, true, null, errors); await goOn(pg); }
-    if (await need(pg, "#rRepeat", "„Neu im Kasten“")) await shot(pg, "ergebnis-neu-im-kasten", "Ergebniskarte Noten lesen 1, 10 von 10: „Neu im Kasten: kommt morgen zum Wiederholen wieder.“, „Stufe 2 ist offen.“");
+    if (await need(pg, "#rRepeat", "„Geschafft – kommt morgen …“")) await shot(pg, "ergebnis-neu-im-kasten", "Ergebniskarte Noten lesen 1, 10 von 10: „Geschafft – kommt morgen zum Wiederholen wieder.“, „Stufe 2 ist offen.“");
   }],
   ["lernen", async ({ page, shot }) => {
     const pg = await page(fort());

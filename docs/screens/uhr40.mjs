@@ -4,7 +4,7 @@
 //
 // - Vorbereitung: Die Stufen vor den drei Stufen des Laufs gelten als früher geschafft (ohne Eintrag im Kasten), damit
 //   Noten lesen 3 (A), Notenwerte 5 (C) und Intervalle 2 (B) offen sind und der Kasten genau sie enthält.
-// - Tag 0: A, C und B je mit 9 von 10 spielen → „Neu im Kasten“, Karte „Heute“: „Nächste Wiederholung: morgen“.
+// - Tag 0: A, C und B je mit 9 von 10 spielen → „Geschafft – kommt morgen zum Wiederholen wieder.“, Karte „Heute“: „Nächste Wiederholung: morgen“.
 // - Jeden Tag die Uhr einen Tag vorstellen, die App neu laden und die Karte „Heute“ prüfen (Titel, „10 Aufgaben aus …“
 //   bzw. „Nächste Wiederholung: …“, „↻ wieder dran“ genau an den fälligen Stufen). Fällige Runden über „Wiederholung
 //   starten“ spielen, alles richtig; an Tag 4 liegt die erste Aufgabe aus C bewusst daneben. Ferien von Tag 12 bis 26:
@@ -109,7 +109,7 @@ async function run(browser, zone) {
     const big = norm(await pg.locator("#pResult .big").first().textContent());
     if (big !== "9 / 10") fail(d, `${id}: Ergebnis „${big}“ statt „9 / 10“`);
     const rep = (await vis(pg, "#rRepeat")) ? norm(await pg.locator("#rRepeat").textContent()) : "";
-    if (rep !== "Neu im Kasten: kommt morgen zum Wiederholen wieder.") fail(d, `${id}: „${rep}“ statt „Neu im Kasten …“`);
+    if (rep !== "Geschafft\u00a0– kommt morgen zum Wiederholen wieder.") fail(d, `${id}: „${rep}“ statt „Geschafft – kommt morgen …“`);
     model.fach[id] = 1; model.faellig[id] = d + ABSTAENDE[0];
     checks += 2;
   };

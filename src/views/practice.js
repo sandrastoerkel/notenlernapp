@@ -262,10 +262,12 @@ export function practiceOffer(packs, id) {
   return { id: level.id, label: engine.keepStufe(`Stufe ${level.no} üben`) };
 }
 
-// Satz auf der Ergebniskarte einer normalen Runde (v aus repeat.afterRound oder null, rein, getestet)
+// Satz auf der Ergebniskarte einer normalen Runde (v aus repeat.afterRound oder null, rein, getestet). Neu
+// aufgenommen: ohne das Wort „Kasten“, das nirgends erklärt wird (J-B8, Korrektur nach der Prüfung Welle 11)
+export const NEW_IN_BOX = "Geschafft\u00a0– kommt morgen zum Wiederholen wieder.";
 export function repeatNote(v) {
   if (!v) return "";
-  if (v.neu) return "Neu im Kasten: kommt morgen zum Wiederholen wieder.";
+  if (v.neu) return NEW_IN_BOX;
   return `Wiederholung: ${verdictText(v)}.`;
 }
 

@@ -18,7 +18,7 @@
 // für Bild), drei Runden „Wiederholen“ (die dritte mit der Eingabe „Klaviatur“, Prüfung Schritt 13b) (Welle 11, Schritt 8: Karteikasten mit drei fälligen Stufen vorbereitet,
 // Karte „Heute“ mit „Wiederholung starten“ und „↻ wieder dran“, Start über die Karte, alle Aufgaben abwechselnd
 // richtig und daneben, dazu Herkunftszeile und keine Reste der vorigen Eingabeart, Ergebniskarte mit dem Urteil je
-// Stufe und „… üben“, danach die Karte „Heute“ ohne Fälliges), eine normale Runde ganz richtig („Neu im Kasten“),
+// Stufe und „… üben“, danach die Karte „Heute“ ohne Fälliges), eine normale Runde ganz richtig („Geschafft – kommt morgen …“),
 // zwei Runden „Grundlagen wiederholen“ über die Startkarte und eine Ergebniskarte mit Fehlermuster (Schritt 7),
 // Startkarten mit „Dafür brauchst du“ ohne Empfehlung (Grundlagen geschafft, Schritt 13), „Lernen“ je Reiter und
 // Schlüssel mit allen Vorführungen, Blitz und Statistik, zuletzt die Bestätigung beim Link der Lehrkraft (setzen,
@@ -445,15 +445,15 @@ async function run(browser, width, scheme) {
   // wieder Buchstaben für den Rest des Laufs
   await pg.evaluate(() => { const s = JSON.parse(localStorage.getItem("notenheld.v2")); s.input = "letters"; localStorage.setItem("notenheld.v2", JSON.stringify(s)); });
   await pg.reload(); await pg.waitForTimeout(600);
-  // Normale Runde ganz richtig in einer Stufe ohne Hilfen (noch nicht im Kasten): „Neu im Kasten“ auf der Ergebniskarte
+  // Normale Runde ganz richtig in einer Stufe ohne Hilfen (noch nicht im Kasten): „Geschafft – kommt morgen …“ auf der Ergebniskarte
   await pg.click('.level[data-id="noten-1"]'); await pg.waitForTimeout(200);
   await pg.click("#pStart"); await pg.waitForTimeout(250);
   for (let rnd = 0; rnd < 12 && !(await visible("#pResult")); rnd++) {
     await answer(`Kasten Aufgabe ${rnd + 1}`, true);
     await goOn(pg);
   }
-  if (!(await visible("#rRepeat"))) errs.push("Noten lesen 1 ganz richtig: kein Satz „Neu im Kasten“");
-  await chk("Noten lesen 1 Ergebnis „Neu im Kasten“");
+  if (!(await visible("#rRepeat"))) errs.push("Noten lesen 1 ganz richtig: kein Satz „Geschafft – kommt morgen …“");
+  await chk("Noten lesen 1 Ergebnis „Geschafft“");
   // „Grundlagen wiederholen“ über die Startkarte (Welle 11, Schritt 7): Intervalle 3 (Ziffern, Namensraster) und
   // Dreiklänge 1 (zwei Schritte, Namensraster), jede Aufgabe abwechselnd richtig und daneben, dann „Zurück zu Stufe …“
   for (const lid of ["intervall-3", "akkorde-1"]) {
