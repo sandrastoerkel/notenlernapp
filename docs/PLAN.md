@@ -3579,6 +3579,42 @@ LOGIK:
   Westen, Kuala Lumpur → Bayern), Einträge der Umstellung mit Grenze 30 Tage. – f3a2cae
 - Browser: `ueberlauf.mjs` 320 (dunkel) und 420 (hell) 0 Treffer; `uhr40.mjs` beide Zeitzonen wie erwartet.
 
+OBERFLAECHE (Zeilen vom Koordinator nach dem Bericht eingetragen; zusammengeführt mit Merge-Commit, Konflikte in
+`repeatNote`, `practice.test.js` und `uhr40.mjs` zugunsten von LOGIK gelöst):
+- **J-B1, J-C1** Startkarte: Hinweis → (Grund → „Grundlagen wiederholen“) → „Runde starten“ → „Dafür brauchst du“
+  (eine Zeile mit Kommas, Stufe sichtbar, z. B. „Notenstufen zählen (Intervalle 2)“) → Tastatur-Hinweis;
+  `ueberlauf.mjs` misst sechs Karten (`startCards`). Gemessen bei 320 × 640 (Grenze erster Bildschirm 580 px), mit
+  Empfehlung erster Knopf: Intervalle 3 593 (vorher 848), Tonleitern 10 756 (910), Tonleitern 12 616 (821), Noten
+  lesen 7 567 (810), Notenwerte 6 496 (682), Dreiklänge 1 430 (636); ohne Empfehlung „Runde starten“ überall gleich
+  hoch oder höher als auf `main`. Nicht ganz erfüllt: Bei Intervalle 3 und Tonleitern 10/12 bräuchte es kürzere
+  Hinweistexte der Pakete (später). – dac7ac9
+- **J-B2, L-B1** `resultMessage(stars, { correct, total, short })`: bei 10 von 10 überall „Stark, alles richtig.“;
+  Runde „Wiederholen“ nur „Stark.“ / „Gut.“ / „Solide Basis.“ / „Noch wacklig.“ (kein Sterne-Versprechen). – 64ac69b
+- **J-B4** Klaviatur: Beschriftung markierter Tasten in `--fg` (hell und dunkel ≥ 4,5 : 1, `css.test.js`), die
+  richtige Taste grün (`markRight` in `engine.js`). – cc6b149
+- **J-B5, L-B2** „Jetzt dran“ je Paket mit kleiner Überschrift (h3), ohne Paketnamen in der Unterzeile. – 8e59a25
+- **J-B6, L-B4, W-B3** „Grundlagen wiederholt“: je Zeile mit Fehlern ein Knopf aus `practiceOffer` („Intervalle 1 mit
+  Hilfen üben“, „Noten lesen 7 üben“; mit Paketname, weil Grundlagen aus anderen Paketen kommen); Hauptknopf diese
+  Übung, wenn eine Grundlage zur Hälfte oder mehr danebenlag; „Zurück zu Stufe n“ Hauptknopf nur bei höchstens einem
+  Fehler; bei verteilten Fehlern kein Hauptknopf. – 88e89f3
+- **J-B7, W-B5, W-B6** Ergebniskarte mit Fehlermuster: höchstens ein Muster (erster Schritt vor dem zweiten), höchstens
+  drei Knöpfe (Knopf „Stufe n“ entfällt mit Muster), Wortlaut „Der erste Schritt (…) hat oft nicht geklappt. Das übst
+  du in …“; einschrittige Stufen ohne Muster-Behauptung: „Drei Antworten lagen daneben. Die Grundlagen dazu findest du
+  in …“; kein „Übe zuerst in ‚Lernen‘“ neben einem Muster; Satz ohne Rahmen. – f582c8b
+- **W-B8** Leerer Kasten: „Was du ohne Hilfen mit mindestens 8 von 10 schaffst, kommt am nächsten Tag zum Wiederholen
+  wieder.“ – 10a554f
+- **J-B9** Dialog: „Die Startseite zeigt dir dann, was in Jahrgang n dran ist. Alle Stufen bis dahin sind sofort
+  offen. Dein Fortschritt bleibt, es schließt sich nichts.“ – a70fb6f
+- **J-B10, W-C8** Link passt nicht: „Dieser Link funktioniert hier nicht. Er ist unvollständig oder passt nicht zu
+  dieser Version der App. Frag deine Lehrkraft nach einem neuen Link. Dein Fortschritt bleibt.“ – 1fd0126
+- **L-B3** Seite „Für Lehrkräfte“: „angelehnt an den LehrplanPLUS …“ und „Auf den Geräten der Klasse ist danach alles
+  bis zur gewählten Stufe sofort offen …“. – 36498a3
+- **J-C3, J-C4, L-C7** `engine.keepTogether` (nur Anzeige): Zahl und Einheit, ♯/♭ beim Wort davor, Notenpaare wie
+  „as–c'“ ohne Umbruch; Kurzname des Pakets in Herkunftszeile und `perLevelLine`. – 5e8d9c5
+- (J-B8 und das Kasten-Wort in `repeatNote` siehe LOGIK.) Nicht gemacht: J-C10 (Tastatur-Hinweis steht jetzt ohnehin
+  unter den Knöpfen), „3 Halbtöne“ in den Vorführungstexten (`demo.js`).
+- Nach der Zusammenführung: 544 Tests grün.
+
 ## Vorgabe für das Paket „Dreiklänge Schritt für Schritt“ (nach Welle 11): bis zum Dominantseptakkord
 
 Sandra, 25.11.2026 (W4): Das neue Paket „Dreiklänge Schritt für Schritt“ (nach Welle 11 und „Noten lesen“) führt

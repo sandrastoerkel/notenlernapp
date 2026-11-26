@@ -1,6 +1,6 @@
 // Statistik: Kacheln, Notenkarte, schwache Noten, Ergebnisse je Stufe (nach Paketen), Zurücksetzen
 import { reset, accuracy } from "../store.js";
-import { starsHtml } from "../engine.js";
+import { starsHtml, keepTogether } from "../engine.js";
 import { gName, helm } from "../music.js";
 import { staffSvg, noteSvg } from "../staff.js";
 import { status, recent, MIN_ANTWORTEN, QUOTE_SICHER, LANGSAM_SEK, FENSTER } from "../adapt.js";
@@ -175,7 +175,7 @@ export function render() {
   const groups = levelGroups(ctx.packs, s.levels, s.rep);
   const anyBox = groups.some((g) => g.rows.some((r) => r.fach));
   $("#sLevels").innerHTML = (anyBox ? `<p class="small muted">${BOX_NOTE}</p>` : "") + groups.map((g) => `<div class="stack level-group"><div class="row between"><p class="eyebrow">${g.title}</p><span class="small muted num">${g.played} / ${g.rows.length} gespielt · ${g.stars} / ${g.maxStars} Sterne</span></div>`
-    + g.rows.map((r) => `<div class="list-row level-stat${r.played ? "" : " muted"}"><span class="level-stat-name"><span class="small">Stufe ${r.no} · ${r.title}</span>${r.fach ? `<span class="small muted box-line">${boxHtml(r.fach)}${r.zuletzt ? `<span>${lastText(r.zuletzt)}</span>` : ""}</span>` : ""}</span><div class="bar ok"><i style="width:${r.pct}%"></i></div><span class="row level-stat-end"><span class="small muted num">${levelRowText(r)}</span>${starsHtml(r.stars)}</span></div>`).join("")
+    + g.rows.map((r) => `<div class="list-row level-stat${r.played ? "" : " muted"}"><span class="level-stat-name"><span class="small">Stufe ${r.no} · ${keepTogether(r.title)}</span>${r.fach ? `<span class="small muted box-line">${boxHtml(r.fach)}${r.zuletzt ? `<span>${lastText(r.zuletzt)}</span>` : ""}</span>` : ""}</span><div class="bar ok"><i style="width:${r.pct}%"></i></div><span class="row level-stat-end"><span class="small muted num">${levelRowText(r)}</span>${starsHtml(r.stars)}</span></div>`).join("")
     + `</div>`).join("");
   $("#sKlasse").textContent = klasseNote(s.klasse);
   $("#sKlasse").hidden = !s.klasse;

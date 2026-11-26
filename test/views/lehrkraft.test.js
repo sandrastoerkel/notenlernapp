@@ -121,3 +121,32 @@ test("Anrede: „Sie“ auf der Seite, kein „du“ in index.html (Abschnitt �
   assert.ok(/\bSie\b/.test(sec) && /\bIhre\b/.test(sec));
   assert.ok(!/\b(du|dich|dir|dein|deine|deiner)\b/i.test(texts));
 });
+
+/* ---------- Korrektur nach der Prüfung Welle 11 (J-B9, J-B10/W-C8, L-B3) ---------- */
+const html = readFileSync(new URL("../../index.html", import.meta.url), "utf8");
+const app = readFileSync(new URL("../../src/app.js", import.meta.url), "utf8");
+const plainText = (s) => s.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+
+test("Dialog Jahrgang: sagt, was die Startseite zeigt und dass alles bis dahin offen ist (J-B9)", () => {
+  assert.ok(app.includes("`Die Startseite zeigt dir dann, was in Jahrgang ${k.jahrgang} dran ist. Alle Stufen bis dahin sind sofort offen. Dein Fortschritt bleibt, es schließt sich nichts.`"));
+  assert.ok(!app.includes("Alles bis dahin ist dann sofort offen."));
+});
+
+test("Hinweis bei einem Link, der nicht passt: ohne „App-Version“, mit nächstem Schritt (J-B10, W-C8)", () => {
+  const bar = html.match(/<div class="update-bar" id="klasseBar"[^>]*>([\s\S]*?)<\/div>/)[1];
+  const text = plainText(bar.match(/<span class="bar-text"[^>]*>([\s\S]*?)<\/span>/)[1]);
+  assert.equal(text, "Dieser Link funktioniert hier nicht. Er ist unvollständig oder passt nicht zu dieser Version der App. Frag deine Lehrkraft nach einem neuen Link. Dein Fortschritt bleibt.");
+  assert.ok(!/App-Version/.test(bar));
+});
+
+test("Seite „Für Lehrkräfte“: Voreinstellung „angelehnt an“, was auf den Geräten sofort offen ist (L-B3)", () => {
+  const src = plainText(html.match(/<p class="small muted" id="tSource">([\s\S]*?)<\/p>/)[1]);
+  assert.equal(src, "Voreinstellung angelehnt an den LehrplanPLUS (Gymnasium Bayern, Musik). Einiges steht dort nicht wörtlich – passen Sie die Auswahl bei Bedarf an.");
+  const open = plainText(html.match(/<p class="small" id="tOpen">([\s\S]*?)<\/p>/)[1]);
+  assert.equal(open, "Auf den Geräten der Klasse ist danach alles bis zur gewählten Stufe sofort offen; darüber hinaus gilt weiter ‚frei ab 8 von 10‘. Was einmal offen war, bleibt offen.");
+  assert.ok(!html.includes("Voreinstellung nach dem LehrplanPLUS"));
+  // beide Sätze in der Karte „Was ist dran?“, Anrede „Sie“
+  const card = html.slice(html.indexOf("<h3>Was ist dran?</h3>"), html.indexOf("<h3>Link für die Klasse</h3>"));
+  assert.ok(card.includes('id="tOpen"') && card.includes('id="tSource"'));
+  assert.ok(!/\b(du|dein|deine)\b/i.test(plainText(card)));
+});

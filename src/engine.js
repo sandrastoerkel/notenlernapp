@@ -43,6 +43,14 @@ export const RHYTHM_TAIL = 300;
 // „Stufe 2“ und „… und 7“ nicht umbrechen (geschütztes Leerzeichen; bei 320 px stand die Zahl sonst allein in
 // der Zeile). Rein, getestet; genutzt von der Startseite (gesperrte Karten) und der Ergebniskarte (Welle 10, A7)
 export const keepStufe = (t) => t.replace(/(Stufen?| und) (?=\d)/g, "$1\u00a0");
+// Anzeige (Korrektur nach der Prüfung Welle 11, J-C3 und L-C7): Zahl und Einheit („3 Halbtöne“, „7 Tagen“,
+// „4 Stufen“) und Vorzeichen nach einem Wort („und ♭“) mit geschütztem Leerzeichen; Notenpaare („as–c'“) ohne
+// Umbruch nach dem Strich (unsichtbarer Wortverbinder U+2060). Nur für die Anzeige, die Texte der Pakete bleiben.
+// Rein, getestet.
+export const keepTogether = (t) => String(t)
+  .replace(/(\d) (?=(Halbt|Stufe|Schl[aä]g|Tag|Aufgabe|Note\b|Noten\b|Vorzeichen|Kreuz))/g, "$1\u00a0")
+  .replace(/ ([♭♯♮])/g, "\u00a0$1")
+  .replace(/([A-Ha-h][a-z]*'*)–(?=[A-Ha-h])/g, "$1–\u2060");
 
 export const starsHtml = (k) => `<span class="stars">${"★".repeat(k)}<span class="off">${"★".repeat(3 - k)}</span></span>`;
 
@@ -117,7 +125,8 @@ export function makeMixed(packs, plan, ctx, rand = Math.random) {
 
 // Herkunftszeile über der Notenzeile in der gemischten Runde: „Intervalle · Stufe 4“ (rein, getestet;
 // „Stufe 4“ bricht nicht um)
-export const originText = (pack, level) => keepStufe(`${pack ? pack.title : ""} · Stufe ${level.no}`.replace(/^ · /, ""));
+// Kurzname des Pakets wie auf der Karte „Heute“ (J-C4): „Dreiklänge · Stufe 6“ statt „Dreiklänge und Quintenzirkel · …“
+export const originText = (pack, level) => keepStufe(`${pack ? pack.short || pack.title : ""} · Stufe ${level.no}`.replace(/^ · /, ""));
 
 // Ergebnis je Stufe aus dem Rundenprotokoll (rein): [{ id, n, ok }], zuerst in der Reihenfolge von order
 // (IDs des Plans), weitere Stufen in der Reihenfolge ihres ersten Auftretens
@@ -148,15 +157,25 @@ export const feedbackText = (q, ok) => (ok ? `Richtig! ${q.display}` : q.reveal 
 export const feedbackParts = (q, text) => (Array.isArray(q.revealParts) && q.revealParts.map((x) => x.t).join("") === text ? q.revealParts : null);
 // Text der Rückmeldung setzen; markierte Teile in <b class="fb-mark"> (per textContent)
 function setFeedback(el, text, parts) {
-  if (!parts) { el.textContent = text; return; }
+  if (!parts) { el.textContent = keepTogether(text); return; }
   el.textContent = "";
   for (const x of parts) {
-    if (x.mark) { const b = document.createElement("b"); b.className = "fb-mark"; b.textContent = x.t; el.append(b); }
-    else el.append(document.createTextNode(x.t));
+    if (x.mark) { const b = document.createElement("b"); b.className = "fb-mark"; b.textContent = keepTogether(x.t); el.append(b); }
+    else el.append(document.createTextNode(keepTogether(x.t)));
   }
 }
 
-export function resultMessage(stars) {
+// Satz der Ergebniskarte (rein, getestet). opts: { correct, total, short }.
+// - alles richtig (correct = total, Vorgabe ROUND_LENGTH): „Stark, alles richtig.“ (Korrektur nach der Prüfung
+//   Welle 11, J-B2/L-B1: bei 10 von 10 nicht „fast alles“)
+// - short: nur der erste Teil („Stark.“, „Gut.“, „Solide Basis.“, „Noch wacklig.“) – Runde „Wiederholen“ (dort gibt
+//   es keinen Stern zu holen; die Zeilen je Stufe sagen, wie es weitergeht) und Ergebniskarte mit Fehlermuster (das
+//   Muster ist dann die Empfehlung, J-B7/W-B6)
+export const RESULT_HEAD = ["Noch wacklig.", "Solide Basis.", "Gut.", "Stark."];
+export const ALL_RIGHT = "Stark, alles richtig.";
+export function resultMessage(stars, { correct = -1, total = ROUND_LENGTH, short = false } = {}) {
+  if (correct >= total) return ALL_RIGHT;
+  if (short) return RESULT_HEAD[stars] || RESULT_HEAD[0];
   if (stars === 3) return "Stark, fast alles richtig.";
   if (stars === 2) return "Gut. Noch eine Runde und der dritte Stern ist drin.";
   if (stars === 1) return "Solide Basis. Was noch unsicher ist, kannst du in „Lernen“ nachschauen.";
@@ -601,6 +620,11 @@ function markRight(r, q) {
     ? letterButton(r.ui.answers, a)
     : all(r.ui.answers, ".btn[data-choice]").find((b) => set.choices && set.choices[+b.dataset.choice] === a);
   if (right) markAnswer(right, "ok");
+  // Eingabe „Klaviatur“: die richtige Taste grün wie der richtige Knopf bei den anderen Eingaben (Korrektur nach
+  // der Prüfung Welle 11, J-B4); beim oberen und unteren C beide, denn beide wären richtig gewesen
+  if (r.ui.piano && !r.ui.piano.hidden) {
+    all(r.ui.piano, "rect[data-semi]").filter((k) => cur(r).check(q, +k.dataset.semi)).forEach((k) => markAnswer(k, "ok"));
+  }
 }
 
 // Zweischrittige Aufgabe: Schritt auswerten; nach dem letzten Schritt wie eine einfache Antwort weiter
@@ -612,7 +636,7 @@ function answerStep(r, value, el) {
   if (!ok) markRight(r, q);
   if (r.step === q.steps.length - 1) return finishQuestion(r, r.oks.every(Boolean), stepsFeedback(q, r.oks), stepsResult(q, r.oks) === "part");
   r.locked = true;
-  ui.feedback.textContent = (ok ? set.ok : set.bad) || "";
+  ui.feedback.textContent = keepTogether((ok ? set.ok : set.bad) || "");
   ui.feedback.className = "feedback " + (ok ? "ok" : "bad");
   const toNextStep = () => {
     if (run !== r) return;

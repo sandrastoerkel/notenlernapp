@@ -1,6 +1,6 @@
 // Startseite: Karte „Heute“ (Wiederholung über Tage, Weiter üben), Pakete mit ihren Stufen
 import { isUnlocked, unlockedBy, today, dayDiff, addDays } from "../store.js";
-import { findLevel, starsHtml, keepStufe } from "../engine.js";
+import { findLevel, starsHtml, keepStufe, keepTogether } from "../engine.js";
 import { due, nextDue, reviewPlan, dueText } from "../repeat.js";
 import { learnTabOf } from "./learn.js";
 import { countUnsure } from "../adapt.js";
@@ -47,16 +47,16 @@ export const packShort = (pack) => (pack ? pack.short || pack.title : "");
 export const AGAIN_TEXT = "wieder dran";
 export const againHtml = () => `<span class="again"><span aria-hidden="true">↻</span>\u00a0${AGAIN_TEXT}</span>`;
 
-// Eine Stufenkarte; dueSet: IDs der fälligen Stufen (repeat.due); withPack: Paketname vorn in der Unterzeile
-// (Abschnitt „Jetzt dran“, Stufen aus mehreren Paketen); cur: hervorgehobene Stufe – die, zu der „Weiter üben“
-// führt (mit Jahrgang continueId, sonst die aktuelle Stufe)
-export function levelHtml(s, pack, l, dueSet = new Set(), withPack = false, cur = s.current) {
+// Eine Stufenkarte; dueSet: IDs der fälligen Stufen (repeat.due); cur: hervorgehobene Stufe – die, zu der „Weiter
+// üben“ führt (mit Jahrgang continueId, sonst die aktuelle Stufe). Den Paketnamen trägt die Überschrift darüber
+// (auch in „Jetzt dran“, J-B5/L-B2), nicht die Unterzeile.
+export function levelHtml(s, pack, l, dueSet = new Set(), cur = s.current) {
   const st = s.levels[l.id] || {}, open = isUnlocked(s, pack, l.id);
   const lock = open ? "" : lockText(pack, l);
   const again = dueSet.has(l.id) ? ` · ${againHtml()}` : "";
   return `<button class="level ${open ? "" : "locked"} ${l.id === cur ? "current" : ""}" data-id="${l.id}" ${open ? "" : "disabled"}>
         <span class="level-no ${st.stars >= 2 ? "done" : ""}">${open ? l.no : "🔒"}</span>
-        <span><span class="level-title">${l.title}</span><br><span class="small muted">${withPack ? `${packShort(pack)} · ` : ""}${l.subtitle || ""}${lock ? ` · ${keepStufe(lock)}` : ""}${st.played ? ` · beste Runde ${st.best}/10` : ""}${again}</span></span>
+        <span><span class="level-title">${keepTogether(l.title)}</span><br><span class="small muted">${keepTogether(l.subtitle || "")}${lock ? ` · ${keepStufe(lock)}` : ""}${st.played ? ` · beste Runde ${st.best}/10` : ""}${again}</span></span>
         ${starsHtml(st.stars || 0)}
       </button>`;
 }
@@ -97,7 +97,8 @@ export function streakText(s, heute) {
   if (s.lastDay === addDays(heute, -1)) return `${n} Eine Runde heute hält die Serie am Leben.`;
   return STREAK_NONE;
 }
-export const BOX_EMPTY_TEXT = "Was du mit 8 von 10 schaffst, kommt nach einem Tag zum Wiederholen wieder.";
+// Kasten leer (W-B8, Korrektur nach der Prüfung Welle 11): nur Stufen ohne Hilfen kommen in den Kasten, ab 8 von 10
+export const BOX_EMPTY_TEXT = "Was du ohne Hilfen mit mindestens 8 von 10 schaffst, kommt am nächsten Tag zum Wiederholen wieder.";
 export const REVIEW_START = "Wiederholung starten";
 
 // Inhalt der Karte „Heute“ ganz oben auf der Startseite: { title, line, review, cont, small }.
@@ -125,7 +126,8 @@ function renderToday(s, heute) {
   $("#homeContinue").textContent = c.cont;
   // Hauptknopf: „Wiederholung starten“, wenn etwas fällig ist, sonst „Weiter üben“
   $("#homeContinue").className = "btn" + (c.review ? "" : " primary");
-  $("#homeSmall").textContent = c.small;
+  // „in 3 Tagen“ zusammen (J-C3)
+  $("#homeSmall").textContent = keepTogether(c.small);
   $("#homeSmall").hidden = !c.small;
 }
 
@@ -138,9 +140,10 @@ export const klasseHint = (k) => `${klasseText(k)} · über den Link deiner Lehr
 export const nothingNewText = (k) => `In Jahrgang ${k.jahrgang} kommt nichts Neues dazu. Alles hier ist zum Wiederholen da.`;
 export const allDoneText = (k) => `Was in Jahrgang ${k.jahrgang} neu ist, hast du mit mindestens 8 von 10 geschafft. Alles hier ist zum Wiederholen da.`;
 
-// Startseite mit Jahrgang: { hint, jetzt: { title, ids, empty }, gewesen: { title, groups }, hinaus: { title, groups } }
-// mit groups = [{ pack, ids }] je Paket (nur Pakete mit Stufen im Abschnitt). null ohne Jahrgang (dann bleibt die
-// Startseite wie nach Schritt 8). empty: Satz, wenn „Jetzt dran“ leer ist, sonst "".
+// Startseite mit Jahrgang: { hint, jetzt: { title, ids, groups, empty }, gewesen: { title, groups }, hinaus: { title, groups } }
+// mit groups = [{ pack, ids }] je Paket (nur Pakete mit Stufen im Abschnitt; auch „Jetzt dran“ je Paket mit kleiner
+// Überschrift, J-B5/L-B2). null ohne Jahrgang (dann bleibt die Startseite wie nach Schritt 8). empty: Satz, wenn
+// „Jetzt dran“ leer ist, sonst "".
 export function homeSections(state, packs) {
   const sec = sections(state, packs);
   if (!sec) return null;
@@ -151,7 +154,7 @@ export function homeSections(state, packs) {
   const neu = sections({ klasse: k, levels: {} }, packs).jetzt.length > 0;
   return {
     hint: klasseHint(k),
-    jetzt: { title: SECTION_TITLES.jetzt, ids: sec.jetzt, empty: sec.jetzt.length ? "" : neu ? allDoneText(k) : nothingNewText(k) },
+    jetzt: { title: SECTION_TITLES.jetzt, ids: sec.jetzt, groups: group(sec.jetzt), empty: sec.jetzt.length ? "" : neu ? allDoneText(k) : nothingNewText(k) },
     gewesen: { title: SECTION_TITLES.gewesen, groups: group(sec.gewesen) },
     hinaus: { title: SECTION_TITLES.hinaus, groups: group(sec.hinaus) },
   };
@@ -165,19 +168,20 @@ function packsHtml(s, groups, dueSet, unsure, tag, cur = s.current) {
   return groups.map(({ pack, ids }) => `<section class="levels" data-pack="${pack.id}">
       <${tag}>${pack.title}</${tag}>
       ${unsureHtml(pack, unsure)}
-      ${pack.levels.filter((l) => ids.includes(l.id)).map((l) => levelHtml(s, pack, l, dueSet, false, cur)).join("")}
+      ${pack.levels.filter((l) => ids.includes(l.id)).map((l) => levelHtml(s, pack, l, dueSet, cur)).join("")}
     </section>`).join("");
 }
 
 function sectionsHtml(s, h, dueSet, unsure) {
-  const findPack = (id) => findLevel(ctx.packs, id);
   // hervorgehoben ist die Stufe, die „Weiter üben“ öffnet (sonst zeigte der Knopf auf eine, der Rahmen auf eine andere)
   const cur = continueId(s, ctx.packs);
-  // „Noten sitzen noch nicht“ in „Jetzt dran“, wenn dort Stufen aus „Noten lesen“ stehen (sonst beim Paket)
-  const notenNow = h.jetzt.ids.some((id) => findPack(id).pack.id === "noten");
+  // „Noten sitzen noch nicht“ unter „Noten lesen“ in „Jetzt dran“, wenn dort Stufen aus „Noten lesen“ stehen (sonst
+  // beim Paket in einem der anderen Abschnitte)
+  const notenNow = h.jetzt.groups.some((g) => g.pack.id === "noten");
+  // „Jetzt dran“ je Paket mit kleiner Überschrift wie „Schon dran gewesen“ (J-B5/L-B2: in Jahrgang 5 sonst 29 Karten,
+  // deren Nummern viermal neu beginnen)
   const jetzt = `<section class="levels klasse-sec" data-sec="jetzt"><h2>${h.jetzt.title}</h2>
-      ${notenNow && unsure ? `<p class="small muted unsure-hint">${unsureText(unsure)}</p>` : ""}
-      ${h.jetzt.empty ? `<p class="muted">${h.jetzt.empty}</p>` : h.jetzt.ids.map((id) => { const { pack, level } = findPack(id); return levelHtml(s, pack, level, dueSet, true, cur); }).join("")}
+      ${h.jetzt.empty ? `<p class="muted">${h.jetzt.empty}</p>` : packsHtml(s, h.jetzt.groups, dueSet, unsure, "h3", cur)}
     </section>`;
   const rest = notenNow ? 0 : unsure;
   const gewesen = h.gewesen.groups.length ? `<section class="levels klasse-sec" data-sec="gewesen"><h2>${h.gewesen.title}</h2>

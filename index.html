@@ -76,13 +76,15 @@
       <div class="helps-body stack" id="pHelpsBody"></div>
     </details>
 
+    <!-- Startkarte (Korrektur nach der Prüfung Welle 11, J-B1): die Knöpfe direkt unter dem Hinweis (mit Empfehlung
+         erst deren Satz), danach „Dafür brauchst du“ und der Tastatur-Hinweis – so steht der Start weit oben -->
     <div id="pIntro" class="card soft stack">
       <p id="pHint" class="muted"></p>
-      <p class="small muted" id="pKeys">Tastatur: <span class="kbd">C</span> <span class="kbd">D</span> <span class="kbd">E</span> … <span class="kbd">H</span></p>
-      <p class="small needs" id="pNeeds" hidden></p>
       <p class="basics-why" id="pBasicsWhy" hidden></p>
       <button class="btn primary wide" id="pStart">Runde starten · 10 Aufgaben</button>
       <button class="btn ghost wide" id="pBasics" hidden>Grundlagen wiederholen&nbsp;·&nbsp;6&nbsp;Aufgaben</button>
+      <p class="small needs" id="pNeeds" hidden></p>
+      <p class="small muted" id="pKeys">Tastatur: <span class="kbd">C</span> <span class="kbd">D</span> <span class="kbd">E</span> … <span class="kbd">H</span></p>
     </div>
 
     <div id="pPlay" class="stack" hidden>
@@ -208,7 +210,8 @@
       <div class="stack" id="tDran"></div>
       <p class="small" id="tCustom" hidden>Eigene Auswahl: Im Link stehen nur die Abweichungen von der Voreinstellung.</p>
       <div class="row"><button class="btn ghost" id="tPreset">Voreinstellung für Jahrgang 5</button></div>
-      <p class="small muted">Voreinstellung nach dem LehrplanPLUS (Gymnasium Bayern, Musik). Alles Frühere bleibt offen, nichts wird gesperrt.</p>
+      <p class="small" id="tOpen">Auf den Geräten der Klasse ist danach alles bis zur gewählten Stufe sofort offen; darüber hinaus gilt weiter ‚frei ab 8 von 10‘. Was einmal offen war, bleibt offen.</p>
+      <p class="small muted" id="tSource">Voreinstellung angelehnt an den LehrplanPLUS (Gymnasium Bayern, Musik). Einiges steht dort nicht wörtlich – passen Sie die Auswahl bei Bedarf an.</p>
     </div>
 
     <div class="card stack">
@@ -247,7 +250,7 @@
     </span>
   </div>
   <div class="update-bar" id="klasseBar" role="status" hidden>
-    <span>Der Link passt nicht zu dieser App-Version.</span>
+    <span class="bar-text" id="klasseBarText"><b>Dieser Link funktioniert hier nicht.</b> Er ist unvollständig oder passt nicht zu dieser Version der App. Frag deine Lehrkraft nach einem neuen Link. Dein Fortschritt bleibt.</span>
     <span class="update-actions">
       <button class="btn ghost small" id="klasseBarClose">Schließen</button>
     </span>

@@ -143,8 +143,9 @@ function askKlasse(k) {
   $("#klasseTitle").textContent = remove ? "Jahrgang entfernen?" : "Einstellung deiner Lehrkraft übernehmen?";
   $("#klasseWhat").textContent = remove ? "" : klasseText(k);
   $("#klasseWhat").hidden = remove;
+  // J-B9 (Korrektur nach der Prüfung Welle 11): sagen, was die Startseite dann zeigt und bis wohin alles offen ist
   $("#klasseNote").textContent = remove ? "Dein Fortschritt bleibt, es schließt sich nichts."
-    : "Alles bis dahin ist dann sofort offen. Dein Fortschritt bleibt, es schließt sich nichts.";
+    : `Die Startseite zeigt dir dann, was in Jahrgang ${k.jahrgang} dran ist. Alle Stufen bis dahin sind sofort offen. Dein Fortschritt bleibt, es schließt sich nichts.`;
   $("#klasseBisher").textContent = old ? `Bisher: ${klasseText(old)}.` : "";
   $("#klasseBisher").hidden = !old;
   $("#klasseYes").textContent = remove ? "Entfernen" : "Übernehmen";

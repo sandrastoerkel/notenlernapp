@@ -262,7 +262,11 @@ section { display: grid; gap: 14px; }
 .wkey:hover { fill: var(--key-white-hover); }
 .bkey { fill: var(--key-black); stroke: var(--key-black-edge); cursor: pointer; }
 .bkey:hover { fill: var(--key-black-hover); }
-.wkey.ok { fill: var(--ok-soft); } .wkey.bad { fill: var(--bad-soft); }
+.wkey.ok { fill: var(--ok-soft); stroke: var(--ok); stroke-width: 2; } .wkey.bad { fill: var(--bad-soft); stroke: var(--bad); stroke-width: 2; }
+/* Beschriftung auf einer markierten weißen Taste (richtig grün, daneben rot): Schrift wie der Text der Seite, im
+   Dunklen hell auf der dunklen soft-Fläche, mindestens 4,5 : 1 (J-B4, test/css.test.js). Die Beschriftung steht im
+   SVG direkt hinter ihrer Taste (staff.js pianoSvg). */
+.wkey.ok + .klabel, .wkey.bad + .klabel { fill: var(--fg); font-weight: 700; }
 .bkey.ok { fill: var(--ok); } .bkey.bad { fill: var(--bad); }
 .klabel { font-family: var(--display); font-size: 11px; fill: var(--key-label); pointer-events: none; }
 
@@ -574,12 +578,21 @@ section { display: grid; gap: 14px; }
 /* Ergebniskarte „Wiederholen“: je Stufe eine Zeile mit dem Urteil, bei „noch wacklig“ ein Knopf zum Üben */
 .result .review-item { justify-items: center; gap: 6px; max-width: 34rem; }
 .result .review-line { margin: 0; font-weight: 700; }
-.result .gap-line { margin: 0; padding: 8px 14px; border-radius: 12px; border: 1px solid var(--accent); color: var(--fg); font-weight: 700; }
-/* Startkarte: „Dafür brauchst du: …“ (jeder Eintrag ein Knopf im Textfluss) und der Grund der Empfehlung */
-.needs { margin: 0; color: var(--muted); }
-.needs .link { font: inherit; font-weight: 700; color: var(--accent); background: none; border: 0; padding: 6px 0; cursor: pointer;
+/* Satz zum Fehlermuster: Text ohne Rahmen, damit nur die Knöpfe wie Knöpfe aussehen (J-B7) */
+.result .gap-line { margin: 0; color: var(--fg); font-weight: 700; }
+/* Startkarte: „Dafür brauchst du: …“ (jeder Eintrag ein Knopf im Textfluss, durch Kommas getrennt, J-B1/J-C1) und
+   der Grund der Empfehlung. Die Knöpfe stehen in der Zeile (inline-block, ohne Abstand nach oben und unten, damit
+   die Zeilen nicht auseinanderrücken); die Tippfläche wächst über einen unsichtbaren Rand nach oben und unten. */
+.needs { margin: 0; color: var(--muted); line-height: 1.7; }
+.needs .link { font: inherit; font-weight: 700; color: var(--accent); background: none; border: 0; padding: 0; margin: 0; cursor: pointer;
+  line-height: inherit; vertical-align: baseline; position: relative;
   text-decoration: underline; text-underline-offset: 2px; text-align: left; overflow-wrap: anywhere; }
-.basics-why { margin: 0; font-weight: 700; }
+.needs .link::after { content: ""; position: absolute; inset: -6px 0; }
+/* Grund der Empfehlung: klein und fett direkt über den Knöpfen (J-B1: so wenig Höhe wie möglich vor dem Start) */
+.basics-why { margin: 0; font-weight: 700; font-size: 0.85rem; }
+/* Startkarte etwas dichter; zweizeilige Knöpfe („Grundlagen wiederholen · 6 Aufgaben“ bei 320 px) mit engerer Zeile */
+#pIntro.stack { gap: 8px; }
+#pIntro .btn.wide { line-height: 1.25; }
 
 .tabs {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 9;
@@ -666,6 +679,8 @@ svg.ok .beam { fill: var(--ok); } svg.bad .beam { fill: var(--bad); }
 }
 .update-bar[hidden] { display: none; }
 .update-actions { display: inline-flex; gap: 6px; }
+/* Hinweis bei einem Link, der nicht passt (J-B10/W-C8): der erste Satz fett, Grund und nächster Schritt normal */
+.update-bar .bar-text { font-weight: 400; } .update-bar .bar-text b { font-weight: 700; }
 .update-bar .btn.small { padding: 6px 12px; }
 
 /* Bestätigung „Einstellung deiner Lehrkraft übernehmen?“ (src/app.js, Welle 11, Schritt 11) */

@@ -1,6 +1,7 @@
 // Startseite (Welle 11, Schritt 8): Karte „Heute“ und „↻ wieder dran“ an fälligen Stufen (reine Teile)
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { todayCard, continueText, reviewListText, levelHtml, againHtml, packShort, streakText, BOX_EMPTY_TEXT, REVIEW_START } from "../../src/views/home.js";
 import { PACKS } from "../../src/packs/index.js";
 import { fresh, recordRound } from "../../src/store.js";
@@ -77,7 +78,7 @@ test("todayCard: Kasten leer – wie bisher, dazu der Satz zum Kasten", () => {
   assert.equal(c.review, null);
   assert.equal(c.cont, `Starten: Noten lesen, Stufe${NB}1`);
   assert.equal(c.small, BOX_EMPTY_TEXT);
-  assert.equal(BOX_EMPTY_TEXT, "Was du mit 8 von 10 schaffst, kommt nach einem Tag zum Wiederholen wieder.");
+  assert.equal(BOX_EMPTY_TEXT, "Was du ohne Hilfen mit mindestens 8 von 10 schaffst, kommt am nächsten Tag zum Wiederholen wieder.");
   // Einträge zu Stufen mit Hilfen zählen nicht als fällig
   assert.equal(todayCard(st({ "intervall-3": { fach: 1, faellig: "2026-11-20", zuletzt: null } }), PACKS, T).review, null);
 });
@@ -164,18 +165,27 @@ test("homeSections: Jahrgang 9 – „Jetzt dran“ leer mit Satz; alles Neue ge
   assert.equal(klasseHint({ jahrgang: 6, zweig: null, dran: dranFor(6) }), "Jahrgang 6 · über den Link deiner Lehrkraft");
 });
 
-test("Stufenkarte in „Jetzt dran“: Paketname (kurz) vorn in der Unterzeile", () => {
-  const html = levelHtml(fresh(), pack("akkorde"), lv("akkorde-5"), new Set(), true);
-  assert.match(html, /<span class="small muted">Dreiklänge · /);
+// Korrektur nach der Prüfung Welle 11 (J-B5/L-B2): „Jetzt dran“ je Paket mit kleiner Überschrift wie „Schon dran
+// gewesen“; der Paketname steht nicht mehr in der Unterzeile
+test("„Jetzt dran“ je Paket gruppiert, ohne Paketnamen in der Unterzeile", () => {
+  const h = homeSections(mitKlasse(5), PACKS);
+  assert.deepEqual(h.jetzt.groups.map((g) => [g.pack.id, g.ids.length]), [["noten", 8], ["notenwerte", 10], ["intervalle", 2], ["tonleitern", 9]]);
+  assert.deepEqual(h.jetzt.groups.flatMap((g) => g.ids), h.jetzt.ids);
+  assert.deepEqual(homeSections(mitKlasse(7), PACKS).jetzt.groups.map((g) => [g.pack.id, g.ids]), [["akkorde", ["akkorde-5", "akkorde-6"]]]);
+  assert.deepEqual(homeSections(mitKlasse(9), PACKS).jetzt.groups, []);
   assert.ok(!/<span class="small muted">Dreiklänge · /.test(levelHtml(fresh(), pack("akkorde"), lv("akkorde-5"))));
+  // die Ansicht rendert „Jetzt dran“ mit packsHtml und h3 (wie „Schon dran gewesen“)
+  const src = readFileSync(new URL("../../src/views/home.js", import.meta.url), "utf8");
+  assert.ok(src.includes('packsHtml(s, h.jetzt.groups, dueSet, unsure, "h3", cur)'));
+  assert.ok(!/withPack/.test(src));
 });
 
 test("Stufenkarte: hervorgehoben ist die Stufe von „Weiter üben“ (mit Jahrgang continueId), sonst die aktuelle", () => {
   const s = mitKlasse(7, null, { current: "noten-1" });
   const cur = continueId(s, PACKS);
   assert.equal(cur, "akkorde-5");
-  assert.match(levelHtml(s, pack("akkorde"), lv("akkorde-5"), new Set(), true, cur), /class="level\s+current"/);
-  assert.ok(!/current/.test(levelHtml(s, pack("noten"), lv("noten-1"), new Set(), false, cur)));
+  assert.match(levelHtml(s, pack("akkorde"), lv("akkorde-5"), new Set(), cur), /class="level\s+current"/);
+  assert.ok(!/current/.test(levelHtml(s, pack("noten"), lv("noten-1"), new Set(), cur)));
   // ohne Angabe wie bisher: die aktuelle Stufe
   assert.match(levelHtml(s, pack("noten"), lv("noten-1")), /class="level\s+current"/);
 });
@@ -183,4 +193,12 @@ test("Stufenkarte: hervorgehoben ist die Stufe von „Weiter üben“ (mit Jahrg
 test("Statistik: Hinweis auf den Jahrgang bzw. nichts", () => {
   assert.equal(klasseNote(null), "");
   assert.equal(klasseNote({ jahrgang: 6, zweig: null, dran: dranFor(6) }), "Jahrgang 6 (über den Link deiner Lehrkraft)");
+});
+
+// Korrektur nach der Prüfung Welle 11 (J-C3): „Vorzeichen ♯ und ♭“ – das ♭ steht nicht allein in der Zeile
+test("Stufenkarte: Titel mit geschütztem Leerzeichen vor ♯ und ♭", () => {
+  const html = levelHtml(fresh(), pack("noten"), lv("noten-7"));
+  assert.ok(html.includes(`<span class="level-title">Vorzeichen${NB}♯ und${NB}♭</span>`), html);
+  const src = readFileSync(new URL("../../src/views/home.js", import.meta.url), "utf8");
+  assert.ok(src.includes('$("#homeSmall").textContent = keepTogether(c.small);'));
 });

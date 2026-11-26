@@ -124,7 +124,8 @@ export function render(arg) {
   if (arg && arg.mode === "wiederholen") return startReview();
   const { pack, level } = current();
   $("#pLevelNo").textContent = "Stufe " + level.no;
-  $("#pLevelTitle").textContent = level.title;
+  // „Vorzeichen ♯ und ♭“: das Zeichen nicht allein in der Zeile (J-C3)
+  $("#pLevelTitle").textContent = engine.keepTogether(level.title);
   $("#pHint").textContent = startHint(level, { state: ctx.state });
   $("#pIntro").hidden = false; $("#pPlay").hidden = true; $("#pResult").hidden = true;
   $("#pStaff").innerHTML = level.example || "";
@@ -152,21 +153,32 @@ export function render(arg) {
 export const BASICS_LABEL = `Grundlagen wiederholen\u00a0·\u00a0${RUNDE_GRUNDLAGEN}\u00a0Aufgaben`;
 export const BASICS_SHORT = "Grundlagen wiederholen";
 
-// Startkarte: „Dafür brauchst du: …“ mit je einem Knopf je Voraussetzung (öffnet deren Startkarte), rein, getestet.
-// Leer, wenn die Stufe keine Voraussetzungen hat.
+// „Notenstufen zählen (Prime bis Oktave)“ → „Notenstufen zählen“ (Satz zum Fehlermuster, „Dafür brauchst du“,
+// Grund der Empfehlung)
+const shortSkill = (t) => t.replace(/\s*\([^)]*\)\s*$/, "");
+
+// Startkarte: „Dafür brauchst du: …“ als fortlaufende Zeile mit Kommas (J-B1/J-C1, Korrektur nach der Prüfung
+// Welle 11): je Voraussetzung ein Knopf im Textfluss mit sichtbarer Stufe, z. B. „Notenstufen zählen (Intervalle 2)“
+// (Kurzname des Pakets, Fähigkeit ohne Klammerzusatz); er öffnet die Startkarte jener Stufe. Das Komma hängt ohne
+// Leerzeichen am Knopf (kein Komma am Zeilenanfang). Rein, getestet. Leer, wenn die Stufe keine Voraussetzungen hat.
+export function needLabel(packs, id) {
+  const { pack, level } = engine.findLevel(packs, id);
+  return `${shortSkill(skillOf(level))} (${packShort(pack)} ${level.no})`;
+}
 export function needsHtml(packs, levelId) {
   const ids = needsOf(packs, levelId);
   if (!ids.length) return "";
   return "Dafür brauchst du: " + ids.map((id) => {
-    const { pack, level } = engine.findLevel(packs, id);
-    return `<button type="button" class="link" data-need="${id}" title="${pack.title}, Stufe ${level.no}">${skillOf(level)}</button>`;
-  }).join(" · ");
+    const { level } = engine.findLevel(packs, id);
+    return `<button type="button" class="link" data-need="${id}" title="${skillOf(level)}">${needLabel(packs, id)}</button>`;
+  }).join(", ");
 }
 
-// Grund der Empfehlung auf der Startkarte (rein, getestet): reason aus repeat.basicsOffer
+// Grund der Empfehlung auf der Startkarte (rein, getestet): reason aus repeat.basicsOffer; die Fähigkeit ohne
+// Klammerzusatz wie in „Dafür brauchst du“ (kürzer, die Startknöpfe rücken nach oben)
 export function reasonText(packs, reason) {
   if (!reason) return "";
-  const skill = skillOf(engine.findLevel(packs, reason.id).level);
+  const skill = shortSkill(skillOf(engine.findLevel(packs, reason.id).level));
   const rest = { nie: "hast du hier noch nicht geübt.", faellig: "ist wieder dran.", schwach: "lag zuletzt unter 8 von 10." }[reason.kind];
   return rest ? `Empfohlen: „${skill}“ ${rest}` : "";
 }
@@ -293,26 +305,56 @@ export const open = (arg) => ctx.show("practice", arg);
 
 export const MIXED_HEAD = { wiederholen: "Wiederholen", grundlagen: "Grundlagen wiederholen" };
 
-// Ergebniszeile je Stufe der gemischten Runde (rein, getestet): „Intervalle 2 · 3 von 3“
+// Ergebniszeile je Stufe der gemischten Runde (rein, getestet): „Intervalle 2 · 3 von 3“; Kurzname des Pakets wie
+// auf der Karte „Heute“ (J-C4): „Dreiklänge 1 · 2 von 3“
 export function perLevelLine(packs, e) {
   const { pack, level } = engine.findLevel(packs, e.id);
-  return `${pack.title} ${level.no} · ${e.ok} von ${e.n}`;
+  return `${packShort(pack)} ${level.no} · ${e.ok} von ${e.n}`;
+}
+
+// Knopf unter einer Zeile mit Fehlern auf der Karte „Grundlagen wiederholt“ (rein, getestet; J-B6, L-B4, W-B3):
+// wie practiceOffer (Stufe mit Hilfen direkt davor, sonst die Stufe selbst), mit dem Kurznamen des Pakets, weil die
+// Grundlagen aus anderen Paketen kommen können: „Intervalle 1 mit Hilfen üben“, „Noten lesen 7 üben“. { id, label }
+export function needOffer(packs, id) {
+  const o = practiceOffer(packs, id);
+  const { pack, level } = engine.findLevel(packs, o.id);
+  return { id: o.id, label: `${packShort(pack)}\u00a0${level.no} ${o.id === id ? "üben" : "mit Hilfen üben"}` };
+}
+
+// Inhalt der Karte „Grundlagen wiederholt“ (rein, getestet): { lines: [{ text, offer, main }], backMain }.
+// - je Grundlage eine Zeile „Intervalle 2 · 0 von 3“, bei Fehlern darunter ein Knopf zum Üben (needOffer);
+// - Hauptknopf ist dieser Knopf, wenn eine Grundlage zur Hälfte oder mehr danebenlag (bei mehreren die mit dem
+//   größten Anteil, bei Gleichstand die erste);
+// - „Zurück zu Stufe n“ ist Hauptknopf nur bei höchstens einem Fehler (und keiner Grundlage zur Hälfte daneben);
+// - dazwischen (zwei oder mehr Fehler verteilt) gibt es keinen Hauptknopf: Üben, Zurück und Nochmal stehen gleich da.
+export function basicsResultPlan(packs, res) {
+  const lines = res.perLevel.map((e) => ({ text: perLevelLine(packs, e), offer: e.ok < e.n ? needOffer(packs, e.id) : null, main: false, part: (e.n - e.ok) / e.n }));
+  const weak = lines.filter((l) => l.part >= 0.5).sort((a, b) => b.part - a.part)[0];
+  if (weak) weak.main = true;
+  return { lines: lines.map(({ part, ...l }) => l), backMain: !weak && res.total - res.correct <= 1 };
 }
 
 function showBasicsResult(res, levelId, only) {
   const { level } = engine.findLevel(ctx.packs, levelId);
+  const plan = basicsResultPlan(ctx.packs, res);
   $("#pPlay").hidden = true; $("#pHelps").hidden = true; $("#pOrigin").hidden = true;
   $("#pResult").hidden = false;
   $("#pResult").innerHTML = `
       <p class="eyebrow">Grundlagen wiederholt</p>
       <p class="big num">${res.correct} / ${res.total}</p>
       <p class="small muted num">+${res.gained} XP</p>
-      ${res.perLevel.map((e) => `<p class="small">${perLevelLine(ctx.packs, e)}</p>`).join("")}
+      ${plan.lines.map((l, i) => `<div class="review-item stack">
+        <p class="review-line">${l.text}</p>
+        ${l.offer ? `<button class="btn${l.main ? " primary" : ""}" data-need-open="${i}">${l.offer.label}</button>` : ""}
+      </div>`).join("")}
       <div class="row" style="justify-content:center">
-        <button class="btn primary" id="rBack">${engine.keepStufe(`Zurück zu Stufe ${level.no}`)}</button>
+        <button class="btn${plan.backMain ? " primary" : ""}" id="rBack">${engine.keepStufe(`Zurück zu Stufe ${level.no}`)}</button>
         <button class="btn" id="rAgain">Nochmal</button>
         <button class="btn ghost" id="rHome">Übersicht</button>
       </div>`;
+  $("#pResult").querySelectorAll("[data-need-open]").forEach((b) => b.addEventListener("click", () => {
+    ctx.state.current = plan.lines[+b.dataset.needOpen].offer.id; ctx.save(); ctx.show("practice");
+  }));
   $("#rBack").addEventListener("click", () => { ctx.state.current = levelId; ctx.save(); ctx.show("practice"); });
   $("#rAgain").addEventListener("click", () => ctx.show("practice", { mode: "grundlagen", levelId, only }));
   $("#rHome").addEventListener("click", () => ctx.show("home"));
@@ -320,8 +362,9 @@ function showBasicsResult(res, levelId, only) {
 }
 
 // Ergebniskarte „Wiederholen“: Sterne nur als Anzeige der Runde (starsFor wie beim Bonus, die Runde hat immer
-// RUNDE_WIEDERHOLEN Aufgaben), je Stufe das Urteil, bei „noch wacklig“ ein Knopf zum Üben; „Noch eine Wiederholung“
-// nur, wenn weiter etwas fällig ist
+// RUNDE_WIEDERHOLEN Aufgaben), darunter nur der erste Teil des Satzes („Gut.“) – kein Versprechen eines Sterns, den
+// die Runde nicht einträgt (J-B2, L-B1) –, je Stufe das Urteil, bei „noch wacklig“ ein Knopf zum Üben; „Noch eine
+// Wiederholung“ nur, wenn weiter etwas fällig ist
 function showReviewResult(res, verdicts) {
   const stars = starsFor(res.correct);
   const more = reviewPlan(ctx.state, ctx.packs, today()).length > 0;
@@ -332,7 +375,7 @@ function showReviewResult(res, verdicts) {
       <p class="eyebrow">Wiederholung beendet</p>
       ${engine.starsHtml(stars)}
       <p class="big num">${res.correct} / ${res.total}</p>
-      <p class="muted">${engine.resultMessage(stars)}</p>
+      <p class="muted">${engine.resultMessage(stars, { correct: res.correct, total: res.total, short: true })}</p>
       <p class="small muted num">+${res.gained} XP</p>
       ${verdicts.map((v, i) => `<div class="review-item stack">
         <p class="review-line">${reviewLine(ctx.packs, v)}</p>
@@ -352,11 +395,10 @@ function showReviewResult(res, verdicts) {
 
 /* ---------- Fehlermuster auf der Ergebniskarte (rein, getestet) ---------- */
 
-const ZAHLWORT = { 3: "Dreimal", 4: "Viermal", 5: "Fünfmal", 6: "Sechsmal", 7: "Siebenmal", 8: "Achtmal", 9: "Neunmal", 10: "Zehnmal" };
-export const countWord = (n) => ZAHLWORT[n] || `${n}-mal`;
+// Zahl der falschen Antworten bei einschrittigen Stufen (gapsOf meldet ab LUECKE_AB = 3): „Drei Antworten …“
+const ANZAHL = { 3: "Drei", 4: "Vier", 5: "Fünf", 6: "Sechs", 7: "Sieben", 8: "Acht", 9: "Neun", 10: "Zehn" };
+export const countWord = (n) => ANZAHL[n] || `${n}`;
 const ORDINAL = ["erste", "zweite", "dritte"];
-// „Notenstufen zählen (Prime bis Oktave)“ → „Notenstufen zählen“ (in der Klammer des Satzes)
-const shortSkill = (t) => t.replace(/\s*\([^)]*\)\s*$/, "");
 
 // Muster aus repeat.gapsOf zusammenfassen: gleiche Zahl, gleicher Schritt, gleiche Art → ein Satz
 // (einschrittige Stufen mit mehreren Voraussetzungen zählen jede falsche Antwort für alle)
@@ -384,14 +426,18 @@ export function placesText(packs, ids) {
   return parts.length < 2 ? parts.join("") : parts.slice(0, -1).join(", in ") + " und in " + parts[parts.length - 1];
 }
 
-// Satz zum Fehlermuster: „Dreimal lag der erste Schritt daneben (Notenstufen zählen). Das übst du in Intervalle,
-// Stufe 2.“; einschrittig: „Dreimal lag die Antwort daneben. Das übst du in …“; Stufe mit Hilfen davor
-// (Intervalle 4, zweiter Schritt): „… Mit Hilfen übst du das in Stufe 3.“
+// Satz zum Fehlermuster, ohne die Fehler nachzuzählen (Korrektur nach der Prüfung Welle 11, J-B7/W-B5/W-B6):
+// - Schritt bekannt: „Der erste Schritt (Notenstufen zählen) hat oft nicht geklappt. Das übst du in Intervalle,
+//   Stufe 2.“; Stufe mit Hilfen davor (Intervalle 4, zweiter Schritt): „Der zweite Schritt hat oft nicht geklappt.
+//   Mit Hilfen übst du das in Stufe 3.“
+// - einschrittig (oder Schritt nicht eindeutig): keine Behauptung, dass der Fehler in den Grundlagen liegt –
+//   „Drei Antworten lagen daneben. Die Grundlagen dazu findest du in Noten lesen, Stufe 3.“
 export function gapText(packs, group) {
   const one = group.needs.length === 1 ? engine.findLevel(packs, group.needs[0]).level : null;
-  const what = group.step === null || group.step === undefined
-    ? `${countWord(group.count)} lag die Antwort daneben.`
-    : `${countWord(group.count)} lag der ${ORDINAL[group.step] || `${group.step + 1}.`} Schritt daneben${one && !group.helps ? ` (${shortSkill(skillOf(one))})` : ""}.`;
+  if (group.step === null || group.step === undefined) {
+    return engine.keepStufe(`${countWord(group.count)} Antworten lagen daneben. Die Grundlagen dazu findest du in ${placesText(packs, group.needs)}.`);
+  }
+  const what = `Der ${ORDINAL[group.step] || `${group.step + 1}.`} Schritt${one && !group.helps ? ` (${shortSkill(skillOf(one))})` : ""} hat oft nicht geklappt.`;
   const where = group.helps ? `Mit Hilfen übst du das in Stufe ${one.no}.` : `Das übst du in ${placesText(packs, group.needs)}.`;
   return engine.keepStufe(`${what} ${where}`);
 }
@@ -405,16 +451,19 @@ export function openLabel(packs, pack, id, helps = false) {
 
 // Ergebniskarte einer normalen Runde, Teil „Grundlagen“ (rein, getestet): { first, gaps, only }
 // first: „Grundlagen wiederholen“ als erster Knopf (weniger als 5 Richtige, die Stufe hat Voraussetzungen und es
-// gibt kein Fehlermuster – sonst bietet das Muster genau seine Grundlage an); gaps: [{ text, needs, helps, open }]
-// mit open = Stufe für „… öffnen“ bzw. „… mit Hilfen üben“ (nur bei genau einer Grundlage).
+// gibt kein Fehlermuster). gaps: höchstens EIN Muster (J-B7/W-B6: ein nächster Schritt statt vier) –
+// [{ text, needs, helps, open }]; gewählt wird der erste Denkschritt vor dem zweiten (Schritt 2 baut auf Schritt 1),
+// bei gleichem Schritt das häufigere (Reihenfolge von gapsOf). open nur bei „mit Hilfen“ (Knopf „Stufe 3 mit Hilfen
+// üben“); sonst übt „Grundlagen wiederholen“ genau die Grundlage(n) des Musters (only), ein Knopf „… öffnen“ mit
+// demselben Inhalt entfällt.
 export const BASICS_BELOW = 5;
 export function resultBasics(packs, pack, level, correct, log) {
   const groups = gapGroups(gapsOf(packs, level, log));
-  const gaps = groups.map((g) => ({ text: gapText(packs, g), needs: g.needs, helps: g.helps, open: g.needs.length === 1 ? g.needs[0] : null }));
+  const rank = (g) => (g.step === null || g.step === undefined ? 99 : g.step);
+  const g = groups.map((x, i) => ({ x, i })).sort((a, b) => rank(a.x) - rank(b.x) || a.i - b.i).map((e) => e.x)[0];
+  const gaps = g ? [{ text: gapText(packs, g), needs: g.needs, helps: g.helps, open: g.helps && g.needs.length === 1 ? g.needs[0] : null }] : [];
   const first = !gaps.length && correct < BASICS_BELOW && needsOf(packs, level.id).length > 0;
-  // only: die Grundlagen aller Muster zusammen (ohne „mit Hilfen“), für EINEN Knopf „Grundlagen wiederholen“ –
-  // auch bei zwei Mustern nie zwei gleich beschriftete Knöpfe (Prüfung Schritt 7)
-  const only = [...new Set(gaps.filter((g) => !g.helps).flatMap((g) => g.needs))];
+  const only = g && !g.helps ? g.needs.slice() : [];
   return { first, gaps, only };
 }
 
@@ -431,17 +480,27 @@ function startRound() {
   engine.startRound(level, playUi(), { state: ctx.state, save: ctx.save, onFinish: showResult });
 }
 
+// Ergebniskarte einer normalen Runde. Mit Fehlermuster (J-B7/W-B6): ein Satz zum Muster, darunter genau ein
+// nächster Schritt als Hauptknopf („Grundlagen wiederholen“ bzw. „Stufe 3 mit Hilfen üben“), dazu nur „Nochmal“ und
+// „Übersicht“ (höchstens drei Knöpfe); der Ergebnissatz ohne den Verweis auf „Lernen“ (das Muster ist die
+// Empfehlung). Ohne Muster wie bisher: unter 5 Richtigen „Grundlagen wiederholen“ zuerst (dann ebenfalls der kurze
+// Ergebnissatz), sonst „Nochmal“, „Stufe n“ (wenn offen), „Übersicht“.
 function showResult(res) {
   const { pack, level } = current();
   const { correct: c, stars, gained, avg } = res;
   const { next, nextOpen, note } = resultInfo(ctx.state, pack, level, c);
   const basics = resultBasics(ctx.packs, pack, level, c, res.log || []);
+  const pattern = basics.gaps[0] || null;
   const hasBasics = basics.first || basics.only.length > 0;
   // Karteikasten (Welle 11, Schritt 8): neu geschaffte Stufe ohne Hilfen in Fach 1; eine fällige Stufe zählt wie
   // eine Wiederholung; nicht fällig: nichts
   const repeated = afterRound(ctx.state, level, c, today());
   if (repeated) ctx.save();
   const rnote = repeatNote(repeated);
+  const basicsBtn = `<button class="btn primary" id="rBasics">${BASICS_SHORT}</button>`;
+  const action = !pattern ? "" : pattern.helps
+    ? (pattern.open ? `<button class="btn primary" data-gap-open="0">${openLabel(ctx.packs, pack, pattern.open, true)}</button>` : "")
+    : basicsBtn;
   $("#pPlay").hidden = true;
   $("#pHelps").hidden = true;
   $("#pResult").hidden = false;
@@ -449,30 +508,28 @@ function showResult(res) {
       <p class="eyebrow">Runde beendet</p>
       ${engine.starsHtml(stars)}
       <p class="big num">${c} / ${res.total}</p>
-      <p class="muted">${engine.resultMessage(stars)}</p>
+      <p class="muted">${engine.resultMessage(stars, { correct: c, total: res.total, short: !!pattern || basics.first })}</p>
       <p class="small muted num">${resultLine(pack, gained, avg)}</p>
       ${note ? `<p class="unlock-line" id="rUnlock">${engine.keepStufe(note)}</p>` : ""}
       ${rnote ? `<p class="small" id="rRepeat">${rnote}</p>` : ""}
-      ${basics.gaps.map((g, i) => `<div class="gap stack">
-        <p class="gap-line">${g.text}</p>
-        ${g.open ? `<div class="row" style="justify-content:center">
-          <button class="btn${g.helps && !hasBasics ? " primary" : ""}" data-gap-open="${i}">${openLabel(ctx.packs, pack, g.open, g.helps)}</button>
-        </div>` : ""}
-      </div>`).join("")}
+      ${pattern ? `<div class="gap stack">
+        <p class="gap-line">${pattern.text}</p>
+        ${action}
+      </div>` : ""}
       <div class="row" style="justify-content:center">
-        ${hasBasics ? `<button class="btn primary" id="rBasics">${BASICS_SHORT}</button>` : ""}
-        <button class="btn${hasBasics || basics.gaps.length ? "" : " primary"}" id="rAgain">Nochmal</button>
-        ${nextOpen ? `<button class="btn" id="rNext">Stufe ${next.no}</button>` : ""}
+        ${!pattern && hasBasics ? basicsBtn : ""}
+        <button class="btn${hasBasics || pattern ? "" : " primary"}" id="rAgain">Nochmal</button>
+        ${nextOpen && !pattern ? `<button class="btn" id="rNext">Stufe ${next.no}</button>` : ""}
         <button class="btn ghost" id="rHome">Übersicht</button>
       </div>`;
   $("#rAgain").addEventListener("click", () => render());
   // ein Knopf: nach einem Muster nur dessen Grundlage(n), sonst (unter 5 Richtigen) alle Voraussetzungen
-  if (hasBasics) $("#rBasics").addEventListener("click", () =>
+  if ($("#rBasics")) $("#rBasics").addEventListener("click", () =>
     ctx.show("practice", { mode: "grundlagen", levelId: level.id, only: basics.only.length ? basics.only : null }));
   $("#pResult").querySelectorAll("[data-gap-open]").forEach((b) => b.addEventListener("click", () => {
     ctx.state.current = basics.gaps[+b.dataset.gapOpen].open; ctx.save(); ctx.show("practice");
   }));
-  if (nextOpen) $("#rNext").addEventListener("click", () => { ctx.state.current = next.id; ctx.save(); render(); });
+  if (nextOpen && !pattern) $("#rNext").addEventListener("click", () => { ctx.state.current = next.id; ctx.save(); render(); });
   $("#rHome").addEventListener("click", () => ctx.show("home"));
   ctx.renderTop();
 }
