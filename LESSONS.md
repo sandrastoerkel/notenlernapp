@@ -9,8 +9,9 @@
 
 ## Regelvorschläge
 
-- Vorschlag: Jede Zusage an Lernende oder Lehrkräfte in UI-Texten und Doku (z. B. „nichts wird gesperrt“, „nichts verlässt das Gerät“) bekommt einen Test, der sie über alle Zustandsübergänge prüft; Prüfer gleichen solche Sätze ausdrücklich mit dem Code ab.
-  Ziel: Projekt-CLAUDE.md (Notenheld)
+## Übernommene Regeln
+
+- 2026-11-26 (Sandra: ja) | Regel: Jede Zusage an Lernende oder Lehrkräfte in UI-Texten und Doku (z. B. „nichts wird gesperrt“, „nichts verlässt das Gerät“) bekommt einen Test, der sie über alle Zustandsübergänge prüft; Prüfer gleichen solche Sätze ausdrücklich mit dem Code ab.
+  Ort: CLAUDE.md, Abschnitt „Regeln“
   Grund: Lehre mit Zähler 2 – Schritt 13a (Schutz des Links zu stark beschrieben) und W-A1 (Dialog versprach „es schließt sich nichts“, 20–36 Stufen schlossen sich; Schritt-11-Test prüfte nur gespielte Stufen).
 
-## Übernommene Regeln

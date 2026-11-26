@@ -36,6 +36,7 @@ Statische Web-App: HTML, CSS, JavaScript, keine Abhängigkeiten, kein Build.
 - Keine Musiktheorie erfinden: bei Unsicherheit im Commit-Text vermerken und nachfragen.
 - Farben nur über die Tokens auf `:root` (hell und dunkel).
 - Vor jedem Commit: `npm test` (sobald vorhanden) und die App im Browser prüfen. Nach Änderungen an Aussehen oder Texten zusätzlich `node docs/screens/ueberlauf.mjs` (bei laufendem Server; findet bei 320 px und 420 px alles, was über seinen Rahmen hinausragt, Überlappungen innerhalb einer Zeile und einen doppelten Knopf „Nächste Aufgabe“; Selbsttest vorab, `--selftest` führt nur ihn aus; etwa 12 Minuten). Weitere Browser-Skripte in `docs/screens/`: `uhr40.mjs` (40 Tage mit gestellter Uhr, nach Änderungen am Wiederholen), `pruefung.mjs` (Bildschirmfotos aller Ansichten für Prüfungen nach `/tmp/notenheld-pruefung-w11/`), `screenshots.mjs` (README-Bilder); gemeinsame Bausteine in `spiel.mjs`. Die Spielstände dieser Skripte haben erfundene Zahlen (nur zur Darstellung).
+- Zusagen an Lernende und Lehrkräfte in App-Texten und Doku (z. B. „es schließt sich nichts“, „nichts verlässt das Gerät“, „der Link enthält nur …“) nie stärker formulieren, als der Code hält. Jede solche Zusage hat einen Test, der sie über alle Zustandswechsel prüft (nicht nur über Beispielpfade); Prüfer gleichen solche Sätze ausdrücklich mit dem Code ab. (Sandra, 26.11.2026, aus LESSONS.md)
 - Rechner: MacBook M4. Lokaler Server: `python3 -m http.server 8080`.
 
 ## Feste Entscheidungen (Sandra, November 2026)
