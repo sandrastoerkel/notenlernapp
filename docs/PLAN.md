@@ -2597,6 +2597,9 @@ lesen → Notenwerte und Pausen → Intervalle → Tonleitern → Dreiklänge un
   Zeile 19 als damaliger Stand gekennzeichnet. Hinweise der Stufen gelesen: keiner setzt das andere Paket als
   „später“ oder „schon gelernt“ voraus; nichts geändert.
 
+**Geprüft (25.11.2026, Fable): bestanden ohne Korrektur.** 389 Tests grün, Überlauf 0; keine Texte setzen
+Tonleitern vor Intervallen voraus (Eintrag in 01_STATUS.md, 16:25; Vermerk hier vom Koordinator nachgetragen).
+
 #### Schritt 4 – Örtliches Datum, Felder `rep` und `klasse`, Karteikasten als reine Logik
 
 **`src/store.js`.**
