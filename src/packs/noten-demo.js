@@ -53,9 +53,10 @@ export function lageNums(n, clef) {
   let s = `<g class="nl-nums">`;
   for (let k = 1; k <= l.nr; k++) {
     const p = l.art === "linie" ? 2 * (k - 1) : 2 * k - 1, y = yOf(p), on = k === l.nr;
+    // Kreis hinter jeder Nummer, damit die Linie die Ziffer nicht durchstreicht (Abstand der Stellen: 12)
     s += `<g class="nl-num${on ? " on" : ""}" data-nr="${k}" data-pos="${p}">`
-      + (on ? `<circle cx="${NUM_X}" cy="${y}" r="7"/>` : "")
-      + `<text x="${NUM_X}" y="${r2(y + 3.6)}" text-anchor="middle">${k}</text></g>`;
+      + `<circle cx="${NUM_X}" cy="${y}" r="${on ? 6.5 : 5.8}"/>`
+      + `<text x="${NUM_X}" y="${r2(y + 3.5)}" text-anchor="middle">${k}</text></g>`;
   }
   return s + "</g>";
 }
@@ -132,9 +133,9 @@ const refLine = (ref, clef) => { const y = yOf(staffPos(ref, clef)); return `<li
 // Kopf ohne Hals (mit Hilfslinien) in der Farbe des Schritts, blass
 const blass = (m, clef, x, step) => `<g class="nl-weg nl-s${step}">${noteSvg(m, clef, x, "", { stemless: true })}</g>`;
 // Name unter der Zeile
-const LABEL_Y = BOTTOM + 30;
+const LABEL_Y = BOTTOM + 32;
 const nameAt = (m, x, step) => `<text class="nl-name nl-t${step}" x="${x}" y="${LABEL_Y}" text-anchor="middle">${gName(m)}</text>`;
-const H_WEG = 128;
+const H_WEG = 130;
 
 export function zaehlDemo(ref, n, clef) {
   const w = weg(ref, n), note = noteSvg(n, clef, DEMO_X), last = w.length - 1;
