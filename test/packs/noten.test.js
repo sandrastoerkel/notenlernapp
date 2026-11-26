@@ -457,7 +457,7 @@ test("Schritt 3: eigener Merkspruch mit HTML-Zeichen – Rückmeldung als Text, 
     if (q.note.letter !== "G") continue;
     assert.equal(q.spruch, "Ein <Gutes> Huhn Darf Fliegen");
     assert.ok(q.revealParts.some((x) => x.mark && x.t === "<Gutes>"));
-    assert.ok(q.revealSvg.includes("&lt;Gutes&gt; → G") && !q.revealSvg.includes("<Gutes"));
+    assert.ok(q.revealSvg.includes("„&lt;Gutes&gt;“ → G") && !q.revealSvg.includes("<Gutes"));
   }
   // ohne Spielstand: voreingestellter Spruch; außerhalb der Zeile und mit Vorzeichen kein Spruch
   const g = alle(l).find((q) => q.note.letter === "G");
@@ -467,6 +467,31 @@ test("Schritt 3: eigener Merkspruch mit HTML-Zeichen – Rückmeldung als Text, 
   assert.equal(alle(noten.levels[6], s).find((q) => q.note.letter === "C").spruch, "Alle Clowns Essen Gern");
   // Vorführung bekommt den Spruch aus der Aufgabe (ohne Spielstand in der Engine)
   assert.ok(l.demo(g).frames.length >= 2);
+});
+
+test("Korrektur nach der Prüfung (L-B2/W-C4): Merkwort in der Beschriftung als Wort gekennzeichnet – „Es“ → E", () => {
+  for (const no of [1, 2, 6, 7]) for (const q of alle(noten.levels[no - 1])) {
+    const s2 = q.revealSvg.match(/<tspan class="nl-s2">([^<]+)<\/tspan>/)[1];
+    assert.match(s2, /^„[^“]+“ → [A-H]$/, `noten-${no}: ${s2}`);
+    assert.equal(s2.at(-1), q.note.letter);
+  }
+  // Linie 1 im Violinschlüssel mit dem voreingestellten Spruch: kein „Es → E“ mehr
+  const e = alle(noten.levels[0]).find((q) => q.note.letter === "E");
+  assert.ok(e.revealSvg.includes(">„Es“ → E<") && !e.revealSvg.includes(">Es → E<"));
+});
+
+test("Korrektur nach der Prüfung: eigener Spruch – Wort bis WORT_MAX Zeichen in der Beschriftung, längeres nur der Buchstabe", async () => {
+  const { fresh } = await import("../../src/store.js");
+  const { setzeEigen } = await import("../../src/sprueche.js");
+  const { WORT_MAX } = await import("../../src/packs/noten.js");
+  assert.equal(WORT_MAX, 11);
+  for (const [wort, zeigt] of [["Gutgelaunte", true], ["Gutgelaunter", false]]) {
+    const s = fresh();
+    setzeEigen(s, "violin-linien", `Ein ${wort} Huhn Darf Fliegen`);
+    const g = alle(noten.levels[0], s).find((q) => q.note.letter === "G");
+    assert.equal(g.revealSvg.includes(`>„${wort}“ → G<`), zeigt, wort);
+    if (!zeigt) assert.ok(g.revealSvg.includes('<tspan class="nl-s2">G</tspan>'));
+  }
 });
 
 test("Schritt 3: Auflösung zeigt beide Schritte (violett · grün), gleiche Höhe wie die Frage, Startkarte mit keysHint", async () => {

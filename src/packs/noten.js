@@ -100,8 +100,12 @@ export const zaehlPrompt = (ref) => `Zähle vom ${ref.letter} weiter: Wie heißt
 export const vzPrompt = (st) => `Stammton ${st.letter} – und mit dem Vorzeichen?`;
 const stepTexts = (fact, badFact = fact) => ({ ok: `Richtig: ${fact}`, bad: `Nicht ganz: ${badFact}` });
 const letterOf = (n) => ({ letter: n.letter, acc: 0 });
-// Längstes Wort des Spruchs, das die Beschriftung der Auflösung noch zeigt (eigene Sprüche: bis 80 Zeichen)
-export const WORT_MAX = 12;
+// Längstes Wort des Spruchs, das die Beschriftung der Auflösung noch zeigt (eigene Sprüche: bis 80 Zeichen). 11 statt
+// 12, seit das Wort in Anführungszeichen steht (gemessen: „Mmmmmmmmmmmm“ → C mit „4. Zwischenraum“ ragte 3 Einheiten
+// über die Zeile von 320 hinaus, „Einkaufshall“ 51–289)
+export const WORT_MAX = 11;
+// Wort des Merkspruchs → Notenname, das Wort als Wort gekennzeichnet (Beschriftung der Auflösung, Vorführung)
+export const merkPfeil = (wort, letter) => `„${wort}“ → ${letter}`;
 
 // Schritte, Texte und Beschriftung der Auflösung je Art: { steps, display, partial, marks: [Schritt 1, Schritt 2] }
 function zweiSchritte(art, n, clef, state) {
@@ -117,7 +121,9 @@ function zweiSchritte(art, n, clef, state) {
       ],
       display: `${ort} → ${name}`,
       partial: `Der Name stimmt, ${LAGE_ART[l.art]} ${wort} nicht: ${ort} → ${name}.`,
-      marks: [ort, w && w.length <= WORT_MAX ? `${w} → ${n.letter}` : n.letter],
+      // Merkwort in Anführungszeichen (Korrektur nach der Prüfung, L-B2/W-C4): „Es“ → E, nicht Es → E – Es und Eis
+      // sind ab Stufe 11 selbst Notennamen
+      marks: [ort, w && w.length <= WORT_MAX ? merkPfeil(w, n.letter) : n.letter],
     };
   }
   if (art === "zaehlen") {
