@@ -291,20 +291,49 @@ export function perLevelLine(packs, e) {
   return `${pack.title} ${level.no} · ${e.ok} von ${e.n}`;
 }
 
+// Knopf unter einer Zeile mit Fehlern auf der Karte „Grundlagen wiederholt“ (rein, getestet; J-B6, L-B4, W-B3):
+// wie practiceOffer (Stufe mit Hilfen direkt davor, sonst die Stufe selbst), mit dem Kurznamen des Pakets, weil die
+// Grundlagen aus anderen Paketen kommen können: „Intervalle 1 mit Hilfen üben“, „Noten lesen 7 üben“. { id, label }
+export function needOffer(packs, id) {
+  const o = practiceOffer(packs, id);
+  const { pack, level } = engine.findLevel(packs, o.id);
+  return { id: o.id, label: `${packShort(pack)}\u00a0${level.no} ${o.id === id ? "üben" : "mit Hilfen üben"}` };
+}
+
+// Inhalt der Karte „Grundlagen wiederholt“ (rein, getestet): { lines: [{ text, offer, main }], backMain }.
+// - je Grundlage eine Zeile „Intervalle 2 · 0 von 3“, bei Fehlern darunter ein Knopf zum Üben (needOffer);
+// - Hauptknopf ist dieser Knopf, wenn eine Grundlage zur Hälfte oder mehr danebenlag (bei mehreren die mit dem
+//   größten Anteil, bei Gleichstand die erste);
+// - „Zurück zu Stufe n“ ist Hauptknopf nur bei höchstens einem Fehler (und keiner Grundlage zur Hälfte daneben);
+// - dazwischen (zwei oder mehr Fehler verteilt) gibt es keinen Hauptknopf: Üben, Zurück und Nochmal stehen gleich da.
+export function basicsResultPlan(packs, res) {
+  const lines = res.perLevel.map((e) => ({ text: perLevelLine(packs, e), offer: e.ok < e.n ? needOffer(packs, e.id) : null, main: false, part: (e.n - e.ok) / e.n }));
+  const weak = lines.filter((l) => l.part >= 0.5).sort((a, b) => b.part - a.part)[0];
+  if (weak) weak.main = true;
+  return { lines: lines.map(({ part, ...l }) => l), backMain: !weak && res.total - res.correct <= 1 };
+}
+
 function showBasicsResult(res, levelId, only) {
   const { level } = engine.findLevel(ctx.packs, levelId);
+  const plan = basicsResultPlan(ctx.packs, res);
   $("#pPlay").hidden = true; $("#pHelps").hidden = true; $("#pOrigin").hidden = true;
   $("#pResult").hidden = false;
   $("#pResult").innerHTML = `
       <p class="eyebrow">Grundlagen wiederholt</p>
       <p class="big num">${res.correct} / ${res.total}</p>
       <p class="small muted num">+${res.gained} XP</p>
-      ${res.perLevel.map((e) => `<p class="small">${perLevelLine(ctx.packs, e)}</p>`).join("")}
+      ${plan.lines.map((l, i) => `<div class="review-item stack">
+        <p class="review-line">${l.text}</p>
+        ${l.offer ? `<button class="btn${l.main ? " primary" : ""}" data-need-open="${i}">${l.offer.label}</button>` : ""}
+      </div>`).join("")}
       <div class="row" style="justify-content:center">
-        <button class="btn primary" id="rBack">${engine.keepStufe(`Zurück zu Stufe ${level.no}`)}</button>
+        <button class="btn${plan.backMain ? " primary" : ""}" id="rBack">${engine.keepStufe(`Zurück zu Stufe ${level.no}`)}</button>
         <button class="btn" id="rAgain">Nochmal</button>
         <button class="btn ghost" id="rHome">Übersicht</button>
       </div>`;
+  $("#pResult").querySelectorAll("[data-need-open]").forEach((b) => b.addEventListener("click", () => {
+    ctx.state.current = plan.lines[+b.dataset.needOpen].offer.id; ctx.save(); ctx.show("practice");
+  }));
   $("#rBack").addEventListener("click", () => { ctx.state.current = levelId; ctx.save(); ctx.show("practice"); });
   $("#rAgain").addEventListener("click", () => ctx.show("practice", { mode: "grundlagen", levelId, only }));
   $("#rHome").addEventListener("click", () => ctx.show("home"));

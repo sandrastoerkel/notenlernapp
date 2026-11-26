@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { startLabel, keysHint, lettersLabel, resultInfo, missingText, answersScroll, startHint, TWO_STEPS_NOTE, resultLine, avgText, perLevelLine, MIXED_HEAD,
   BASICS_LABEL, needsHtml, needLabel, reasonText, basicsTitle, countWord, gapGroups, placesText, gapText, openLabel, resultBasics,
-  reviewTitle, verdictText, reviewLine, practiceOffer, repeatNote } from "../../src/views/practice.js";
+  reviewTitle, verdictText, reviewLine, practiceOffer, repeatNote, needOffer, basicsResultPlan } from "../../src/views/practice.js";
 import { keepStufe, textOf } from "../../src/engine.js";
 import { PACKS } from "../../src/packs/index.js";
 import { lockText } from "../../src/views/home.js";
@@ -338,4 +338,36 @@ test("Startkarte: Knöpfe direkt unter dem Hinweis, „Dafür brauchst du“ und
   // mit Empfehlung: Grund, „Grundlagen wiederholen“, „Runde starten“ (renderBasicsOffer schiebt beide vor den Start)
   const src = readFileSync(new URL("../../src/views/practice.js", import.meta.url), "utf8");
   assert.match(src, /if \(offer\.recommend\) \{ start\.before\(why\); start\.before\(btn\); \} else start\.after\(btn\);/);
+});
+
+// Korrektur nach der Prüfung Welle 11 (J-B6, L-B4, W-B3): „Grundlagen wiederholt“ führt zur schwachen Grundlage
+test("„Grundlagen wiederholt“: Knopf zum Üben je Zeile mit Fehlern, Hauptknopf nach der Zahl der Fehler", () => {
+  assert.deepEqual(needOffer(PACKS, "intervall-2"), { id: "intervall-1", label: `Intervalle${NB}1 mit Hilfen üben` });
+  assert.deepEqual(needOffer(PACKS, "noten-7"), { id: "noten-7", label: `Noten lesen${NB}7 üben` });
+  assert.deepEqual(needOffer(PACKS, "notenwerte-5"), { id: "notenwerte-4", label: `Notenwerte${NB}4 mit Hilfen üben` });
+  assert.deepEqual(needOffer(PACKS, "tonleitern-3"), { id: "tonleitern-2", label: `Tonleitern${NB}2 mit Hilfen üben` });
+  assert.deepEqual(needOffer(PACKS, "akkorde-1"), { id: "akkorde-1", label: `Dreiklänge${NB}1 üben` });
+  const res = (perLevel) => ({ perLevel, total: perLevel.reduce((a, e) => a + e.n, 0), correct: perLevel.reduce((a, e) => a + e.ok, 0) });
+  // Bild 042: Intervalle 2 · 0 von 3 → Hauptknopf „Intervalle 1 mit Hilfen üben“, „Zurück“ nicht hervorgehoben
+  let p = basicsResultPlan(PACKS, res([{ id: "noten-7", n: 3, ok: 3 }, { id: "intervall-2", n: 3, ok: 0 }]));
+  assert.deepEqual(p.lines.map((l) => [l.offer && l.offer.id, l.main]), [[null, false], ["intervall-1", true]]);
+  assert.equal(p.backMain, false);
+  // alles richtig bzw. ein Fehler: „Zurück zu Stufe n“ ist Hauptknopf; beim einen Fehler trotzdem ein Knopf zum Üben
+  p = basicsResultPlan(PACKS, res([{ id: "noten-7", n: 3, ok: 3 }, { id: "intervall-2", n: 3, ok: 3 }]));
+  assert.ok(p.backMain && p.lines.every((l) => !l.offer));
+  p = basicsResultPlan(PACKS, res([{ id: "noten-7", n: 3, ok: 2 }, { id: "intervall-2", n: 3, ok: 3 }]));
+  assert.ok(p.backMain);
+  assert.deepEqual(p.lines.map((l) => [l.offer && l.offer.id, l.main]), [["noten-7", false], [null, false]]);
+  // zwei Fehler verteilt, keine Grundlage zur Hälfte daneben: kein Hauptknopf
+  p = basicsResultPlan(PACKS, res([{ id: "noten-7", n: 3, ok: 2 }, { id: "intervall-2", n: 3, ok: 2 }]));
+  assert.ok(!p.backMain && p.lines.every((l) => !l.main));
+  // genau die Hälfte daneben zählt (2 Aufgaben, 1 Fehler) und geht vor „höchstens ein Fehler“
+  p = basicsResultPlan(PACKS, res([{ id: "noten-3", n: 2, ok: 1 }, { id: "noten-6", n: 2, ok: 2 }, { id: "noten-7", n: 2, ok: 2 }]));
+  assert.ok(!p.backMain && p.lines[0].main);
+  // mehrere zur Hälfte daneben: die mit dem größten Anteil
+  p = basicsResultPlan(PACKS, res([{ id: "noten-7", n: 3, ok: 1 }, { id: "intervall-2", n: 3, ok: 0 }]));
+  assert.deepEqual(p.lines.map((l) => l.main), [false, true]);
+  // die Ansicht nutzt den Plan, „Zurück“ nur mit backMain hervorgehoben
+  const src = readFileSync(new URL("../../src/views/practice.js", import.meta.url), "utf8");
+  assert.ok(src.includes('<button class="btn${plan.backMain ? " primary" : ""}" id="rBack">'));
 });
