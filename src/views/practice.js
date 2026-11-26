@@ -234,7 +234,8 @@ export function reviewTitle(plan) {
 const nb = (t) => String(t).replace(/(\d) /g, "$1\u00a0").replace(/ (\d)/g, "\u00a0$1");
 // Urteil eines Eintrags (urteil aus repeat.applyReview; ältere Ergebnisse ohne urteil über sitzt)
 const urteilOf = (v) => v.urteil || (v.sitzt ? "sitzt" : "wacklig");
-export const URTEIL_TEXT = { sitzt: "sitzt", fast: "fast", wacklig: "noch wacklig" };
+// „noch wacklig“ bricht nicht um (bei 320 px stand sonst „↻ noch“ am Zeilenende)
+export const URTEIL_TEXT = { sitzt: "sitzt", fast: "fast", wacklig: "noch\u00a0wacklig" };
 
 // Urteil je Stufe (v aus repeat.applyReview bzw. afterRound, rein, getestet):
 // „sitzt · wieder in 7 Tagen“, „fast · morgen noch einmal“, „noch wacklig · morgen noch einmal“,

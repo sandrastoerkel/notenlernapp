@@ -301,9 +301,9 @@ test("Runde „Wiederholen“: Kopf, Urteil je Stufe, Knopf bei „noch wacklig�
   assert.equal(reviewTitle([{ id: "a", n: 10 }]), "10 Aufgaben aus einer Stufe");
   // Zahl und Einheit mit geschütztem Leerzeichen (Korrektur W-B2/J-B3)
   assert.equal(verdictText({ sitzt: true, fach: 3, inTagen: 7 }), `sitzt · wieder in${NB}7${NB}Tagen`);
-  assert.equal(verdictText({ sitzt: false, fach: 1, inTagen: 1 }), "noch wacklig · morgen noch einmal");
+  assert.equal(verdictText({ sitzt: false, fach: 1, inTagen: 1 }), `noch${NB}wacklig · morgen noch einmal`);
   assert.equal(verdictText({ urteil: "fast", sitzt: false, fach: 2, inTagen: 1 }), "fast · morgen noch einmal");
-  assert.equal(verdictText({ urteil: "wacklig", sitzt: false, fach: 1, inTagen: 1 }), "noch wacklig · morgen noch einmal");
+  assert.equal(verdictText({ urteil: "wacklig", sitzt: false, fach: 1, inTagen: 1 }), `noch${NB}wacklig · morgen noch einmal`);
   assert.equal(verdictText({ sitzt: true, fach: 1, inTagen: 1, neu: true }), "geschafft · morgen zum Wiederholen");
   // Zeile mit der Zahl der Richtigen und einem Zeichen (✓ bzw. ↻, nur zur Unterscheidung, aria-hidden, nicht rot)
   const OK = `<span aria-hidden="true">✓</span>${NB}`, AGAIN = `<span aria-hidden="true">↻</span>${NB}`;
@@ -312,7 +312,7 @@ test("Runde „Wiederholen“: Kopf, Urteil je Stufe, Knopf bei „noch wacklig�
   assert.equal(reviewLine(PACKS, { id: "notenwerte-5", n: 3, richtig: 2, urteil: "fast", sitzt: false, fach: 2, inTagen: 1 }),
     `Notenwerte${NB}5 · 2${NB}von${NB}3 · ${AGAIN}fast · morgen noch einmal`);
   assert.equal(reviewLine(PACKS, { id: "tonleitern-5", n: 3, richtig: 1, urteil: "wacklig", sitzt: false, fach: 1, inTagen: 1 }),
-    `Tonleitern${NB}5 · 1${NB}von${NB}3 · ${AGAIN}noch wacklig · morgen noch einmal`);
+    `Tonleitern${NB}5 · 1${NB}von${NB}3 · ${AGAIN}noch${NB}wacklig · morgen noch einmal`);
   assert.equal(reviewLine(PACKS, { id: "akkorde-1", n: 10, richtig: 10, urteil: "sitzt", sitzt: true, fach: 5, inTagen: 30 }),
     `Dreiklänge${NB}1 · 10${NB}von${NB}10 · ${OK}sitzt · wieder in${NB}30${NB}Tagen`);
   // ältere Ergebnisse ohne Zahlen: ohne „… von …“
@@ -329,7 +329,7 @@ test("Runde „Wiederholen“: Kopf, Urteil je Stufe, Knopf bei „noch wacklig�
   assert.equal(repeatNote(null), "");
   assert.equal(repeatNote({ id: "noten-3", sitzt: true, fach: 1, inTagen: 1, neu: true }), "Geschafft – kommt morgen zum Wiederholen wieder.");
   assert.equal(repeatNote({ id: "noten-3", sitzt: true, fach: 2, inTagen: 3 }), `Wiederholung: sitzt · wieder in${NB}3${NB}Tagen.`);
-  assert.equal(repeatNote({ id: "noten-3", sitzt: false, fach: 1, inTagen: 1 }), "Wiederholung: noch wacklig · morgen noch einmal.");
+  assert.equal(repeatNote({ id: "noten-3", sitzt: false, fach: 1, inTagen: 1 }), `Wiederholung: noch${NB}wacklig · morgen noch einmal.`);
   // nicht fällig, unter 8 Richtigen (W-B7): Fach bleibt, morgen wieder
   assert.equal(repeatNote({ id: "noten-3", n: 10, richtig: 4, sitzt: false, fach: 4, inTagen: 1, vorgezogen: true }), "Wiederholung: morgen noch einmal.");
 });
