@@ -517,6 +517,10 @@ section { display: grid; gap: 14px; }
 .big { font-family: var(--display); font-size: 2.2rem; font-weight: 700; line-height: 1; }
 /* Hinweis auf der Startkarte: Zeilenumbrüche im Text gelten (z. B. Tonleitern 8, Reihenfolge der Vorzeichen) */
 #pHint { white-space: pre-line; }
+/* Zusatz zum Aufklappen (Tonleitern 10: „Reihenfolge der Vorzeichen“, Sandra 26.11.2026): Tippfläche mindestens
+   44 px hoch (WCAG 2.5.5), zu Beginn zugeklappt, per Tastatur mit Enter oder Leertaste */
+.hint-more > summary { cursor: pointer; list-style-position: inside; min-height: 44px; padding: 10px 0; color: var(--accent); font-weight: 700; }
+.hint-more > p { margin: 0 0 4px; }
 
 .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
 .tile { background: var(--surface-2); border-radius: 14px; padding: 12px 14px; }

@@ -325,6 +325,7 @@ Eine Stufe:
   title: "Linien im Violinschlüssel",
   subtitle: "Violinschlüssel · 5 Noten", // optional, kleine Zeile unter dem Titel auf der Startseite
   hint: "Text auf der Startkarte der Stufe", // seit Welle 10 auch (ctx) => Text (ctx: { state }), z. B. mit Merkspruch
+  hintMore: { summary: "…", text: "…" }, // optional (Sandra, 26.11.2026): Zusatz zum Aufklappen unter dem Hinweis (<details>, zu Beginn zu); text auch (ctx) => Text; nur Tonleitern 10
   example: "<svg …>",          // optional, festes SVG für die Startkarte (vor der Runde)
   input: "letters",            // "letters" | "choices" | "keys"
   acc: false,                  // optional, true zeigt bei "letters" das Namensraster (21 Namen) statt C–H
@@ -644,7 +645,7 @@ Reihe selbst.
 - Gewählt wird in „Lernen“: Tafel „Merkhilfen“ je Schlüssel und Tafel „Quintenzirkel“ der Tonleitern (Kreuze,
   ♯-Tonarten, ♭-Tonarten). Angezeigt in den Hinweisen Noten 1, 2, 4, 5, der Rückmeldung „Noten lesen“, Hinweis
   und Hilfen Tonleitern 8, 10, 11 (Startkarte 10 mit der ganzen Reihe Fis … His / B … Fes, aus `music.js`
-  abgeleitet) und der Ring-Tafel „Quintenzirkel“ der Dreiklänge (mit Leserichtung). Dafür dürfen `level.hint`
+  abgeleitet, seit 26.11.2026 zum Aufklappen „Reihenfolge der Vorzeichen“ über `level.hintMore`) und der Ring-Tafel „Quintenzirkel“ der Dreiklänge (mit Leserichtung). Dafür dürfen `level.hint`
   und `level.helpText` Funktionen `(ctx) => Text` sein (`engine.textOf`), und `card.render(ctx)` bekommt
   `{ state }`.
 - „Noten lesen“ (B3): Frage „Wie heißt die Note?“ (`PROMPT`); Rückmeldung daneben `revealText(n, clef, state)`:
@@ -882,15 +883,17 @@ Startseite (`src/views/home.js`, seit Welle 11, Schritt 8 und 12; reine Teile ge
   Beide laufen über `playMixed` → `engine.makeMixed` und `engine.startMixed`; Kopf `MIXED_HEAD`, Titel
   `basicsTitle` („für Intervalle, Stufe 3“) bzw. `reviewTitle` („10 Aufgaben aus 3 Stufen“); die Wahl
   Buchstaben/Klaviatur ist dort verborgen.
-- Startkarte (Reihenfolge seit der Korrektur J-B1, damit der Start weit oben steht): Hinweis `#pHint` →
+- Startkarte (Reihenfolge seit der Korrektur J-B1, damit der Start weit oben steht): Hinweis `#pHint` (ein `div`;
+  mit `level.hintMore` darin ein natives `<details class="hint-more">` aus `startMore(level, ctx)`, zu Beginn zu,
+  Tippfläche mindestens 44 px, Text per `textContent` – Tonleitern 10 „Reihenfolge der Vorzeichen“) →
   (mit Empfehlung: Grund `#pBasicsWhy` → `#pBasics` als Hauptknopf) → `#pStart` „Runde starten“ → (ohne
   Empfehlung: `#pBasics` ruhig) → `#pNeeds` „Dafür brauchst du: …“ → Tastatur-Hinweis `#pKeys`. `#pBasics`
   „Grundlagen wiederholen · 6 Aufgaben“ (`BASICS_LABEL`). `needsHtml`: eine fortlaufende Zeile mit Kommas, je
   Voraussetzung ein Knopf im Textfluss mit sichtbarer Stufe (`needLabel`: „Notenstufen zählen (Intervalle 2)“,
   Fähigkeit ohne Klammerzusatz), der ihre Startkarte öffnet (J-C1). Empfehlung aus `repeat.basicsOffer` (nie
   gespielt, wieder dran oder zuletzt unter 8 von 10), Grund `reasonText`: „Tipp: „Noten mit Vorzeichen“
-  hast du in der App noch nicht geübt.“ (Wortlaut Sandra, 26.11.2026). Nie Pflicht. `ueberlauf.mjs` misst die Lage der Knöpfe auf sechs Startkarten
-  (`startCards`).
+  hast du in der App noch nicht geübt.“ (Wortlaut Sandra, 26.11.2026). Nie Pflicht. `ueberlauf.mjs` misst die Lage
+  der Knöpfe auf sechs Startkarten (`startCards`).
 - Ergebniskarte der normalen Runde: Satz `engine.resultMessage(stars, { correct, total, short })` (10 von 10
   „Stark, alles richtig.“; mit Fehlermuster oder „Grundlagen wiederholen“ zuerst nur der erste Teil, z. B. „Noch
   wacklig.“), dazu `repeatNote` (Karteikasten über `repeat.afterRound`: „Geschafft – kommt morgen zum Wiederholen
@@ -1345,7 +1348,7 @@ in `npm test`; Aufruf bei laufendem Server, Adresse über `BASE=…`, eigener Br
   mit der Eingabe „Klaviatur“; je Aufgabe Herkunftszeile und Eingabeart ohne Reste der vorigen), „Grundlagen
   wiederholen“, die Ergebniskarten (Urteil je Stufe, „Geschafft – kommt morgen …“, Fehlermuster), Startkarten mit
   „Dafür brauchst du“ mit und ohne Empfehlung (dazu je Breite die Lage der Knöpfe auf sechs Startkarten bei
-  640 px Höhe, `startCards`, J-B1), „Lernen“ je Reiter und Schlüssel, Blitz, Statistik (auch mit Jahrgang),
+  640 px Höhe, `startCards`, J-B1; Startkarten mit Zusatz zum Aufklappen auch aufgeklappt), „Lernen“ je Reiter und Schlüssel, Blitz, Statistik (auch mit Jahrgang),
   Dialog und Hinweis zum Link der Lehrkraft und die Seite „Für Lehrkräfte“ samt „QR-Code groß zeigen“. Ende mit
   Code 1 bei Treffern oder Konsolenfehlern; etwa 12 Minuten. Nicht geprüft: senkrechtes Abschneiden, Text über
   einem SVG (die Beschriftungen der Notenkarte liegen gewollt auf dem Rand der Notenzeile), Flächen von Elementen

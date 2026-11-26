@@ -9,7 +9,7 @@ import { textOf, makeRound, feedbackText, feedbackParts, helpsHtml } from "../sr
 import noten, { lageText, revealText, revealParts, displayName, PROMPT, LEGEND, legendHtml } from "../src/packs/noten.js";
 import tonleitern, { SHARPS_ALL, FLATS_ALL, circleBoard } from "../src/packs/tonleitern.js";
 import { learnCardsHtml } from "../src/views/learn.js";
-import { startHint } from "../src/views/practice.js";
+import { startHint, startMore } from "../src/views/practice.js";
 import { PACKS } from "../src/packs/index.js";
 import akkorde, { circleRing, circleHtml } from "../src/packs/akkorde.js";
 
@@ -338,14 +338,20 @@ test("Tonleitern: ganze Reihenfolge (aus music.js) und Sprüche in Stufe 8, 10, 
   const h10 = startHint(by(10), { state: s });
   assert.ok(h10.includes("\n1. Das entscheidende Vorzeichen") && h10.includes("\n2. Die Tonart"), h10);
   // Nachprüfung: Die ganze Reihenfolge mit dem gewählten Spruch steht (wie im Plan) auch auf der Startkarte,
-  // als zwei kurze Zeilen; Erklärung der Be-Reihe und Tonarten-Sprüche nur in den Hilfen
-  assert.ok(h10.includes("\n♯: Fis Cis Gis Dis Ais Eis His („Fünf Cowboys Gehen Durch Alle Einkaufs-Hallen“)\n"), h10);
-  assert.ok(h10.includes("\n♭: B Es As Des Ges Ces Fes („Brezen Essen Asse Des Gesangs“ bis Ges)\n"), h10);
-  assert.ok(h10.endsWith("Beide Schritte müssen stimmen."));
+  // als zwei kurze Zeilen; Erklärung der Be-Reihe und Tonarten-Sprüche nur in den Hilfen. Seit Sandras
+  // Entscheidung (26.11.2026) zum Aufklappen: „Reihenfolge der Vorzeichen“ (startMore), Inhalt unverändert
+  const m10 = startMore(by(10), { state: s });
+  assert.equal(m10.summary, "Reihenfolge der Vorzeichen");
+  assert.equal(m10.text, "♯: Fis Cis Gis Dis Ais Eis His („Fünf Cowboys Gehen Durch Alle Einkaufs-Hallen“)\n♭: B Es As Des Ges Ces Fes („Brezen Essen Asse Des Gesangs“ bis Ges)");
+  assert.ok(!h10.includes("♯:") && !h10.includes("♭:"), h10);
+  assert.ok(h10.endsWith("\nEin einzelnes Be: F-Dur.\nBeide Schritte müssen stimmen."), h10);
   assert.ok(h10.split("\n").length <= 7 && h10.length <= 420, h10);
-  assert.ok(!h10.includes("rückwärts") && !h10.includes("Geh Du Alter"));
+  for (const t of [h10, m10.text]) assert.ok(!t.includes("rückwärts") && !t.includes("Geh Du Alter"));
   { const e = fresh(); setzeEigen(e, "kreuze", "F<b> C G D A E H"); waehle(e, "kreuze", 1);
-    assert.ok(startHint(by(10), { state: e }).includes("♯: Fis Cis Gis Dis Ais Eis His („")); }
+    assert.ok(startMore(by(10), { state: e }).text.startsWith("♯: Fis Cis Gis Dis Ais Eis His („"));
+    // eigener Spruch: als Text, nie als HTML (die Startkarte setzt ihn per textContent ein)
+    e.sprueche.kreuze = { eigen: "Fünf Cowboys Gehen Durch Alle Ecken Heim<b>&</b>" };
+    assert.ok(startMore(by(10), { state: e }).text.includes("(„Fünf Cowboys Gehen Durch Alle Ecken Heim<b>&</b>“)")); }
   const help10 = (st) => helpsHtml(by(10), makeRound(by(10), 1)[0], { state: st });
   assert.ok(help10(s).includes("Kreuze: Fis Cis Gis Dis Ais Eis His („Fünf Cowboys Gehen Durch Alle Einkaufs-Hallen“)"));
   assert.ok(help10(s).includes("Be: B Es As Des Ges Ces Fes – dieselben Buchstaben wie bei den Kreuzen, rückwärts: H E A D G C F (H mit ♭ heißt B) („Brezen Essen Asse Des Gesangs“ für die ersten fünf)"));

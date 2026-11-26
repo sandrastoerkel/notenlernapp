@@ -26,7 +26,8 @@
 // Jahrgang 5, 7 und 9, die Statistik mit Jahrgang und die Seite „Für Lehrkräfte“ samt „QR-Code groß zeigen“
 // (Schritt 12; dort auch: Esc schließt, Fokus zurück, der gespeicherte Stand bleibt unverändert).
 // In jedem Zustand zählt außerdem ein zweiter sichtbarer Knopf „Nächste Aufgabe“ als Treffer (W2, Welle 11).
-// Dazu je Breite die Lage der Knöpfe auf sechs Startkarten bei einem 640 px hohen Fenster (startCards, J-B1).
+// Dazu je Breite die Lage der Knöpfe auf sechs Startkarten bei einem 640 px hohen Fenster (startCards, J-B1) und auf
+// Startkarten mit Zusatz zum Aufklappen (Tonleitern 10) auch der aufgeklappte Zusatz.
 //
 // Playwright ist KEINE Abhängigkeit der App (siehe spiel.mjs). Aufruf bei laufendem Server:
 //   python3 -m http.server 8080 &
@@ -401,6 +402,14 @@ async function run(browser, width, scheme) {
   for (const lid of levels) {
     await pg.click('.tab[data-view="home"]'); await pg.waitForTimeout(120);
     await pg.click(`.level[data-id="${lid}"]`); await pg.waitForTimeout(200); await chk(`${lid} Startkarte`);
+    // Zusatz zum Aufklappen unter dem Hinweis (Tonleitern 10, Sandra 26.11.2026): zu Beginn zu, aufgeklappt ohne
+    // Überlauf, Tippfläche mindestens 44 px hoch
+    if (await pg.$("#pHint details")) {
+      if (await pg.evaluate("document.querySelector('#pHint details').open")) errs.push(`${lid} Startkarte: Zusatz nicht zugeklappt`);
+      const h = await pg.evaluate("document.querySelector('#pHint details > summary').getBoundingClientRect().height");
+      if (h < 44) errs.push(`${lid} Startkarte: Tippfläche des Zusatzes nur ${h} px hoch`);
+      await pg.click("#pHint details > summary"); await pg.waitForTimeout(120); await chk(`${lid} Startkarte, Zusatz aufgeklappt`);
+    }
     await pg.click("#pStart"); await pg.waitForTimeout(250);
     for (let rnd = 0; rnd < ROUNDS && !(await visible("#pResult")); rnd++) {
       const w = `${lid} Aufgabe ${rnd + 1}`, right = rnd % 2 === 0;

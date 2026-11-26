@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { startLabel, keysHint, lettersLabel, resultInfo, missingText, answersScroll, startHint, TWO_STEPS_NOTE, resultLine, avgText, perLevelLine, MIXED_HEAD,
+import { startLabel, keysHint, lettersLabel, resultInfo, missingText, answersScroll, startHint, startMore, TWO_STEPS_NOTE, resultLine, avgText, perLevelLine, MIXED_HEAD,
   BASICS_LABEL, needsHtml, needLabel, reasonText, basicsTitle, countWord, gapGroups, placesText, gapText, openLabel, resultBasics,
   reviewTitle, verdictText, reviewLine, practiceOffer, repeatNote, needOffer, basicsResultPlan, reviewOffers } from "../../src/views/practice.js";
 import { keepStufe, textOf } from "../../src/engine.js";
@@ -384,6 +384,22 @@ test("Startkarte: Knöpfe direkt unter dem Hinweis, „Dafür brauchst du“ und
   // mit Empfehlung: Grund, „Grundlagen wiederholen“, „Runde starten“ (renderBasicsOffer schiebt beide vor den Start)
   const src = readFileSync(new URL("../../src/views/practice.js", import.meta.url), "utf8");
   assert.match(src, /if \(offer\.recommend\) \{ start\.before\(why\); start\.before\(btn\); \} else start\.after\(btn\);/);
+});
+
+// Sandra (26.11.2026, „Offen für Sandra“ 20): Startkarte Tonleitern 10 mit der Reihenfolge der Vorzeichen zum
+// Aufklappen
+test("Startkarte: Zusatz zum Aufklappen nur in Tonleitern 10", () => {
+  const withMore = PACKS.flatMap((p) => p.levels).filter((l) => startMore(l, {})).map((l) => l.id);
+  assert.deepEqual(withMore, ["tonleitern-10"]);
+  assert.equal(startMore({ hint: "H." }), null);
+  // natives <details> im Hinweis (ein <details> darf nicht in einem <p> stehen), Text per textContent
+  const html = readFileSync(new URL("../../index.html", import.meta.url), "utf8");
+  assert.ok(html.includes('<div id="pHint" class="muted"></div>') && !html.includes('<p id="pHint"'));
+  const src = readFileSync(new URL("../../src/views/practice.js", import.meta.url), "utf8");
+  assert.ok(src.includes('document.createElement("details")') && src.includes("s.textContent = more.summary;")
+    && src.includes("p.textContent = more.text;") && !/innerHTML = [^;\n]*more\b/.test(src));
+  const css = readFileSync(new URL("../../css/style.css", import.meta.url), "utf8");
+  assert.match(css, /\.hint-more > summary \{[^}]*min-height: 44px/);
 });
 
 // Korrektur nach der Prüfung Welle 11 (J-B6, L-B4, W-B3): „Grundlagen wiederholt“ führt zur schwachen Grundlage

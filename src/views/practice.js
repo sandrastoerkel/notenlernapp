@@ -27,6 +27,11 @@ export const startHint = (level, ctx) => {
   // mehrzeilige Hinweise (Tonleitern 10: Reihenfolge und Sprüche) bekommen den Zusatz in eine eigene Zeile
   return level.twoSteps ? `${hint}${hint.includes("\n") ? "\n" : " "}${TWO_STEPS_NOTE}` : hint;
 };
+// Zusatz zum Aufklappen unter dem Hinweis (rein, getestet; Sandra, 26.11.2026): level.hintMore = { summary, text },
+// text darf eine Funktion (ctx) => Text sein (Tonleitern 10: Reihenfolge der ♯ und ♭ mit dem gewählten Spruch).
+// Auf der Startkarte ein natives <details>, zu Beginn zugeklappt; eingesetzt per textContent (eigene Sprüche).
+export const startMore = (level, ctx) => (level && level.hintMore
+  ? { summary: level.hintMore.summary, text: engine.textOf(level.hintMore.text, ctx) } : null);
 
 // Tastatur-Hinweis auf der Startkarte (rein, getestet): ohne Vorzeichen Buchstaben, mit Namensraster
 // der ganze Name und Enter
@@ -127,6 +132,15 @@ export function render(arg) {
   // „Vorzeichen ♯ und ♭“: das Zeichen nicht allein in der Zeile (J-C3)
   $("#pLevelTitle").textContent = engine.keepTogether(level.title);
   $("#pHint").textContent = startHint(level, { state: ctx.state });
+  const more = startMore(level, { state: ctx.state });
+  if (more) {
+    const d = document.createElement("details"), s = document.createElement("summary"), p = document.createElement("p");
+    d.className = "hint-more";
+    s.textContent = more.summary;
+    p.textContent = more.text;
+    d.append(s, p);
+    $("#pHint").append(d);
+  }
   $("#pIntro").hidden = false; $("#pPlay").hidden = true; $("#pResult").hidden = true;
   $("#pStaff").innerHTML = level.example || "";
   // Die Wahl Buchstaben/Klaviatur und der Tastatur-Hinweis gelten nur für Stufen mit Buchstaben-Eingabe;

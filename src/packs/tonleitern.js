@@ -1100,7 +1100,9 @@ const levels = [
     title: "Tonart aus den Vorzeichen",
     twoSteps: true,
     subtitle: `Violinschlüssel · zwei Schritte · mit Hilfen · ${FIFTHS.length} Dur-Tonarten`,
-    hint: (ctx) => `Zwei Schritte:\n1. Das entscheidende Vorzeichen: bei Kreuzen das letzte, bei Be das vorletzte.\n2. Die Tonart: einen Halbton über dem letzten Kreuz (Fis → G-Dur), bei Be das vorletzte selbst (B, Es → B-Dur).\nEin einzelnes Be: F-Dur.\n${orderLines(ctx)}`,
+    hint: "Zwei Schritte:\n1. Das entscheidende Vorzeichen: bei Kreuzen das letzte, bei Be das vorletzte.\n2. Die Tonart: einen Halbton über dem letzten Kreuz (Fis → G-Dur), bei Be das vorletzte selbst (B, Es → B-Dur).\nEin einzelnes Be: F-Dur.",
+    // Sandra (26.11.2026): die ganze Reihenfolge der ♯ und ♭ mit dem gewählten Spruch zum Aufklappen (Startkarte)
+    hintMore: { summary: "Reihenfolge der Vorzeichen", text: orderLines },
     items: ITEMS_10,
     example: keySvg({ clef: "treble", fifths: 4 }),
     question(prev, ctx) { return majorStepQuestion(pickKey(ITEMS_10, prev, adaptOf(ctx, majorStat))); },
