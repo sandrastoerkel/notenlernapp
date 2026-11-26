@@ -7,7 +7,7 @@ import {
   needsOf, stepNeedsOf, skillOf, needsText,
   basicsPlan, basicsOffer, afterBasics, afterBasicsLevels, MIN_AUFGABEN_GRUNDLAGE, gapsOf, LUECKE_AB,
 } from "../src/repeat.js";
-import { fresh, addDays, UMSTELLUNG_JE_TAG, reset } from "../src/store.js";
+import { fresh, addDays, UMSTELLUNG_JE_TAG, reset, migrateWiederholen } from "../src/store.js";
 import { PACKS } from "../src/packs/index.js";
 
 const T = "2026-11-25";
@@ -280,6 +280,56 @@ test("afterRound (W-B7): schwache normale Runde in einer nicht fälligen Stufe �
   assert.deepEqual([r.fach, r.inTagen], [4, 14]);
   // Stufe mit Hilfen: weiter nichts
   assert.equal(afterRound(t, level("intervall-1"), 0, T), null);
+});
+
+test("Uhr vorgestellt und zurück (W-C1): Eintrag aus der „Zukunft“ ist heute fällig, nichts verschwindet", () => {
+  // Bericht Wissenschaft C1: Wiederholung am 1.1.2030 → fällig 8.1.2030; zurück im Jahr 2026 war nichts fällig
+  const s = fresh();
+  enter(s, "noten-3", "2029-12-28");
+  applyReview(s, [{ id: "noten-3", n: 10, ok: 10 }], "2029-12-29"); // Fach 2, fällig 1.1.2030
+  applyReview(s, [{ id: "noten-3", n: 10, ok: 10 }], "2030-01-01"); // Fach 3, fällig 8.1.2030
+  assert.deepEqual(s.rep["noten-3"], { fach: 3, faellig: "2030-01-08", zuletzt: "2030-01-01" });
+  assert.deepEqual(due(s, PACKS, T), ["noten-3"]);
+  assert.equal(nextDue(s, T), null);
+  assert.deepEqual(reviewPlan(s, PACKS, T), [{ id: "noten-3", n: 10 }]);
+  // nach der Wiederholung stimmt alles wieder: Fach 4, in 14 Tagen
+  const [r] = applyReview(s, [{ id: "noten-3", n: 10, ok: 10 }], T);
+  assert.deepEqual([r.fach, r.inTagen], [4, 14]);
+  assert.deepEqual(due(s, PACKS, T), []);
+  assert.equal(nextDue(s, T), addDays(T, 14));
+  // faellig weiter weg als das Fach erlaubt (zuletzt nicht in der Zukunft): ebenso fällig
+  const t = withRep({ "noten-7": { fach: 2, faellig: addDays(T, 20), zuletzt: addDays(T, -1) } });
+  assert.deepEqual(due(t, PACKS, T), ["noten-7"]);
+  // Normalfall: genau der Abstand des Fachs ist nicht verdächtig
+  for (let fach = 1; fach <= FAECHER; fach++) {
+    const u = withRep({ "noten-7": { fach, faellig: addDays(T, ABSTAENDE[fach - 1]), zuletzt: T } });
+    assert.deepEqual(due(u, PACKS, T), [], `Fach ${fach}`);
+    assert.equal(nextDue(u, T), addDays(T, ABSTAENDE[fach - 1]));
+  }
+  // Reise nach Westen (der örtliche Tag springt einen Tag zurück): nichts wird vorgezogen
+  const w = withRep({ "noten-7": { fach: 2, faellig: addDays(T, 4), zuletzt: addDays(T, 1) } });
+  assert.deepEqual(due(w, PACKS, T), []);
+  // zurückgestellt ist auch „fällig“ für die Empfehlung und für die normale Runde
+  const v = withRep({ "noten-3": { fach: 3, faellig: "2030-01-08", zuletzt: "2030-01-01" } });
+  played(v, "noten-3", 9); played(v, "noten-6", 9); played(v, "noten-7", 9);
+  assert.deepEqual(basicsOffer(v, PACKS, "noten-8", T).reason, { kind: "faellig", id: "noten-3" });
+  assert.equal(afterRound(v, level("noten-3"), 9, T).fach, 4);
+});
+
+test("W-C1 und die Umstellung: verteilte Einträge (zuletzt: null) bleiben verteilt", () => {
+  // alle Stufen ohne Hilfen geschafft → Umstellung verteilt je Tag 3; heute sind genau die ersten 3 fällig
+  const ids = boxIds(PACKS);
+  assert.ok(Math.ceil(ids.length / UMSTELLUNG_JE_TAG) - 1 <= ABSTAENDE[FAECHER - 1]);
+  const s = fresh();
+  s.migrated = s.migrated.filter((m) => m !== "wiederholen");
+  for (const id of ids) s.levels[id] = { stars: 3, best: 9, played: 1 };
+  migrateWiederholen(s, ids, T, -480);
+  assert.equal(due(s, PACKS, T).length, UMSTELLUNG_JE_TAG);
+  assert.equal(nextDue(s, T), addDays(T, 1));
+  assert.equal(due(s, PACKS, addDays(T, 1)).length, 2 * UMSTELLUNG_JE_TAG);
+  // ein Eintrag der Umstellung weiter als 30 Tage in der Zukunft (Uhr war bei der Umstellung vorgestellt): fällig
+  const t = withRep({ "noten-3": { fach: 1, faellig: addDays(T, 400), zuletzt: null } });
+  assert.deepEqual(due(t, PACKS, T), ["noten-3"]);
 });
 
 test("dueText und dayText", () => {

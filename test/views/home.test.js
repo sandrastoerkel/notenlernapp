@@ -58,7 +58,7 @@ test("todayCard: nichts fällig, Kasten nicht leer – „Nächste Wiederholung:
   assert.equal(c.review, null);
   assert.equal(c.small, "Nächste Wiederholung: morgen");
   assert.equal(c.line, streakText(fresh()));
-  c = todayCard(st({ "noten-3": { fach: 2, faellig: "2026-11-28", zuletzt: T }, "noten-6": { fach: 4, faellig: "2026-12-20", zuletzt: T } }), PACKS, T);
+  c = todayCard(st({ "noten-3": { fach: 2, faellig: "2026-11-28", zuletzt: T }, "noten-6": { fach: 5, faellig: "2026-12-20", zuletzt: T } }), PACKS, T);
   assert.equal(c.small, "Nächste Wiederholung: in 3 Tagen");
   // Serie
   // Serie: bis gestern geübt → mit dem Zusatz; heute schon geübt → nur die Zahl; Serie gerissen → allgemeiner Satz

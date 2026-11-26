@@ -47,24 +47,42 @@ function position(packs, levelId) {
   return null;
 }
 
-// Ist ein Eintrag des Kastens heute fällig?
-export const isDueEntry = (e, heute) => !!e && typeof e.faellig === "string" && e.faellig <= heute;
+// Uhr vorgestellt und wieder zurück (Korrektur W-C1): Ein Eintrag, der in der „Zukunft“ geübt wurde (zuletzt nach
+// heute) oder weiter in der Zukunft fällig ist, als sein Fach erlaubt (faellig − heute > Abstand des Fachs), gilt
+// heute als fällig – sonst verschwände die Wiederholung bis zum vorgestellten Datum („in 1139 Tagen“). Einträge aus
+// der Umstellung (zuletzt: null) sind über mehrere Tage verteilt (31 Stufen, je Tag 3: höchstens 10 Tage); für sie
+// gilt als Grenze der größte Abstand (30 Tage). Ein Tag Spielraum (TOLERANZ_TAGE): Auf einer Reise nach Westen
+// (Kuala Lumpur → Bayern) kann der örtliche Tag um einen Tag zurückspringen; das soll nichts vorziehen.
+export const TOLERANZ_TAGE = 1;
 
-// Fällige Stufen (faellig <= heute), sortiert: am längsten fällig zuerst, bei Gleichstand Grundlagen vor dem, was
+// Tag, ab dem ein Eintrag als fällig zählt (faellig, bei vor- und zurückgestellter Uhr heute) oder null
+function dueDay(e, heute) {
+  if (!e || typeof e.faellig !== "string") return null;
+  if (e.faellig <= heute) return e.faellig;
+  const zuletzt = typeof e.zuletzt === "string" ? e.zuletzt : null;
+  const abstand = zuletzt ? ABSTAENDE[clampFach(e.fach) - 1] : ABSTAENDE[FAECHER - 1];
+  if ((zuletzt && dayDiff(heute, zuletzt) > TOLERANZ_TAGE) || dayDiff(heute, e.faellig) > abstand + TOLERANZ_TAGE) return heute;
+  return e.faellig;
+}
+
+// Ist ein Eintrag des Kastens heute fällig? (mit der Regel zur zurückgestellten Uhr, dueDay)
+export const isDueEntry = (e, heute) => { const f = dueDay(e, heute); return f !== null && f <= heute; };
+
+// Fällige Stufen (isDueEntry), sortiert: am längsten fällig zuerst, bei Gleichstand Grundlagen vor dem, was
 // auf ihnen aufbaut (Reihenfolge der Pakete, dann der Stufen). Einträge zu Stufen, die es nicht (mehr) gibt oder
 // die Hilfen haben, bleiben außen vor.
 export function due(state, packs, heute) {
   const rep = state.rep || {};
   return Object.keys(rep)
-    .map((id) => ({ id, f: rep[id] && rep[id].faellig, pos: position(packs, id) }))
+    .map((id) => ({ id, f: dueDay(rep[id], heute), pos: position(packs, id) }))
     .filter((e) => typeof e.f === "string" && e.f <= heute && e.pos && inBox(packs[e.pos[0]].levels[e.pos[1]]))
     .sort((a, b) => (a.f < b.f ? -1 : a.f > b.f ? 1 : a.pos[0] - b.pos[0] || a.pos[1] - b.pos[1]))
     .map((e) => e.id);
 }
 
-// Frühester künftiger Fälligkeitstag (nach heute) oder null
+// Frühester künftiger Fälligkeitstag (nach heute) oder null; was nach dueDay heute fällig ist, zählt nicht
 export function nextDue(state, heute) {
-  const days = Object.values(state.rep || {}).map((e) => e && e.faellig)
+  const days = Object.values(state.rep || {}).map((e) => dueDay(e, heute))
     .filter((f) => typeof f === "string" && f > heute).sort();
   return days.length ? days[0] : null;
 }
@@ -247,7 +265,8 @@ function needTrigger(state, id, heute, seit) {
   const st = (state.levels || {})[id] || {};
   const e = (state.rep || {})[id];
   if (!((st.played || 0) > 0)) return seit ? null : "nie";
-  if (e && typeof e.faellig === "string" && e.faellig <= heute && (!seit || e.faellig > seit)) return "faellig";
+  const f = dueDay(e, heute);
+  if (f && f <= heute && (!seit || f > seit)) return "faellig";
   const last = typeof st.last === "number" ? st.last : st.best || 0;
   if (last < GUT && (!seit || (typeof st.day === "string" && st.day > seit))) return "schwach";
   return null;
