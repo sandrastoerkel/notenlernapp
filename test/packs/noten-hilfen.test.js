@@ -70,7 +70,7 @@ test("Merkleiste: Zeile des Schlüssels nur bei den Linien (Violin 2. Linie g', 
     assert.equal(lin.length, 1, clef);
     const b = SCHLUESSEL_BEZUG[clef];
     assert.equal(lin[0].label, `${b.pos / 2 + 1}. Linie`);
-    assert.equal(lin[0].bezug, b.text);
+    assert.equal(lin[0].bezug.replace(/\u00a0/g, " "), b.text);
     assert.equal(rowsOf(merkleiste(clef, "raeume", s)).filter((r) => r.bezug).length, 0, clef);
   }
   // Inhalt gegen staffPos: g' auf der 2. Linie im Violin-, f auf der 4. Linie im Bassschlüssel

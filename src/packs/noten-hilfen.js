@@ -54,7 +54,8 @@ export function merkleiste(clef, art, state) {
   const bez = art === "linien" ? SCHLUESSEL_BEZUG[clef === "treble" ? "treble" : "bass"] : null;
   const rows = stellen(art).map((st, i) => {
     const w = wortZu(state, id, i);
-    const extra = bez && bez.pos === st.pos ? `<span class="nl-bezug">${bez.text}</span>` : "";
+    // geschütztes Leerzeichen nach dem Doppelpunkt: der Ton bleibt beim Wort davor
+    const extra = bez && bez.pos === st.pos ? `<span class="nl-bezug">${bez.text.replace(": ", ":\u00a0")}</span>` : "";
     return { label: `<span class="nl-lage">${st.label}</span>${extra}`, cells: [{ text: `<span class="nl-wort">${wortHtml(w)}</span>` }] };
   }).reverse();
   const was = art === "linien" ? "Linien" : "Zwischenräume";

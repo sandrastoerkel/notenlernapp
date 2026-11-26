@@ -766,7 +766,15 @@ svg.ok .beam { fill: var(--ok); } svg.bad .beam { fill: var(--bad); }
 @media (max-width: 380px) {
   .help-table-wrap .nl-namen { --tile: 20px; }
   .help-table-wrap .nl-namen td { padding: 1px; }
-  .nl-regel th, .nl-regel td { padding: 4px 3px; }
+}
+/* Regel auf Handys (bis 599 px): Zeichen links über zwei Zeilen, rechts Wirkung und Name untereinander (drei
+   Spalten wären zu schmal: „einen Halbton höher“ bräche bei 420 px in zwei, bei 320 px in drei Zeilen) */
+@media (max-width: 599px) {
+  .nl-regel tr { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--line); }
+  .nl-regel tr:last-child { border-bottom: 0; }
+  .nl-regel th, .nl-regel td { padding: 0; border-bottom: 0; }
+  .nl-regel .nl-zeichen { grid-row: span 2; }
+  .nl-regel .nl-wirkung { font-weight: 700; }
 }
 
 
