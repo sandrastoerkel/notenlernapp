@@ -126,6 +126,7 @@ export async function answerQuestion(pg, right, after = null, errs = [], before 
       if (await vis(pg, "#pNext")) await pg.click("#pNext");
       else await pg.waitForFunction(STEP_READY, null, { timeout: 4000 }).catch(() => errs.push(`${info.id}: Schritt ${s + 2} kam nicht`));
       await pg.waitForTimeout(150);
+      await unguarded(pg);
     }
   }
   return info;
@@ -152,6 +153,13 @@ export async function goOn(pg) {
     await pg.waitForTimeout(100);
   }
   await pg.waitForTimeout(150);
+  await unguarded(pg);
+}
+
+// Nach „Weiter zu Schritt 2“ bzw. „Nächste Aufgabe“ nimmt die Runde SWITCH_GUARD lang keine Antwort an (Korrektur
+// nach der Prüfung Welle 12, J-B2): warten, bis die Sperre vorbei ist (engine.isGuarded)
+export async function unguarded(pg) {
+  await pg.waitForFunction(async () => !(await import("./src/engine.js")).isGuarded(), null, { timeout: 3000 }).catch(() => {});
 }
 
 // Ganze Runde spielen, bis die Ergebniskarte da ist. decide(info, k) → right (wie bei answerQuestion) für die k-te

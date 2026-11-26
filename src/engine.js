@@ -28,6 +28,12 @@ export const DELAY_OK = 800;
 // Pause zwischen erstem und zweitem Schritt (q.steps), nur wenn Schritt 1 richtig war; daneben wartet die
 // Runde auf „Weiter zu Schritt 2“
 export const DELAY_STEP_OK = 700;
+// Sperre nach „Weiter zu Schritt 2“ bzw. „Nächste Aufgabe“ (auch Enter, Leertaste, Knopf am Ende der Vorführung;
+// Korrektur nach der Prüfung Welle 12, J-B2): So lange zählt keine Antwort (Knopf, Taste der Klaviatur, Tastatur).
+// Ein Doppeltipp auf den Weiter-Knopf trifft sonst den Antwortbereich, der darunter neu erscheint, und beantwortet
+// den neuen Schritt ungesehen. Nach einer Antwort ist die Runde ohnehin gesperrt (r.locked, DELAY_STEP_OK bzw.
+// DELAY_OK), dort braucht es keine eigene Sperre.
+export const SWITCH_GUARD = 380;
 // Längster Rückmeldetext (Zeichen), nach dem eine richtige Antwort in einer Stufe ohne Hilfen von selbst
 // weitergeht; längere Texte bleiben stehen, bis du tippst. Startwert, nach dem Test mit Kindern anpassen.
 export const AUTO_OK_MAX = 45;
@@ -765,7 +771,7 @@ function keepFocus(r, had) {
 }
 
 function answer(r, value, el) {
-  if (run !== r || r.locked) return;
+  if (run !== r || r.locked || r.guarded) return;
   const q = r.items[r.idx];
   if (q.steps) return answerStep(r, value, el);
   const ok = !!cur(r).check(q, value);
@@ -872,12 +878,20 @@ function resume(r) {
   if (r.demo) r.demo.stop();
   r.advance();
   if (run !== r) return; // Runde zu Ende: die Ergebniskarte übernimmt
+  guardSwitch(r);
   // Auf Handys stehen die Hilfen unter den Antworten: Wer am Ende der Vorführung weitergeht, sieht sonst die
   // neue Notenzeile nicht. Sie rückt wieder ins Bild (Abstand zur Kopfleiste: scroll-margin-top in style.css).
   showStaff(r.ui.staff);
   // Fokus nicht auf <body> fallen lassen: auf den Antwortbereich (tabindex="-1"), von dort führt Tab zu den
   // Antworten. Kein Antwortknopf selbst, damit Enter oder Leertaste nicht aus Versehen antworten.
   if (lost) focusEl([r.ui.answers, r.ui.piano].find((e) => e && !e.hidden), { preventScroll: true });
+}
+
+// Nach dem Weitergehen kurz keine Antwort annehmen (SWITCH_GUARD); ein neuer Wechsel beginnt die Sperre neu
+function guardSwitch(r) {
+  if (r.guardId) { clearTimeout(r.guardId); r.timers.delete(r.guardId); }
+  r.guarded = true;
+  r.guardId = later(r, () => { r.guarded = false; r.guardId = null; }, SWITCH_GUARD);
 }
 
 function showStaff(el) {
@@ -889,6 +903,8 @@ function showStaff(el) {
 
 // Für Tests und die Browserprüfung: wartet die Runde gerade auf „Nächste Aufgabe“?
 export const isWaiting = () => !!(run && run.waiting);
+// Für die Browserprüfung (docs/screens/spiel.mjs): läuft gerade die Sperre nach dem Weitergehen (SWITCH_GUARD)?
+export const isGuarded = () => !!(run && run.guarded);
 // Für Tests und die Browserprüfung: die aktuelle Aufgabe (oder null)
 export const currentQuestion = () => (run ? run.items[run.idx] || null : null);
 
@@ -933,7 +949,7 @@ export function handleKey(e) {
     resume(r);
     return true;
   }
-  if (run.locked) return false;
+  if (run.locked || run.guarded) return false;
   const kind = kindNow(r);
   if (kind === "choices") {
     // Ziffern bei Knopfsätzen mit digits (Prime … Oktave); in einem Auswahl-Schritt zählt kein Buchstabe

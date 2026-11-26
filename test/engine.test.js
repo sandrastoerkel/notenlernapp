@@ -8,7 +8,7 @@ import {
   playMode, revealedSvg, svgResultClass, playSchedule, rhythmEnd, answerDelay, PLAY_GAP, BEAT_MS, RHYTHM_TAIL, DELAY_OK, AUTO_OK_MAX, waitsAfter, NEXT_STEP, DEMO_WAIT_SHORT, stepsResult,
   choiceSet, setClass, stepsFeedback, digitAction, helpsHtml, hasHelps, HELP_FROM, helpFrom, helpsTitle, DELAY_STEP_OK,
   startRound, stop, handleKey, ROUND_LENGTH, isWaiting, DEMO_LABEL, DEMO_WAIT, DEMO_READY, DEMO_NEXT, waitsForNext, silenceTones,
-  makeMixed, startMixed, originText, perLevelOf, currentQuestion, RESULT_HEAD, ALL_RIGHT, keepTogether,
+  makeMixed, startMixed, originText, perLevelOf, currentQuestion, RESULT_HEAD, ALL_RIGHT, keepTogether, SWITCH_GUARD,
 } from "../src/engine.js";
 import { mock } from "node:test";
 import { setMuted } from "../src/audio.js";
@@ -583,7 +583,8 @@ function runLevel(level, items) {
   };
   const choiceSetFor = (u, b) => u.answers.innerHTML.match(new RegExp(`data-choice="${b.dataset.choice}">([^<]+)<`))[1];
   // „Nächste Aufgabe“ tippen (Stufen mit Hilfen warten darauf)
-  const next = () => ui.next.onclick();
+  // danach die Sperre nach dem Weitergehen abwarten (SWITCH_GUARD, J-B2)
+  const next = () => { ui.next.onclick(); mock.timers.tick(SWITCH_GUARD); };
   return { ui, state, click, next, done: () => finished, buttons: () => ui.answers.querySelectorAll(".btn[data-choice]").map((b) => choiceSetFor(ui, b)) };
 }
 
@@ -752,6 +753,7 @@ test("Ablauf: „Vorführen“ erst nach der Antwort, die Runde wartet, „Näch
     assert.equal(ui.count.textContent, "2 / 10");
     assert.equal(ui.next.hidden, true);
     assert.ok(ui.helpsBody.innerHTML.includes("data-demo-btn disabled"));
+    mock.timers.tick(SWITCH_GUARD);
     // Zuklappen der Hilfen während der Vorführung geht ebenfalls weiter
     click("Terz"); mock.timers.tick(DELAY_STEP_OK); click("kleine Terz");
     ui.helpsBody.onclick({ target: target("[data-demo-btn]") });
@@ -787,7 +789,7 @@ function nextOnceRun(level) {
     ui.answers.onclick({ target });
     if (s < steps - 1) {
       mock.timers.tick(DELAY_STEP_OK);
-      if (!ui.next.hidden) { assert.equal(ui.next.textContent, NEXT_STEP); ui.next.onclick(); }
+      if (!ui.next.hidden) { assert.equal(ui.next.textContent, NEXT_STEP); ui.next.onclick(); mock.timers.tick(SWITCH_GUARD); }
     }
   }
   return { ui, q };
@@ -898,8 +900,10 @@ test("Ablauf: Stufe mit Hilfen wartet beliebig lange auf „Nächste Aufgabe“ 
     assert.equal(key("Enter", { closest: (s) => (s.includes("[data-act]") ? {} : null) }), false);
     assert.equal(key("Enter"), true);
     assert.equal(r.ui.count.textContent, "2 / 10"); assert.equal(isWaiting(), false); assert.equal(r.ui.next.hidden, true);
+    mock.timers.tick(SWITCH_GUARD);
     key(digit); mock.timers.tick(DELAY_OK * 100);
     assert.equal(key(" "), true, "Leertaste geht ebenfalls weiter");
+    mock.timers.tick(SWITCH_GUARD);
     for (let i = 2; i < ROUND_LENGTH - 1; i++) { key(digit); r.next(); }
     assert.equal(r.done(), null, "nach der letzten Antwort noch nicht beendet");
     assert.equal(r.ui.next.hidden, true);
@@ -1001,6 +1005,7 @@ test("Ablauf: Stufe ohne Hilfen wartet nach „daneben“ (kein Zeitgeber, ui.ne
     assert.equal(isWaiting(), true); assert.equal(r.ui.next.hidden, false); assert.equal(r.ui.next.textContent, DEMO_NEXT);
     assert.equal(handleKey({ key: " ", preventDefault() {} }), true);
     assert.equal(r.ui.count.textContent, "2 / 10"); assert.equal(r.ui.next.hidden, true);
+    mock.timers.tick(SWITCH_GUARD);
     // richtig mit kurzem Text: von selbst weiter
     assert.ok(feedbackText(q, true).length <= AUTO_OK_MAX);
     handleKey({ key: String(right + 1), preventDefault() {} });
@@ -1044,6 +1049,7 @@ test("Ablauf: Schritt 1 daneben → „Weiter zu Schritt 2“ per Enter und Leer
       assert.equal(r.ui.next.hidden, false); assert.equal(r.ui.next.textContent, NEXT_STEP);
       assert.equal(key("3"), false, "während des Wartens keine Antwort");
       assert.equal(key(k), true);
+      mock.timers.tick(SWITCH_GUARD);
       assert.equal(r.ui.next.hidden, true);
       assert.deepEqual(r.buttons(), ["kleine Terz", "große Terz"]);
       assert.equal(r.state.answered, k === "Enter" ? 0 : 1, "Schritt 1 zählt noch nicht");
@@ -1124,7 +1130,7 @@ const clickChoice = (ui, text) => {
   ui.answers.onclick({ target: b });
 };
 // weiter zur nächsten Aufgabe: „Nächste Aufgabe“, wenn die Runde wartet, sonst die Pause abwarten
-const advance = (ui) => { if (isWaiting()) ui.next.onclick(); else mock.timers.tick(5000); };
+const advance = (ui) => { if (isWaiting()) { ui.next.onclick(); mock.timers.tick(SWITCH_GUARD); } else mock.timers.tick(5000); };
 
 test("makeMixed: Anzahl je Stufe, q.from, prev und ctx.round innerhalb der Stufe, nie zweimal dieselbe Stufe hintereinander", () => {
   const seen = [];
@@ -1251,7 +1257,7 @@ test("Gemischte Runde: jede Eingabeart im Wechsel (Buchstaben, Namensraster, Aus
     mock.timers.tick(100000);
     assert.equal(ui.count.textContent, "3 / 8", "nach „daneben“ kein Zeitgeber");
     assert.equal(isWaiting(), true); assert.equal(ui.next.hidden, false); assert.equal(ui.next.textContent, DEMO_NEXT);
-    ui.next.onclick();
+    ui.next.onclick(); mock.timers.tick(SWITCH_GUARD);
     // 4. intervall-2: Auswahlknöpfe mit Ziffern
     assert.equal(ui.origin.textContent, "Intervalle · Stufe 2");
     expectChoices(items[3]);
@@ -1556,7 +1562,7 @@ function runProbe(level, input = "letters") {
   const key = (k) => handleKey({ key: k, preventDefault() {} });
   const rect = (semi) => ui.piano.querySelectorAll("rect").find((k) => k.dataset.semi === String(semi));
   const tap = (semi) => { const k = rect(semi); ui.piano.onclick({ target: k }); return k; };
-  return { ui, doc, state, btns, labels, btn, click, key, rect, tap, next: () => ui.next.onclick(), done: () => finished };
+  return { ui, doc, state, btns, labels, btn, click, key, rect, tap, next: () => { ui.next.onclick(); mock.timers.tick(SWITCH_GUARD); }, done: () => finished };
 }
 
 test("Noten-Schritt [Auswahl, Buchstaben]: Reihenfolge der Antwortbereiche, Tastatur je Schritt, Teilerfolg", () => {
@@ -1829,4 +1835,91 @@ test("Gemischte Runden: Stufen ohne Hilfen haben keine Schritte mit Noteneingabe
       assert.ok(!(prev.steps || []).some((s) => NOTE_STEPS.includes(s.note)), l.id);
     }
   }
+});
+
+// Korrektur nach der Prüfung Welle 12 (J-B2): Wer „Weiter zu Schritt 2“ oder „Nächste Aufgabe“ doppelt tippt, trifft
+// mit dem zweiten Tipp den Antwortbereich, der darunter neu erscheint. SWITCH_GUARD lang zählt dort keine Antwort –
+// weder Knopf noch Taste der Klaviatur noch Tastatur; danach wie gewohnt. Gemessen wurde mit 80 und 250 ms Abstand.
+test("Doppeltipp: nach „Weiter zu Schritt 2“ und „Nächste Aufgabe“ zählt SWITCH_GUARD lang keine Antwort (Knopf, Klaviatur, Tastatur)", () => {
+  setMuted(true);
+  mock.timers.enable({ apis: ["setTimeout"] });
+  try {
+    assert.ok(SWITCH_GUARD >= 350 && SWITCH_GUARD <= 400, "etwa 350–400 ms");
+    const lv = (id) => noten.levels.find((l) => l.id === id);
+    const SEMI = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, H: 11 };
+    const wrongLetter = (a) => LETTERS.find((x) => x !== a.letter);
+    const marked = (r) => r.btns().concat(r.ui.piano.querySelectorAll("rect")).some((b) => b.classList.contains("ok") || b.classList.contains("bad"));
+    const press = (r, a) => {
+      const b = r.btns().find((x) => x.dataset.letter === a.letter && (x.dataset.acc === undefined || x.dataset.acc === String(a.acc || 0)));
+      assert.ok(b, `Knopf ${a.letter} ${a.acc}`);
+      r.ui.answers.onclick({ target: b });
+    };
+    // (a) Namensraster: Vorzeichen-Stufen 11 und 13, Eingabe „Namen“
+    for (const id of ["noten-11", "noten-13"]) for (const gap of [80, 250]) {
+      const r = runProbe(lv(id));
+      const q = currentQuestion();
+      press(r, { letter: wrongLetter(q.steps[0].answer), acc: 0 });
+      assert.equal(r.ui.next.hidden, false); assert.equal(r.ui.next.textContent, NEXT_STEP);
+      r.ui.next.onclick(); mock.timers.tick(gap);
+      assert.equal(r.btns().length, 21, `${id}: Schritt 2 mit Namensraster`);
+      press(r, q.steps[1].answer);
+      assert.equal(r.state.answered, 0, `${id}, ${gap} ms: Schritt 2 nicht beantwortet`);
+      assert.equal(r.ui.feedback.textContent, q.steps[1].prompt, `${id}, ${gap} ms: Frage von Schritt 2 steht noch da`);
+      assert.equal(marked(r), false);
+      // auch getippt nicht
+      assert.equal(r.key("Enter"), false);
+      mock.timers.tick(SWITCH_GUARD - gap);
+      press(r, q.steps[1].answer);
+      assert.equal(r.state.answered, 1, `${id}: nach der Sperre zählt die Antwort`);
+      // „Nächste Aufgabe“ doppelt: Schritt 1 der nächsten Aufgabe bleibt offen
+      assert.equal(isWaiting(), true);
+      r.ui.next.onclick(); mock.timers.tick(gap);
+      assert.equal(r.ui.count.textContent, "2 / 10");
+      const q2 = currentQuestion();
+      press(r, { letter: wrongLetter(q2.steps[0].answer), acc: 0 });
+      assert.equal(r.ui.feedback.textContent, q2.steps[0].prompt, `${id}, ${gap} ms: Schritt 1 der nächsten Aufgabe offen`);
+      assert.equal(r.ui.next.hidden, true); assert.equal(marked(r), false);
+      mock.timers.tick(SWITCH_GUARD - gap);
+      press(r, q2.steps[0].answer);
+      assert.equal(r.ui.feedback.className, "feedback ok");
+      stop();
+    }
+    // (b) Klaviatur: Stufe 4 (beide Schritte mit Noten), Stufe 1 (Schritt 2 mit Noten)
+    for (const gap of [80, 250]) {
+      const r = runProbe(lv("noten-4"), "keys");
+      const q = currentQuestion();
+      assert.equal(r.ui.piano.hidden, false);
+      r.tap(SEMI[wrongLetter(q.steps[0].answer)]);
+      r.ui.next.onclick(); mock.timers.tick(gap);
+      r.tap(SEMI[q.steps[1].answer.letter]);
+      assert.equal(r.state.answered, 0, `noten-4, ${gap} ms: Taste in Schritt 2 zählt nicht`);
+      assert.equal(marked(r), false);
+      mock.timers.tick(SWITCH_GUARD - gap);
+      r.tap(SEMI[q.steps[1].answer.letter]);
+      assert.equal(r.state.answered, 1);
+      r.ui.next.onclick(); mock.timers.tick(gap);
+      const q2 = currentQuestion();
+      r.tap(SEMI[wrongLetter(q2.steps[0].answer)]);
+      assert.equal(r.ui.feedback.textContent, q2.steps[0].prompt, `noten-4, ${gap} ms: Schritt 1 der nächsten Aufgabe offen`);
+      mock.timers.tick(SWITCH_GUARD - gap);
+      // (c) Tastatur: Enter geht weiter, ein Buchstabe gleich danach zählt nicht
+      r.tap(SEMI[wrongLetter(q2.steps[0].answer)]);
+      assert.equal(r.key("Enter"), true);
+      mock.timers.tick(gap);
+      assert.equal(r.key(q2.steps[1].answer.letter.toLowerCase()), false, `noten-4, ${gap} ms: Taste nach Enter zählt nicht`);
+      assert.equal(r.state.answered, 1);
+      mock.timers.tick(SWITCH_GUARD - gap);
+      assert.equal(r.key(q2.steps[1].answer.letter.toLowerCase()), true);
+      assert.equal(r.state.answered, 2);
+      stop();
+      const s = runProbe(lv("noten-1"), "keys");
+      const p = currentQuestion();
+      s.click(p.steps[0].choices.find((c) => c !== p.steps[0].answer));
+      s.ui.next.onclick(); mock.timers.tick(gap);
+      assert.equal(s.ui.piano.hidden, false, "Schritt 2: Klaviatur");
+      s.tap(SEMI[p.steps[1].answer.letter]);
+      assert.equal(s.state.answered, 0, `noten-1, ${gap} ms: Taste in Schritt 2 zählt nicht`);
+      stop();
+    }
+  } finally { stop(); mock.timers.reset(); }
 });
