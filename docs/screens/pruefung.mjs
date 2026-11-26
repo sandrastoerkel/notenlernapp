@@ -273,17 +273,18 @@ const SCENES = [
     await shot(pg, "startkarte-intervall-3-grund-schwach", "Startkarte Intervalle 3: Empfehlung, weil „Noten mit Vorzeichen“ zuletzt unter 8 von 10 lag");
   }],
   ["wiederholen", async ({ page, shot, need }) => {
-    // Runde 1: Noten lesen 7 alles richtig (sitzt), Notenwerte 5 einmal daneben, Intervalle 4 einmal Teilerfolg (beide
-    // „fast“: ein Fehler bei 3 oder 4 Aufgaben, Korrektur W-B2)
+    // Runde 1: Noten lesen 7 alles richtig (sitzt), Notenwerte 5 zweimal daneben („noch wacklig“ mit Knopf zum Üben),
+    // Intervalle 4 einmal Teilerfolg („fast“: ein Fehler bei 3 oder 4 Aufgaben, Korrektur W-B2; ohne Knopf, Nachprüfung)
     let pg = await page(faellig());
     await pg.click("#homeReview"); await pg.waitForTimeout(300);
     const seen = new Set(), wrong = new Set();
+    let nw5 = 0;
     for (let k = 0; k < 12 && !(await vis(pg, "#pResult")); k++) {
       const info = await pg.evaluate(CUR);
       const first = !seen.has(info.id); seen.add(info.id);
       if (first) await shot(pg, `wiederholen-aufgabe-${info.id}`, `Runde „Wiederholen“, erste Aufgabe aus ${title(info.id)} (Herkunftszeile über der Notenzeile)`);
       let right = true, files = {};
-      if (info.id === "notenwerte-5" && !wrong.has(info.id)) { right = false; files = { last: ["wiederholen-daneben-notenwerte-5", "Runde „Wiederholen“, nach „daneben“ (Notenwerte 5): Auflösung, ✓ am richtigen Knopf, „Nächste Aufgabe“"] }; }
+      if (info.id === "notenwerte-5" && nw5++ < 2) { right = false; if (!wrong.has(info.id)) files = { last: ["wiederholen-daneben-notenwerte-5", "Runde „Wiederholen“, nach „daneben“ (Notenwerte 5): Auflösung, ✓ am richtigen Knopf, „Nächste Aufgabe“"] }; }
       if (info.id === "intervall-4" && !wrong.has(info.id)) { right = [false, true]; files = { 0: ["wiederholen-daneben-schritt-1-intervall-4", "Runde „Wiederholen“, Intervalle 4: erster Schritt daneben, „Weiter zu Schritt 2“"], last: ["wiederholen-teilerfolg-intervall-4", "Runde „Wiederholen“, Intervalle 4: nur der zweite Schritt richtig (Teilerfolg, gold)"] }; }
       if (info.id === "noten-7" && first) files = { last: ["wiederholen-richtig-noten-7", "Runde „Wiederholen“, Noten lesen 7 richtig (Namensraster)"] };
       if (right !== true) wrong.add(info.id);
@@ -291,7 +292,7 @@ const SCENES = [
       await goOn(pg);
     }
     if (await need(pg, "#pResult .review-line", "Urteilszeilen")) {
-      await shot(pg, "wiederholen-ergebnis-sitzt-wacklig", "Ergebniskarte „Wiederholung beendet“: Noten lesen 7 „sitzt“, Notenwerte 5 und Intervalle 4 „fast“ (je mit „… von …“) mit „Stufe 4 mit Hilfen üben“ bzw. „Stufe 3 mit Hilfen üben“, „Noch eine Wiederholung“");
+      await shot(pg, "wiederholen-ergebnis-sitzt-wacklig", "Ergebniskarte „Wiederholung beendet“ (je Stufe „… von …“): Noten lesen 7 „sitzt“, Notenwerte 5 „noch wacklig“ mit „Stufe 4 mit Hilfen üben“, Intervalle 4 „fast“ ohne Knopf, „Noch eine Wiederholung“");
     }
     // Runde 2 über „Noch eine Wiederholung“: nur Tonleitern 3 (zwei Knöpfe), alles richtig
     if (await need(pg, "#rMore", "„Noch eine Wiederholung“")) {
@@ -355,7 +356,7 @@ const SCENES = [
     pg = await page(LEER);
     await openLevel(pg, "noten-1"); await startRound(pg);
     for (let k = 0; k < 12 && !(await vis(pg, "#pResult")); k++) { await answerQuestion(pg, true, null, errors); await goOn(pg); }
-    if (await need(pg, "#rRepeat", "„Geschafft – kommt morgen …“")) await shot(pg, "ergebnis-neu-im-kasten", "Ergebniskarte Noten lesen 1, 10 von 10: „Geschafft – kommt morgen zum Wiederholen wieder.“, „Stufe 2 ist offen.“");
+    if (await need(pg, "#rRepeat", "„Geschafft – kommt morgen …“")) await shot(pg, "ergebnis-geschafft", "Ergebniskarte Noten lesen 1, 10 von 10: „Geschafft – kommt morgen zum Wiederholen wieder.“, „Stufe 2 ist offen.“");
   }],
   ["lernen", async ({ page, shot }) => {
     const pg = await page(fort());
@@ -429,7 +430,7 @@ const SCENES = [
     pg = await page(withKlasse(fort(), 7), "#klasse=keine");
     if (await need(pg, "#klasseDialog", "Dialog")) await shot(pg, "dialog-jahrgang-entfernen", "Link #klasse=keine: „Jahrgang entfernen?“, „Entfernen“ / „Nicht entfernen“");
     pg = await page(fort(), "#klasse=99");
-    if (await need(pg, "#klasseBar", "Hinweisleiste")) await shot(pg, "hinweis-link-passt-nicht", "Link #klasse=99: Leiste „Der Link passt nicht zu dieser App-Version.“ über der unteren Leiste, Spielstand unverändert");
+    if (await need(pg, "#klasseBar", "Hinweisleiste")) await shot(pg, "hinweis-link-passt-nicht", "Link #klasse=99: Leiste „Dieser Link funktioniert hier nicht. …“ (Grund, nächster Schritt, „Dein Fortschritt bleibt.“) über der unteren Leiste, Spielstand unverändert");
   }],
   ["statistik", async ({ page, shot, need }) => {
     const pg = await page(withKlasse(fort(), 6));

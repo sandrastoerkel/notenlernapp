@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { startLabel, keysHint, lettersLabel, resultInfo, missingText, answersScroll, startHint, TWO_STEPS_NOTE, resultLine, avgText, perLevelLine, MIXED_HEAD,
   BASICS_LABEL, needsHtml, needLabel, reasonText, basicsTitle, countWord, gapGroups, placesText, gapText, openLabel, resultBasics,
-  reviewTitle, verdictText, reviewLine, practiceOffer, repeatNote, needOffer, basicsResultPlan } from "../../src/views/practice.js";
+  reviewTitle, verdictText, reviewLine, practiceOffer, repeatNote, needOffer, basicsResultPlan, reviewOffers } from "../../src/views/practice.js";
 import { keepStufe, textOf } from "../../src/engine.js";
 import { PACKS } from "../../src/packs/index.js";
 import { lockText } from "../../src/views/home.js";
@@ -353,6 +353,12 @@ test("Runde „Wiederholen“: Kopf, Urteil je Stufe, Knopf bei „noch wacklig�
   assert.deepEqual(practiceOffer(PACKS, "noten-7"), { id: "noten-7", label: `Stufe${NB}7 üben` });
   assert.deepEqual(practiceOffer(PACKS, "notenwerte-3"), { id: "notenwerte-2", label: `Stufe${NB}2 mit Hilfen üben` });
   assert.deepEqual(practiceOffer(PACKS, "akkorde-2"), { id: "akkorde-2", label: `Stufe${NB}2 üben` });
+  // Knopf nur unter „noch wacklig“, nicht unter „fast“ und „sitzt“ (Nachprüfung Welle 11); ältere Ergebnisse ohne urteil
+  // über sitzt (nicht sitzt = noch wacklig)
+  assert.deepEqual(reviewOffers(PACKS, [
+    { id: "noten-7", urteil: "sitzt", sitzt: true }, { id: "notenwerte-5", urteil: "fast", sitzt: false },
+    { id: "tonleitern-5", urteil: "wacklig", sitzt: false }, { id: "intervall-4", sitzt: false },
+  ]).map((o) => o && o.id), [null, null, "tonleitern-4", "intervall-3"]);
   // Satz auf der Ergebniskarte einer normalen Runde
   assert.equal(repeatNote(null), "");
   assert.equal(repeatNote({ id: "noten-3", sitzt: true, fach: 1, inTagen: 1, neu: true }), "Geschafft – kommt morgen zum Wiederholen wieder.");

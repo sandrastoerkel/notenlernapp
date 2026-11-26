@@ -280,6 +280,12 @@ export function practiceOffer(packs, id) {
   return { id: level.id, label: engine.keepStufe(`Stufe ${level.no} üben`) };
 }
 
+// Knöpfe der Ergebniskarte „Wiederholen“ je Urteil (rein, getestet; Nachprüfung Welle 11): nur unter „noch wacklig“
+// (zwei und mehr Fehler, ein Fach zurück) practiceOffer, sonst null. „fast“ (ein Fehler, Fach bleibt, morgen wieder)
+// bekommt keinen Knopf: Die Wiederholung morgen entscheidet, und die Karte bleibt bei drei Stufen übersichtlich (W-B6).
+export const reviewOffers = (packs, verdicts) =>
+  verdicts.map((v) => (urteilOf(v) === "wacklig" ? practiceOffer(packs, v.id) : null));
+
 // Satz auf der Ergebniskarte einer normalen Runde (v aus repeat.afterRound oder null, rein, getestet).
 // Neu geschafft: „Geschafft – kommt morgen zum Wiederholen wieder.“ (Korrektur J-B8, statt „Neu im Kasten“).
 // Nicht fällig, unter 8 Richtigen (W-B7): „Wiederholung: morgen noch einmal.“
@@ -363,12 +369,12 @@ function showBasicsResult(res, levelId, only) {
 
 // Ergebniskarte „Wiederholen“: Sterne nur als Anzeige der Runde (starsFor wie beim Bonus, die Runde hat immer
 // RUNDE_WIEDERHOLEN Aufgaben), darunter nur der erste Teil des Satzes („Gut.“) – kein Versprechen eines Sterns, den
-// die Runde nicht einträgt (J-B2, L-B1) –, je Stufe das Urteil, bei „noch wacklig“ ein Knopf zum Üben; „Noch eine
-// Wiederholung“ nur, wenn weiter etwas fällig ist
+// die Runde nicht einträgt (J-B2, L-B1) –, je Stufe das Urteil, bei „noch wacklig“ ein Knopf zum Üben (reviewOffers);
+// „Noch eine Wiederholung“ nur, wenn weiter etwas fällig ist
 function showReviewResult(res, verdicts) {
   const stars = starsFor(res.correct);
   const more = reviewPlan(ctx.state, ctx.packs, today()).length > 0;
-  const offers = verdicts.map((v) => (v.sitzt ? null : practiceOffer(ctx.packs, v.id)));
+  const offers = reviewOffers(ctx.packs, verdicts);
   $("#pPlay").hidden = true; $("#pHelps").hidden = true; $("#pOrigin").hidden = true;
   $("#pResult").hidden = false;
   $("#pResult").innerHTML = `
