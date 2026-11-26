@@ -224,6 +224,47 @@ test("load mit dem echten Paket: alte Stände (alle 3⁸) – Sterne bleiben, wa
   }
 });
 
+// Prüfung Schritt 2: Im Test oben hängt die Marke am Fortschritt (code % 9) und der Kasten ist immer derselbe. Hier
+// deshalb Zusage 2 über alle 3⁸ Stände × Marke 0 … 8 × unlockAll aus/an und Zusage 3 über alle 2⁸ Teilmengen von
+// Kasten-Einträgen – beides mit dem echten Paket über migrateAll (Reihenfolge wie beim Laden).
+test("Echtes Paket: was offen war, bleibt offen – alle 3⁸ Stände × Marke 0 … 8 × unlockAll", () => {
+  let offen = 0;
+  for (let code = 0; code < 3 ** 8; code++) {
+    const levels = levelsOf(code);
+    for (let marke = 0; marke <= 8; marke++) for (const unlockAll of [false, true]) {
+      const old = { ...fresh(), migrated: VOR_W12, levels, unlockAll, klasseOffen: marke ? { noten: marke } : {} };
+      const war = OLD_PACK.levels.filter((l) => isUnlocked(old, OLD_PACK, l.id)).map((l) => l.id);
+      const s = structuredClone(old);
+      migrateAll(s, BOX, HEUTE, 0);
+      for (const id of war) assert.ok(isUnlocked(s, noten, RENAMED_NOTEN[id]), `${code}/${marke}/${unlockAll}: ${id} → ${RENAMED_NOTEN[id]}`);
+      offen += war.length;
+      // der Merker offen zählt nirgends als gespielt
+      for (const e of Object.values(s.levels)) if (e.offen) assert.equal(e.played, 0);
+    }
+  }
+  assert.ok(offen > 3 ** 8 * 18, "die Prüfung hat etwas geprüft");
+});
+
+test("Echtes Paket: Karteikasten für alle 2⁸ Teilmengen – nur Stufen ohne Hilfen, die es gibt; andere Pakete unverändert", () => {
+  const eintrag = (i) => ({ fach: (i % 5) + 1, faellig: addDays(HEUTE, i - 3), zuletzt: addDays(HEUTE, -i) });
+  const fremd = { "intervall-2": { fach: 4, faellig: addDays(HEUTE, 9), zuletzt: HEUTE }, "tonleitern-5": { fach: 1, faellig: HEUTE, zuletzt: null } };
+  for (let m = 0; m < 2 ** 8; m++) {
+    const rep = { ...fremd };
+    for (let i = 1; i <= 8; i++) if (m & (1 << (i - 1))) rep[`noten-${i}`] = eintrag(i);
+    const s = { ...fresh(), migrated: VOR_W12, rep: structuredClone(rep) };
+    migrateAll(s, BOX, HEUTE, 0);
+    const want = { ...fremd };
+    for (const [alt, neu] of Object.entries(BOX_NOTEN)) if (rep[alt]) want[neu] = rep[alt];
+    for (const [a, b, neu] of [["noten-1", "noten-2", "noten-3"], ["noten-4", "noten-5", "noten-8"]]) {
+      if (!rep[a] || !rep[b]) continue;
+      // Paar: kleineres Fach, frühere Fälligkeit, späteres „zuletzt“ (Abschnitt 10)
+      want[neu] = { fach: Math.min(rep[a].fach, rep[b].fach), faellig: [rep[a].faellig, rep[b].faellig].sort()[0], zuletzt: [rep[a].zuletzt, rep[b].zuletzt].sort()[1] };
+    }
+    assert.deepEqual(s.rep, want, `Teilmenge ${m}`);
+    for (const id of Object.keys(s.rep)) assert.ok(BOX.includes(id) && inBox(lv(id)), `${m}: ${id}`);
+  }
+});
+
 test("load: v1-Stand (alte Nummern) und Stand von vor Welle 11 landen auf den neuen Stufen", () => {
   const v1 = memStorage({ [KEY_V1]: JSON.stringify({ xp: 40, levels: { 3: { stars: 2, best: 8, played: 1 }, 6: { stars: 3, best: 10, played: 2 } }, current: 6 }) });
   const s = load(v1, NOW, BOX);
