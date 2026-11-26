@@ -4586,7 +4586,8 @@ Gebaut wird jeweils die **Voreinstellung**, solange Sandra nichts anderes entsch
 Berichte: `pruefung-3-perspektiven/2026-11-27_Welle12_Pruefung_{lehrkraft,jugendliche,wissenschaft}.md` (L, J, W).
 Zählung: A 0 in allen drei Berichten; B: L 2, J 4, W 3 (L-B1 = W-B1). Korrigiert in zwei parallelen Zweigen:
 TEXT (`korr-text-12`, Pakettexte, Tests, PLAN, README) und LOGIK (`korr-logik-12`, `src/engine.js`,
-`src/views/*.js`). Den Stand der LOGIK-Punkte trägt der Koordinator nach dem Zusammenführen ein.
+`src/views/*.js`). Beide Zweige sind zusammengeführt (7836ec2, 407c753); die Nachprüfung (27.11.2026, Abschnitt
+unten) hat den Stand der LOGIK-Punkte eingetragen.
 
 **A – keine.**
 
@@ -4596,12 +4597,12 @@ TEXT (`korr-text-12`, Pakettexte, Tests, PLAN, README) und LOGIK (`korr-logik-12
 |---|---|---|---|
 | L-B1 = W-B1 | Fehlermuster der Stufen 4 und 9 am falschen Schritt | TEXT | erledigt (78837c6): `stepNeeds` `[["noten-3"], []]` bzw. `[["noten-8"], []]`; Abschnitt 7 und 8 nachgezogen; Test mit dem Satz „Der erste Schritt (Linien und Zwischenräume im Violinschlüssel) hat oft nicht geklappt. Das übst du in Noten lesen, Stufe 3.“; nur Weiterzählen daneben → kein Muster |
 | L-B2 (= W-C4) | „Es → E“ / „Eis → E“ in Beschriftung und Vorführung | TEXT | erledigt (f348368, Voreinstellung des Koordinators, Sandra kann anders entscheiden): Merkwort in Anführungszeichen, „Es“ → E, in der Beschriftung der Auflösung und im Ergebnis der Vorführung „So liest du eine Note“ (auch Lerntafel). Merkleiste unverändert (Wort allein in seiner Zeile, ohne Pfeil, fetter Anfangsbuchstabe); die Rückmeldung nennt den ganzen Spruch. `WORT_MAX` 12 → 11 (gemessen, sonst ragte ein Wort aus zwölf breiten Buchstaben über die Zeile) |
-| J-B1 | „Nächste Aufgabe“ bei 320 × 640 unter dem Rand (Stufen 11–15) | LOGIK | im Zweig LOGIK |
-| J-B2 | Doppeltipp beantwortet den nächsten Schritt | LOGIK | im Zweig LOGIK |
+| J-B1 | „Nächste Aufgabe“ bei 320 × 640 unter dem Rand (Stufen 11–15) | LOGIK | erledigt (c016166): `revealNext` in `engine.js` rollt `#pNext` („Nächste Aufgabe“ und „Weiter zu Schritt 2“) ins Bild, sobald er erscheint und nicht ganz zu sehen ist (`block: "nearest"`, `scroll-margin-bottom` 72 px über dem unteren Menü, ohne Bewegung bei „Bewegung reduzieren“); der Fokus bleibt. Nachgemessen 320 × 640 dunkel: Stufe 11 Schritt 2 Knopf 523–568 (Menü ab 580), mit Klaviatur 386–431, Stufe 12 nach „daneben“ 522–568 |
+| J-B2 | Doppeltipp beantwortet den nächsten Schritt | LOGIK | erledigt (fbf4d6b, Skripte 92483ad): nach jedem Weitergehen von Hand (`resume`: Knopf, Enter, Leertaste, Knopf am Ende der Vorführung, Zuklappen der Hilfen) zählt `SWITCH_GUARD` = 380 ms lang keine Antwort (Knopf, Klaviatur, Tastatur). Nach „richtig“ mit selbsttätigem Weiterlaufen gibt es keine Sperre – zügiges Spielen bleibt, wie es war. Nachgemessen (Touch, 80 / 250 / 360 ms, Eingabe „Namen“ und „Klaviatur“): kein Schritt und keine neue Aufgabe wird ungesehen beantwortet |
 | J-B3 | Schritt 2 nennt das Ergebnis von Schritt 1 nicht | TEXT | erledigt (a18c2a9): „4. Linie – wie heißt die Note?“ (1, 2, 6, 7), „Zähle vom F weiter: Wie heißt die Note?“ (4, 9, Bezugston der Aufgabe), „Stammton C – und mit dem Vorzeichen?“ (11, 13); nie die Antwort von Schritt 2 (Test unverändert grün). J fragt Sandra, ob das so sein soll (Voreinstellung des Koordinators: ja) |
 | J-B4 | Startkarte „Noten lesen 11“ ohne Knopf im ersten Bildschirm | TEXT | erledigt (0f767a3), siehe unten |
-| W-B2 | Zeit zweischrittiger Aufgaben färbt die Notenkarte „langsam“ | LOGIK | im Zweig LOGIK |
-| W-B3 | Ergebniskarte ohne Rückweg zur Stufe mit Hilfen | LOGIK | im Zweig LOGIK |
+| W-B2 | Zeit zweischrittiger Aufgaben färbt die Notenkarte „langsam“ | LOGIK | erledigt (13c26d8): Aufgaben mit `q.steps` tragen keine Zeit ein (`countAnswer(…, q.steps ? undefined : sec)`), richtig/daneben zählt weiter; gilt für alle Pakete (ohne Zeit entscheidet die Trefferquote, `adapt.js`). Test „Zeit je Note …“ |
+| W-B3 | Ergebniskarte ohne Rückweg zur Stufe mit Hilfen | LOGIK | erledigt (88bdcb8, Nachprüfung f0ebde1): `helpOffer` – Stufe ohne Hilfen unter 8 Richtigen (`HELP_BELOW`), Stufe direkt davor mit Hilfen → „Stufe 11 mit Hilfen üben“ als Hauptknopf; Knöpfe und Reihenfolge in `resultActions`, höchstens drei. Gilt in allen Paketen (20 Stufen: Noten lesen 3, 5, 8, 10, 12, 14; Notenwerte 3, 5, 7, 9; Intervalle 2, 4, 6, 9; Tonleitern 3, 5, 7, 9, 11, 13) |
 
 **Startkarte „Noten lesen 11“ (J-B4, L-C2, offener Punkt 1 aus Abschnitt 13).** Neuer Hinweis: „Lies erst den
 Stammton (ohne Vorzeichen), dann das Zeichen. ♯ Halbton höher, „-is“: F → Fis. ♭ Halbton tiefer, „-es“: D → Des,
@@ -4649,8 +4650,34 @@ dafür müssten noch zwei Zeilen weg, dann fehlte ein Beispiel; wie bei Stufe 4 
 - W-C11 Schlüssel erst in Stufe 15 gemischt (Kindertest). W-C12 Versionszeichen im Lehrkraft-Link bei der nächsten
   Umnummerierung.
 
+**Nachprüfung (27.11.2026, nach dem Zusammenführen beider Zweige).** Alle acht B-Befunde sind behoben
+(L-B1 = W-B1 zählt einmal: L-B1/W-B1, L-B2, J-B1 bis J-B4, W-B2, W-B3). Am Code und im Browser (320 × 640, dunkel,
+Touch) nachgesehen:
+- Fehlermuster Stufe 4 und 9 gespielt: drei Fehler nur in Schritt 1 → „Der erste Schritt (Linien und Zwischenräume im
+  Violinschlüssel) hat oft nicht geklappt. Das übst du in Noten lesen, Stufe 3.“ mit „Grundlagen wiederholen“ als
+  Hauptknopf; nur Schritt 2 daneben → kein Muster. Stufe 11 und 13 unverändert richtig.
+- Fragen von Schritt 2 über alle Aufgaben der acht zweischrittigen Stufen durchgerechnet (je 400 Ziehungen): jede
+  nennt das Ergebnis von Schritt 1, keine die Antwort von Schritt 2.
+- Sperre und Rollen zusammen: Doppeltipp auf „Weiter zu Schritt 2“ und auf „Nächste Aufgabe“ (80 / 250 / 360 ms),
+  Enter – Enter – Buchstabe, Doppeltipp auf den Knopf am Ende der Vorführung: nichts wird ungesehen beantwortet; 450 ms
+  später zählt die Antwort. Schritt 1 richtig → Schritt 2 lässt sich sofort beantworten (keine Sperre). Der Weiter-Knopf
+  stand in jeder Aufgabe ganz über dem Menü; nach dem Weitergehen rückt die Notenzeile wieder ins Bild, der Fokus
+  liegt auf dem Antwortbereich bzw. der Klaviatur.
+- Startkarte 11 nachgemessen: „Runde starten“ 501–543 ohne Empfehlung; mit Empfehlung „Grundlagen wiederholen“
+  548–610, „Runde starten“ 618 (wie oben beschrieben: beginnt im ersten Bildschirm, ist nicht ganz zu sehen).
+- Ergebniskarte Stufe 12 mit 3 von 10: Satz zu den Grundlagen mit „Grundlagen wiederholen“, darunter „Stufe 11 mit
+  Hilfen üben“ als Hauptknopf und „Nochmal“ – drei Knöpfe; der Knopf führt zur Startkarte von Stufe 11.
+- Korrigiert in der Nachprüfung: ARCHITEKTUR nannte noch `ZAEHL_PROMPT`, `VZ_PROMPT` und `WORT_MAX` = 12, README „die
+  nächste Linie“ (f78b677); `resultActions` ließ den Rückweg fallen, wenn ein Muster „mit Hilfen“ keinen eigenen Knopf
+  hat (heute nicht erreichbar, f0ebde1, Test dazu).
+- Aufgefallen, so gelassen: Nach der Umstellung alter Spielstände kann die Stufe mit Hilfen davor noch zu sein (z. B.
+  Stufe 5 gespielt, Stufe 4 neu und „frei ab 8/10 in Stufe 3“). Der Knopf „Stufe 4 mit Hilfen üben“ öffnet sie
+  trotzdem; nach einer Runde bleibt sie offen. Das passt zu „erst mit Hilfen, dann ohne“ und sperrt nichts (Sandra
+  kann anders entscheiden, siehe Fragen).
+
 **Fragen an Sandra aus den Berichten:** J 1 (darf Schritt 2 das Ergebnis von Schritt 1 nennen? – gebaut: ja),
-J 2 (Namensraster schon in Schritt 1, = J-C6), J 3 (Erklärzeile zur Oktave und eine Form, = J-C4).
+J 2 (Namensraster schon in Schritt 1, = J-C6), J 3 (Erklärzeile zur Oktave und eine Form, = J-C4). Aus der
+Nachprüfung: Darf „Stufe n mit Hilfen üben“ eine Stufe öffnen, die nach der Umstellung noch zu ist? (gebaut: ja)
 
 ## Vorgaben für die nächsten Wellen (Sandra, 26.11.2026)
 
