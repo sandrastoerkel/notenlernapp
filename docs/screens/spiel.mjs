@@ -75,14 +75,21 @@ export const CUR = async () => {
   return { id: l.id, steps: q.steps ? q.steps.length : 1 };
 };
 
-// läuft in der Seite: Index eines richtigen (right = true) bzw. falschen Knopfs im aktuellen Knopfsatz (Schritt s)
+// läuft in der Seite: Ziel einer richtigen (right = true) bzw. falschen Antwort im aktuellen Knopfsatz (Schritt s) –
+// { sel, i }: Auswahl über die Antwortknöpfe, bei sichtbarer Klaviatur (Eingabe „Klaviatur“) über ihre Tasten
+// (rect[data-semi], geprüft mit check(q, Halbton) wie in der Engine); i = -1, wenn es keine passende gibt
 export const PICK = ([right, s]) => {
   const q = window.__q, l = window.__lv;
+  const piano = document.querySelector("#pPiano");
+  if (piano && !piano.hidden) {
+    const keys = [...piano.querySelectorAll("rect[data-semi]")];
+    return { sel: "#pPiano rect[data-semi]", i: keys.findIndex((k) => !!l.check(q, +k.dataset.semi) === right) };
+  }
   const btns = [...document.querySelectorAll("#pAnswers .btn")];
   const set = q.steps ? q.steps[Math.min(s, q.steps.length - 1)] : q;
   const val = (b) => (b.dataset.letter ? { letter: b.dataset.letter, acc: b.dataset.acc !== undefined ? +b.dataset.acc : 0 } : set.choices[+b.dataset.choice]);
   const ok = (b) => (q.steps ? val(b) === set.answer : !!l.check(q, val(b)));
-  return btns.findIndex((b) => !b.disabled && ok(b) === right);
+  return { sel: "#pAnswers .btn", i: btns.findIndex((b) => !b.disabled && ok(b) === right) };
 };
 
 // Eine Aufgabe beantworten, Schritt für Schritt. right: true/false für alle Schritte oder eine Liste je Schritt
@@ -94,11 +101,11 @@ export async function answerQuestion(pg, right, after = null, errs = [], before 
   if (!info) { errs.push("answerQuestion: keine laufende Runde"); return null; }
   for (let s = 0; s < info.steps; s++) {
     const want = Array.isArray(right) ? !!right[Math.min(s, right.length - 1)] : !!right;
-    let i = await pg.evaluate(PICK, [want, s]);
-    if (i < 0) i = await pg.evaluate(PICK, [!want, s]);
-    if (i < 0) { errs.push(`${info.id}: kein Knopf gefunden`); break; }
+    let p = await pg.evaluate(PICK, [want, s]);
+    if (p.i < 0) p = await pg.evaluate(PICK, [!want, s]);
+    if (p.i < 0) { errs.push(`${info.id}: kein Knopf gefunden`); break; }
     if (before) await before(s, want, info);
-    await pg.locator("#pAnswers .btn").nth(i).click(); await pg.waitForTimeout(200);
+    await pg.locator(p.sel).nth(p.i).click(); await pg.waitForTimeout(200);
     if (after) await after(`nach Schritt ${s + 1} (${want ? "richtig" : "daneben"})`, s);
     if (s < info.steps - 1) {
       // Schritt 1 daneben: „Weiter zu Schritt 2“; richtig: die Runde geht nach kurzer Zeit selbst weiter

@@ -314,6 +314,20 @@ const SCENES = [
       await goOn(pg);
     }
     await shot(pg, "wiederholen-3-ergebnis", "Ergebniskarte der dritten Runde: Noten lesen 3 und Dreiklänge 6 „sitzt“, Intervalle 9 „noch wacklig“");
+    // Runde 4 mit der Eingabe „Klaviatur“ (Prüfung Schritt 13b): Noten lesen 3 auf der Klaviatur, Intervalle 9 bleibt
+    // beim Namensraster, Dreiklänge 6 mit Auswahlknöpfen – je erste Aufgabe, dazu Noten lesen 3 nach „daneben“
+    pg = await page({ ...weit(), input: "keys" });
+    await pg.click("#homeReview"); await pg.waitForTimeout(300);
+    seen.clear();
+    for (let k = 0; k < 12 && !(await vis(pg, "#pResult")); k++) {
+      const info = await pg.evaluate(CUR);
+      const first = !seen.has(info.id); seen.add(info.id);
+      if (first) await shot(pg, `wiederholen-klaviatur-aufgabe-${info.id}`, `Runde „Wiederholen“ mit der Eingabe „Klaviatur“, erste Aufgabe aus ${title(info.id)}${info.id === "noten-3" ? " (Klaviatur statt Buchstaben)" : info.id === "intervall-9" ? " (Namensraster bleibt)" : " (Auswahlknöpfe, keine Klaviatur)"}`);
+      const right = !(first && info.id === "noten-3");
+      await answerShot(pg, shot, right, right ? {} : { last: ["wiederholen-klaviatur-daneben-noten-3", "Runde „Wiederholen“ mit Klaviatur, Noten lesen 3 daneben"] });
+      await goOn(pg);
+    }
+    await need(pg, "#pResult .review-line", "Urteilszeilen der Runde mit Klaviatur");
   }],
   ["grundlagen", async ({ page, shot, need }) => {
     const pg = await page(fort());
@@ -432,7 +446,10 @@ const SCENES = [
   ["stufen", async ({ page, shot }) => {
     const pg = await page(OFFEN);
     for (const p of PACKS) for (const l of p.levels) {
-      await openLevel(pg, l.id); await startRound(pg);
+      await openLevel(pg, l.id);
+      // jede Startkarte mit „Dafür brauchst du“ (Prüfung Schritt 13b; die vier aus NEEDY stehen schon oben)
+      if (!NEEDY.includes(l.id) && (await vis(pg, "#pNeeds"))) await shot(pg, `startkarte-${l.id}`, `Startkarte ${p.title}, Stufe ${l.no} „${l.title}“: „Dafür brauchst du: …“ mit Empfehlung (nichts gespielt, alle Stufen offen)`);
+      await startRound(pg);
       await shot(pg, `stufe-${l.id}`, `${p.title}, Stufe ${l.no} „${l.title}“: erste Aufgabe${l.helps && l.helps.length ? " (Hilfen zugeklappt)" : ""}`);
     }
   }],
@@ -462,7 +479,8 @@ writeFileSync(join(OUT, "index.md"), [
   `Uhr der App: ${HEUTE}, 10:00 Uhr (${TZ}), fest. Zufall fest (SEED ${SEED}): beide Ordner zeigen dieselben Aufgaben.`,
   `Ordner: ${LOOKS.map((l) => `\`${l.dir}/\` (${l.width} px, ${l.scheme === "dark" ? "dunkel" : "hell"})`).join(", ")}; jede Datei heißt NNN-name.png, ganze Seite, ${SKALA} Pixel je CSS-Pixel.`,
   `Seiten über ${TEIL * 1.25} px Höhe zusätzlich in Teilen zu ${TEIL} px (100 px Überlappung): \`<ordner>/teile/NNN-name-1.png\`, \`-2\` … (verkleinert lesbar).`,
-  `Spielstände: leer, „nach zwei Wochen“ (Noten lesen ganz, Notenwerte bis 5, Intervalle bis 3; Zahlen erfunden), mit fälligen Stufen, mit Jahrgang 5/7/9 (Voreinstellung nach klasse.js).`,
+  `Spielstände: leer, „nach zwei Wochen“ (Noten lesen ganz, Notenwerte bis 5, Intervalle bis 3), mit fälligen Stufen, mit Jahrgang 5/7/9 (Voreinstellung nach klasse.js), einmal mit der Eingabe „Klaviatur“.`,
+  `Alle Zahlen in diesen Spielständen (XP, Serie, Sterne, Trefferquoten, Notenkarte, Fächer, Tage) sind erfunden: Prüfdaten für die Darstellung, keine Ergebnisse von Schülerinnen oder Schülern.`,
   "",
   "| Nr | Name | zeigt |",
   "|---|---|---|",

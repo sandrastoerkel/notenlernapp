@@ -15,7 +15,7 @@
 //
 // Geprüft werden bei 320 px (dunkel) und 420 px (hell): Startseite, alle Stufen aller Pakete (Startkarte,
 // Aufgabe mit offenen Hilfen, nach jeder Antwort – abwechselnd richtig und daneben –, jede Vorführung Bild
-// für Bild), zwei Runden „Wiederholen“ (Welle 11, Schritt 8: Karteikasten mit drei fälligen Stufen vorbereitet,
+// für Bild), drei Runden „Wiederholen“ (die dritte mit der Eingabe „Klaviatur“, Prüfung Schritt 13b) (Welle 11, Schritt 8: Karteikasten mit drei fälligen Stufen vorbereitet,
 // Karte „Heute“ mit „Wiederholung starten“ und „↻ wieder dran“, Start über die Karte, alle Aufgaben abwechselnd
 // richtig und daneben, dazu Herkunftszeile und keine Reste der vorigen Eingabeart, Ergebniskarte mit dem Urteil je
 // Stufe und „… üben“, danach die Karte „Heute“ ohne Fälliges), eine normale Runde ganz richtig („Neu im Kasten“),
@@ -210,16 +210,20 @@ const NEXT_COUNT = () => [...document.querySelectorAll("button")].filter((b) => 
 }).length;
 
 // Runden „Wiederholen“ (je drei fällige Stufen, 4 + 3 + 3): Namensraster, Auswahlknöpfe, zwei Schritte;
-// Buchstaben, namesOnly, lange Auswahltexte
+// Buchstaben, namesOnly, lange Auswahltexte; mit der Eingabe „Klaviatur“ (Prüfung Schritt 13b): Klaviatur,
+// Auswahlknöpfe und Namensraster (namesOnly bleibt beim Namensraster) im Wechsel
 const MIXED = [
-  ["noten-7", "notenwerte-5", "intervall-4"],
-  ["noten-3", "intervall-9", "akkorde-6"],
+  { ids: ["noten-7", "notenwerte-5", "intervall-4"] },
+  { ids: ["noten-3", "intervall-9", "akkorde-6"] },
+  { ids: ["noten-3", "intervall-4", "intervall-9"], input: "keys" },
 ];
 // läuft in der Seite: Karteikasten im gespeicherten Stand so setzen, dass genau ids fällig sind (am längsten fällig
-// zuerst; die erste mit zuletzt: null wie nach der Umstellung) und noten-8 erst in drei Tagen; danach neu laden
-const SETREP = async (ids) => {
+// zuerst; die erste mit zuletzt: null wie nach der Umstellung) und noten-8 erst in drei Tagen; Eingabe input
+// („letters“ oder „keys“); danach neu laden
+const SETREP = async ([ids, input]) => {
   const st = await import("./src/store.js");
   const t = st.today(), s = JSON.parse(localStorage.getItem(st.KEY_V2));
+  s.input = input;
   s.rep = { "noten-8": { fach: 3, faellig: st.addDays(t, 3), zuletzt: t } };
   ids.forEach((id, i) => { s.rep[id] = { fach: 2, faellig: st.addDays(t, -3 + i), zuletzt: i ? st.addDays(t, -6) : null }; });
   localStorage.setItem(st.KEY_V2, JSON.stringify(s));
@@ -244,13 +248,17 @@ const MIXED_CHECK = async () => {
   const e = await import("./src/engine.js");
   const q = e.currentQuestion();
   if (!q || !q.from) return "keine Aufgabe der gemischten Runde";
-  const o = document.querySelector("#pOrigin"), a = document.querySelector("#pAnswers");
+  const o = document.querySelector("#pOrigin"), a = document.querySelector("#pAnswers"), piano = document.querySelector("#pPiano");
   const bad = [];
   if (o.hidden || o.textContent !== e.originText(q.fromPack, q.from)) bad.push(`Herkunft „${o.textContent}“`);
   const choices = q.from.input === "choices";
   if (choices && a.querySelector("[data-letter]")) bad.push("Buchstaben bei Auswahlknöpfen");
   if (!choices && a.querySelector("[data-choice]")) bad.push("Auswahlknöpfe bei Buchstaben");
   if (!choices && a.classList.contains("names") !== !!q.from.acc) bad.push("Namensraster falsch");
+  // Eingabe „Klaviatur“: Tasten genau bei Buchstaben-Stufen ohne namesOnly, dann ohne Antwortknöpfe (Prüfung Schritt 13b)
+  const keys = e.effectiveInput(q.from.input, JSON.parse(localStorage.getItem("notenheld.v2")).input, !!q.from.namesOnly) === "keys";
+  if (piano.hidden === keys) bad.push(keys ? "keine Klaviatur" : "Klaviatur übrig");
+  if (keys && !a.hidden) bad.push("Antwortknöpfe neben der Klaviatur");
   if (!document.querySelector("#pHelps").hidden) bad.push("Hilfen sichtbar");
   return bad.length ? `${q.from.id}: ${bad.join(", ")}` : "";
 };
@@ -353,8 +361,8 @@ async function run(browser, width, scheme) {
     }
   }
   // Runden „Wiederholen“ über die Karte „Heute“ (Welle 11, Schritt 8): jede Aufgabe, abwechselnd richtig und daneben
-  for (const [k, ids] of MIXED.entries()) {
-    await pg.evaluate(SETREP, ids); await pg.reload(); await pg.waitForTimeout(600);
+  for (const [k, { ids, input = "letters" }] of MIXED.entries()) {
+    await pg.evaluate(SETREP, [ids, input]); await pg.reload(); await pg.waitForTimeout(600);
     if (!(await visible("#homeReview"))) errs.push(`Wiederholen ${k + 1}: kein Knopf „Wiederholung starten“`);
     const again = await pg.locator("#levelList .again").count();
     if (again !== ids.length) errs.push(`Wiederholen ${k + 1}: ${again}× „wieder dran“ statt ${ids.length}×`);
@@ -383,6 +391,9 @@ async function run(browser, width, scheme) {
     if (!/^Nächste Wiederholung: /.test(await pg.locator("#homeSmall").textContent())) errs.push(`Wiederholen ${k + 1}: keine Zeile „Nächste Wiederholung“`);
     await chk(`Wiederholen ${k + 1} Startseite „Heute“ nicht fällig`);
   }
+  // wieder Buchstaben für den Rest des Laufs
+  await pg.evaluate(() => { const s = JSON.parse(localStorage.getItem("notenheld.v2")); s.input = "letters"; localStorage.setItem("notenheld.v2", JSON.stringify(s)); });
+  await pg.reload(); await pg.waitForTimeout(600);
   // Normale Runde ganz richtig in einer Stufe ohne Hilfen (noch nicht im Kasten): „Neu im Kasten“ auf der Ergebniskarte
   await pg.click('.level[data-id="noten-1"]'); await pg.waitForTimeout(200);
   await pg.click("#pStart"); await pg.waitForTimeout(250);
