@@ -239,15 +239,20 @@ test("Startkarte: „Dafür brauchst du: …“ mit Knöpfen, Knopf und Grund de
   assert.equal(needLabel(PACKS, "akkorde-1"), `Dur- und Moll-Dreiklang (Dreiklänge${NB}1)`);
   // der volle Name der Fähigkeit bleibt im title
   assert.ok(h.includes('title="Notenstufen zählen (Prime bis Oktave)"'), h);
-  assert.equal(reasonText(PACKS, { kind: "nie", id: "noten-7" }), "Empfohlen: „Noten mit Vorzeichen“ hast du hier noch nicht geübt.");
-  assert.equal(reasonText(PACKS, { kind: "faellig", id: "noten-7" }), "Empfohlen: „Noten mit Vorzeichen“ ist wieder dran.");
+  assert.equal(reasonText(PACKS, { kind: "nie", id: "noten-7" }), "Tipp: „Noten mit Vorzeichen“ hast du in der App noch nicht geübt.");
+  assert.equal(reasonText(PACKS, { kind: "faellig", id: "noten-7" }), "Tipp: „Noten mit Vorzeichen“ ist wieder dran.");
   // Fähigkeit ohne Klammerzusatz wie in „Dafür brauchst du“ (J-B1: kürzer, die Knöpfe rücken nach oben)
-  assert.equal(reasonText(PACKS, { kind: "schwach", id: "intervall-2" }), "Empfohlen: „Notenstufen zählen“ lag zuletzt unter 8 von 10.");
+  assert.equal(reasonText(PACKS, { kind: "schwach", id: "intervall-2" }), "Tipp: „Notenstufen zählen“ lag zuletzt unter 8 von 10.");
   assert.equal(reasonText(PACKS, null), "");
   assert.equal(basicsTitle(PACKS, "intervall-3"), `für Intervalle, Stufe${NB}3`);
   assert.equal(MIXED_HEAD.grundlagen, "Grundlagen wiederholen");
   // Wortwahl: kein Druck („wieder dran“, nicht „überfällig“)
   for (const k of ["nie", "faellig", "schwach"]) assert.ok(!/überfällig|musst|Pflicht/.test(reasonText(PACKS, { kind: k, id: "noten-7" })));
+  // Sandra (26.11.2026): bei allen drei Gründen „Tipp:“ statt „Empfohlen:“, „in der App“ statt „hier“
+  for (const k of ["nie", "faellig", "schwach"]) {
+    const t = reasonText(PACKS, { kind: k, id: "noten-7" });
+    assert.ok(t.startsWith("Tipp: „") && !/Empfohlen|\bhier\b/.test(t), t);
+  }
 });
 
 test("Ergebniskarte: Zahlwörter, Orte, Satz zum Fehlermuster, Knöpfe", () => {

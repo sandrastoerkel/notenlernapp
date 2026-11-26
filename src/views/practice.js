@@ -175,12 +175,13 @@ export function needsHtml(packs, levelId) {
 }
 
 // Grund der Empfehlung auf der Startkarte (rein, getestet): reason aus repeat.basicsOffer; die Fähigkeit ohne
-// Klammerzusatz wie in „Dafür brauchst du“ (kürzer, die Startknöpfe rücken nach oben)
+// Klammerzusatz wie in „Dafür brauchst du“ (kürzer, die Startknöpfe rücken nach oben). Wortlaut nach Sandra
+// (26.11.2026): „Tipp:“ statt „Empfohlen:“, „in der App“ statt „hier“.
 export function reasonText(packs, reason) {
   if (!reason) return "";
   const skill = shortSkill(skillOf(engine.findLevel(packs, reason.id).level));
-  const rest = { nie: "hast du hier noch nicht geübt.", faellig: "ist wieder dran.", schwach: "lag zuletzt unter 8 von 10." }[reason.kind];
-  return rest ? `Empfohlen: „${skill}“ ${rest}` : "";
+  const rest = { nie: "hast du in der App noch nicht geübt.", faellig: "ist wieder dran.", schwach: "lag zuletzt unter 8 von 10." }[reason.kind];
+  return rest ? `Tipp: „${skill}“ ${rest}` : "";
 }
 
 // Kopf der Runde: „für Intervalle, Stufe 3“ (rein, getestet)

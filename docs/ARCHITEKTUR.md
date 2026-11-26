@@ -888,8 +888,8 @@ Startseite (`src/views/home.js`, seit Welle 11, Schritt 8 und 12; reine Teile ge
   „Grundlagen wiederholen · 6 Aufgaben“ (`BASICS_LABEL`). `needsHtml`: eine fortlaufende Zeile mit Kommas, je
   Voraussetzung ein Knopf im Textfluss mit sichtbarer Stufe (`needLabel`: „Notenstufen zählen (Intervalle 2)“,
   Fähigkeit ohne Klammerzusatz), der ihre Startkarte öffnet (J-C1). Empfehlung aus `repeat.basicsOffer` (nie
-  gespielt, wieder dran oder zuletzt unter 8 von 10), Grund `reasonText`: „Empfohlen: „Noten mit Vorzeichen“
-  hast du hier noch nicht geübt.“ Nie Pflicht. `ueberlauf.mjs` misst die Lage der Knöpfe auf sechs Startkarten
+  gespielt, wieder dran oder zuletzt unter 8 von 10), Grund `reasonText`: „Tipp: „Noten mit Vorzeichen“
+  hast du in der App noch nicht geübt.“ (Wortlaut Sandra, 26.11.2026). Nie Pflicht. `ueberlauf.mjs` misst die Lage der Knöpfe auf sechs Startkarten
   (`startCards`).
 - Ergebniskarte der normalen Runde: Satz `engine.resultMessage(stars, { correct, total, short })` (10 von 10
   „Stark, alles richtig.“; mit Fehlermuster oder „Grundlagen wiederholen“ zuerst nur der erste Teil, z. B. „Noch

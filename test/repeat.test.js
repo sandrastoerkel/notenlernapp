@@ -610,7 +610,7 @@ test("basicsOffer und afterBasics: Empfehlung verschwindet nach einer Runde mit 
 
 test("W-B4 (a): fehlerfreie Grundlage zählt auch für die Nachbarstufe (Intervalle 3 → 4), nur fehlerfrei", () => {
   // Bericht Wissenschaft B4: nach fehlerfreien Grundlagen zu Intervalle 3 empfahl Intervalle 4 sofort wieder
-  // „Noten mit Vorzeichen“ hast du hier noch nicht geübt.
+  // „Noten mit Vorzeichen“ hast du in der App noch nicht geübt.
   assert.deepEqual(needsOf(PACKS, "intervall-3"), needsOf(PACKS, "intervall-4"));
   const s = fresh();
   assert.equal(basicsOffer(s, PACKS, "intervall-4", T).recommend, true);
