@@ -121,3 +121,13 @@ test("Anrede: „Sie“ auf der Seite, kein „du“ in index.html (Abschnitt �
   assert.ok(/\bSie\b/.test(sec) && /\bIhre\b/.test(sec));
   assert.ok(!/\b(du|dich|dir|dein|deine|deiner)\b/i.test(texts));
 });
+
+/* ---------- Korrektur nach der Prüfung Welle 11 (J-B9, J-B10/W-C8, L-B3) ---------- */
+const html = readFileSync(new URL("../../index.html", import.meta.url), "utf8");
+const app = readFileSync(new URL("../../src/app.js", import.meta.url), "utf8");
+const plainText = (s) => s.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+
+test("Dialog Jahrgang: sagt, was die Startseite zeigt und dass alles bis dahin offen ist (J-B9)", () => {
+  assert.ok(app.includes("`Die Startseite zeigt dir dann, was in Jahrgang ${k.jahrgang} dran ist. Alle Stufen bis dahin sind sofort offen. Dein Fortschritt bleibt, es schließt sich nichts.`"));
+  assert.ok(!app.includes("Alles bis dahin ist dann sofort offen."));
+});
