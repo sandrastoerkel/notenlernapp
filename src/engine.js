@@ -659,10 +659,14 @@ function showQuestion(r) {
   if (ui.count) ui.count.textContent = `${r.idx + 1} / ${r.items.length}`;
   if (ui.dots) ui.dots.innerHTML = dotsHtml(r.marks, r.idx, r.items.length);
   if (!r.mixed && ui.helpsBody && hasHelps(r.level)) ui.helpsBody.innerHTML = helpsHtml(r.level, q, { state: r.hooks.state });
-  showChoices(r);
-  // Welle 12: Hatte die vorige Aufgabe zuletzt einen anderen Schritt (z. B. Namensraster, jetzt Auswahl), stimmen
+  // Welle 12: Bei Stufen mit Noten-Schritten entstehen die Knöpfe auch zur neuen Aufgabe neu (z. B. Buchstaben →
+  // Auswahl). Lag der Fokus im Antwortbereich, bleibt er dort (keepFocus), statt auf <body> zu fallen.
+  const had = !r.mixed && (focusWithin(ui.answers) || focusWithin(ui.piano));
+  const rebuilt = showChoices(r) === true;
+  // Hatte die vorige Aufgabe zuletzt einen anderen Schritt (z. B. Namensraster, jetzt Auswahl), stimmen
   // Knöpfe/Klaviatur und die Zeile #pTyped wieder für Schritt 1 (sonst ändert sich nichts)
   if (!r.mixed) applyInput(r);
+  if (rebuilt) keepFocus(r, had);
   all(ui.answers, ".btn").concat(all(ui.piano, "rect")).forEach(clearMark);
   r.buf = ""; showTyped(r, "");
   r.t0 = performance.now();
@@ -748,7 +752,16 @@ function nextNoteStep(r) {
   all(ui.answers, ".btn").concat(all(ui.piano, "rect")).forEach(clearMark);
   r.buf = ""; showTyped(r, "");
   applyInput(r);
-  if (had) focusEl([ui.answers, ui.piano].find((e) => e && !e.hidden), { preventScroll: true });
+  keepFocus(r, had);
+}
+
+// Nach einem Neuaufbau des Antwortbereichs: Lag der Fokus vorher dort (had) und ist er jetzt nicht mehr im
+// sichtbaren Antwortbereich (Knopf entfernt, Bereich verborgen), geht er auf diesen Bereich (tabindex="-1") –
+// kein Antwortknopf selbst, damit Enter oder Leertaste nicht aus Versehen antworten. Steht er noch auf einem
+// Knopf, der geblieben ist, bleibt er dort.
+function keepFocus(r, had) {
+  const target = [r.ui.answers, r.ui.piano].find((e) => e && !e.hidden);
+  if (had && target && !focusWithin(target)) focusEl(target, { preventScroll: true });
 }
 
 function answer(r, value, el) {

@@ -1766,6 +1766,50 @@ test("Noten-Schritt: Fokus bleibt im Antwortbereich, wenn die Knöpfe neu entste
   } finally { stop(); mock.timers.reset(); }
 });
 
+test("Noten-Schritt: Fokus bleibt auch zur nächsten Aufgabe im Antwortbereich (Knöpfe entstehen neu)", () => {
+  setMuted(true);
+  mock.timers.enable({ apis: ["setTimeout"] });
+  try {
+    // ohne Hilfen: nach „richtig“ geht es von selbst weiter, das Namensraster wird wieder zu C … H
+    const r = runProbe(LEVEL_B);
+    r.click("F"); mock.timers.tick(DELAY_STEP_OK);
+    const fis = r.btn("Fis"); fis.focus();
+    r.ui.answers.onclick({ target: fis });
+    mock.timers.tick(DELAY_OK);
+    assert.deepEqual(r.labels(), [...LETTERS]);
+    assert.equal(r.doc.activeElement, r.ui.answers, "Fokus auf dem Antwortbereich, nicht auf <body>");
+    // mit Hilfen: Fokus auf dem Buchstaben, weiter mit Enter (der Fokus liegt nicht auf „Nächste Aufgabe“)
+    stop();
+    const a = runProbe(LEVEL_A);
+    a.key("2"); mock.timers.tick(DELAY_STEP_OK);
+    const g = a.btn("G"); g.focus();
+    a.ui.answers.onclick({ target: g });
+    assert.equal(a.key("Enter"), true);
+    assert.deepEqual(a.labels(), ["1.", "2.", "3.", "4.", "5."]);
+    assert.equal(a.doc.activeElement, a.ui.answers);
+    // ohne Fokus im Antwortbereich wird nichts fokussiert
+    a.doc.activeElement = a.doc.body;
+    a.key("2"); mock.timers.tick(DELAY_STEP_OK); a.key("G"); a.key("Enter");
+    assert.equal(a.doc.activeElement, a.doc.body);
+  } finally { stop(); mock.timers.reset(); }
+});
+
+test("Bestehende Stufen mit Buchstaben: der Fokus bleibt zur nächsten Aufgabe auf dem Knopf (nichts entsteht neu)", () => {
+  setMuted(true);
+  mock.timers.enable({ apis: ["setTimeout"] });
+  try {
+    const level = { id: "probe-c", no: 3, title: "Probe C", input: "letters",
+      question: () => ({ svg: "<svg></svg>", note: N("G", 4), statKey: "probe:g", display: "G", reveal: "Das war ein G." }),
+      check: (q, v) => (typeof v === "number" ? v === 7 : v.letter === "G") };
+    const r = runProbe(level);
+    const g = r.btn("G"); g.focus();
+    r.ui.answers.onclick({ target: g });
+    mock.timers.tick(DELAY_OK);
+    assert.equal(r.ui.count.textContent, "2 / 10");
+    assert.equal(r.doc.activeElement, g);
+  } finally { stop(); mock.timers.reset(); }
+});
+
 test("Gemischte Runden: Stufen ohne Hilfen haben keine Schritte mit Noteneingabe", () => {
   for (const p of PACKS) for (const l of p.levels) {
     if (hasHelps(l)) continue;
