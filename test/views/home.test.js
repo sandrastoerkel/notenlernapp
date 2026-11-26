@@ -28,6 +28,14 @@ test("„Weiter üben“ nennt Paket und Stufe, nie gespielt: „Starten“", ()
   assert.equal(continueText(Object.assign(fresh(), { current: "akkorde-2" }), PACKS), `Starten: Dreiklänge, Stufe${NB}2`);
 });
 
+test("Merker offen (Welle 12) zählt auf der Startseite nicht als gespielt: „Starten“, offen, ohne „beste Runde“", () => {
+  const s = Object.assign(fresh(), { current: "noten-5", levels: { "noten-5": { stars: 0, best: 0, played: 0, offen: true } } });
+  assert.equal(continueText(s, PACKS), `Starten: Noten lesen, Stufe${NB}5`);
+  const html = levelHtml(s, pack("noten"), lv("noten-5"));
+  assert.ok(!html.includes("locked") && !html.includes("disabled") && !html.includes("beste Runde"), html);
+  assert.ok(!html.includes("level-no done"));
+});
+
 test("todayCard: etwas fällig – „Wiederholen“, Aufzählung mit „und“, Hauptknopf „Wiederholung starten“", () => {
   const s = st({
     "intervall-4": { fach: 2, faellig: "2026-11-20", zuletzt: "2026-11-17" },
