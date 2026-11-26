@@ -469,7 +469,8 @@ const repo = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
 let commit = "?";
 try {
   commit = execSync("git rev-parse --short HEAD", { cwd: repo }).toString().trim();
-  if (execSync("git status --porcelain --untracked-files=no", { cwd: repo }).toString().trim()) commit += " (mit nicht eingetragenen Änderungen)";
+  // nur, was die Bilder ändert (App und Skripte); Notizen wie LESSONS.md oder docs/PLAN.md zählen nicht
+  if (execSync("git status --porcelain --untracked-files=no -- index.html css src fonts icons docs/screens", { cwd: repo }).toString().trim()) commit += " (mit nicht eingetragenen Änderungen an App oder Skripten)";
 } catch { /* ohne git */ }
 const rows = [...names.entries()].map(([file, { no, desc }]) => `| ${String(no).padStart(3, "0")} | ${file} | ${desc} |`);
 writeFileSync(join(OUT, "index.md"), [
