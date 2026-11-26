@@ -71,26 +71,40 @@ export const CUR = async () => {
     const st = JSON.parse(localStorage.getItem("notenheld.v2") || "{}");
     l = e.findLevel(PACKS, st.current).level;
   }
-  window.__q = q; window.__lv = l;
-  return { id: l.id, steps: q.steps ? q.steps.length : 1 };
+  window.__q = q; window.__lv = l; window.__e = e;
+  // Art des Antwortbereichs je Schritt ("choices" | "letters" | "names", engine.stepInput) – für die Ausgabe
+  const n = q.steps ? q.steps.length : 1;
+  return { id: l.id, steps: n, kinds: Array.from({ length: n }, (_, i) => e.stepInput(q, i, l)) };
 };
 
 // läuft in der Seite: Ziel einer richtigen (right = true) bzw. falschen Antwort im aktuellen Knopfsatz (Schritt s) –
-// { sel, i }: Auswahl über die Antwortknöpfe, bei sichtbarer Klaviatur (Eingabe „Klaviatur“) über ihre Tasten
-// (rect[data-semi], geprüft mit check(q, Halbton) wie in der Engine); i = -1, wenn es keine passende gibt
+// { sel, i }: Auswahl über die Antwortknöpfe, bei sichtbarer Klaviatur (Eingabe „Klaviatur“) in einem Noten-Schritt
+// über ihre Tasten (rect[data-semi]); i = -1, wenn es keine passende gibt. Geprüft wird wie in der Engine (Welle 12,
+// Schritt 6): Aufgaben mit Schritten über engine.checkStep (Auswahl: Text gleich set.answer; Noteneingabe
+// „letters“/„names“: { letter, acc } gleich, Taste nach Tonklasse), Aufgaben ohne Schritte über level.check. Die Art
+// des Schritts kommt aus engine.stepInput – so geht jede Folge von Schrittarten, auch [Auswahl, Noteneingabe].
 export const PICK = ([right, s]) => {
-  const q = window.__q, l = window.__lv;
-  const piano = document.querySelector("#pPiano");
-  if (piano && !piano.hidden) {
-    const keys = [...piano.querySelectorAll("rect[data-semi]")];
-    return { sel: "#pPiano rect[data-semi]", i: keys.findIndex((k) => !!l.check(q, +k.dataset.semi) === right) };
-  }
+  const q = window.__q, l = window.__lv, e = window.__e;
+  const i = q.steps ? Math.min(s, q.steps.length - 1) : 0;
+  const set = q.steps ? q.steps[i] : q;
+  const kind = e.stepInput(q, i, l);
+  const ok = (v) => (q.steps ? e.checkStep(set, v) : !!l.check(q, v));
   const btns = [...document.querySelectorAll("#pAnswers .btn")];
-  const set = q.steps ? q.steps[Math.min(s, q.steps.length - 1)] : q;
+  const shown = (el) => { for (let a = el; a && a.nodeType === 1; a = a.parentElement) if (a.hidden || getComputedStyle(a).display === "none") return false; return true; };
+  const live = btns.filter((b) => !b.disabled && shown(b));
+  const piano = document.querySelector("#pPiano");
+  if (piano && !piano.hidden && (kind !== "choices" || !live.length)) {
+    const keys = [...piano.querySelectorAll("rect[data-semi]")];
+    return { sel: "#pPiano rect[data-semi]", i: keys.findIndex((k) => ok(+k.dataset.semi) === right) };
+  }
   const val = (b) => (b.dataset.letter ? { letter: b.dataset.letter, acc: b.dataset.acc !== undefined ? +b.dataset.acc : 0 } : set.choices[+b.dataset.choice]);
-  const ok = (b) => (q.steps ? val(b) === set.answer : !!l.check(q, val(b)));
-  return { sel: "#pAnswers .btn", i: btns.findIndex((b) => !b.disabled && ok(b) === right) };
+  return { sel: "#pAnswers .btn", i: btns.findIndex((b) => live.includes(b) && ok(val(b)) === right) };
 };
+
+// läuft in der Seite: Ist der Schritt fertig gewechselt? Nach einem Schritt steht die Rückmeldung mit ok/bad in
+// #pFeedback und die Markierungen an Knöpfen bzw. Tasten; im neuen Schritt sind beide weg (engine: toNextStep)
+const STEP_READY = () => !document.querySelector("#pAnswers .btn.ok, #pAnswers .btn.bad, #pPiano .ok, #pPiano .bad")
+  && !/\b(ok|bad)\b/.test(document.querySelector("#pFeedback").className);
 
 // Eine Aufgabe beantworten, Schritt für Schritt. right: true/false für alle Schritte oder eine Liste je Schritt
 // (z. B. [false, true] für einen Teilerfolg). after(label, s) wird nach jedem Schritt aufgerufen (Prüfung, Foto),
@@ -110,7 +124,7 @@ export async function answerQuestion(pg, right, after = null, errs = [], before 
     if (s < info.steps - 1) {
       // Schritt 1 daneben: „Weiter zu Schritt 2“; richtig: die Runde geht nach kurzer Zeit selbst weiter
       if (await vis(pg, "#pNext")) await pg.click("#pNext");
-      else await pg.waitForFunction(() => !document.querySelector("#pAnswers .btn.ok, #pAnswers .btn.bad"), null, { timeout: 4000 }).catch(() => {});
+      else await pg.waitForFunction(STEP_READY, null, { timeout: 4000 }).catch(() => errs.push(`${info.id}: Schritt ${s + 2} kam nicht`));
       await pg.waitForTimeout(150);
     }
   }

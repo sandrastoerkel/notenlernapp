@@ -3,7 +3,7 @@
 // (page.clock.setFixedTime, Tag für Tag vorgestellt) – einmal in Asia/Kuala_Lumpur, einmal in Europe/Berlin.
 //
 // - Vorbereitung: Die Stufen vor den drei Stufen des Laufs gelten als früher geschafft (ohne Eintrag im Kasten), damit
-//   Noten lesen 3 (A), Notenwerte 5 (C) und Intervalle 2 (B) offen sind und der Kasten genau sie enthält.
+//   Noten lesen 5 (A; bis Welle 11 Noten lesen 3), Notenwerte 5 (C) und Intervalle 2 (B) offen sind und der Kasten genau sie enthält.
 // - Tag 0: A, C und B je mit 9 von 10 spielen → „Geschafft – kommt morgen zum Wiederholen wieder.“, Karte „Heute“:
 //   „Nächste Wiederholung: morgen“.
 // - Jeden Tag die Uhr einen Tag vorstellen, die App neu laden und die Karte „Heute“ prüfen (Titel, „10 Aufgaben aus …“
@@ -11,7 +11,7 @@
 //   starten“ spielen, alles richtig; an Tag 4 liegen die ersten zwei Aufgaben aus C bewusst daneben (1 von 3: „noch
 //   wacklig“, ein Fach zurück; seit der Korrektur W-B2 wäre ein einzelner Fehler „fast“). Ferien von Tag 12 bis 26:
 //   die Karte wird angesehen, aber nicht gespielt (kein Zähler für Versäumtes).
-// - Jede Ergebniskarte: Aufgaben je Stufe und Urteil mit der Zahl der Richtigen („Noten lesen 3 · 4 von 4 · ✓ sitzt ·
+// - Jede Ergebniskarte: Aufgaben je Stufe und Urteil mit der Zahl der Richtigen („Noten lesen 5 · 4 von 4 · ✓ sitzt ·
 //   wieder in 7 Tagen“, „Notenwerte 5 · 1 von 3 · ↻ noch wacklig · morgen noch einmal“).
 // - Leitsatz 3: Keine Stufe, die einmal offen war, ist später zu.
 // - Ende (Tag 40): Kästchen der Statistik und Fälligkeiten im Speicher gleich der Erwartung aus test/repeat.sim.test.js
@@ -24,7 +24,7 @@
 //   node docs/screens/uhr40.mjs              (oder: BASE=… ZONEN=Asia/Kuala_Lumpur node …)
 // Ende mit Code 1 bei jeder Abweichung oder einem Fehler der Seite. Der reine Lauf bleibt Teil von `npm test`.
 import { loadPlaywright, launch, BASE, KEY, SEED_STATE, SEED_RANDOM, vis, CUR, answerQuestion, goOn } from "./spiel.mjs";
-import { fresh, addDays } from "../../src/store.js";
+import { fresh, addDays, RENAMED_NOTEN } from "../../src/store.js";
 import { PACKS } from "../../src/packs/index.js";
 import { ABSTAENDE, FAECHER, dueText, dayText } from "../../src/repeat.js";
 
@@ -33,8 +33,12 @@ const ZONEN = (process.env.ZONEN || "Asia/Kuala_Lumpur,Europe/Berlin").split(","
 const START = new Date("2026-11-24T23:30:00Z");
 const DAY0 = "2026-11-25";
 const TAGE = 40, PAUSE = [12, 26], FEHLER_TAG = 4, FEHLER_ZAHL = 2;
-const A = "noten-3", C = "notenwerte-5", B = "intervall-2";
-const NAME = { [A]: "Noten lesen 3", [C]: "Notenwerte 5", [B]: "Intervalle 2" };
+// Welle 12: A ist die Stufe gleichen Inhalts wie früher noten-3 (RENAMED_NOTEN: noten-5, wie test/repeat.sim.test.js)
+const A = RENAMED_NOTEN["noten-3"], C = "notenwerte-5", B = "intervall-2";
+// Name wie in der App („Noten lesen 5“, „Notenwerte 5“): Kurzname des Pakets und Nummer der Stufe, aus PACKS
+const LV = Object.fromEntries(PACKS.flatMap((p) => p.levels.map((l, j) => [l.id, { p, l, prev: p.levels[j - 1] || null }])));
+for (const id of [A, B, C]) if (!LV[id] || (LV[id].l.helps || []).length) throw new Error(`uhr40.mjs: ${id} gibt es nicht oder hat Hilfen`);
+const NAME = Object.fromEntries([A, C, B].map((id) => [id, `${LV[id].p.short || LV[id].p.title} ${LV[id].l.no}`]));
 // Erwartung aus test/repeat.sim.test.js (Lauf mit Ferien): Tage mit Runde, Plan an Tag 27, Ende
 const SIM = {
   tage: [1, 4, 5, 8, 11, 27],
@@ -51,7 +55,8 @@ const at = (d) => new Date(START.getTime() + d * 864e5);
 // Vorbereiteter Stand vor Tag 0
 function startState() {
   const s = { ...fresh(), muted: true };
-  for (const id of ["noten-2", "notenwerte-4", "intervall-1"]) s.levels[id] = { stars: 3, best: 9, played: 1, last: 9, day: addDays(DAY0, -3) };
+  // die Stufe davor im selben Paket (Noten lesen 4, Notenwerte 4, Intervalle 1), damit A, C und B offen sind
+  for (const id of [A, C, B].map((x) => LV[x].prev.id)) s.levels[id] = { stars: 3, best: 9, played: 1, last: 9, day: addDays(DAY0, -3) };
   return s;
 }
 

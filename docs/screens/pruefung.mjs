@@ -4,7 +4,11 @@
 // vorbereitete Spielstände über addInitScript. Nichts davon landet im Repo.
 //
 // Ergebnis: OUT/420-hell/NNN-name.png und OUT/320-dunkel/NNN-name.png (gleiche Nummern in beiden Ordnern) und
-// OUT/index.md mit Name und Inhalt jedes Bildes. OUT ist /tmp/notenheld-pruefung-w11/, wenn nicht anders gesetzt.
+// OUT/index.md mit Name und Inhalt jedes Bildes. OUT ist /tmp/notenheld-pruefung-w12/, wenn nicht anders gesetzt.
+// Welle 12: Die Stufen von „Noten lesen“ (15) kommen aus dem Paket (LESSONS: Abdeckung aus den Listen im Code) –
+// Spielstände, Runden „Wiederholen“, Grundlagen und die Szene „noten-lesen“ (jede Stufe mit Hilfen: Startkarte,
+// Frage mit Hilfen, jeder Schritt richtig und daneben, Vorführung Bild für Bild; jede Stufe ohne Hilfen: Startkarte
+// und Auflösung nach „daneben“).
 //
 // Playwright ist KEINE Abhängigkeit der App (siehe spiel.mjs). Aufruf bei laufendem Server:
 //   python3 -m http.server 8080 &
@@ -16,13 +20,15 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { execSync } from "node:child_process";
 import { loadPlaywright, launch, BASE, KEY, SEED_STATE, SEED_RANDOM, HOLD_TIMERS, vis, CUR, answerQuestion, goOn } from "./spiel.mjs";
-import { fresh, addDays, starsFor } from "../../src/store.js";
+import { fresh, addDays, starsFor, RENAMED_NOTEN, PAARE_NOTEN } from "../../src/store.js";
+import { inBox, needsOf } from "../../src/repeat.js";
+import { usesNames, hasHelps } from "../../src/engine.js";
 import { dranFor } from "../../src/klasse.js";
 import { PACKS } from "../../src/packs/index.js";
 import { HEAT_NOTES, statKey } from "../../src/packs/noten.js";
 
 const playwright = loadPlaywright();
-const OUT = process.env.OUT || "/tmp/notenheld-pruefung-w11/";
+const OUT = process.env.OUT || "/tmp/notenheld-pruefung-w12/";
 const TZ = "Europe/Berlin";
 const HEUTE = "2026-11-26";
 const UHR = new Date("2026-11-26T10:00:00+01:00");
@@ -41,6 +47,24 @@ const lv = (best, played = 1, day = d(-1)) => ({ stars: starsFor(best), best, pl
 const base = () => ({ ...fresh(), muted: true });
 const LEER = base();
 const withKlasse = (s, jahrgang, zweig = null) => ({ ...s, klasse: { jahrgang, zweig, dran: dranFor(jahrgang, zweig) } });
+
+// Stufen von „Noten lesen“ aus dem Paket (Welle 12). Die Stufen, an denen frühere Bilder hingen, heißen nach
+// RENAMED_NOTEN (alt 7 „Noten mit Vorzeichen“ → 12, alt 3 → 5); geprüft wird, dass sie ohne Hilfen sind.
+const NOTEN = PACKS.find((p) => p.id === "noten").levels;
+const LEVEL = Object.fromEntries(PACKS.flatMap((p) => p.levels.map((l) => [l.id, l])));
+const boxId = (id, names) => {
+  const l = LEVEL[id];
+  if (!l || !inBox(l) || usesNames(l) !== names) throw new Error(`pruefung.mjs: ${id} passt nicht (gibt es nicht, hat Hilfen oder falsche Eingabe)`);
+  return id;
+};
+const NOTEN_NAMES = boxId(RENAMED_NOTEN["noten-7"], true);    // Namensraster
+const NOTEN_LETTERS = boxId(RENAMED_NOTEN["noten-3"], false); // Buchstaben bzw. Klaviatur
+// erste Stufe ohne Hilfen (für „Geschafft – kommt morgen …“) und die Stufen davor (als geschafft eingetragen)
+const NOTEN_FIRST_BOX = NOTEN.find((l) => inBox(l) && !usesNames(l));
+const NOTEN_BEFORE = NOTEN.slice(0, NOTEN.indexOf(NOTEN_FIRST_BOX)).map((l) => l.id);
+// Grundlage von Intervalle 3 aus „Noten lesen“ (fällig bzw. schwach in grundlagenOk)
+const GRUND_I3 = needsOf(PACKS, "intervall-3").find((id) => id.startsWith("noten-"));
+const nameOf = (id) => { for (const p of PACKS) { const l = p.levels.find((x) => x.id === id); if (l) return `${p.short || p.title} ${l.no}`; } return id; };
 
 // Notenkarte: einige Antworten je Note, zuletzt meist richtig, ein paar Noten unsicher oder langsam
 function someNotes() {
@@ -61,19 +85,20 @@ function someNotes() {
 function fort() {
   const s = base();
   Object.assign(s, { xp: 2140, dayStreak: 4, lastDay: d(-1), answered: 380, correct: 312, bestCombo: 14, blitzRecord: 21, current: "intervall-3" });
+  // Noten lesen: alle Stufen des Pakets gespielt (erfundene Zahlen 8 bis 10, je Stufe ein Tag später)
   s.levels = {
-    "noten-1": lv(10, 3, d(-12)), "noten-2": lv(9, 2, d(-11)), "noten-3": lv(9, 2, d(-9)), "noten-4": lv(8, 2, d(-8)),
-    "noten-5": lv(9, 1, d(-8)), "noten-6": lv(8, 2, d(-6)), "noten-7": lv(8, 2, d(-5)), "noten-8": lv(7, 2, d(-4)),
+    ...Object.fromEntries(NOTEN.map((l, i) => [l.id, lv(8 + ((i * 7) % 3), 1 + (i % 3), d(-14 + Math.floor(i * 9 / NOTEN.length)))])),
     "notenwerte-1": lv(10, 1, d(-10)), "notenwerte-2": lv(9, 1, d(-10)), "notenwerte-3": lv(9, 1, d(-9)),
     "notenwerte-4": lv(8, 2, d(-7)), "notenwerte-5": lv(9, 1, d(-6)),
     "intervall-1": lv(9, 2, d(-4)), "intervall-2": lv(8, 1, d(-3)), "intervall-3": lv(8, 1, d(-2)),
     "tonleitern-1": lv(8, 1, d(-2)),
   };
+  // Kasten: die Stufen von „Noten lesen“ ohne Hilfen, Fach 5 … 2 (erfunden), die vorletzte mit zuletzt: null wie nach
+  // der Umstellung; nichts fällig
+  const nb = NOTEN.filter(inBox);
   s.rep = {
-    "noten-1": { fach: 5, faellig: d(20), zuletzt: d(-10) }, "noten-2": { fach: 4, faellig: d(10), zuletzt: d(-4) },
-    "noten-3": { fach: 3, faellig: d(5), zuletzt: d(-2) }, "noten-4": { fach: 3, faellig: d(4), zuletzt: d(-3) },
-    "noten-5": { fach: 3, faellig: d(6), zuletzt: d(-1) }, "noten-6": { fach: 2, faellig: d(2), zuletzt: d(-1) },
-    "noten-7": { fach: 2, faellig: d(3), zuletzt: null }, "notenwerte-3": { fach: 3, faellig: d(3), zuletzt: d(-4) },
+    ...Object.fromEntries(nb.map((l, i) => [l.id, { fach: Math.max(2, 5 - i), faellig: d(2 + ((i * 3) % 7)), zuletzt: i === nb.length - 2 ? null : d(-1 - (i % 4)) }])),
+    "notenwerte-3": { fach: 3, faellig: d(3), zuletzt: d(-4) },
     "notenwerte-5": { fach: 2, faellig: d(2), zuletzt: d(-1) }, "intervall-2": { fach: 1, faellig: d(1), zuletzt: d(-3) },
   };
   s.notes = someNotes();
@@ -86,18 +111,18 @@ function faellig() {
   const s = fort();
   Object.assign(s.levels, { "intervall-4": lv(8, 1, d(-3)), "tonleitern-2": lv(9, 1, d(-3)), "tonleitern-3": lv(8, 1, d(-2)) });
   Object.assign(s.rep, {
-    "noten-7": { fach: 2, faellig: d(-2), zuletzt: d(-5) }, "notenwerte-5": { fach: 1, faellig: d(-1), zuletzt: d(-2) },
+    [NOTEN_NAMES]: { fach: 2, faellig: d(-2), zuletzt: d(-5) }, "notenwerte-5": { fach: 1, faellig: d(-1), zuletzt: d(-2) },
     "intervall-4": { fach: 2, faellig: d(0), zuletzt: d(-3) }, "tonleitern-3": { fach: 1, faellig: d(0), zuletzt: d(-2) },
   });
   return s;
 }
-// weiter fortgeschritten: alle Pakete gespielt; fällig Buchstaben (Noten lesen 3), nur Namensraster (Intervalle 9) und
+// weiter fortgeschritten: alle Pakete gespielt; fällig Buchstaben (NOTEN_LETTERS), nur Namensraster (Intervalle 9) und
 // lange Auswahltexte (Dreiklänge 6)
 function weit() {
   const s = fort();
   for (const p of PACKS) for (const l of p.levels) if (!s.levels[l.id]) s.levels[l.id] = lv(8, 1, d(-2));
   Object.assign(s.rep, {
-    "noten-3": { fach: 3, faellig: d(-1), zuletzt: d(-8) }, "intervall-9": { fach: 2, faellig: d(0), zuletzt: d(-3) },
+    [NOTEN_LETTERS]: { fach: 3, faellig: d(-1), zuletzt: d(-8) }, "intervall-9": { fach: 2, faellig: d(0), zuletzt: d(-3) },
     "akkorde-6": { fach: 1, faellig: d(0), zuletzt: d(-1) },
   });
   return s;
@@ -105,15 +130,16 @@ function weit() {
 // Startkarten mit „Dafür brauchst du“: alle Stufen offen (Demo), Grundlagen nie gespielt → Empfehlung „noch nicht geübt“
 const OFFEN = { ...base(), unlockAll: true };
 const NEEDY = ["intervall-3", "tonleitern-12", "akkorde-1", "notenwerte-6"];
-// … Grundlagen geschafft (9 von 10, gestern, nicht fällig) → keine Empfehlung; mit noten-7 fällig bzw. zuletzt 6 von 10
+// … Grundlagen geschafft (9 von 10, gestern, nicht fällig) → keine Empfehlung; mit GRUND_I3 fällig bzw. zuletzt 6 von 10.
+// Die Grundlagen kommen aus needsOf (seit Welle 12; vorher von Hand aufgezählt)
 function grundlagenOk(extra = {}) {
   const s = { ...base(), unlockAll: true };
-  for (const id of ["intervall-2", "noten-7", "tonleitern-3", "intervall-4", "noten-8", "notenwerte-3", "notenwerte-5"]) {
+  for (const id of new Set(NEEDY.flatMap((x) => needsOf(PACKS, x)))) {
     s.levels[id] = lv(9, 1, d(-1));
     s.rep[id] = { fach: 2, faellig: d(2), zuletzt: d(-1) };
   }
-  if (extra.faellig) s.rep["noten-7"] = { fach: 2, faellig: d(0), zuletzt: d(-3) };
-  if (extra.schwach) s.levels["noten-7"] = { ...lv(6, 2, d(-1)), best: 9, stars: 3 };
+  if (extra.faellig) s.rep[GRUND_I3] = { fach: 2, faellig: d(0), zuletzt: d(-3) };
+  if (extra.schwach) s.levels[GRUND_I3] = { ...lv(6, 2, d(-1)), best: 9, stars: 3 };
   return s;
 }
 
@@ -267,13 +293,13 @@ const SCENES = [
     }
     pg = await page(grundlagenOk({ faellig: true }));
     await openLevel(pg, "intervall-3");
-    await shot(pg, "startkarte-intervall-3-grund-faellig", "Startkarte Intervalle 3: Empfehlung, weil „Noten mit Vorzeichen“ wieder dran ist");
+    await shot(pg, "startkarte-intervall-3-grund-faellig", `Startkarte Intervalle 3: Empfehlung, weil „${LEVEL[GRUND_I3].skill || LEVEL[GRUND_I3].title}“ (${nameOf(GRUND_I3)}) wieder dran ist`);
     pg = await page(grundlagenOk({ schwach: true }));
     await openLevel(pg, "intervall-3");
-    await shot(pg, "startkarte-intervall-3-grund-schwach", "Startkarte Intervalle 3: Empfehlung, weil „Noten mit Vorzeichen“ zuletzt unter 8 von 10 lag");
+    await shot(pg, "startkarte-intervall-3-grund-schwach", `Startkarte Intervalle 3: Empfehlung, weil „${LEVEL[GRUND_I3].skill || LEVEL[GRUND_I3].title}“ (${nameOf(GRUND_I3)}) zuletzt unter 8 von 10 lag`);
   }],
   ["wiederholen", async ({ page, shot, need }) => {
-    // Runde 1: Noten lesen 7 alles richtig (sitzt), Notenwerte 5 zweimal daneben („noch wacklig“ mit Knopf zum Üben),
+    // Runde 1: NOTEN_NAMES (Namensraster) alles richtig (sitzt), Notenwerte 5 zweimal daneben („noch wacklig“ mit Knopf zum Üben),
     // Intervalle 4 einmal Teilerfolg („fast“: ein Fehler bei 3 oder 4 Aufgaben, Korrektur W-B2; ohne Knopf, Nachprüfung)
     let pg = await page(faellig());
     await pg.click("#homeReview"); await pg.waitForTimeout(300);
@@ -286,13 +312,13 @@ const SCENES = [
       let right = true, files = {};
       if (info.id === "notenwerte-5" && nw5++ < 2) { right = false; if (!wrong.has(info.id)) files = { last: ["wiederholen-daneben-notenwerte-5", "Runde „Wiederholen“, nach „daneben“ (Notenwerte 5): Auflösung, ✓ am richtigen Knopf, „Nächste Aufgabe“"] }; }
       if (info.id === "intervall-4" && !wrong.has(info.id)) { right = [false, true]; files = { 0: ["wiederholen-daneben-schritt-1-intervall-4", "Runde „Wiederholen“, Intervalle 4: erster Schritt daneben, „Weiter zu Schritt 2“"], last: ["wiederholen-teilerfolg-intervall-4", "Runde „Wiederholen“, Intervalle 4: nur der zweite Schritt richtig (Teilerfolg, gold)"] }; }
-      if (info.id === "noten-7" && first) files = { last: ["wiederholen-richtig-noten-7", "Runde „Wiederholen“, Noten lesen 7 richtig (Namensraster)"] };
+      if (info.id === NOTEN_NAMES && first) files = { last: [`wiederholen-richtig-${NOTEN_NAMES}`, `Runde „Wiederholen“, ${nameOf(NOTEN_NAMES)} richtig (Namensraster)`] };
       if (right !== true) wrong.add(info.id);
       await answerShot(pg, shot, right, files);
       await goOn(pg);
     }
     if (await need(pg, "#pResult .review-line", "Urteilszeilen")) {
-      await shot(pg, "wiederholen-ergebnis-sitzt-wacklig", "Ergebniskarte „Wiederholung beendet“ (je Stufe „… von …“): Noten lesen 7 „sitzt“, Notenwerte 5 „noch wacklig“ mit „Stufe 4 mit Hilfen üben“, Intervalle 4 „fast“ ohne Knopf, „Noch eine Wiederholung“");
+      await shot(pg, "wiederholen-ergebnis-sitzt-wacklig", `Ergebniskarte „Wiederholung beendet“ (je Stufe „… von …“): ${nameOf(NOTEN_NAMES)} „sitzt“, Notenwerte 5 „noch wacklig“ mit „Stufe 4 mit Hilfen üben“, Intervalle 4 „fast“ ohne Knopf, „Noch eine Wiederholung“`);
     }
     // Runde 2 über „Noch eine Wiederholung“: nur Tonleitern 3 (zwei Knöpfe), alles richtig
     if (await need(pg, "#rMore", "„Noch eine Wiederholung“")) {
@@ -303,7 +329,7 @@ const SCENES = [
       await home(pg);
       await shot(pg, "start-nach-wiederholung", "Startseite nach beiden Runden: nichts mehr fällig, „Nächste Wiederholung: morgen“");
     }
-    // Runde 3: Buchstaben (Noten lesen 3), nur Namensraster (Intervalle 9), lange Auswahltexte (Dreiklänge 6)
+    // Runde 3: Buchstaben (NOTEN_LETTERS), nur Namensraster (Intervalle 9), lange Auswahltexte (Dreiklänge 6)
     pg = await page(weit());
     await pg.click("#homeReview"); await pg.waitForTimeout(300);
     seen.clear();
@@ -315,18 +341,18 @@ const SCENES = [
       await answerShot(pg, shot, right, right ? {} : { last: ["wiederholen-daneben-intervall-9", "Runde „Wiederholen“, Intervalle 9 daneben (nur Namensraster)"] });
       await goOn(pg);
     }
-    await shot(pg, "wiederholen-3-ergebnis", "Ergebniskarte der dritten Runde: Noten lesen 3 und Dreiklänge 6 „sitzt“, Intervalle 9 „fast“");
-    // Runde 4 mit der Eingabe „Klaviatur“ (Prüfung Schritt 13b): Noten lesen 3 auf der Klaviatur, Intervalle 9 bleibt
-    // beim Namensraster, Dreiklänge 6 mit Auswahlknöpfen – je erste Aufgabe, dazu Noten lesen 3 nach „daneben“
+    await shot(pg, "wiederholen-3-ergebnis", `Ergebniskarte der dritten Runde: ${nameOf(NOTEN_LETTERS)} und Dreiklänge 6 „sitzt“, Intervalle 9 „fast“`);
+    // Runde 4 mit der Eingabe „Klaviatur“ (Prüfung Schritt 13b): NOTEN_LETTERS auf der Klaviatur, Intervalle 9 bleibt
+    // beim Namensraster, Dreiklänge 6 mit Auswahlknöpfen – je erste Aufgabe, dazu NOTEN_LETTERS nach „daneben“
     pg = await page({ ...weit(), input: "keys" });
     await pg.click("#homeReview"); await pg.waitForTimeout(300);
     seen.clear();
     for (let k = 0; k < 12 && !(await vis(pg, "#pResult")); k++) {
       const info = await pg.evaluate(CUR);
       const first = !seen.has(info.id); seen.add(info.id);
-      if (first) await shot(pg, `wiederholen-klaviatur-aufgabe-${info.id}`, `Runde „Wiederholen“ mit der Eingabe „Klaviatur“, erste Aufgabe aus ${title(info.id)}${info.id === "noten-3" ? " (Klaviatur statt Buchstaben)" : info.id === "intervall-9" ? " (Namensraster bleibt)" : " (Auswahlknöpfe, keine Klaviatur)"}`);
-      const right = !(first && info.id === "noten-3");
-      await answerShot(pg, shot, right, right ? {} : { last: ["wiederholen-klaviatur-daneben-noten-3", "Runde „Wiederholen“ mit Klaviatur, Noten lesen 3 daneben"] });
+      if (first) await shot(pg, `wiederholen-klaviatur-aufgabe-${info.id}`, `Runde „Wiederholen“ mit der Eingabe „Klaviatur“, erste Aufgabe aus ${title(info.id)}${info.id === NOTEN_LETTERS ? " (Klaviatur statt Buchstaben)" : info.id === "intervall-9" ? " (Namensraster bleibt)" : " (Auswahlknöpfe, keine Klaviatur)"}`);
+      const right = !(first && info.id === NOTEN_LETTERS);
+      await answerShot(pg, shot, right, right ? {} : { last: [`wiederholen-klaviatur-daneben-${NOTEN_LETTERS}`, `Runde „Wiederholen“ mit Klaviatur, ${nameOf(NOTEN_LETTERS)} daneben`] });
       await goOn(pg);
     }
     await need(pg, "#pResult .review-line", "Urteilszeilen der Runde mit Klaviatur");
@@ -353,10 +379,14 @@ const SCENES = [
     await openLevel(pg, "intervall-4"); await startRound(pg);
     for (let k = 0; k < 12 && !(await vis(pg, "#pResult")); k++) { await answerQuestion(pg, false, null, errors); await goOn(pg); }
     if (await need(pg, "#pResult .gap-line", "Fehlermuster")) await shot(pg, "ergebnis-fehlermuster", "Ergebniskarte einer normalen Runde (Intervalle 4, alles daneben) mit Fehlermuster und „Grundlagen wiederholen“");
-    pg = await page(LEER);
-    await openLevel(pg, "noten-1"); await startRound(pg);
+    // „Geschafft“ in der ersten Stufe ohne Hilfen (seit Welle 12 nicht mehr Stufe 1, die hat Hilfen); die Stufen davor
+    // gelten als geschafft (nicht im Kasten, sie haben Hilfen)
+    const g = base();
+    for (const id of NOTEN_BEFORE) g.levels[id] = lv(9, 1, d(-1));
+    pg = await page(g);
+    await openLevel(pg, NOTEN_FIRST_BOX.id); await startRound(pg);
     for (let k = 0; k < 12 && !(await vis(pg, "#pResult")); k++) { await answerQuestion(pg, true, null, errors); await goOn(pg); }
-    if (await need(pg, "#rRepeat", "„Geschafft – kommt morgen …“")) await shot(pg, "ergebnis-geschafft", "Ergebniskarte Noten lesen 1, 10 von 10: „Geschafft – kommt morgen zum Wiederholen wieder.“, „Stufe 2 ist offen.“");
+    if (await need(pg, "#rRepeat", "„Geschafft – kommt morgen …“")) await shot(pg, "ergebnis-geschafft", `Ergebniskarte ${nameOf(NOTEN_FIRST_BOX.id)}, 10 von 10: „Geschafft – kommt morgen zum Wiederholen wieder.“, „Stufe ${NOTEN_FIRST_BOX.no + 1} ist offen.“`);
   }],
   ["lernen", async ({ page, shot }) => {
     const pg = await page(fort());
@@ -456,13 +486,47 @@ const SCENES = [
     }
   }],
   // Nachprüfung (am Ende, damit die Nummern 001–181 der Berichte gleich bleiben): „Grundlagen wiederholen“ mit einer
-  // fälligen Grundlage (Noten lesen 7), alles richtig → sie zählt als Wiederholung, das Urteil steht in ihrer Zeile
+  // fälligen Grundlage (GRUND_I3), alles richtig → sie zählt als Wiederholung, das Urteil steht in ihrer Zeile
   ["grundlagen-wiederholung", async ({ page, shot, need }) => {
     const pg = await page(grundlagenOk({ faellig: true }));
     await openLevel(pg, "intervall-3");
     await pg.click("#pBasics"); await pg.waitForTimeout(300);
     for (let k = 0; k < 8 && !(await vis(pg, "#pResult")); k++) { await answerQuestion(pg, true, null, errors); await goOn(pg); }
-    if (await need(pg, "#pResult .review-line", "Zeilen der Grundlagen")) await shot(pg, "grundlagen-ergebnis-zaehlt-als-wiederholung", "Ergebniskarte „Grundlagen wiederholt“, alles richtig: Noten lesen 7 war fällig und zählt als Wiederholung („· ✓ sitzt · wieder in 7 Tagen“ in ihrer Zeile), Intervalle 2 nur „3 von 3“, „Zurück zu Stufe 3“ als Hauptknopf");
+    if (await need(pg, "#pResult .review-line", "Zeilen der Grundlagen")) await shot(pg, "grundlagen-ergebnis-zaehlt-als-wiederholung", `Ergebniskarte „Grundlagen wiederholt“, alles richtig: ${nameOf(GRUND_I3)} war fällig und zählt als Wiederholung („· ✓ sitzt · wieder in 7 Tagen“ in ihrer Zeile), Intervalle 2 nur „3 von 3“, „Zurück zu Stufe 3“ als Hauptknopf`);
+  }],
+  // Welle 12 (am Ende, damit die Nummern davor gleich bleiben): jede Stufe von „Noten lesen“ aus dem Paket. Mit Hilfen:
+  // Startkarte, Frage mit offenen Hilfen, ganz richtig (nach jedem Schritt), Schritt 1 daneben (Teilerfolg bzw.
+  // daneben), Vorführung Bild für Bild. Ohne Hilfen: Startkarte, Auflösung nach „daneben“.
+  ["noten-lesen", async ({ page, shot }) => {
+    const pg = await page(OFFEN);
+    for (const l of NOTEN) {
+      const id = l.id, t = title(id);
+      await openLevel(pg, id);
+      await shot(pg, `${id}-startkarte`, `Startkarte ${t}`);
+      await startRound(pg); await openHelps(pg);
+      const info = await pg.evaluate(CUR);
+      const two = info.steps > 1, kinds = info.kinds.join(" → ");
+      await shot(pg, `${id}-frage`, `${t}: Frage${hasHelps(l) ? " mit offenen Hilfen" : ""} (Antwort: ${kinds})`);
+      if (!hasHelps(l)) {
+        await answerShot(pg, shot, false, { last: [`${id}-daneben`, `${t}: Auflösung nach „daneben“`] });
+        continue;
+      }
+      await answerShot(pg, shot, true, { ...(two ? { 0: [`${id}-richtig-schritt-1`, `${t}: erster Schritt richtig`] } : {}), last: [`${id}-richtig`, `${t}: Rückmeldung „Richtig!“, wartet auf „Nächste Aufgabe“`] });
+      await goOn(pg); await openHelps(pg);
+      await answerShot(pg, shot, two ? [false, true] : false, { ...(two ? { 0: [`${id}-daneben-schritt-1`, `${t}: erster Schritt daneben, „Weiter zu Schritt 2“`] } : {}), last: [`${id}-${two ? "teilerfolg" : "daneben"}`, `${t}: ${two ? "nur der zweite Schritt richtig (Teilerfolg)" : "Rückmeldung nach „daneben“ mit Auflösung"}`] });
+      if (await vis(pg, "#pHelpsBody [data-demo-btn]")) await demoFrames(pg, shot, `${id}-vorfuehrung`, `${t}: Vorführung zur Aufgabe`);
+      await goOn(pg);
+    }
+  }],
+  // Statistik nach der Umstellung (Welle 12, Entscheidung 6 a): Stufe 3 und 8 im Kasten (Eintrag aus dem Paar
+  // Linien + Zwischenräume), aber ohne eigene Runde → „noch keine eigene Runde“ neben Kästchen und Datum
+  ["statistik-umstellung", async ({ page, shot, need }) => {
+    const s = fort();
+    for (const [, , to] of PAARE_NOTEN) delete s.levels[to];
+    const pg = await page(s);
+    await pg.click('.tab[data-view="stats"]'); await pg.waitForTimeout(400);
+    await need(pg, "#sLevels .box", "Kästchen");
+    await shot(pg, "statistik-nach-umstellung", "Statistik: Noten lesen 3 und 8 im Kasten ohne eigene Runde („noch keine eigene Runde“), Notenkarte mit „Vorzeichen im Violinschlüssel“ und „Vorzeichen im Bassschlüssel“");
   }],
 ];
 
@@ -485,13 +549,13 @@ try {
 } catch { /* ohne git */ }
 const rows = [...names.entries()].map(([file, { no, desc }]) => `| ${String(no).padStart(3, "0")} | ${file} | ${desc} |`);
 writeFileSync(join(OUT, "index.md"), [
-  "# Notenheld – Bildschirmfotos für die Prüfung (Welle 11)",
+  "# Notenheld – Bildschirmfotos für die Prüfung (Welle 12)",
   "",
   `Stand: Commit ${commit}, erzeugt mit docs/screens/pruefung.mjs am ${new Date().toISOString().slice(0, 16).replace("T", " ")} UTC.`,
   `Uhr der App: ${HEUTE}, 10:00 Uhr (${TZ}), fest. Zufall fest (SEED ${SEED}): beide Ordner zeigen dieselben Aufgaben.`,
   `Ordner: ${LOOKS.map((l) => `\`${l.dir}/\` (${l.width} px, ${l.scheme === "dark" ? "dunkel" : "hell"})`).join(", ")}; jede Datei heißt NNN-name.png, ganze Seite, ${SKALA} Pixel je CSS-Pixel.`,
   `Seiten über ${TEIL * 1.25} px Höhe zusätzlich in Teilen zu ${TEIL} px (100 px Überlappung): \`<ordner>/teile/NNN-name-1.png\`, \`-2\` … (verkleinert lesbar).`,
-  `Spielstände: leer, „nach zwei Wochen“ (Noten lesen ganz, Notenwerte bis 5, Intervalle bis 3), mit fälligen Stufen, mit Jahrgang 5/7/9 (Voreinstellung nach klasse.js), einmal mit der Eingabe „Klaviatur“.`,
+  `Spielstände: leer, „nach zwei Wochen“ (Noten lesen ganz, alle ${NOTEN.length} Stufen, Notenwerte bis 5, Intervalle bis 3), mit fälligen Stufen, mit Jahrgang 5/7/9 (Voreinstellung nach klasse.js), einmal mit der Eingabe „Klaviatur“.`,
   `Alle Zahlen in diesen Spielständen (XP, Serie, Sterne, Trefferquoten, Notenkarte, Fächer, Tage) sind erfunden: Prüfdaten für die Darstellung, keine Ergebnisse von Schülerinnen oder Schülern.`,
   "",
   "| Nr | Name | zeigt |",

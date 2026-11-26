@@ -1,7 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { weakList, levelRow, levelGroups, levelRowText, heatRows, heatCell, heatAccList, heatX, HEAT_CLS, HEAT_LEGEND, boxHtml, lastText, BOX_NOTE } from "../../src/views/stats.js";
+import { weakList, levelRow, levelGroups, levelRowText, heatRows, heatCell, heatAccList, heatAccGroups, CLEF_NAME, heatX, HEAT_CLS, HEAT_LEGEND, boxHtml, lastText, BOX_NOTE, NOT_PLAYED, NO_OWN_ROUND } from "../../src/views/stats.js";
+import { HEAT_NOTES, statKey } from "../../src/packs/noten.js";
+import { fresh, migrateNoten, RENAMED_NOTEN, PAARE_NOTEN, MIGRATION_NOTEN } from "../../src/store.js";
+import { inBox } from "../../src/repeat.js";
 import { N } from "../../src/music.js";
 import { PACKS } from "../../src/packs/index.js";
 
@@ -65,6 +68,7 @@ test("levelGroups: je Paket in Registry-Reihenfolge, unbekannte IDs übergangen"
 test("levelRowText: Ergebnis und Anzahl oder Hinweis", () => {
   assert.equal(levelRowText({ played: 3, best: 8 }), "8/10 · 3× gespielt");
   assert.equal(levelRowText({ played: 0, best: 0 }), "noch nicht gespielt");
+  assert.equal(levelRowText({ played: 0, best: 0, fach: 2 }), "noch keine eigene Runde");
 });
 
 test("heatRows: alle Stammtöne je Schlüssel in Zeilen zu höchstens 7", () => {
@@ -163,4 +167,62 @@ test("levelRow mit Karteikasten: Fach nur ohne Hilfen, „zuletzt geübt am“ a
   const g = levelGroups(PACKS, { "noten-3": { best: 8, played: 1 } }, { "noten-3": { fach: 2, faellig: "2026-11-28", zuletzt: "2026-11-25" } });
   assert.equal(g[0].rows[2].fach, 2);
   assert.equal(g[0].rows[0].fach, null);
+});
+
+// Welle 12, Schritt 6 (PLAN Abschnitt 11): zwei Listen der Vorzeichen-Noten, ohne Stufennummer
+test("heatAccGroups: je Schlüssel eine Liste mit allen Vorzeichen-Noten aus HEAT_NOTES.acc, Überschrift ohne Stufennummer", () => {
+  const notes = { "Fis (fis', Violin)": { ok: 0, bad: 7 }, "Fis (fis, Bass)": { ok: 9, bad: 0, sec: 18, timed: 9 } };
+  const g = heatAccGroups(notes);
+  assert.deepEqual(g.map((x) => x.clef), ["treble", "bass"]);
+  assert.deepEqual(g.map((x) => x.title), ["Vorzeichen im Violinschlüssel", "Vorzeichen im Bassschlüssel"]);
+  assert.ok(g.every((x) => !/Stufe|\d/.test(x.title)), "keine Stufennummer");
+  // zusammen genau HEAT_NOTES.acc in derselben Reihenfolge, jede Liste nur Noten ihres Schlüssels
+  assert.deepEqual(g.flatMap((x) => x.cells.map((c) => c.key)), HEAT_NOTES.acc.map((it) => statKey(it.n, it.clef)));
+  for (const x of g) assert.ok(x.cells.length > 0 && x.cells.every((c) => c.clef === x.clef && c.key.endsWith(x.clef === "treble" ? "Violin)" : "Bass)")));
+  assert.equal(g[0].cells[0].status, "unsicher");
+  assert.equal(g[1].cells[0].key, "Fis (fis, Bass)"); assert.equal(g[1].cells[0].pct, 100);
+  // die Listen stammen aus den Stufen mit Vorzeichen ohne Hilfen (Inhalt wie im Paket)
+  const vz = PACKS.find((p) => p.id === "noten").levels.filter((l) => l.acc && inBox(l) && l.clef !== "both");
+  assert.deepEqual(vz.map((l) => l.clef), ["treble", "bass"]);
+  assert.equal(CLEF_NAME.treble, "Violinschlüssel"); assert.equal(CLEF_NAME.bass, "Bassschlüssel");
+});
+
+test("Statistik-Quelltext: keine feste Überschrift „Vorzeichen (Stufe …)“ mehr", () => {
+  const src = readFileSync(new URL("../../src/views/stats.js", import.meta.url), "utf8");
+  assert.doesNotMatch(src, /Vorzeichen \(Stufe/);
+  assert.match(src, /heatAccGroups\(notes\)/);
+});
+
+// Zusage „Wortlaut stimmt“ über alle Zustände einer Zeile (PLAN Welle 12, Schritt 2, Vorgabe für Schritt 6): nie
+// „noch nicht gespielt“ neben Kästchen oder „zuletzt geübt am …“
+test("levelRowText: „noch nicht gespielt“ nie zusammen mit Kästchen oder Datum (alle Zustände)", () => {
+  const l = PACKS[0].levels.find((x) => inBox(x));
+  const entries = [undefined, { stars: 0, best: 0, played: 0, offen: true }, { stars: 2, best: 7, played: 1, day: "2026-11-20" }, { played: 0, day: "2026-11-21" }];
+  const reps = [undefined, { fach: 1, faellig: "2026-11-27", zuletzt: null }, { fach: 3, faellig: "2026-11-30", zuletzt: "2026-11-24" }];
+  for (const e of entries) for (const rp of reps) for (const heute of [null, "2026-11-26", "2026-11-01"]) {
+    const r = levelRow(l, e, rp, heute), t = levelRowText(r);
+    if (t === NOT_PLAYED) { assert.equal(r.fach, null); assert.equal(r.zuletzt, null); }
+    if (r.played > 0) assert.match(t, /× gespielt$/);
+    else assert.equal(t, r.fach ? NO_OWN_ROUND : NOT_PLAYED);
+  }
+});
+
+test("Umstellung: Stufe 3 bzw. 8 aus dem Paar zeigt Kästchen, Datum und „noch keine eigene Runde“", () => {
+  const s = fresh();
+  s.migrated = s.migrated.filter((m) => m !== MIGRATION_NOTEN);
+  s.levels = { "noten-1": { stars: 3, best: 9, played: 2, day: "2026-11-20" }, "noten-2": { stars: 3, best: 9, played: 1, day: "2026-11-21" },
+    "noten-4": { stars: 3, best: 9, played: 1, day: "2026-11-19" }, "noten-5": { stars: 3, best: 8, played: 1, day: "2026-11-19" } };
+  s.rep = { "noten-1": { fach: 2, faellig: "2026-11-28", zuletzt: "2026-11-24" }, "noten-2": { fach: 3, faellig: "2026-11-29", zuletzt: "2026-11-25" },
+    "noten-4": { fach: 1, faellig: "2026-11-27", zuletzt: null }, "noten-5": { fach: 1, faellig: "2026-11-27", zuletzt: null } };
+  assert.ok(migrateNoten(s));
+  const rows = levelGroups(PACKS, s.levels, s.rep, "2026-11-26").find((g) => g.id === "noten").rows;
+  for (const [, , to] of PAARE_NOTEN) {
+    const r = rows.find((x) => x.id === to);
+    assert.equal(r.played, 0); assert.ok(r.fach);
+    assert.equal(levelRowText(r), NO_OWN_ROUND);
+  }
+  assert.equal(lastText(rows.find((x) => x.id === "noten-3").zuletzt), "zuletzt geübt am 25.11.");
+  assert.equal(rows.find((x) => x.id === "noten-8").zuletzt, null);
+  // die alten Stufen wandern mit ihren Runden (1→1, 2→2, 4→6, 5→7), dort „× gespielt“
+  for (const id of ["noten-1", "noten-2", "noten-4", "noten-5"]) assert.match(levelRowText(rows.find((x) => x.id === RENAMED_NOTEN[id])), /× gespielt$/);
 });

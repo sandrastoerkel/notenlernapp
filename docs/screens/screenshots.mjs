@@ -11,11 +11,15 @@
 // Ergebnis: docs/screens/<bereich>-hell.png und <bereich>-dunkel.png
 // Seit Welle 11 (Schritt 13): feste Uhr (page.clock.setFixedTime, 26.11.2026 in Europe/Berlin) und fester Zufall,
 // Stand mit Jahrgang 6 (über den Link der Lehrkraft) und zwei fälligen Stufen (Karte „Heute“: „Wiederholen“).
+// Seit Welle 12 (Schritt 6): „Noten lesen“ mit 15 Stufen – Stufe 1 und 2 haben Hilfen und kommen nicht in den
+// Kasten; fällig sind deshalb Noten lesen 3 und Notenwerte 3 (Stufen ohne Hilfen, geprüft gegen PACKS).
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadPlaywright, launch, BASE, KEY, SEED_STATE, SEED_RANDOM } from "./spiel.mjs";
 import { fresh, addDays } from "../../src/store.js";
 import { dranFor } from "../../src/klasse.js";
+import { PACKS } from "../../src/packs/index.js";
+import { inBox } from "../../src/repeat.js";
 
 const playwright = loadPlaywright();
 const OUT = dirname(fileURLToPath(import.meta.url));
@@ -29,10 +33,13 @@ const STATE = {
   ...fresh(),
   xp: 640, dayStreak: 3, lastDay: d(-1),
   levels: {
-    "noten-1": { stars: 3, best: 9, played: 3, last: 9, day: d(-3) },
-    "noten-2": { stars: 2, best: 8, played: 2, last: 8, day: d(-1) },
-    "noten-3": { stars: 1, best: 6, played: 1, last: 6, day: d(-1) },
-    "notenwerte-1": { stars: 2, best: 8, played: 1, last: 8, day: d(-2) },
+    "noten-1": { stars: 3, best: 9, played: 3, last: 9, day: d(-5) },
+    "noten-2": { stars: 2, best: 8, played: 2, last: 8, day: d(-4) },
+    "noten-3": { stars: 3, best: 9, played: 1, last: 9, day: d(-1) },
+    "noten-4": { stars: 1, best: 6, played: 1, last: 6, day: d(-1) },
+    "notenwerte-1": { stars: 2, best: 8, played: 1, last: 8, day: d(-4) },
+    "notenwerte-2": { stars: 2, best: 8, played: 1, last: 8, day: d(-4) },
+    "notenwerte-3": { stars: 3, best: 9, played: 1, last: 9, day: d(-1) },
   },
   notes: {
     "F (f'', Violin)": { ok: 5, bad: 3 },
@@ -41,13 +48,18 @@ const STATE = {
   },
   answered: 70, correct: 56, bestCombo: 9, blitzRecord: 18,
   unlockAll: false, muted: true, input: "letters", current: "noten-1",
-  // Karteikasten: Noten lesen 1 und 2 sind heute wieder dran
+  // Karteikasten: Noten lesen 3 und Notenwerte 3, gestern geschafft (Fach 1), sind heute wieder dran
   rep: {
-    "noten-1": { fach: 2, faellig: HEUTE, zuletzt: d(-3) },
-    "noten-2": { fach: 1, faellig: HEUTE, zuletzt: d(-1) },
+    "noten-3": { fach: 1, faellig: HEUTE, zuletzt: d(-1) },
+    "notenwerte-3": { fach: 1, faellig: HEUTE, zuletzt: d(-1) },
   },
   klasse: { jahrgang: 6, zweig: null, dran: dranFor(6) },
 };
+
+// Nur Stufen, die es gibt; im Kasten nur Stufen ohne Hilfen (sonst zeigte das Bild einen Stand, den die App nie anlegt)
+const LEVEL = Object.fromEntries(PACKS.flatMap((p) => p.levels.map((l) => [l.id, l])));
+for (const id of [...Object.keys(STATE.levels), STATE.current]) if (!LEVEL[id]) throw new Error(`screenshots.mjs: Stufe ${id} gibt es nicht`);
+for (const id of Object.keys(STATE.rep)) if (!inBox(LEVEL[id])) throw new Error(`screenshots.mjs: ${id} hat Hilfen und gehört nicht in den Kasten`);
 
 // Je Bereich: Tab anklicken, dann optional weitere Schritte
 const SHOTS = [

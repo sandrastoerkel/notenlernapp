@@ -26,7 +26,8 @@
 // Jahrgang 5, 7 und 9, die Statistik mit Jahrgang und die Seite „Für Lehrkräfte“ samt „QR-Code groß zeigen“
 // (Schritt 12; dort auch: Esc schließt, Fokus zurück, der gespeicherte Stand bleibt unverändert).
 // In jedem Zustand zählt außerdem ein zweiter sichtbarer Knopf „Nächste Aufgabe“ als Treffer (W2, Welle 11).
-// Dazu je Breite die Lage der Knöpfe auf sechs Startkarten bei einem 640 px hohen Fenster (startCards, J-B1) und auf
+// Dazu je Breite die Reihenfolge der Teile auf allen Startkarten und die Lage der Knöpfe auf acht Startkarten bei einem
+// 640 px hohen Fenster (startCards, J-B1; Welle 12: aus PACKS, dazu Noten lesen 4, 12, 13) und auf
 // Startkarten mit Zusatz zum Aufklappen (Tonleitern 10) auch der aufgeklappte Zusatz.
 //
 // Playwright ist KEINE Abhängigkeit der App (siehe spiel.mjs). Aufruf bei laufendem Server:
@@ -35,6 +36,10 @@
 //   node docs/screens/ueberlauf.mjs --selftest   (nur der Selbsttest der Überlappungs-Prüfung)
 // Ende mit Code 1, wenn es Treffer oder Konsolenfehler gibt. Läuft nicht in `npm test` (braucht einen Browser).
 import { loadPlaywright, launch, BASE, KEY, vis, answerQuestion, goOn } from "./spiel.mjs";
+import { PACKS } from "../../src/packs/index.js";
+import { inBox, needsOf } from "../../src/repeat.js";
+import { usesNames } from "../../src/engine.js";
+import { RENAMED_NOTEN } from "../../src/store.js";
 
 const playwright = loadPlaywright();
 const WIDTHS = (process.env.BREITEN || "320,420").split(",").map(Number);
@@ -214,19 +219,38 @@ const NEXT_COUNT = () => [...document.querySelectorAll("button")].filter((b) => 
 // Runden „Wiederholen“ (je drei fällige Stufen, 4 + 3 + 3): Namensraster, Auswahlknöpfe, zwei Schritte;
 // Buchstaben, namesOnly, lange Auswahltexte; mit der Eingabe „Klaviatur“ (Prüfung Schritt 13b): Klaviatur,
 // Auswahlknöpfe und Namensraster (namesOnly bleibt beim Namensraster) im Wechsel
+// Stufen-IDs aus dem Code (LESSONS: Abdeckung aus den Listen im Code). Welle 12: „Noten lesen“ hat 15 Stufen; die
+// Stufen von früher heißen nach RENAMED_NOTEN (alt 7 „Noten mit Vorzeichen“ → neu 12, alt 3 → 5, alt 8 → 15). Jede
+// Stufe einer gemischten Runde muss im Kasten sein (ohne Hilfen) – sonst bricht das Skript gleich am Anfang ab.
+const LEVEL = Object.fromEntries(PACKS.flatMap((p) => p.levels.map((l) => [l.id, l])));
+const NOTEN = PACKS.find((p) => p.id === "noten").levels;
+const BOX = (id, names) => {
+  const l = LEVEL[id];
+  if (!l || !inBox(l) || (names !== undefined && usesNames(l) !== names)) throw new Error(`ueberlauf.mjs: ${id} passt nicht (gibt es nicht, hat Hilfen oder falsche Eingabe)`);
+  return id;
+};
+const NOTEN_NAMES = BOX(RENAMED_NOTEN["noten-7"], true);     // Namensraster (Vorzeichen im Violinschlüssel ohne Hilfen)
+const NOTEN_LETTERS = BOX(RENAMED_NOTEN["noten-3"], false);  // Buchstaben/Klaviatur (Violinschlüssel mit Hilfslinien)
+const NOTEN_LATER = BOX(RENAMED_NOTEN["noten-8"]);           // im Kasten, erst in drei Tagen fällig (Alles gemischt)
 const MIXED = [
-  { ids: ["noten-7", "notenwerte-5", "intervall-4"] },
-  { ids: ["noten-3", "intervall-9", "akkorde-6"] },
-  { ids: ["noten-3", "intervall-4", "intervall-9"], input: "keys" },
+  { ids: [NOTEN_NAMES, "notenwerte-5", "intervall-4"] },
+  { ids: [NOTEN_LETTERS, "intervall-9", "akkorde-6"] },
+  { ids: [NOTEN_LETTERS, "intervall-4", "intervall-9"], input: "keys" },
 ];
+MIXED.forEach((m) => m.ids.forEach((id) => BOX(id)));
+// Runde ganz richtig mit „Geschafft – kommt morgen …“: die erste Stufe von „Noten lesen“ ohne Hilfen und ohne
+// Namensraster, die nach der letzten Runde „Wiederholen“ nicht im Kasten ist (früher noten-1; seit Welle 12 hat
+// Stufe 1 Hilfen und kommt nie in den Kasten)
+const NOTEN_FIRST_BOX = NOTEN.find((l) => inBox(l) && !usesNames(l) && ![...MIXED.at(-1).ids, NOTEN_LATER].includes(l.id));
+if (!NOTEN_FIRST_BOX) throw new Error("ueberlauf.mjs: keine Stufe für „Geschafft“");
 // läuft in der Seite: Karteikasten im gespeicherten Stand so setzen, dass genau ids fällig sind (am längsten fällig
-// zuerst; die erste mit zuletzt: null wie nach der Umstellung) und noten-8 erst in drei Tagen; Eingabe input
+// zuerst; die erste mit zuletzt: null wie nach der Umstellung) und later (NOTEN_LATER) erst in drei Tagen; Eingabe input
 // („letters“ oder „keys“); danach neu laden
-const SETREP = async ([ids, input]) => {
+const SETREP = async ([ids, input, later]) => {
   const st = await import("./src/store.js");
   const t = st.today(), s = JSON.parse(localStorage.getItem(st.KEY_V2));
   s.input = input;
-  s.rep = { "noten-8": { fach: 3, faellig: st.addDays(t, 3), zuletzt: t } };
+  s.rep = { [later]: { fach: 3, faellig: st.addDays(t, 3), zuletzt: t } };
   ids.forEach((id, i) => { s.rep[id] = { fach: 2, faellig: st.addDays(t, -3 + i), zuletzt: i ? st.addDays(t, -6) : null }; });
   localStorage.setItem(st.KEY_V2, JSON.stringify(s));
 };
@@ -306,10 +330,10 @@ async function selftest(browser) {
   return fails;
 }
 
-// Startkarten (Korrektur nach der Prüfung Welle 11, J-B1): die sechs Karten, die die Prüfung aus Sicht der
-// Jugendlichen gemessen hat, bei width × 640 (etwa 580 px über der unteren Leiste), alles offen und nichts gespielt
+// Startkarten (Korrektur nach der Prüfung Welle 11, J-B1): alle Startkarten (seit Welle 12; früher nur die sechs
+// Karten, die die Prüfung aus Sicht der Jugendlichen gemessen hat), bei width × 640 (etwa 580 px über der unteren Leiste), alles offen und nichts gespielt
 // (mit Empfehlung), danach mit geschafften Grundlagen (ohne Empfehlung). Geprüft wird:
-// - Reihenfolge: nach dem Hinweis (mit Empfehlung nach deren Satz) kommen sofort die Knöpfe, „Dafür brauchst du“ und
+// - Reihenfolge (alle Karten): nach dem Hinweis (mit Empfehlung nach deren Satz) kommen sofort die Knöpfe, „Dafür brauchst du“ und
 //   der Tastatur-Hinweis erst danach; zwischen zwei Teilen höchstens der Abstand der Karte;
 // - erster Bildschirm: Auf den Karten, deren Startknopf schon auf main 2f3dfe8 bei 320 px im ersten Bildschirm lag
 //   (FIRST_SCREEN), liegt der erste Knopf ganz darin, ohne Empfehlung auch „Runde starten“;
@@ -318,7 +342,12 @@ async function selftest(browser) {
 //   oberer Rand unter der Grenze). Tonleitern 10 (Reihenfolge der Vorzeichen zum Aufklappen) erreicht das ohne
 //   Verlust an Inhalt nicht; seine Lage steht nur in der Ausgabe.
 // Die Lage des ersten Knopfs und von „Runde starten“ steht in der Ausgabe (zum Vergleich mit dem Bericht).
-const START_CARDS = ["intervall-3", "tonleitern-10", "tonleitern-12", "noten-7", "notenwerte-6", "akkorde-1"];
+// Welle 12 (PLAN Schritt 6): noten-12 statt noten-7 (gleicher Inhalt), dazu noten-4 und noten-13 (neu, mit Hilfen).
+// Reihenfolge und Lücken prüft startCards seitdem auf allen Startkarten (aus PACKS); die Lage steht nur für
+// START_CARDS in der Ausgabe.
+const START_CARDS = ["intervall-3", "tonleitern-10", "tonleitern-12", "noten-4", "noten-12", "noten-13", "notenwerte-6", "akkorde-1"];
+const ALL_CARDS = Object.keys(LEVEL);
+[...START_CARDS].forEach((id) => { if (!LEVEL[id]) throw new Error(`ueberlauf.mjs: Startkarte ${id} gibt es nicht`); });
 const FIRST_SCREEN = ["notenwerte-6", "akkorde-1"];
 const FIRST_SCREEN_320 = ["intervall-3", "tonleitern-12"];
 // läuft in der Seite: Teile der Startkarte in ihrer Reihenfolge, Lage im Dokument und Grenze des ersten Bildschirms
@@ -334,9 +363,9 @@ async function startCards(browser, width, scheme) {
   await pg.goto(BASE); await pg.waitForTimeout(500);
   await pg.click("#unlockAll"); await pg.waitForTimeout(300);
   for (const mit of [true, false]) {
-    if (!mit) { await pg.evaluate(SETBASICS, START_CARDS); await pg.reload(); await pg.waitForTimeout(500); }
+    if (!mit) { await pg.evaluate(SETBASICS, ALL_CARDS); await pg.reload(); await pg.waitForTimeout(500); }
     const row = [];
-    for (const id of START_CARDS) {
+    for (const id of ALL_CARDS) {
       await pg.click('.tab[data-view="home"]'); await pg.waitForTimeout(150);
       await pg.click(`.level[data-id="${id}"]`); await pg.waitForTimeout(250);
       await pg.evaluate(() => window.scrollTo(0, 0));
@@ -344,7 +373,8 @@ async function startCards(browser, width, scheme) {
       const where = `Startkarte ${id} ${width} px ${mit ? "mit" : "ohne"} Empfehlung`;
       const ids = parts.map((p) => p.id);
       const first = parts.findIndex((p) => p.btn), start = parts.find((p) => p.id === "pStart");
-      const lead = mit ? ["pHint", "pBasicsWhy"] : ["pHint"];
+      // Empfehlung nur bei Stufen mit Voraussetzungen (needsOf); ohne Voraussetzungen kommt nach dem Hinweis sofort der Knopf
+      const lead = mit && needsOf(PACKS, id).length ? ["pHint", "pBasicsWhy"] : ["pHint"];
       if (ids.slice(0, first).join() !== lead.join()) errs.push(`${where}: vor dem ersten Knopf steht ${ids.slice(0, first).join(", ")}`);
       if (parts.slice(first).some((p, i, a) => !p.btn && a.slice(i).some((q) => q.btn))) errs.push(`${where}: Text zwischen den Knöpfen (${ids.join(", ")})`);
       if (ids.indexOf("pNeeds") >= 0 && ids.indexOf("pNeeds") < first) errs.push(`${where}: „Dafür brauchst du“ vor den Knöpfen`);
@@ -354,7 +384,7 @@ async function startCards(browser, width, scheme) {
         if (!mit && start.bottom > lim) errs.push(`${where}: „Runde starten“ nicht ganz im ersten Bildschirm (${start.bottom} > ${lim})`);
       }
       if (width === 320 && FIRST_SCREEN_320.includes(id) && parts[first].top >= lim) errs.push(`${where}: erster Knopf beginnt nicht im ersten Bildschirm (${parts[first].top} ≥ ${lim})`);
-      row.push(`${id} ${parts[first].top}${parts[first].id === "pStart" ? "" : `/${start.top}`}`);
+      if (START_CARDS.includes(id)) row.push(`${id} ${parts[first].top}${parts[first].id === "pStart" ? "" : `/${start.top}`}`);
     }
     lines.push(`  Startkarten ${width} × 640 ${mit ? "mit" : "ohne"} Empfehlung (oberer Rand erster Knopf[/„Runde starten“], erster Bildschirm bis 580 px): ${row.join(", ")}`);
   }
@@ -428,7 +458,7 @@ async function run(browser, width, scheme) {
   }
   // Runden „Wiederholen“ über die Karte „Heute“ (Welle 11, Schritt 8): jede Aufgabe, abwechselnd richtig und daneben
   for (const [k, { ids, input = "letters" }] of MIXED.entries()) {
-    await pg.evaluate(SETREP, [ids, input]); await pg.reload(); await pg.waitForTimeout(600);
+    await pg.evaluate(SETREP, [ids, input, NOTEN_LATER]); await pg.reload(); await pg.waitForTimeout(600);
     if (!(await visible("#homeReview"))) errs.push(`Wiederholen ${k + 1}: kein Knopf „Wiederholung starten“`);
     const again = await pg.locator("#levelList .again").count();
     if (again !== ids.length) errs.push(`Wiederholen ${k + 1}: ${again}× „wieder dran“ statt ${ids.length}×`);
@@ -461,14 +491,15 @@ async function run(browser, width, scheme) {
   await pg.evaluate(() => { const s = JSON.parse(localStorage.getItem("notenheld.v2")); s.input = "letters"; localStorage.setItem("notenheld.v2", JSON.stringify(s)); });
   await pg.reload(); await pg.waitForTimeout(600);
   // Normale Runde ganz richtig in einer Stufe ohne Hilfen (noch nicht im Kasten): „Geschafft – kommt morgen …“ auf der Ergebniskarte
-  await pg.click('.level[data-id="noten-1"]'); await pg.waitForTimeout(200);
+  const gw = `Noten lesen ${NOTEN_FIRST_BOX.no}`;
+  await pg.click(`.level[data-id="${NOTEN_FIRST_BOX.id}"]`); await pg.waitForTimeout(200);
   await pg.click("#pStart"); await pg.waitForTimeout(250);
   for (let rnd = 0; rnd < 12 && !(await visible("#pResult")); rnd++) {
     await answer(`Kasten Aufgabe ${rnd + 1}`, true);
     await goOn(pg);
   }
-  if (!(await visible("#rRepeat"))) errs.push("Noten lesen 1 ganz richtig: kein Satz „Geschafft – kommt morgen …“");
-  await chk("Noten lesen 1 Ergebnis „Geschafft“");
+  if (!(await visible("#rRepeat"))) errs.push(`${gw} ganz richtig: kein Satz „Geschafft – kommt morgen …“`);
+  await chk(`${gw} Ergebnis „Geschafft“`);
   // „Grundlagen wiederholen“ über die Startkarte (Welle 11, Schritt 7): Intervalle 3 (Ziffern, Namensraster) und
   // Dreiklänge 1 (zwei Schritte, Namensraster), jede Aufgabe abwechselnd richtig und daneben, dann „Zurück zu Stufe …“
   for (const lid of ["intervall-3", "akkorde-1"]) {
