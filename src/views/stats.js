@@ -73,8 +73,13 @@ export function levelGroups(packs, levels, rep, heute = null) {
   });
 }
 
-// Kurztext für eine Stufe: „8/10 · 3× gespielt“ bzw. „noch nicht gespielt“
-export const levelRowText = (r) => (r.played > 0 ? `${r.best}/10 · ${r.played}× gespielt` : "noch nicht gespielt");
+// Kurztext für eine Stufe: „8/10 · 3× gespielt“ bzw. „noch nicht gespielt“. Eine Stufe im Karteikasten ohne eigene
+// Runde (Welle 12: der Eintrag für Stufe 3 bzw. 8 entsteht bei der Umstellung aus dem Paar Linien + Zwischenräume,
+// Entscheidung 6 a; danach kann sie in „Wiederholen“ vorkommen, ohne je als Runde gespielt zu sein) heißt „noch
+// keine eigene Runde“ – neben den Kästchen und „zuletzt geübt am …“ wäre „noch nicht gespielt“ ein Widerspruch.
+// played zählt nur normale Runden (recordRound), Wiederholungsrunden tragen nichts in state.levels ein.
+export const NOT_PLAYED = "noch nicht gespielt", NO_OWN_ROUND = "noch keine eigene Runde";
+export const levelRowText = (r) => (r.played > 0 ? `${r.best}/10 · ${r.played}× gespielt` : r.fach ? NO_OWN_ROUND : NOT_PLAYED);
 
 // Notenkarte: Klasse des Notenkopfs je Zustand (Farbe nur über Tokens in css/style.css);
 // „neu“ ist grau (Klasse new, Token --muted), damit es nicht mit dem Blau aus „Lernen“ (ghost) verwechselt wird
@@ -115,8 +120,17 @@ export function heatRows(notes, clef, perRow = 7) {
   return rows;
 }
 
-// Vorzeichen-Noten (Stufe 7) als Liste in der Reihenfolge der Stufe
+// Vorzeichen-Noten als Liste in der Reihenfolge der Stufen (seit Welle 12 Violin- und Bassschlüssel)
 export const heatAccList = (notes) => HEAT_NOTES.acc.map((it) => heatCell(it.n, it.clef, (notes || {})[statKey(it.n, it.clef)]));
+// Name des Schlüssels in Überschriften
+export const CLEF_NAME = { treble: "Violinschlüssel", bass: "Bassschlüssel" };
+// Vorzeichen-Noten je Schlüssel (Welle 12, PLAN Abschnitt 11): eine Liste je Schlüssel in der Reihenfolge, in der
+// HEAT_NOTES.acc sie nennt, Überschrift „Vorzeichen im Violinschlüssel“ bzw. „… im Bassschlüssel“ – ohne
+// Stufennummer (die Noten kommen in zwei Stufen je Schlüssel vor, mit und ohne Hilfen)
+export function heatAccGroups(notes) {
+  const cells = heatAccList(notes), clefs = [...new Set(cells.map((c) => c.clef))];
+  return clefs.map((clef) => ({ clef, title: `Vorzeichen im ${CLEF_NAME[clef]}`, cells: cells.filter((c) => c.clef === clef) }));
+}
 
 // x-Position der Note i in einer Zeile der Notenkarte (Einheiten des viewBox, Breite 320);
 // gleicher Abstand in allen Zeilen, damit die Noten untereinander stehen
@@ -152,13 +166,14 @@ function heatRowHtml(row) {
 
 function heatHtml(notes) {
   const legend = HEAT_LEGEND.map(([st, label]) => `<span class="heat-key"><i class="heat-dot ${HEAT_CLS[st]}"></i>${label}</span>`).join("");
-  const acc = heatAccList(notes).map((c) => `<button type="button" class="list-row heat-acc" data-detail="${attr(c.detail)}"><b><i class="heat-dot ${c.cls}"></i>${c.name} (${c.helm})</b><span class="small muted">${c.status}</span><span class="small num">${pctText(c)}</span></button>`).join("");
+  const accRow = (c) => `<button type="button" class="list-row heat-acc" data-detail="${attr(c.detail)}"><b><i class="heat-dot ${c.cls}"></i>${c.name} (${c.helm})</b><span class="small muted">${c.status}</span><span class="small num">${pctText(c)}</span></button>`;
+  const acc = heatAccGroups(notes).map((g) => `<p class="eyebrow">${g.title}</p><div class="list">${g.cells.map(accRow).join("")}</div>`).join("");
   return `<div class="row between"><h3>Notenkarte</h3><span class="small muted">je Note aus den letzten ${FENSTER} Antworten</span></div>
-    <p class="eyebrow">Violinschlüssel</p>${heatRows(notes, "treble").map(heatRowHtml).join("")}
-    <p class="eyebrow">Bassschlüssel</p>${heatRows(notes, "bass").map(heatRowHtml).join("")}
+    <p class="eyebrow">${CLEF_NAME.treble}</p>${heatRows(notes, "treble").map(heatRowHtml).join("")}
+    <p class="eyebrow">${CLEF_NAME.bass}</p>${heatRows(notes, "bass").map(heatRowHtml).join("")}
     <p class="small heat-detail" id="sHeatDetail" aria-live="polite">Tippe auf eine Note für die Einzelwerte.</p>
     <div class="heat-legend">${legend}</div>
-    <p class="eyebrow">Vorzeichen (Stufe 7)</p><div class="list">${acc}</div>`;
+    ${acc}`;
 }
 
 export function render() {
