@@ -226,7 +226,12 @@ const merk = (c, id) => spruch(c && c.state, id);
 const VZ_REGEL = "♯ erhöht um einen Halbton und hängt „-is“ an: aus F wird Fis, ebenso Cis, Gis, Dis.\n♭ erniedrigt um einen Halbton: aus E wird Es, aus A wird As, aus D wird Des – und aus H wird B.";
 // Stufe 12 mit dem Satz zur Eingabe; in Stufe 11 sagt ihn der Tastatur-Hinweis (keysHint), damit die Startkarte mit
 // „Beide Schritte müssen stimmen.“ nicht länger wird (Schritt 3, gemessen bei 320 px)
-const VZ_HINT = `${VZ_REGEL}\nTippe den ganzen Namen an oder schreib ihn, z. B. „fis“ und Enter.`;
+// Stufe 12 (ohne Hilfen): dieselbe Regel in kürzerer Form (Schritt 7, gemessen bei 320 × 640 mit Empfehlung: erster
+// Knopf vorher bei 622 px, Grenze 580; wie Sandras Entscheidung Welle 11, 20 „leicht kürzen“). „und hängt … an“
+// entfällt („-is“ bleibt), ♭ beginnt mit Des, der Satz zur Eingabe hängt am ♭-Satz und nennt das Beispiel „fis“
+// nicht mehr – das steht auf derselben Karte im Tastatur-Hinweis („Namen tippen, z. B. fis …, dann Enter“). Alle Namen
+// des Vorrats, „-is“ und „aus H wird B“ bleiben.
+const VZ_HINT = "♯ erhöht um einen Halbton, „-is“: aus F wird Fis, ebenso Cis, Gis, Dis.\n♭ erniedrigt um einen Halbton: aus D wird Des, aus E wird Es, aus A wird As, aus H wird B. Tippe den ganzen Namen an oder schreib ihn.";
 const ZEILE_HINT = "Linien und Zwischenräume gemischt, jetzt ohne Hilfen. Erst die Lage, dann der Name.";
 const BASS_VZ_HINT = "♯ und ♭ bedeuten im Bassschlüssel dasselbe. Lies erst den Stammton im Bassschlüssel, dann das Zeichen.";
 // Satz aus dem bisherigen Hinweis der Stufe „Linien im Bassschlüssel“, jetzt in der Lerntafel „Merkhilfen“ (Abschnitt 5)

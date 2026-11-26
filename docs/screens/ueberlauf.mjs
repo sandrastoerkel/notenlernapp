@@ -349,7 +349,8 @@ const START_CARDS = ["intervall-3", "tonleitern-10", "tonleitern-12", "noten-4",
 const ALL_CARDS = Object.keys(LEVEL);
 [...START_CARDS].forEach((id) => { if (!LEVEL[id]) throw new Error(`ueberlauf.mjs: Startkarte ${id} gibt es nicht`); });
 const FIRST_SCREEN = ["notenwerte-6", "akkorde-1"];
-const FIRST_SCREEN_320 = ["intervall-3", "tonleitern-12"];
+// Welle 12, Schritt 7: dazu Noten lesen 12 (Hinweis leicht gekürzt wie bei Intervalle 3 und Tonleitern 12)
+const FIRST_SCREEN_320 = ["intervall-3", "tonleitern-12", "noten-12"];
 // läuft in der Seite: Teile der Startkarte in ihrer Reihenfolge, Lage im Dokument und Grenze des ersten Bildschirms
 const INTRO = () => {
   const parts = [...document.querySelectorAll("#pIntro > *")].filter((e) => !e.hidden && e.getBoundingClientRect().height > 0)

@@ -276,9 +276,11 @@ test("Welle 12: Hinweise der Startkarten wie im Plan (Abschnitt 2)", async () =>
   assert.equal(h(4), "Neu sind vier Noten außerhalb der Zeile. Nimm die nächste Linie als Bezugston und zähle weiter. Das c' liegt auf einer Hilfslinie unter der Zeile.");
   assert.equal(h(9), "Neu sind vier Noten außerhalb der Zeile. Nimm die nächste Linie als Bezugston und zähle weiter. Das c' liegt auf einer Hilfslinie über der Zeile, das E auf einer darunter.");
   assert.ok(h(11).startsWith("Lies erst den Stammton – die Note ohne Vorzeichen –, dann das Zeichen."));
-  // 11 = Satz zum Stammton + Regel aus 12 ohne den Satz zur Eingabe (den nennt in 11 der Tastatur-Hinweis)
-  assert.equal(h(11).split("\n").slice(1).join("\n"), h(12).split("\n").slice(0, 2).join("\n"));
-  assert.ok(h(12).endsWith("Tippe den ganzen Namen an oder schreib ihn, z. B. „fis“ und Enter."));
+  // 11 = Satz zum Stammton + Regel (ohne den Satz zur Eingabe, den nennt in 11 der Tastatur-Hinweis)
+  assert.equal(h(11).split("\n").slice(1).join("\n"), "♯ erhöht um einen Halbton und hängt „-is“ an: aus F wird Fis, ebenso Cis, Gis, Dis.\n♭ erniedrigt um einen Halbton: aus E wird Es, aus A wird As, aus D wird Des – und aus H wird B.");
+  // 12: dieselbe Regel kürzer, damit der erste Knopf bei 320 px im ersten Bildschirm beginnt (Schritt 7, gemessen);
+  // das Beispiel zur Eingabe steht im Tastatur-Hinweis der Stufe
+  assert.equal(h(12), "♯ erhöht um einen Halbton, „-is“: aus F wird Fis, ebenso Cis, Gis, Dis.\n♭ erniedrigt um einen Halbton: aus D wird Des, aus E wird Es, aus A wird As, aus H wird B. Tippe den ganzen Namen an oder schreib ihn.");
   assert.equal(h(13), "♯ und ♭ bedeuten im Bassschlüssel dasselbe. Lies erst den Stammton, dann das Zeichen.");
   assert.equal(h(14), "♯ und ♭ bedeuten im Bassschlüssel dasselbe. Lies erst den Stammton im Bassschlüssel, dann das Zeichen.");
   // Merkspruch der Startkarte aus sprueche.js
