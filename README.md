@@ -4,7 +4,7 @@ Noten lesen lernen im Violin- und Bassschlüssel, mit Notenwerten, Intervallen, 
 
 Die App ist eine statische Web-App ohne Konto und ohne Tracking. Der Fortschritt wird nur im Browser des Geräts gespeichert.
 
-Im Mittelpunkt steht das Wiederholen: Jede Stufe kennt ihre Voraussetzungen und bietet „Grundlagen wiederholen“ an, und was du geschafft hast, kommt nach 1, 3, 7, 14 und 30 Tagen in der Runde „Wiederholen“ wieder (Karte „Heute“ ganz oben auf der Startseite). Nichts Gelerntes wird je gesperrt.
+Im Mittelpunkt steht das Wiederholen: Jede Stufe, die auf anderen aufbaut, nennt ihre Voraussetzungen und bietet „Grundlagen wiederholen“ an, und was du ohne Hilfen mit mindestens 8 von 10 geschafft hast, kommt nach 1, 3, 7, 14 und 30 Tagen in der Runde „Wiederholen“ wieder (Karte „Heute“ ganz oben auf der Startseite). Nichts Gelerntes wird je gesperrt.
 
 ## Starten
 
@@ -53,7 +53,7 @@ Jeder Push auf `main` veröffentlicht die App über GitHub Pages (Workflow in `.
 
 Unter https://sandrastoerkel.github.io/notenlernapp/#lehrkraft erzeugen Sie einen Link und einen QR-Code für Ihre Klasse (erreichbar auch über den Textlink „Für Lehrkräfte“ am Ende der Statistik). Sie wählen den Jahrgang (5 bis 13), wahlweise „Musisches Gymnasium“, und je Paket, bis zu welcher Stufe es „dran“ ist; vorbelegt ist eine Voreinstellung nach dem LehrplanPLUS (Gymnasium Bayern, Musik). Den QR-Code können Sie für Tafel oder Beamer groß zeigen. Die Schülerinnen und Schüler öffnen den Link oder scannen den Code und bestätigen einmal. Danach ordnet die Startseite in „Jetzt dran“, „Schon dran gewesen“ und „Darüber hinaus“, und alles bis „dran“ ist sofort offen. Es wird nichts gesperrt, der Fortschritt bleibt. Ein zweiter Link samt QR-Code entfernt den Jahrgang wieder, ebenfalls nach einer Bestätigung. In der App selbst lässt sich der Jahrgang nicht ändern.
 
-Datenschutz: Der Link enthält nur den Jahrgang und die Auswahl der Stufen, keine Namen und keine Ergebnisse. Der QR-Code entsteht im Gerät, ohne Netz; nichts verlässt das Gerät, und die Seite „Für Lehrkräfte“ ändert auf dem eigenen Gerät nichts. Der Link ist eine Adresse, kein Schloss: Wer ihn kennt, kann ihn öffnen.
+Datenschutz: Der Link enthält nur den Jahrgang und die Auswahl der Stufen, keine Namen und keine Ergebnisse. Der QR-Code entsteht im Gerät, ohne Netz; nichts verlässt das Gerät, und die Seite „Für Lehrkräfte“ ändert auf dem eigenen Gerät nichts. Der Link ist eine Adresse, kein Schloss: Wer ihn kennt, kann ihn öffnen, und wer die Seite „Für Lehrkräfte“ findet, kann sich auch selbst einen Link bauen. Ein echter Schutz ginge nur mit einem Server.
 
 ## Screenshots
 
@@ -94,7 +94,7 @@ Das sind die Stufen von „Noten lesen“. Die Pakete stehen in dieser Reihenfol
 
 Seit Welle 11 stehen die Intervalle vor den Tonleitern.
 
-Eine Stufe öffnet sich, sobald in der vorherigen 8 von 10 Aufgaben richtig waren. Mit einem Jahrgang über den Link der Lehrkraft ist alles bis „dran“ sofort offen. Zum Ausprobieren gibt es auf der Startseite „Alle Stufen öffnen (Demo)“.
+Eine Stufe öffnet sich, sobald in der vorherigen mindestens 8 von 10 Aufgaben richtig waren. Mit einem Jahrgang über den Link der Lehrkraft ist alles bis „dran“ sofort offen. Zum Ausprobieren gibt es auf der Startseite „Alle Stufen öffnen (Demo)“.
 
 ## Tastatur
 

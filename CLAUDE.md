@@ -66,8 +66,8 @@ Statische Web-App: HTML, CSS, JavaScript, keine Abhängigkeiten, kein Build.
   9. Die Runde heißt „Wiederholen“; „Grundlagen wiederholen“ bleibt.
   - Leitsatz: Nichts Gelerntes wird je gesperrt; alles bleibt auf dem Gerät (`localStorage` „notenheld.v2“, kein Server, kein Konto).
 - Wünsche vom 25.11.2026 (Welle 11):
-  - W1 Notenwerte: Gefragt wird die Dauer der Note in Schlägen, nicht die Schläge des Takts – „Wie viele Schläge dauert diese Note? (1 Schlag = 1 Viertelnote)“, überall derselbe Wortlaut (Frage, Rückmeldung, Hilfen, Vorführung „So bestimmst du die Dauer“, Lerntafel); „Schläge im 4/4-Takt“ nicht mehr verwenden.
-  - W2 „Nächste Aufgabe“ steht immer nur einmal da (bei offener Vorführung der Knopf am Ende der Vorführung), in allen Paketen.
+  - W1 Notenwerte: Gefragt wird die Dauer der Note in Schlägen, nicht die Schläge des Takts – „Wie viele Schläge dauert diese Note? (1 Schlag = 1 Viertelnote)“, überall derselbe Wortlaut (Frage, Rückmeldung, Hilfen, Vorführung „So bestimmst du die Dauer“, Lerntafel); „Schläge im 4/4-Takt“ nicht mehr verwenden. Der genaue Wortlaut ist die von Fable geprüfte Voreinstellung (PLAN, Welle 11, „Offen für Sandra“ 1).
+  - W2 „Nächste Aufgabe“ steht immer nur einmal da, in allen Paketen; bei offener Vorführung bleibt der Knopf am Ende der Vorführung (Voreinstellung, PLAN, Welle 11, „Offen für Sandra“ 2).
   - W3 „Lernen“ mit Reitern je Inhalt in der Reihenfolge der Pakete, per Tastatur bedienbar (ARIA-Tabs), bei 320 px waagrecht wischbar ohne Seitenüberlauf; die Schlüsselwahl bleibt.
   - W4 Dreiklänge bis zum Dominantseptakkord: nur als Vorgabe für das spätere Paket „Dreiklänge Schritt für Schritt“ (PLAN), in Welle 11 nicht gebaut.
 - Abgrenzung: Ohrwurmfänger (privates Repo `ohrwurmfaenger`) ist eine eigene App mit anderem Ansatz (Klang zuerst). Code und Texte nicht vermischen.

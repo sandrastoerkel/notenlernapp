@@ -929,7 +929,7 @@ Statistik (`src/views/stats.js`, seit Paket F) exportiert reine Hilfsfunktionen
 - `levelRow(level, entry, repEntry)`: `{ id, no, title, played, best, stars, pct, fach, zuletzt }`
   für eine Stufe (`pct` = `best · 10`); seit Welle 11 `fach` (1 bis 5, nur bei Stufen ohne Hilfen mit Eintrag
   in `state.rep`, sonst `null`) und `zuletzt` (der spätere Tag aus `rep.zuletzt` und der letzten normalen
-  Runde `levels[id].day`)
+  Runde `levels[id].day`; ebenfalls nur mit Eintrag im Kasten, sonst `null`)
 - `levelGroups(packs, levels, rep)`: Stufen je Paket in der Reihenfolge der
   Registry, je Gruppe `{ id, title, rows, played, stars, maxStars }`;
   unbekannte IDs in `state.levels` werden übergangen
@@ -969,7 +969,9 @@ langsam: 2, sicher: 1 }`, `FENSTER = 12`, `ZEIT_DECKEL = 10`, `MIN_ZEITEN = 3`
   dauern; Einträge ohne Zeitmessung nie), `"sicher"`
 - `weight(entry, heute)`: Gewicht nach `GEWICHT`; seit Welle 11 (Schritt 9) bekommt eine sichere Aufgabe,
   deren `last` mindestens `TAGE_WIE_NEU` = 7 Tage vor `heute` liegt, das Gewicht von „neu“ (fehlendes,
-  beschädigtes oder künftiges `last` und ein Aufruf ohne `heute` ändern nichts)
+  beschädigtes oder künftiges `last` und ein Aufruf ohne `heute` ändern nichts). Mit `heute` ruft nur
+  `pickAmong` (Intervalle, Tonleitern); `pickWeighted` („Noten lesen“) ruft `weight` ohne `heute`, dort gilt
+  das Gewicht nach Tagen also nicht
 - `pickWeighted(items, keyOf, notes, prev, rand = Math.random)`: nie dieselbe
   Aufgabe wie `prev` (Vergleich über `keyOf`); mit Wahrscheinlichkeit 0,3
   gleichverteilt, sonst nach Gewicht; ohne `notes` gleichverteilt
@@ -1063,8 +1065,9 @@ Leitsatz: Der Jahrgang ordnet und öffnet, er sperrt nie etwas.
   Zweig, bis „dran“) und noch nicht geschafft ist (beste Runde unter 8); „Schon dran gewesen“ alles bis „dran“
   des Vorjahrs und das Geschaffte; „Darüber hinaus“ alles über „dran“. `nextUp(state, packs)`: erste Stufe aus
   „Jetzt dran“ oder `null`.
-- Grenze: Der Link ist eine Adresse, kein Schloss; wer ihn kennt, kann ihn öffnen. Ein echter Schutz
-  ginge nur mit einem Server.
+- Grenze: Der Link ist eine Adresse, kein Schloss; wer ihn kennt, kann ihn öffnen, und wer die Seite „Für
+  Lehrkräfte“ findet, kann sich selbst einen Link bauen (PLAN, Welle 11, „Offen für Sandra“ 9). Ein echter
+  Schutz ginge nur mit einem Server.
 
 ## QR-Code (`src/qr.js`, seit Welle 11)
 
