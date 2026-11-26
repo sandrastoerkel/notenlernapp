@@ -475,13 +475,6 @@ test("Voraussetzungen: stepNeeds hat so viele Einträge wie die Stufe Schritte",
   for (const { l } of ALL) {
     const qs = sample(l);
     const maxSteps = Math.max(...qs.map((q) => (Array.isArray(q.steps) ? q.steps.length : 1)));
-    // Welle 12, Schritt 2: Die Stufen 4, 9, 11 und 13 von „Noten lesen“ tragen ihre stepNeeds schon (Abschnitt 7),
-    // die zwei Schritte bekommen sie erst in Schritt 3 – bis dahin zwei Einträge bei einem Schritt
-    // [OFFEN Schritt 3: Ausnahme entfernen]
-    if (l.stepNeeds && ["noten-4", "noten-9", "noten-11", "noten-13"].includes(l.id) && maxSteps === 1) {
-      assert.equal(l.stepNeeds.length, 2, l.id);
-      continue;
-    }
     if (l.stepNeeds) {
       assert.equal(l.stepNeeds.length, maxSteps, `${l.id}: ${l.stepNeeds.length} Einträge, ${maxSteps} Schritte`);
       assert.equal(maxSteps, 2, l.id);

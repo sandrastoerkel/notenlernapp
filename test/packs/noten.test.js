@@ -129,7 +129,8 @@ test("question liefert gültige Aufgaben", () => {
     assert.ok(q.svg.startsWith("<svg"));
     assert.ok(q.answer && q.display && q.note && q.clef && q.statKey);
     assert.ok(l.items.some((it) => same(it.n, q.note) && it.clef === q.clef), l.id);
-    assert.equal(q.svg, staffSvg(q.clef, noteSvg(q.note, q.clef, 170)));
+    // zweischrittige Stufen (Welle 12, Schritt 3): dieselbe Zeile mit der Klasse nl-zwei (CSS „Noten lesen: Schritte“)
+    assert.equal(q.svg, staffSvg(q.clef, noteSvg(q.note, q.clef, 170), l.twoSteps ? { cls: "nl-zwei" } : undefined));
     assert.deepEqual(q.play, [q.note]);
     assert.ok(l.check(q, q.answer));
     assert.ok(!l.check(q, { letter: "X", acc: 0 }));
@@ -138,7 +139,8 @@ test("question liefert gültige Aufgaben", () => {
 });
 
 test("Klaviatur: Vergleich nach Tonklasse", () => {
-  const l = noten.levels[10];
+  // Stufe 12 (einschrittig, Vorrat wie Stufe 11; seit Welle 12, Schritt 3 ist Stufe 11 zweischrittig)
+  const l = noten.levels[11];
   let q;
   do { q = l.question(null); } while (!(q.note.letter === "F" && q.note.acc === 1));
   assert.equal(q.display, "Fis (fis')");
@@ -257,7 +259,8 @@ test("Welle 10, B15: Hinweise „mit Hilfslinien“ und „Linien im Bassschlüs
   // Lerntafel „Merkhilfen“ des Bassschlüssels (PLAN Abschnitt 5), die Stufe beginnt mit dem Weg
   assert.equal(BASS_VERGLEICH, "Dieselbe Linie wie im Violinschlüssel heißt im Bassschlüssel zwei Notennamen weiter: Aus E wird G, aus G wird H.");
   assert.ok(legendHtml("bass", {}).includes(BASS_VERGLEICH) && !legendHtml("treble", {}).includes(BASS_VERGLEICH));
-  assert.ok(l6.hint.startsWith("Zähle die Linien von unten.\n"), l6.hint);
+  // Schritt 3: Reihe und Spruch in einer Zeile (Startkarte bei 320 px mit „Beide Schritte müssen stimmen.“ nicht länger)
+  assert.ok(l6.hint.startsWith("Zähle die Linien von unten. G H D F A, Merkspruch: „Gute Hunde Dürfen Fast Alles“.\n"), l6.hint);
   assert.ok(!l6.hint.includes("Dieselbe Linie") && l6.hint.includes("Die beiden Punkte des Schlüssels umschließen das F."));
   assert.ok(!l6.hint.includes("zwei Stufen tiefer"));
 });
@@ -268,11 +271,16 @@ test("Welle 12: Hinweise der Startkarten wie im Plan (Abschnitt 2)", async () =>
   for (const no of [1, 6]) assert.ok(h(no).startsWith("Zähle die Linien von unten."), no);
   for (const no of [2, 7]) assert.ok(h(no).startsWith("Zähle die Zwischenräume von unten."), no);
   for (const no of [3, 8]) assert.equal(h(no), "Linien und Zwischenräume gemischt, jetzt ohne Hilfen. Erst die Lage, dann der Name.");
-  assert.ok(h(4).startsWith("Neu sind vier Noten außerhalb der Zeile. Nimm die nächste Linie der Zeile als Bezugston"));
-  assert.ok(h(9).endsWith("Das c' liegt auf einer Hilfslinie über der Zeile, das E auf einer Hilfslinie darunter."));
+  // Schritt 3: die Hinweise der zweischrittigen Stufen gekürzt, weil die Startkarte „Beide Schritte müssen stimmen.“
+  // dazubekommt und bei 320 px nicht länger werden soll (gemessen; Zählregel und Eingabe stehen in Hilfen bzw. keysHint)
+  assert.equal(h(4), "Neu sind vier Noten außerhalb der Zeile. Nimm die nächste Linie als Bezugston und zähle weiter. Das c' liegt auf einer Hilfslinie unter der Zeile.");
+  assert.equal(h(9), "Neu sind vier Noten außerhalb der Zeile. Nimm die nächste Linie als Bezugston und zähle weiter. Das c' liegt auf einer Hilfslinie über der Zeile, das E auf einer darunter.");
   assert.ok(h(11).startsWith("Lies erst den Stammton – die Note ohne Vorzeichen –, dann das Zeichen."));
-  assert.equal(h(11).split("\n").slice(1).join("\n"), h(12));
-  for (const no of [13, 14]) assert.equal(h(no), "♯ und ♭ bedeuten im Bassschlüssel dasselbe. Lies erst den Stammton im Bassschlüssel, dann das Zeichen.");
+  // 11 = Satz zum Stammton + Regel aus 12 ohne den Satz zur Eingabe (den nennt in 11 der Tastatur-Hinweis)
+  assert.equal(h(11).split("\n").slice(1).join("\n"), h(12).split("\n").slice(0, 2).join("\n"));
+  assert.ok(h(12).endsWith("Tippe den ganzen Namen an oder schreib ihn, z. B. „fis“ und Enter."));
+  assert.equal(h(13), "♯ und ♭ bedeuten im Bassschlüssel dasselbe. Lies erst den Stammton, dann das Zeichen.");
+  assert.equal(h(14), "♯ und ♭ bedeuten im Bassschlüssel dasselbe. Lies erst den Stammton im Bassschlüssel, dann das Zeichen.");
   // Merkspruch der Startkarte aus sprueche.js
   assert.ok(h(1).includes("Es Geht Hurtig Durch Fleiß") && h(7).includes("Alle Clowns Essen Gern"));
 });
@@ -286,4 +294,182 @@ test("Abschlussprüfung Welle 10: Hinweis Vorzeichen (seit Welle 12 Stufe 11 und
     // alle Namen des Vorrats stehen im Hinweis
     for (const it of l.items) assert.ok(h.includes(gName(it.n)), gName(it.n));
   }
+});
+
+/* ---------- Welle 12, Schritt 3: zwei Denkschritte (PLAN Abschnitt 1 und 6) ---------- */
+
+const ART = { 1: "lage", 2: "lage", 6: "lage", 7: "lage", 4: "zaehlen", 9: "zaehlen", 11: "vorzeichen", 13: "vorzeichen" };
+// jede Aufgabe einer Stufe: question mit ctx, bis jede Note des Vorrats einmal da war (ohne ctx.state)
+function alle(l, state) {
+  const out = new Map();
+  let prev = null;
+  for (let i = 0; i < 400 && out.size < l.items.length; i++) {
+    prev = l.question(prev, state ? { notes: {}, round: [], state } : { notes: {}, round: [] });
+    out.set(prev.statKey, prev);
+  }
+  assert.equal(out.size, l.items.length, l.id);
+  return [...out.values()];
+}
+// Name als eigenes Wort (nicht „E“ in „Es“ oder „Die“)
+const hasWord = (text, w) => new RegExp(`(^|[^A-Za-zÄÖÜäöüß])${w}($|[^A-Za-zÄÖÜäöüß])`).test(text);
+
+test("Schritt 3: zweischrittig genau die Stufen mit Hilfen; Folge der Schrittarten je Stufe gleich (levelNoteSteps)", async () => {
+  const { stepInput, levelNoteSteps } = await import("../../src/engine.js");
+  const FOLGE = { lage: ["choices", "letters"], zaehlen: ["letters", "letters"], vorzeichen: ["letters", "names"] };
+  for (const l of noten.levels) {
+    const art = ART[l.no];
+    assert.equal(!!l.twoSteps, !!art, l.id);
+    assert.equal(!!l.helps, !!art, l.id);
+    for (const q of alle(l)) {
+      if (!art) { assert.ok(!q.steps, l.id); continue; }
+      assert.equal(q.steps.length, 2, l.id);
+      assert.deepEqual(q.steps.map((_, i) => stepInput(q, i)), FOLGE[art], l.id);
+      assert.equal(q.prompt, q.steps[0].prompt);
+    }
+    if (art) {
+      assert.deepEqual(levelNoteSteps(l), [...new Set(FOLGE[art].filter((k) => k !== "choices"))], l.id);
+      assert.ok(l.subtitle.endsWith(" · zwei Schritte · mit Hilfen"), l.id);
+    } else assert.ok(!l.subtitle.includes("Schritte"), l.id);
+  }
+});
+
+test("Schritt 3: Lage → Name – jeder Knopf bei genau einer Note richtig, Name aus dem zweiten Schritt", async () => {
+  const { checkStep } = await import("../../src/engine.js");
+  for (const no of [1, 2, 6, 7]) {
+    const l = noten.levels[no - 1], qs = alle(l), linie = no === 1 || no === 6;
+    const n = linie ? 5 : 4;
+    for (const q of qs) {
+      const [s1, s2] = q.steps;
+      assert.deepEqual(s1.choices, Array.from({ length: n }, (_, i) => `${i + 1}.`));
+      assert.ok(s1.digits);
+      const p = staffPos(q.note, q.clef), nr = linie ? p / 2 + 1 : (p + 1) / 2;
+      assert.equal(s1.answer, `${nr}.`);
+      assert.equal(s1.prompt, linie ? "Auf welcher Linie liegt die Note? Zähle von unten." : "In welchem Zwischenraum liegt die Note? Zähle von unten.");
+      assert.equal(s1.ok, `Richtig: ${nr}. ${linie ? "Linie" : "Zwischenraum"} von unten.`);
+      assert.equal(s1.bad, `Nicht ganz: Es ist ${linie ? "die" : "der"} ${nr}. ${linie ? "Linie" : "Zwischenraum"} von unten.`);
+      assert.deepEqual(s2.answer, { letter: q.note.letter, acc: 0 });
+      assert.equal(s2.note, "letters");
+      assert.ok(checkStep(s2, { letter: q.note.letter, acc: 0 }) && !checkStep(s2, { letter: q.note.letter, acc: 1 }));
+      assert.equal(q.display, `${nr}. ${linie ? "Linie" : "Zwischenraum"} → ${q.note.octave === 2 ? `${gName(q.note)} (großes ${gName(q.note)})` : `${gName(q.note)} (${helm(q.note)})`}`);
+      assert.equal(q.partial, `Der Name stimmt, ${linie ? "die Linie" : "der Zwischenraum"} nicht: ${q.display}.`);
+    }
+    // jeder Knopf genau bei einer Note richtig
+    for (let i = 1; i <= n; i++) assert.equal(qs.filter((q) => q.steps[0].answer === `${i}.`).length, 1, `${l.id}: ${i}.`);
+  }
+});
+
+test("Schritt 3: Bezugston → Zählen – Bezugston = bezug, Zählweg lückenlos im Alphabet", async () => {
+  const { bezug } = await import("../../src/packs/noten-lage.js");
+  const ABC = ["C", "D", "E", "F", "G", "A", "H"];
+  const want = { "noten-4": { "D": "E", "C": "E", "G": "F", "A": "F" }, "noten-9": { "F": "G", "E": "G", "H": "A", "C": "A" } };
+  for (const no of [4, 9]) {
+    const l = noten.levels[no - 1];
+    for (const q of alle(l)) {
+      const b = bezug(q.note, q.clef), [s1, s2] = q.steps;
+      assert.deepEqual(s1.answer, { letter: b.ref.letter, acc: 0 });
+      assert.equal(s1.answer.letter, want[l.id][q.note.letter], `${l.id} ${q.statKey}`);
+      assert.deepEqual(s2.answer, { letter: q.note.letter, acc: 0 });
+      assert.equal(s1.ok, `Richtig: Die ${b.linie} Linie ist das ${b.ref.letter}.`);
+      // Zählweg: von der Bezugslinie Stelle für Stelle (abwärts rückwärts, aufwärts vorwärts) bis zur Note
+      const weg = b.weg.map((x) => x.letter), step = b.richtung === "abwärts" ? -1 : 1;
+      assert.equal(weg[0], b.ref.letter); assert.equal(weg.at(-1), q.note.letter);
+      for (let i = 1; i < weg.length; i++) assert.equal(weg[i], ABC[(ABC.indexOf(weg[i - 1]) + step + 7) % 7]);
+      const w = weg.join(" – ");
+      assert.ok(q.display.startsWith(`${b.linie} Linie ${b.ref.letter} · ${b.richtung} ${w} → `), q.display);
+      assert.ok(q.reveal.endsWith(` (von der ${b.linie === "unterste" ? "untersten" : "obersten"} Linie ${b.richtung}: ${w}).`), q.reveal);
+      assert.ok(q.partial.startsWith("Der Name stimmt, der Bezugston nicht: "));
+    }
+  }
+  // Plan, Abschnitt 6 wörtlich
+  let q; do { q = noten.levels[3].question(null); } while (q.note.letter !== "C");
+  assert.equal(q.display, "unterste Linie E · abwärts E – D – C → C (c')");
+  assert.equal(q.reveal, "Das war ein C (c') – auf der Hilfslinie unter der Zeile (von der untersten Linie abwärts: E – D – C).");
+});
+
+test("Schritt 3: Stammton → Vorzeichen – Stammton und Name passen zu gName, „aus H wird B“, Es, As", async () => {
+  const { checkStep } = await import("../../src/engine.js");
+  for (const no of [11, 13]) {
+    const l = noten.levels[no - 1];
+    for (const q of alle(l)) {
+      const [s1, s2] = q.steps;
+      assert.deepEqual(s1.answer, { letter: q.note.letter, acc: 0 });
+      assert.deepEqual(s2.answer, { letter: q.note.letter, acc: q.note.acc });
+      assert.equal(s2.note, "names");
+      assert.equal(s1.ok, `Richtig: Ohne Vorzeichen ist das ein ${q.note.letter}.`);
+      assert.ok(q.display.startsWith(`Stammton ${q.note.letter} · ${q.note.acc > 0 ? "♯ erhöht" : "♭ erniedrigt"} → ${gName(q.note)} (`), q.display);
+      assert.ok(q.reveal.includes(`aus ${q.note.letter} wird ${gName(q.note)}`), q.reveal);
+      // Klaviatur: Stammton über die weiße Taste, Name nach Tonklasse
+      assert.ok(!checkStep(s2, { letter: q.note.letter, acc: 0 }));
+    }
+    const by = Object.fromEntries(alle(l).map((q) => [gName(q.note), q]));
+    assert.ok(by.B.reveal.includes("aus H wird B") && by.B.steps[0].answer.letter === "H");
+    assert.ok(by.Es.reveal.includes("aus E wird Es") && by.As.reveal.includes("aus A wird As"));
+  }
+});
+
+test("Schritt 3: kein Text nach Schritt 1 nennt die Antwort von Schritt 2 (auch kein Merkspruch)", async () => {
+  const { MERKHILFEN } = await import("../../src/sprueche.js");
+  const spruchWoerter = Object.values(MERKHILFEN).flatMap((m) => (m.vorschlaege || []).join(" ").split(/\s+/)).filter((w) => w.length > 1);
+  for (const no of Object.keys(ART)) {
+    for (const q of alle(noten.levels[no - 1])) {
+      const name = gName(q.note), s = q.steps;
+      for (const t of [s[0].ok, s[0].bad, s[1].prompt]) {
+        assert.ok(!hasWord(t, name), `${no} ${q.statKey}: ${t}`);
+        assert.ok(!spruchWoerter.some((w) => hasWord(t, w) && w !== "Es"), `${no}: kein Spruch in „${t}“`);
+      }
+    }
+  }
+});
+
+test("Schritt 3: einschrittige Stufen laufen nach „richtig“ weiter; Auflösung mit Zählweg außerhalb der Zeile", async () => {
+  const { okWaits, waitsAfter } = await import("../../src/engine.js");
+  for (const no of [3, 5, 8, 10, 12, 14, 15]) assert.equal(okWaits(noten.levels[no - 1]), false, `noten-${no}`);
+  for (const no of Object.keys(ART)) assert.ok(waitsAfter(noten.levels[no - 1], true, "x"), `noten-${no}`);
+  for (const no of [5, 10, 15]) for (const q of alle(noten.levels[no - 1])) {
+    const p = staffPos(q.note, q.clef), aussen = p < 0 || p > 8;
+    assert.equal(q.reveal.includes(" Linie abwärts: ") || q.reveal.includes(" Linie aufwärts: "), aussen, q.reveal);
+    assert.equal(q.display.startsWith(gName(q.note)), true);
+  }
+});
+
+test("Schritt 3: eigener Merkspruch mit HTML-Zeichen – Rückmeldung als Text, Beschriftung der Auflösung maskiert, q.spruch als Daten", async () => {
+  const { fresh } = await import("../../src/store.js");
+  const { setzeEigen } = await import("../../src/sprueche.js");
+  const s = fresh();
+  setzeEigen(s, "violin-linien", "Ein <Gutes> Huhn Darf Fliegen");
+  const l = noten.levels[0];
+  for (const q of alle(l, s)) {
+    if (q.note.letter !== "G") continue;
+    assert.equal(q.spruch, "Ein <Gutes> Huhn Darf Fliegen");
+    assert.ok(q.revealParts.some((x) => x.mark && x.t === "<Gutes>"));
+    assert.ok(q.revealSvg.includes("&lt;Gutes&gt; → G") && !q.revealSvg.includes("<Gutes"));
+  }
+  // ohne Spielstand: voreingestellter Spruch; außerhalb der Zeile und mit Vorzeichen kein Spruch
+  const g = alle(l).find((q) => q.note.letter === "G");
+  assert.equal(g.spruch, "Es Geht Hurtig Durch Fleiß");
+  assert.ok(alle(noten.levels[3]).every((q) => !("spruch" in q)));
+  assert.ok(alle(noten.levels[10]).every((q) => !("spruch" in q)));
+  assert.equal(alle(noten.levels[6], s).find((q) => q.note.letter === "C").spruch, "Alle Clowns Essen Gern");
+  // Vorführung bekommt den Spruch aus der Aufgabe (ohne Spielstand in der Engine)
+  assert.ok(l.demo(g).frames.length >= 2);
+});
+
+test("Schritt 3: Auflösung zeigt beide Schritte (violett · grün), gleiche Höhe wie die Frage, Startkarte mit keysHint", async () => {
+  for (const no of Object.keys(ART)) {
+    const l = noten.levels[no - 1];
+    for (const q of alle(l)) {
+      const vb = (svg) => svg.match(/viewBox="([^"]+)"/)[1];
+      assert.equal(vb(q.revealSvg), vb(q.svg), l.id);
+      assert.ok(/<tspan class="nl-s1">[^<]+<\/tspan>/.test(q.revealSvg) && /<tspan class="nl-s2">[^<]+<\/tspan>/.test(q.revealSvg), l.id);
+      assert.ok(ART[no] === "vorzeichen" || /nl-s1-(line|band)/.test(q.revealSvg), l.id);
+      assert.ok(!q.keepRow, l.id);
+    }
+  }
+  const { keysHint } = await import("../../src/views/practice.js");
+  const k = (i) => keysHint(noten.levels[i]).replace(/<[^>]+>/g, "");
+  assert.equal(k(0), "Tastatur: 1 … 5, dann C … H"); assert.equal(k(5), k(0));
+  assert.equal(k(1), "Tastatur: 1 … 4, dann C … H"); assert.equal(k(6), k(1));
+  assert.equal(k(10), "Tastatur: C … H, dann Namen tippen, z. B. fis Enter"); assert.equal(k(12), k(10));
+  // Stufe 5: Hinweis passt zur neuen Reihenfolge (über und unter der Zeile kommt seit Welle 12 in Stufe 4)
+  assert.ok(!noten.levels[4].hint.includes("Jetzt kommen"));
 });

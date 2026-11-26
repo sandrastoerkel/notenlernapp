@@ -736,6 +736,18 @@ svg.ok .beam { fill: var(--ok); } svg.bad .beam { fill: var(--bad); }
 .more > .levels { margin-top: 8px; }
 
 /* ---------- Noten lesen: Schritte (Welle 12, Schritt 3) ---------- */
+/* Auflösung der zweischrittigen Stufen (noten.js, revealSvgFor): Schritt 1 violett an der Zeile, darunter beide
+   Schritte als Beschriftung (violett · grün) */
+.nl-reveal .nl-s1-line { stroke: var(--step1); stroke-width: 2.6; }
+.nl-reveal .nl-s1-band { fill: var(--step1-soft); }
+.nl-reveal .nl-steps { font-family: var(--display); font-weight: 800; font-size: 14px; }
+.nl-reveal .nl-s1 { fill: var(--step1-ink); } .nl-reveal .nl-s2 { fill: var(--step2-ink); } .nl-reveal .nl-sep { fill: var(--muted); }
+/* Kein Sprung beim Wechsel vom Auswahl-Schritt (1. … 5.) zu den Buchstaben (nur in zweischrittigen Aufgaben von
+   „Noten lesen“, Zeile mit nl-zwei): die Auswahlknöpfe so hoch wie die Buchstaben; auf Handys hat die Frage von
+   Schritt 1 zwei Zeilen, die von Schritt 2 eine – die Zeile der Rückmeldung bleibt zwei Zeilen hoch */
+#view-practice:has(#pStaff svg.nl-zwei) .answers.choices.short .btn { padding: 14px 0; font-size: 1.2rem; font-family: var(--display); line-height: inherit; }
+@media (max-width: 599px) { #view-practice:has(#pStaff svg.nl-zwei) #pFeedback { min-height: 2.9em; } }
+@media (max-width: 420px) { #view-practice:has(#pStaff svg.nl-zwei) .answers.choices.short .btn { padding: 12px 0; font-size: 1.05rem; } }
 
 
 /* ---------- Noten lesen: Hilfen (Welle 12, Schritt 4) ---------- */
