@@ -8,7 +8,7 @@ import {
   playMode, revealedSvg, svgResultClass, playSchedule, rhythmEnd, answerDelay, PLAY_GAP, BEAT_MS, RHYTHM_TAIL, DELAY_OK, AUTO_OK_MAX, waitsAfter, NEXT_STEP, DEMO_WAIT_SHORT, stepsResult,
   choiceSet, setClass, stepsFeedback, digitAction, helpsHtml, hasHelps, HELP_FROM, helpFrom, helpsTitle, DELAY_STEP_OK,
   startRound, stop, handleKey, ROUND_LENGTH, isWaiting, DEMO_LABEL, DEMO_WAIT, DEMO_READY, DEMO_NEXT, waitsForNext, silenceTones,
-  makeMixed, startMixed, originText, perLevelOf, currentQuestion,
+  makeMixed, startMixed, originText, perLevelOf, currentQuestion, RESULT_HEAD, ALL_RIGHT,
 } from "../src/engine.js";
 import { mock } from "node:test";
 import { setMuted } from "../src/audio.js";
@@ -111,6 +111,27 @@ test("Feedback- und Ergebnistexte", () => {
   assert.equal(resultMessage(2), "Gut. Noch eine Runde und der dritte Stern ist drin.");
   assert.ok(resultMessage(1).startsWith("Solide Basis"));
   assert.ok(resultMessage(0).startsWith("Noch wacklig"));
+});
+
+// Korrektur nach der Prüfung Welle 11 (J-B2, L-B1, J-B7/W-B6): bei 10 von 10 „alles richtig“, kurzer Satz ohne
+// Sterne-Versprechen bzw. ohne Verweis auf „Lernen“
+test("Ergebnissatz: 10 von 10 „Stark, alles richtig.“, kurze Fassung nur der erste Teil", () => {
+  assert.equal(ALL_RIGHT, "Stark, alles richtig.");
+  assert.equal(resultMessage(3, { correct: 10 }), "Stark, alles richtig.");
+  assert.equal(resultMessage(3, { correct: 10, short: true }), "Stark, alles richtig.");
+  assert.equal(resultMessage(3, { correct: 9 }), "Stark, fast alles richtig.");
+  assert.equal(resultMessage(3, { correct: 6, total: 6 }), "Stark, alles richtig.");
+  assert.deepEqual(RESULT_HEAD, ["Noch wacklig.", "Solide Basis.", "Gut.", "Stark."]);
+  assert.deepEqual([0, 1, 2, 3].map((k) => resultMessage(k, { correct: [3, 5, 8, 9][k], short: true })), RESULT_HEAD);
+  // die kurze Fassung verspricht keinen Stern und schickt nicht nach „Lernen“
+  for (let c = 0; c <= 10; c++) {
+    const k = c >= 9 ? 3 : c >= 7 ? 2 : c >= 5 ? 1 : 0;
+    assert.ok(!/Stern|Lernen/.test(resultMessage(k, { correct: c, short: true })), String(c));
+  }
+  // beide Ergebniskarten übergeben die Zahl der Richtigen
+  const src = readFileSync(new URL("../src/views/practice.js", import.meta.url), "utf8");
+  assert.ok(!/resultMessage\(stars\)/.test(src), "resultMessage ohne Zahl");
+  assert.match(src, /resultMessage\(stars, \{ correct: res\.correct, total: res\.total, short: true \}\)/);
 });
 
 test("dotsHtml", () => {

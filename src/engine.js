@@ -156,7 +156,17 @@ function setFeedback(el, text, parts) {
   }
 }
 
-export function resultMessage(stars) {
+// Satz der Ergebniskarte (rein, getestet). opts: { correct, total, short }.
+// - alles richtig (correct = total, Vorgabe ROUND_LENGTH): „Stark, alles richtig.“ (Korrektur nach der Prüfung
+//   Welle 11, J-B2/L-B1: bei 10 von 10 nicht „fast alles“)
+// - short: nur der erste Teil („Stark.“, „Gut.“, „Solide Basis.“, „Noch wacklig.“) – Runde „Wiederholen“ (dort gibt
+//   es keinen Stern zu holen; die Zeilen je Stufe sagen, wie es weitergeht) und Ergebniskarte mit Fehlermuster (das
+//   Muster ist dann die Empfehlung, J-B7/W-B6)
+export const RESULT_HEAD = ["Noch wacklig.", "Solide Basis.", "Gut.", "Stark."];
+export const ALL_RIGHT = "Stark, alles richtig.";
+export function resultMessage(stars, { correct = -1, total = ROUND_LENGTH, short = false } = {}) {
+  if (correct >= total) return ALL_RIGHT;
+  if (short) return RESULT_HEAD[stars] || RESULT_HEAD[0];
   if (stars === 3) return "Stark, fast alles richtig.";
   if (stars === 2) return "Gut. Noch eine Runde und der dritte Stern ist drin.";
   if (stars === 1) return "Solide Basis. Was noch unsicher ist, kannst du in „Lernen“ nachschauen.";

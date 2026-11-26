@@ -312,8 +312,9 @@ function showBasicsResult(res, levelId, only) {
 }
 
 // Ergebniskarte „Wiederholen“: Sterne nur als Anzeige der Runde (starsFor wie beim Bonus, die Runde hat immer
-// RUNDE_WIEDERHOLEN Aufgaben), je Stufe das Urteil, bei „noch wacklig“ ein Knopf zum Üben; „Noch eine Wiederholung“
-// nur, wenn weiter etwas fällig ist
+// RUNDE_WIEDERHOLEN Aufgaben), darunter nur der erste Teil des Satzes („Gut.“) – kein Versprechen eines Sterns, den
+// die Runde nicht einträgt (J-B2, L-B1) –, je Stufe das Urteil, bei „noch wacklig“ ein Knopf zum Üben; „Noch eine
+// Wiederholung“ nur, wenn weiter etwas fällig ist
 function showReviewResult(res, verdicts) {
   const stars = starsFor(res.correct);
   const more = reviewPlan(ctx.state, ctx.packs, today()).length > 0;
@@ -324,7 +325,7 @@ function showReviewResult(res, verdicts) {
       <p class="eyebrow">Wiederholung beendet</p>
       ${engine.starsHtml(stars)}
       <p class="big num">${res.correct} / ${res.total}</p>
-      <p class="muted">${engine.resultMessage(stars)}</p>
+      <p class="muted">${engine.resultMessage(stars, { correct: res.correct, total: res.total, short: true })}</p>
       <p class="small muted num">+${res.gained} XP</p>
       ${verdicts.map((v, i) => `<div class="review-item stack">
         <p class="review-line">${reviewLine(ctx.packs, v)}</p>
@@ -439,7 +440,7 @@ function showResult(res) {
       <p class="eyebrow">Runde beendet</p>
       ${engine.starsHtml(stars)}
       <p class="big num">${c} / ${res.total}</p>
-      <p class="muted">${engine.resultMessage(stars)}</p>
+      <p class="muted">${engine.resultMessage(stars, { correct: c, total: res.total })}</p>
       <p class="small muted num">${resultLine(pack, gained, avg)}</p>
       ${note ? `<p class="unlock-line" id="rUnlock">${engine.keepStufe(note)}</p>` : ""}
       ${rnote ? `<p class="small" id="rRepeat">${rnote}</p>` : ""}
