@@ -24,7 +24,8 @@ anzufassen.
 | 9     | Notenwerte gehirngerecht                  | drittes Paket nach KONZEPT-gehirngerecht |
 | 10    | Korrekturen aus der Prüfung (drei Perspektiven) | A-Befunde und kleine B-Befunde der ganzen App, Notenwerte-Befunde, wählbare Merksprüche; vor den nächsten großen Paketen |
 | 11    | Wiederholen                               | zuerst Sandras Wünsche vom 25.11.2026 (ein Knopf „Nächste Aufgabe“, Wortlaut „Dauer in Schlägen“, „Lernen“ mit Reitern) und die neue Paketreihenfolge (Intervalle vor Tonleitern); dann Voraussetzungen je Stufe, „Grundlagen wiederholen“, Wiederholung über Tage, Jahrgang über den Lehrkraft-Link mit QR-Code (Feinplan vom 25.11.2026) |
-| danach | Noten lesen gehirngerecht (mit Vorzeichen im Bassschlüssel) → Dreiklänge Schritt für Schritt (bis zum Dominantseptakkord) → Hörstufen; dazu eine eigene Welle „Ganz- und Halbtonschritte vor Intervalle 3“ (Zeitpunkt offen) | Reihenfolge Sandra; Vorgaben im Abschnitt „Vorgaben für die nächsten Wellen“ (Sandra, 26.11.2026) und zum Dominantseptakkord im Abschnitt danach |
+| 12    | Noten lesen gehirngerecht                 | viertes Paket nach KONZEPT-gehirngerecht: 15 Stufen (erst mit Hilfen, dann ohne), zwei Denkschritte, Hilfen, Vorführungen, Vorzeichen auch im Bassschlüssel; Umstellung der Spielstände samt Karteikasten (Feinplan vom 26.11.2026) |
+| danach | Dreiklänge Schritt für Schritt (bis zum Dominantseptakkord) → Hörstufen; dazu eine eigene Welle „Ganz- und Halbtonschritte vor Intervalle 3“ (Zeitpunkt offen) | Reihenfolge Sandra; Vorgaben im Abschnitt „Vorgaben für die nächsten Wellen“ (Sandra, 26.11.2026) und zum Dominantseptakkord im Abschnitt danach |
 
 Vor Welle 2 muss Welle 1 gemergt und `npm test` grün sein. Welle 2 kann mit
 vier Agenten gleichzeitig laufen (am besten je ein Git-Worktree oder je ein
@@ -3732,6 +3733,618 @@ bei 320 px bricht „8 Oktave“ um); L-C1 bis L-C6, L-C8 bis L-C10; W-C2 (Sorti
 (Notenbilder ohne Beschriftung), W-C10 (Kindertest); geschützte Leerzeichen in den Vorführungstexten
 (`demo.js`, „3 Halbtöne“).
 
+## Welle 12: Noten lesen gehirngerecht (erst mit Hilfen, dann ohne; Vorzeichen auch im Bassschlüssel)
+
+Ausgangsstand: Branch `noten-lesen-12` (von `main` bcd6e85, Cache `notenheld-v0.2.0-14`, 545 Tests grün).
+Grundlage: KONZEPT-gehirngerecht (Sandra, 20.11.2026; die Tabelle dort ist ausdrücklich ein „Entwurf, vor dem Bau
+von Fable prüfen lassen“), „Wiederholen ist der Kern“, die Vorgabe „Vorzeichen auch im Bassschlüssel“ (Abschnitt
+„Vorgaben für die nächsten Wellen“, Punkt 2), die Mängelliste vom 20.11.2026 (B3, B4: „Noten lesen ist noch auf
+altem Stand: Rückmeldung ohne Weg, keine Hilfen“; „Namensregel -is/-es, B/Es/As nicht erklärt“) und die C-Punkte
+der Prüfung Welle 11, die „Noten lesen“ betreffen (W-C4 Gewicht nach Tagen, W-C6 Umbenennungen nehmen `rep` und
+`basics` mit, J-C7 Überschrift und Schlüsselwahl in „Lernen“, L-C4 Auflösungszeichen, L-C5 Teil-Stufen im Kasten).
+Baukasten wie in Welle 7 bis 9 (`--step1…`/`--step2…`, `src/demo.js`, `src/grid.js`, `level.helps`,
+`level.helpTable`, `level.helpsTitle`, `q.steps`, Warten auf „Nächste Aufgabe“). Feste Entscheidungen gelten
+(Namensraster mit 21 Namen oder tippen, Bassschlüssel nach Bravura, keine Figuren, Merksprüche nur aus
+`src/sprueche.js`). Keine Jahrgangsstufen an den Stufen. Dieser Abschnitt ist der Feinplan; gebaut wird mit den
+Voreinstellungen aus Abschnitt 13, solange Sandra dort nichts anderes entscheidet.
+
+**Übersicht: Schritt → Inhalt** (Einzelheiten in Abschnitt 12).
+
+| Schritt | Inhalt | Dateien (Schwerpunkt) | parallel |
+|---|---|---|---|
+| 0 | Engine: Denkschritt mit Noteneingabe (Buchstaben, Namensraster, Klaviatur) | `engine.js`, `views/practice.js` | mit 1 |
+| 1 | Spielstand: `migrateNoten` vorbereiten, Merker `offen`, Gewicht nach Tagen | `store.js`, `adapt.js` | mit 0 |
+| 2 | Paket-Gerüst: 15 Stufen, Vorräte, Kanten, Jahrgang, Umstellung einschalten, alle Stufen-IDs in Tests | `packs/noten.js`, Pakete, `klasse.js`, Tests | – |
+| 3 | Zweischrittige Aufgaben und Rückmeldungen | `packs/noten.js` | mit 4, 5, 6 |
+| 4 | Hilfen | `packs/noten-hilfen.js` (neu in Schritt 2) | mit 3, 5, 6 |
+| 5 | Vorführungen und Lerntafeln, Reiter „Tonhöhen“ | `packs/noten-demo.js` (neu in Schritt 2), `views/learn.js` | mit 3, 4, 6 |
+| 6 | Statistik/Notenkarte, Blitz, Browser-Skripte auf die neuen IDs | `views/stats.js`, `docs/screens/*.mjs` | mit 3, 4, 5 |
+| 7 | Zusammenführen, Doku, Cache -15, Überlauf, Bildschirmfotos | Doku, `sw.js` | – |
+
+### 1. Die zwei Denkschritte
+
+Farbe nach Reihenfolge wie im Baukasten: Schritt 1 violett, Schritt 2 grün. Wie in Welle 9 hängt der Inhalt der
+beiden Schritte vom Inhalt der Stufe ab; es sind drei Arten:
+
+- **Linien bzw. Zwischenräume (Stufen 1, 2, 6, 7): Lage → Name.** Schritt 1 = **Lage**: die Linie bzw. den
+  Zwischenraum von unten abzählen (1. bis 5. Linie, 1. bis 4. Zwischenraum). Schritt 2 = **Name**: das Wort des
+  Merkspruchs an dieser Stelle beginnt mit dem Notennamen. Das ist der Weg, den die App seit Welle 10 schon in der
+  Rückmeldung zeigt („2. Linie von unten (Es **Geht** Hurtig Durch Fleiß)“, Entscheidung Sandra 24.11.2026).
+- **Über und unter der Zeile (Stufen 4, 9): Bezugston → zählen.** Schritt 1 = **Bezugston**: die nächste Linie der
+  Zeile (unterste oder oberste) und ihr Name. Schritt 2 = **Zählen**: von dort Stelle für Stelle weiter (Linie –
+  Zwischenraum – Linie), nach unten im Alphabet rückwärts, nach oben vorwärts → Name. So steht es in der Tabelle
+  im KONZEPT („Schlüssel → Bezugston“, „Stufen zählen → Name“, Vorführung „vom Bezugston zur Note zählen“).
+- **Vorzeichen (Stufen 11, 13): Stammton → Vorzeichen.** Schritt 1 = **Stammton** (die Note ohne ihr Vorzeichen
+  lesen). Schritt 2 = **Vorzeichen**: ♯ erhöht um einen Halbton („-is“), ♭ erniedrigt um einen Halbton („-es“;
+  Es, As, B) → ganzer Name im Namensraster.
+- Die Stufen ohne Hilfen (3, 5, 8, 10, 12, 14, 15) bleiben einschrittig („Wie heißt die Note?“); ihre Auflösung
+  nennt beide Denkschritte (Abschnitt 6).
+
+**Abweichungen von der Tabelle im KONZEPT** (dort für das ganze Paket: Schritt 1 „Schlüssel → Bezugston (g' / f)“,
+Schritt 2 „Stufen zählen → Name“; Hilfen „Merkleiste Linien/Zwischenräume, Merksprüche“):
+1. In den Stufen 1, 2, 6, 7 ist der erste Schritt die Lage, nicht der Bezugston. Grund: Eine Stufe mit nur einem
+   Schlüssel hat immer denselben Bezugston – der Schritt hätte eine feste Antwort (seit Welle 10 gibt es keine
+   Schritte ohne echte Wahl). Und die Hilfe dieser Stufen ist laut KONZEPT die Merkleiste mit Merkspruch; wer mit
+   dem Spruch liest, braucht die Nummer der Linie, nicht den Abstand zum g'. Schritte und Hilfe müssen denselben
+   Weg gehen. Der Bezugston des Schlüssels (g' auf der 2. Linie, f auf der 4. Linie) steht in der Merkleiste an
+   seiner Linie und in der Lerntafel-Vorführung „So zählst du vom Bezugston“ (dort wörtlich wie im KONZEPT: vom g'
+   bzw. f aus zählen).
+2. In den Stufen 4 und 9 ist der Bezugston die nächste äußere Linie der Zeile, nicht g' bzw. f: Vom g' zum c'
+   wären es vier Stellen, von der untersten Linie zwei. Kürzere Wege, weniger Zählfehler.
+3. Vorzeichen stehen in der KONZEPT-Zeile nicht; Stammton → Vorzeichen ist die Reihenfolge, in der man die Note
+   liest, und entspricht dem bisherigen Hinweis der Stufe („aus F wird Fis“).
+
+Alle drei Punkte stehen als Frage 1 und 2 in Abschnitt 13.
+
+### 2. Stufen
+
+H = Hilfen zum Aufklappen, 2S = Antwort in zwei Schritten. Vorräte am Code nachgezählt (`node`, Stand bcd6e85:
+alt 1–8 haben 5, 4, 13, 5, 4, 13, 8, 34 Noten).
+
+| Neu | Titel | Inhalt (Vorrat) | H | 2S | Herkunft |
+|---|---|---|---|---|---|
+| 1 | Linien im Violinschlüssel | 5: e' g' h' d'' f'' | ja | Lage → Name | alt 1 (gleicher Inhalt) |
+| 2 | Zwischenräume im Violinschlüssel | 4: f' a' c'' e'' | ja | Lage → Name | alt 2 (gleicher Inhalt) |
+| 3 | Violinschlüssel: Linien und Zwischenräume | 9: e' bis f'' ohne Hilfen | – | – | neu (alt 1 + 2) |
+| 4 | Violinschlüssel: über und unter der Zeile | 4: d', c' (Hilfslinie), g'', a'' (Hilfslinie) | ja | Bezugston → zählen | neu (Teil von alt 3) |
+| 5 | Violinschlüssel mit Hilfslinien | 13: c' bis a'' ohne Hilfen | – | – | alt 3 |
+| 6 | Linien im Bassschlüssel | 5: G H d f a | ja | Lage → Name | alt 4 (gleicher Inhalt) |
+| 7 | Zwischenräume im Bassschlüssel | 4: A c e g | ja | Lage → Name | alt 5 (gleicher Inhalt) |
+| 8 | Bassschlüssel: Linien und Zwischenräume | 9: G bis a ohne Hilfen | – | – | neu (alt 4 + 5) |
+| 9 | Bassschlüssel: über und unter der Zeile | 4: F, E (Hilfslinie), h, c' (Hilfslinie) | ja | Bezugston → zählen | neu (Teil von alt 6) |
+| 10 | Bassschlüssel mit Hilfslinien | 13: E bis c' ohne Hilfen | – | – | alt 6 |
+| 11 | Vorzeichen im Violinschlüssel | 8: fis' cis'' gis' dis'' · b' es'' as' des'' | ja | Stammton → Vorzeichen | neu (Inhalt alt 7) |
+| 12 | Vorzeichen im Violinschlüssel ohne Hilfen | 8 (wie 11) | – | – | alt 7 |
+| 13 | Vorzeichen im Bassschlüssel | 8: fis cis gis dis · B es as des | ja | Stammton → Vorzeichen | **neu** (Vorgabe Sandra 26.11.) |
+| 14 | Vorzeichen im Bassschlüssel ohne Hilfen | 8 (wie 13) | – | – | **neu** |
+| 15 | Alles gemischt | 42: Stufen 5, 10, 12 und 14 (13 + 13 + 8 + 8) | – | – | alt 8 (34) + 8 neue |
+
+Nachgerechnet (`staffPos`): Stufe 3 = e' f' g' a' h' c'' d'' e'' f'' (9), Stufe 8 = G A H c d e f g a (9);
+Stufe 4: d' (−1), c' (−2), g'' (9), a'' (10); Stufe 9: F (−1), E (−2), h (9), c' (10) – genau die Noten aus alt 3
+bzw. alt 6, die nicht in der Zeile liegen. Stufe 13 (Voreinstellung, Frage 3 in Abschnitt 13): dieselben acht Namen
+wie im Violinschlüssel (die ersten vier ♯ und die ersten vier ♭), alle in der Zeile: fis (4. Linie), cis
+(2. Zwischenraum), gis (4. Zwischenraum), dis (3. Linie), B (2. Linie), es (3. Zwischenraum), as (5. Linie), des
+(3. Linie). Jede dieser Noten kommt in den späteren Paketen im Bassschlüssel vor (gezählt an je 1500 Aufgaben:
+Intervalle 4 und 6, Tonleitern 3, 5, 7, 9, Dreiklänge 1–4 und 6 zeigen ♯/♭ im Bassschlüssel; dort außerdem Es,
+Fis, Ges, Gis, As, Ais der großen Oktave, ges, ais, b und cis').
+
+- Zusammen 15 Stufen (bisher 8), davon 7 ohne Hilfen (3, 5, 8, 10, 12, 14, 15; bisher 8). Im Karteikasten sind
+  danach 30 Stufen (bisher 31), die App hat 54 Stufen (bisher 47), höchstens 162 Sterne.
+- „Alles gemischt“: wie bisher ein gemeinsamer Vorrat, jede Note gleich wahrscheinlich (vor der gewichteten
+  Auswahl). Der Anteil der Vorzeichen-Noten steigt von 8 / 34 (24 %) auf 16 / 42 (38 %), der Bassschlüssel von
+  13 / 34 auf 21 / 42 (die Hälfte). Gewollt: Vorzeichen in beiden Schlüsseln sind das, was die späteren Pakete
+  brauchen.
+- Freischaltung unverändert der Reihe nach (ab 8 von 10 in der Stufe davor); kein `requires`.
+- Titel so, dass die beiden Schlüssel in Listen („Heute“, Statistik) unterscheidbar sind. Untertitel wie bisher
+  „Violinschlüssel · 5 Noten“, bei Stufen mit Hilfen mit „· zwei Schritte · mit Hilfen“ (wie Notenwerte 8).
+- Hinweise der Startkarte (kurz halten: erster Knopf bei 320 × 640 im ersten Bildschirm, `ueberlauf.mjs`):
+  - 1, 2, 6, 7: die bisherigen Hinweise (Reihe und gewählter Merkspruch), davor ein Satz zum Weg: „Zähle die
+    Linien von unten.“ bzw. „Zähle die Zwischenräume von unten.“ Stufe 6 behält den Satz zu den beiden Punkten des
+    Schlüssels (F-Linie); der Vergleich mit dem Violinschlüssel („Dieselbe Linie wie im Violinschlüssel heißt im
+    Bassschlüssel zwei Notennamen weiter: Aus E wird G, aus G wird H.“) wandert unverändert in die Lerntafel.
+  - 3, 8: „Linien und Zwischenräume gemischt, jetzt ohne Hilfen. Erst die Lage, dann der Name.“
+  - 4: „Neu sind vier Noten außerhalb der Zeile. Nimm die nächste Linie der Zeile als Bezugston und zähle von dort
+    weiter: Jede Stelle ist ein Notenname weiter. Das c' liegt auf einer Hilfslinie unter der Zeile.“ Stufe 9
+    entsprechend („Das c' liegt auf einer Hilfslinie über der Zeile, das E auf einer Hilfslinie darunter.“).
+  - 5, 10: die bisherigen Hinweise von alt 3 und alt 6.
+  - 11, 12: der bisherige Hinweis von alt 7 (♯ „-is“, ♭ „-es“, Es, As, B; ganzen Namen antippen oder tippen), in 11
+    mit dem Satz „Lies erst den Stammton – die Note ohne Vorzeichen –, dann das Zeichen.“
+  - 13, 14: „♯ und ♭ bedeuten im Bassschlüssel dasselbe. Lies erst den Stammton im Bassschlüssel, dann das
+    Zeichen.“
+  - 15: der bisherige Hinweis von alt 8.
+
+### 3. Hilfen (zum Aufklappen)
+
+Nur `level.helps = ["tabelle"]` mit `level.helpTable` (HTML bzw. SVG aus `src/packs/noten-hilfen.js`, reine
+Funktionen; `helpTable` darf dafür wie `helpText` eine Funktion `(ctx) => HTML` sein, weil die Merkleiste den
+gewählten Spruch aus `ctx.state` braucht – kleine Ergänzung in `helpsHtml` über `textOf`, Schritt 0), `level.helpText` und eigener Überschrift `level.helpsTitle`; keine neue Hilfe-Art in der Engine. Vor
+der Antwort hebt keine Hilfe etwas hervor; alle Stufen mit Hilfen warten auf „Nächste Aufgabe“. Der Merkspruch
+kommt immer aus `sprueche.js` (gewählter Vorschlag oder eigener Spruch; eigene Texte nur mit `esc`).
+
+| Stufe | `helpsTitle` | Inhalt | `helpText` |
+|---|---|---|---|
+| 1, 6 | „Hilfen: Merkspruch für die Linien“ | Merkleiste Linien | „Zähle die Linien von unten. Das Wort im Merkspruch beginnt mit dem Notennamen.“ |
+| 2, 7 | „Hilfen: Merkspruch für die Zwischenräume“ | Merkleiste Zwischenräume | „Zähle die Zwischenräume von unten. Das Wort im Merkspruch beginnt mit dem Notennamen.“ |
+| 4, 9 | „Hilfen: Notennamen der Reihe nach“ | Namensleiste, darunter die Zeile „Linien von unten: <Merkspruch>“ | „Nimm die nächste Linie der Zeile als Bezugston. Jede Stelle weiter ist ein Name weiter: nach oben vorwärts, nach unten rückwärts.“ |
+| 11, 13 | „Hilfen: Vorzeichen“ | Vorzeichen-Regel, darunter eine Oktave Klaviatur ohne Markierung | „Lies erst den Stammton (die Note ohne Vorzeichen), dann das Zeichen.“ |
+
+- **Merkleiste** (`merkleiste(clef, art, state)`): Tabelle in der Reihenfolge der Notenzeile – oben die 5. Linie,
+  unten die 1. – mit zwei Spalten: „5. Linie“ | Wort des Spruchs (Anfangsbuchstabe fett). Senkrecht, weil ein
+  eigener Spruch lange Wörter haben kann (bis 80 Zeichen) und fünf Wörter nebeneinander bei 320 px nicht passen;
+  außerdem liegt die Tabelle so wie die Zeile. An der Linie des Schlüssels steht klein der Bezugston: Violinschlüssel
+  2. Linie „hier sitzt der Schlüssel: g'“, Bassschlüssel 4. Linie „zwischen den beiden Punkten: f“ (beides steht
+  schon in `LEGEND`). Die Merkleiste der Zwischenräume hat diese Zeile nicht. Die Leiste zeigt alle Namen der Stufe;
+  das ist die Hilfe (wie die Pyramide die Schläge zeigt), die Denkarbeit bleibt das Abzählen der Lage.
+- **Namensleiste** (`namensleiste()`): Kästchentabelle (`tileTable`) mit einer Zeile „C D E F G A H C“ und den
+  Köpfen „← tiefer“ und „höher →“; fest, für jede Aufgabe gleich.
+- **Vorzeichen-Regel** (`vorzeichenRegel()`): drei Spalten, zwei Zeilen – „♯ Kreuz | einen Halbton höher | „-is“:
+  F → Fis“ und „♭ Be | einen Halbton tiefer | „-es“: D → Des · aber E → Es, A → As, H → B“. Darunter
+  `pianoSvg({ from: 60, octaves: 1, interactive: false })` (eine Oktave, lesbar bei 320 px; ohne Markierung, sie
+  verriete den Stammton). Damit sind B4 der Mängelliste („Namensregel nicht erklärt“, „H mit ♭ heißt B fehlt“)
+  erledigt; das Namensraster bleibt wie entschieden.
+- Nach der Antwort: „Vorführen“ (Abschnitt 4) in allen acht Stufen mit Hilfen.
+- Stufen ohne Hilfen haben keinen Bereich „Hilfen“; ihr Hinweis auf der Startkarte nennt den Spruch wie bisher.
+
+### 4. Vorführungen (`src/demo.js`, Bilder rein in `src/packs/noten-demo.js`)
+
+Kurz halten (Mängelliste B11): höchstens 5 Bilder. Jede Vorführung ist Lerntafel (Reiter „Tonhöhen“, je Schlüssel
+eigene Beispiele) und „Vorführen“ der eben gelösten Aufgabe in den Hilfen. Markierungen als Rahmen bzw. eigene
+Elemente über der Zeile; Farben nur `--step1…`/`--step2…`.
+
+1. **„So liest du eine Note“** – `lageDemo(n, clef, state)`, Marken „1 · Lage“ / „2 · Name“; Stufen 1, 2, 6, 7.
+   Bild 0 Frage (Note in der Zeile) → Bild 1 violett: die Linien bzw. Zwischenräume von unten bis zur Note tragen
+   links ihre Nummer, die der Note violett; Satz „Zähle von unten: Die Note liegt auf der 2. Linie.“ → Bild 2 grün:
+   der Merkspruch, das Wort der Stelle grün; Satz „Das 2. Wort beginnt mit G.“ → Ergebnis: Titel „G (g')“, Marken
+   „2. Linie“ (violett) / „Geht → G“ (grün). 4 Bilder; Ton: die Note im Ergebnis.
+2. **„So zählst du vom Bezugston“** – `zaehlDemo(ref, n, clef)`, Marken „1 · Bezugston“ / „2 · Zählen“; Stufen 4
+   und 9 (Bezugston = nächste äußere Linie) und Lerntafel (dort auch vom Schlüsselton aus, wie im KONZEPT). Bild 0
+   Frage → Bild 1 violett: die Bezugslinie violett, die Bezugsnote blass darauf, Satz „Die unterste Linie ist das E
+   (e').“ → Bild 2 grün: die Stellen bis zur Note nacheinander als blasse grüne Köpfe mit Namen darunter, Satz „Von
+   E abwärts: E – D – C.“ (ein Bild; bei mehr als zwei Stellen in der Lerntafel zwei Bilder) → Ergebnis „C (c')“,
+   Marken „unterste Linie E“ / „E – D – C“. 4 bis 5 Bilder; Töne: im Zähl-Bild die gezählten Noten nacheinander.
+   Gezählt wird mit den Namen, nicht mit Zahlen: So entsteht kein Streit mit der Regel der Intervalle („Beide
+   Noten zählen mit“).
+3. **„So liest du eine Note mit Vorzeichen“** – `vorzeichenDemo(n, clef)`, Marken „1 · Stammton“ / „2 ·
+   Vorzeichen“; Stufen 11 und 13. Bild 0 Frage → Bild 1 violett: Rahmen um den Notenkopf, Satz „Ohne das Vorzeichen
+   ist das ein F.“, darunter eine Oktave Klaviatur mit der Taste F markiert → Bild 2 grün: Rahmen um das Zeichen,
+   Satz „♯ erhöht um einen Halbton: Aus F wird Fis.“ bzw. „♭ erniedrigt um einen Halbton: Aus H wird B.“, auf der
+   Klaviatur die Nachbartaste grün → Ergebnis „Fis (fis')“, Marken „Stammton F“ / „♯ → Fis“. 4 Bilder; Töne:
+   Stammton (Bild 1), Note mit Vorzeichen (Bild 2 und Ergebnis).
+
+Beispiele der Lerntafeln (fest, je Schlüssel; der Test prüft jede Zeile gegen `staffPos`):
+- „So liest du eine Note“: Violinschlüssel g' (2. Linie) und c'' (3. Zwischenraum); Bassschlüssel f (4. Linie)
+  und c (2. Zwischenraum).
+- „So zählst du vom Bezugston“: Violinschlüssel vom g' zum h' (Schlüsselton), von der untersten Linie zum c', von
+  der obersten Linie zum a''; Bassschlüssel vom f zum d, von der untersten Linie zum E, von der obersten zum c'.
+- „So liest du eine Note mit Vorzeichen“: Violinschlüssel fis' und b'; Bassschlüssel fis und B.
+
+### 5. Lerntafeln, Reiter „Tonhöhen“
+
+Reihenfolge im Reiter (die Notenzeile zum Antippen und „Alle Namen zeigen“ bleiben oben): So liest du eine Note
+(Vorführung) · Merkhilfen (wie bisher: Tabelle und Wahl der Merksprüche) · So zählst du vom Bezugston (Vorführung)
+· Vorzeichen ♯ und ♭ (neu: die Vorzeichen-Regel aus den Hilfen und das Raster der 21 Namen als Tabelle „ohne ·
+mit ♯ · mit ♭“) · So liest du eine Note mit Vorzeichen (Vorführung). Alle Tafeln tragen `clef` (die Vorführungen
+zeigen den gewählten Schlüssel – J-C7), Tafeln mit Vorführung das Attribut `data-nl-board="lage|zaehlen|vorzeichen"`
+(wie `data-nw-board`). In die Tafel „Merkhilfen“ des Bassschlüssels kommt der Satz „Dieselbe Linie wie im
+Violinschlüssel heißt im Bassschlüssel zwei Notennamen weiter: Aus E wird G, aus G wird H.“ (bisher Hinweis der
+Stufe „Linien im Bassschlüssel“, Wortlaut unverändert).
+Dazu aus der Prüfung Welle 11 (J-C7, klein): Überschrift des Reiters „Tonhöhen“, die Aufforderung „Tippe auf die
+Notenzeile“ als Zeile darunter; die Schlüsselwahl steht in allen Reitern an derselben Stelle.
+„Erst anschauen“ führt für alle 15 Stufen in den Reiter „Tonhöhen“ (kein `learnTab` nötig).
+
+### 6. Eingabe und Rückmeldung
+
+**Engine-Erweiterung (Schritt 0): Denkschritt mit Noteneingabe.** Heute kennt `q.steps` nur Auswahlknöpfe
+(`value === set.answer`). Damit Buchstaben-Tasten, Namensraster mit Tippen (feste Entscheidung) und Klaviatur auch
+in den zweischrittigen Stufen gehen, darf ein Schritt die Noteneingabe der Stufe benutzen:
+
+```js
+steps: [
+  { prompt, choices: ["1.", "2.", "3.", "4.", "5."], digits: true, answer: "2.", ok, bad }, // Auswahl wie bisher
+  { prompt, note: "letters", answer: { letter: "G", acc: 0 }, ok, bad },                    // neu: C … H
+  // note: "names" → Namensraster (21 Namen) und getippter Name mit Enter
+]
+```
+- Reine Funktionen (getestet): `stepInput(q, i)` → `"choices" | "letters" | "names"`; `checkStep(set, value)` –
+  bei `note`: `{ letter, acc }` genau gleich, eine Taste der Klaviatur (Zahl) nach Tonklasse (wie `checkNote`).
+- Ablauf: Beim Wechsel des Schritts baut die Engine den Antwortbereich neu (Auswahlknöpfe, Buchstaben oder
+  Namensraster). Die Klaviatur erscheint nur in Noten-Schritten und nur mit der Wahl „Klaviatur“; in
+  Auswahl-Schritten sind die Knöpfe sichtbar. Tastatur: Auswahl-Schritt Ziffern (`digits`), „letters“ ein
+  Buchstabe, „names“ Name und Enter; die Zeile `#pTyped` nur im Schritt „names“. `markRight` markiert im
+  Noten-Schritt den richtigen Knopf bzw. die richtige Taste (der Zweig für `{ letter, acc }` ist schon da).
+- Die Stufe trägt weiter `input: "letters"` (Startkarte mit der Wahl Buchstaben/Klaviatur) und `twoSteps: true`.
+  Neues optionales Feld `level.keysHint` (HTML) ersetzt den Tastatur-Hinweis der Startkarte, z. B. „Tastatur: 1 bis
+  5 für die Linie, dann C D E … H“.
+- Gemischte Runden kennen nur Stufen ohne Hilfen und damit keine solchen Schritte (Test).
+- Ausweg, falls Schritt 0 in seiner Zeit nicht sauber fertig wird (entscheidet der Koordinator): Schritt 2 der
+  Aufgabe als Auswahlknöpfe (`choices` mit 7 bzw. 21 Namen, `cols: 7`), in den Stufen mit Hilfen dann ohne
+  Klaviatur und ohne Tippen; in PLAN „Umgesetzt“ vermerken.
+
+**Die Schritte je Stufe.** Texte nach Schritt 1 wie in den anderen Paketen „Richtig: …“ / „Nicht ganz: …“ und
+**ohne die Antwort von Schritt 2**. `display` = beide Schritte (steht hinter „Richtig! “), `partial` wenn nur
+Schritt 1 daneben lag. `reveal` und `revealParts` bleiben in allen 15 Stufen die eine vorhandene Auflösung
+(`revealText`: „Das war ein … – Lage (Spruch)“, von Sandra am 24.11.2026 so entschieden), ergänzt um den Zählweg
+außerhalb der Zeile.
+- Stufen 1, 6 (Linien): Schritt 1 „Auf welcher Linie liegt die Note? Zähle von unten.“ Knöpfe 1. | 2. | 3. | 4. |
+  5. (eine Reihe, Ziffern 1–5). Danach „Richtig: 2. Linie von unten.“ bzw. „Nicht ganz: Es ist die 2. Linie von
+  unten.“ Schritt 2 „Wie heißt die Note?“ (C … H, Klaviatur). `display` „2. Linie → G (g')“; `reveal` wie bisher
+  mit Spruch und markiertem Wort: „Das war ein G (g') – 2. Linie von unten (Es **Geht** Hurtig Durch Fleiß).“;
+  `partial` „Der Name stimmt, die Linie nicht: 2. Linie → G (g').“
+- Stufen 2, 7 (Zwischenräume): genauso mit „In welchem Zwischenraum liegt die Note? Zähle von unten.“ und 1. | 2. |
+  3. | 4. Jeder Knopf ist in jeder dieser vier Stufen bei genau einer Note richtig (5 Linien, 4 Zwischenräume).
+- Stufen 4, 9: Schritt 1 „Bezugston: Wie heißt die nächste Linie der Zeile?“ (C … H; richtig ist im
+  Violinschlüssel E bei d' und c', F bei g'' und a''; im Bassschlüssel G bei F und E, A bei h und c'). Danach
+  „Richtig: Die unterste Linie ist das E.“ Schritt 2 „Zähle von dort weiter: Wie heißt die Note?“ `display`
+  „unterste Linie E · abwärts E – D – C → C (c')“; `reveal` „Das war ein C (c') – auf der Hilfslinie unter der
+  Zeile (von der untersten Linie abwärts: E – D – C).“; `partial` „Der Name stimmt, der Bezugston nicht: …“.
+- Stufen 11, 13: Schritt 1 „Stammton: Wie heißt die Note ohne ihr Vorzeichen?“ (C … H). Danach „Richtig: Ohne
+  Vorzeichen ist das ein F.“ Schritt 2 „Und mit dem Vorzeichen?“ (Namensraster oder tippen). `display` „Stammton
+  F · ♯ erhöht → Fis (fis')“ bzw. „Stammton H · ♭ erniedrigt → B (b')“; `partial` „Der Name stimmt, der Stammton
+  nicht: …“.
+- Stufen ohne Hilfen (einschrittig, Eingabe wie heute; Namensraster in 12, 14, 15 – das sind die bisherigen
+  `acc: true`-Stufen und die neue 14): Die Auflösung nennt den Weg. In der Zeile wie bisher Lage und Spruch;
+  außerhalb der Zeile neu mit dem Zählweg (wie oben bei Stufe 4); mit Vorzeichen wie bisher („…, mit ♯: aus F
+  wird Fis“). Die richtige
+  Rückmeldung bleibt kurz („Richtig! G (g')“), die Stufen laufen nach „richtig“ von selbst weiter (`okWaits`).
+- Statistik je Note: derselbe `statKey` in der Stufe mit und ohne Hilfen (eine Note, ein Eintrag); eine
+  zweischrittige Aufgabe zählt nur richtig, wenn beide Schritte stimmen.
+- Gewichtete Auswahl wie bisher in allen Stufen, jetzt mit „Gewicht nach Tagen“ (`heute`, W-C4).
+
+### 7. Voraussetzungen (`needs`, `stepNeeds`, `skill`, `guess`)
+
+Regeln wie in Welle 11 (Ziele sind Stufen ohne Hilfen, weiter vorn im selben Paket oder in einem früheren Paket;
+„Noten lesen“ ist das erste Paket – der Graph bleibt ohne Kreis). `guess` setzt keine Stufe (keine Antwort mit nur
+zwei Knöpfen).
+
+| Stufe | `needs` | `stepNeeds` | `skill` |
+|---|---|---|---|
+| `noten-1`, `-2`, `-6`, `-7` | – (`[]`) | – | Titel |
+| `noten-3` | – (`[]`; erste Stufe ohne Hilfen) | – | „Linien und Zwischenräume im Violinschlüssel“ |
+| `noten-4` | `noten-3` | `[[], ["noten-3"]]` | Titel |
+| `noten-5` | `noten-3` | – | „Noten im Violinschlüssel“ (wie bisher alt 3) |
+| `noten-8` | – (`[]`) | – | „Linien und Zwischenräume im Bassschlüssel“ |
+| `noten-9` | `noten-8` | `[[], ["noten-8"]]` | Titel |
+| `noten-10` | `noten-8` | – | „Noten im Bassschlüssel“ (wie bisher alt 6) |
+| `noten-11` | `noten-5` | `[["noten-5"], []]` | Titel |
+| `noten-12` | `noten-5` | – | „Vorzeichen im Violinschlüssel“ |
+| `noten-13` | `noten-10`, `noten-12` | `[["noten-10"], ["noten-12"]]` | Titel |
+| `noten-14` | `noten-10`, `noten-12` | – | „Vorzeichen im Bassschlüssel“ |
+| `noten-15` | `noten-5`, `noten-10`, `noten-12`, `noten-14` | – | „Noten in beiden Schlüsseln“ (wie bisher alt 8) |
+
+Die `skill`-Texte ohne Klammern (die Startkarte schneidet eine Klammer am Ende ab, `shortSkill`). „Noten mit
+Vorzeichen“ gibt es als Text nicht mehr (zwei Stufen); Tests und Doku nachziehen.
+
+**Kanten der anderen Pakete** (am Vorrat geprüft, je 1500 Aufgaben; Schlüssel und Vorzeichen wie in Welle 11,
+Abschnitt 1). Umbenannt wird überall alt → neu; **neu auf `noten-14` zeigen** die Stufen, die heute schon eine
+Kante auf „Noten mit Vorzeichen“ haben und im Bassschlüssel ♯/♭ zeigen:
+
+| Stufe | bisher | neu | weil |
+|---|---|---|---|
+| `intervall-1` | `noten-3` | `noten-5` | nur Violinschlüssel, keine Vorzeichen |
+| `intervall-2` | `noten-3`, `noten-6` | `noten-5`, `noten-10` | beide Schlüssel, keine Vorzeichen |
+| `intervall-3` | `intervall-2`, `noten-7` | `intervall-2`, `noten-12` | nur Violinschlüssel |
+| `intervall-4` | `intervall-2`, `noten-7` | `intervall-2`, `noten-12`, **`noten-14`** | beide Schlüssel mit Vorzeichen (etwa 70 % der Aufgaben im Bassschlüssel tragen ♯ oder ♭) |
+| `intervall-8`, `-9` | …, `noten-7` | …, `noten-12` | nur Violinschlüssel |
+| `tonleitern-1` | `noten-3`, `noten-6` | `noten-5`, `noten-10` | C-Dur in beiden Schlüsseln |
+| `tonleitern-2` | `noten-7` | `noten-12` | nur Violinschlüssel |
+| `tonleitern-3` | `noten-6`, `noten-7` | `noten-12`, **`noten-14`** | beide Schlüssel mit Vorzeichen; `noten-14` baut auf `noten-10` auf |
+| `tonleitern-4` | `tonleitern-3`, `noten-7`; Schritt 2 → `noten-7` | `tonleitern-3`, `noten-12`; Schritt 2 → `noten-12` | nur Violinschlüssel |
+| `tonleitern-5` | `tonleitern-3`, `noten-7` | `tonleitern-3`, `noten-12`, **`noten-14`** | beide Schlüssel mit Vorzeichen |
+| `akkorde-1` | `intervall-4`, `noten-8` | `intervall-4`, `noten-15` | „Alles gemischt“ enthält jetzt die Vorzeichen im Bassschlüssel |
+| `akkorde-3` | `noten-8` | `noten-15` | wie oben |
+
+Keine eigene neue Kante bekommen `intervall-6`, `tonleitern-7`, `-9`, `akkorde-2`, `-4`, `-6`: Sie zeigen zwar
+Vorzeichen im Bassschlüssel, haben aber heute keine direkte Kante auf „Noten lesen“; der Bassschlüssel mit
+Vorzeichen kommt über ihre Vorgänger (`intervall-4`, `tonleitern-5`, `akkorde-1`) mit. So bleibt „Dafür brauchst
+du“ kurz, und die Runde „Grundlagen wiederholen“ (6 Aufgaben) verteilt sich auf höchstens drei bzw. vier Stufen
+(2 + 2 + 2; Stufe 15: 2 + 2 + 1 + 1). Die ganze Tabelle der Kanten (Welle 11, Abschnitt 1) wird mit den neuen
+IDs als ein Test geprüft; die Tiefensuche auf Kreise bleibt.
+
+### 8. Wiederholen
+
+- **Karteikasten** (`rep` je Stufen-ID): Im Kasten sind die sieben Stufen ohne Hilfen. Neu dazu kommen 3, 8 und 14
+  (sobald geschafft). Die Einträge alter Stände zieht die Umstellung um (Abschnitt 10).
+- **Runde „Wiederholen“ und „Grundlagen wiederholen“:** Es kommen nur einschrittige Stufen von „Noten lesen“ vor
+  (Buchstaben, Namensraster, Klaviatur) – die gemischte Runde kann das schon. Stufe 14 und 15 mit Namensraster.
+- **Fehlermuster** (ab drei Fehlern desselben Schritts, Texte aus `gapText` mit dem `skill` der Grundlage):
+  - Stufe 4 bzw. 9, zweiter Schritt: „Der zweite Schritt (Linien und Zwischenräume im Violinschlüssel) hat oft
+    nicht geklappt. Das übst du in Stufe 3.“ (bzw. Bassschlüssel, Stufe 8). Erster Schritt: kein Muster (neu in der
+    Stufe).
+  - Stufe 11, erster Schritt: „Der erste Schritt (Noten im Violinschlüssel) hat oft nicht geklappt. Das übst du in
+    Stufe 5.“ Zweiter Schritt: kein Muster (die Regel ist neu in der Stufe).
+  - Stufe 13: erster Schritt → Stufe 10 („Noten im Bassschlüssel“), zweiter Schritt → Stufe 12 („Vorzeichen im
+    Violinschlüssel“).
+  - Stufen 1, 2, 6, 7 haben keine Voraussetzungen und damit kein Muster. Einschrittige Stufen (5, 10, 12, 14, 15):
+    wie bisher „Drei Antworten lagen daneben. Die Grundlagen dazu findest du in …“.
+- **Teil-Stufen im Kasten** (L-C5): 3 steckt in 5, 8 in 10, alle in 15; sie kommen weiter einzeln wieder. Ob eine
+  bestandene „Alles gemischt“ ihre Teil-Stufen mitnehmen soll, bleibt bis zum Test mit einem Kind offen (nicht in
+  dieser Welle).
+- `uhr40.mjs` und `test/repeat.sim.test.js` benutzen `noten-3` und `noten-2` als Beispiel: auf die neuen IDs
+  gleichen Inhalts umstellen (`noten-5`; als Stufe mit Hilfen `noten-2` bleibt).
+
+### 9. Jahrgang (`src/klasse.js`)
+
+`noten: 15` in allen Jahrgängen (D5, D6, D7; bisher 8). Begründung nur aus dem, was schon im Plan steht (Welle 11,
+Abschnitt 4, LehrplanPLUS Mu5, Lernbereich 4): „Tonhöhen im Violin- und Bassschlüssel, Kreuz- und b-Vorzeichen,
+Auflösungszeichen; einzeilig und in zweizeiligen Partituren“. Das Zitat nennt beide Schlüssel und beide
+Vorzeichen ohne Einschränkung auf einen Schlüssel; die neuen Stufen 13 und 14 gehören deshalb in Jahrgang 5 wie
+die übrigen. Der Kommentar in `klasse.js` wird „→ Noten lesen 1–15“. Nicht abgedeckt bleibt das
+Auflösungszeichen (Frage 4 in Abschnitt 13).
+- Gespeicherte Einstellungen (`klasse.dran.noten`, `klasseOffen.noten`) rechnet die Umstellung um (Abschnitt 10).
+- **Links, die schon verteilt sind:** Ein Link nennt „Noten lesen“ nur, wenn die Lehrkraft von der Voreinstellung
+  abgewichen ist (`dran=noten:n` mit n < 8). Ein solcher alter Link wird nach dem Update mit den neuen Nummern
+  gelesen und öffnet dann weniger als gemeint (z. B. `noten:6` früher „bis Bassschlüssel mit Hilfslinien“, jetzt
+  „bis Linien im Bassschlüssel“). Es schließt sich dadurch nichts (die Marke wächst nur), die Lehrkraft erzeugt bei
+  Bedarf einen neuen Link. Hingenommen, weil die Lehrkraft-Seite erst seit dem 26.11.2026 live ist; ein
+  Versionszeichen im Link wäre der Ausbau (nicht in dieser Welle). In ARCHITEKTUR und im Abschnitt „Umgesetzt“
+  genau so benennen – nicht stärker.
+
+### 10. Spielstände (`src/store.js`)
+
+Einmalige Umstellung `migrateNoten` mit Marker `MIGRATION_NOTEN = "noten-neu"` (ein frischer Stand trägt ihn).
+Sie läuft in `migrateAll` **vor** `migrateWiederholen` (die legt Einträge mit den neuen IDs an) und nach den drei
+Umbenennungen der anderen Pakete. Ein Stand von vor Welle 11 hat noch keinen Kasten: Für ihn legt
+`migrateWiederholen` danach nur Einträge zu den geschafften Stufen ohne Hilfen an (alt 3, 6, 7, 8 unter den neuen
+IDs; für alt 1, 2, 4, 5 keinen – dieselbe Folge wie bei einem einzelnen Eintrag). Wichtig: `migrateV1` nimmt den Marker wieder heraus (v1 hat die alten Nummern).
+Alles in einem Durchgang in neue Objekte (sonst verkettet 3 → 5 mit 5 → 7).
+
+| Was | Regel |
+|---|---|
+| `levels`, `current` | `RENAMED_NOTEN`: 1→1, 2→2, 3→5, 4→6, 5→7, 6→10, 7→12, 8→15 – jede alte Stufe landet auf der Stufe gleichen Inhalts (1, 2, 4, 5 haben jetzt Hilfen und zwei Schritte, wie in Welle 9). Der ganze Eintrag wandert mit (`stars`, `best`, `played`, `last`, `day`). |
+| `rep` (W-C6) | 3→5, 6→10, 7→12, 8→15 unverändert (Fach, Fälligkeit, „zuletzt“). Alt 1 und 2 haben jetzt Hilfen und gehören nicht mehr in den Kasten: Gibt es **beide** Einträge, entsteht daraus der Eintrag für `noten-3` (kleineres Fach, frühere Fälligkeit, späteres „zuletzt“); ebenso 4 + 5 → `noten-8`. Ein einzelner Eintrag entfällt (Frage 6 in Abschnitt 13). |
+| `basics` (Merker je Zielstufe) | wie `levels` (1→1 … 8→15) |
+| `basicsOk` (Merker je Voraussetzung) | wie `rep` (bei 1 + 2 bzw. 4 + 5 der frühere Tag) |
+| `klasse.dran.noten`, `klasseOffen.noten` | `DRAN_NOTEN`: 0→0, 1→1, 2→3, 3→5, 4→6, 5→8, 6→10, 7→12, 8→15 („dran bis n“: die Festigungsstufen 3 und 8 gehören dazu, sobald ihre beiden Teile dran waren) |
+| offene, nie gespielte Stufen | Merker `offen: true` im Eintrag der Stufe, siehe unten |
+| `notes`, `xp`, Serie, `sprueche`, alles zu anderen Paketen | unverändert (die `statKey`s von „Noten lesen“ hängen an der Note, nicht an der Stufe) |
+
+**Was offen war, bleibt offen.** Vier alte Stufen hätten nach der Umstellung eine neue Stufe vor sich: alt 3
+(neu 5, davor 4), alt 6 (neu 10, davor 9), alt 7 (neu 12, davor 11), alt 8 (neu 15, davor 14). War eine davon
+offen, aber noch nie gespielt (weil die Stufe davor mit 8 von 10 geschafft war), ginge sie zu. Deshalb: Die
+Umstellung rechnet vor dem Umbenennen aus, welche alten Stufen nach der alten Regel offen waren, und setzt für
+jede davon ohne gespielte Runde den Eintrag `{ stars: 0, best: 0, played: 0, offen: true }` unter der neuen ID.
+`isUnlocked` bekommt eine Regel dazu (oder-verknüpft): Eintrag mit `offen === true` → offen. Der Merker zählt
+nirgends als gespielt (Statistik, „nie gespielt“ in `needTrigger`, Startseite prüfen und testen); „Fortschritt
+zurücksetzen“ löscht ihn wie bisher alles Erspielte (die bekannte Ausnahme).
+Neue Stufen können dagegen zu sein, obwohl spätere offen sind (4 bis 3 geschafft ist, 9 bis 8, 14 bis 13) – wie
+in Welle 8 und 9 bewusst hingenommen und als Test festgehalten. Mit Jahrgang ist alles bis „dran“ offen.
+
+**Zusagen und ihre Tests** (Regel „Zusagen nicht stärker als der Code“; jeder Satz bekommt einen Test über alle
+Zustände, nicht über Beispiele). Alter Aufbau im Test als Stummel mit acht Stufen der Reihe nach.
+1. *Sterne, beste Runde und Runden bleiben:* für alle 3⁸ = 6561 Stände (je Stufe: nie gespielt / gespielt mit
+   5 / gespielt mit 8) ist der Eintrag jeder alten Stufe unter der neuen ID gleich; Summe der Sterne gleich.
+2. *Was offen war, bleibt offen:* für alle 6561 Stände × Marke `klasseOffen.noten` 0 … 8 × `unlockAll` aus/an ist
+   das Bild jeder alten offenen Stufe danach offen (`isUnlocked` mit dem echten Paket).
+3. *Karteikasten:* für alle 2⁸ Teilmengen von Einträgen (mit verschiedenen Fächern und Tagen) gilt die Tabelle
+   oben; Einträge anderer Pakete unverändert; kein Eintrag zeigt danach auf eine Stufe mit Hilfen oder auf eine
+   ID, die es nicht gibt.
+4. *Jahrgang:* für `dran.noten` und Marke 0 … 8 gilt `DRAN_NOTEN`; die anderen Pakete bleiben.
+5. Zweites Laden ändert nichts und speichert nicht; v1-Stand, Stand vor Welle 7, vor Welle 11 und frischer Stand
+   laufen durch `migrateAll` (Reihenfolge); `current` für alle acht alten Werte.
+App-Texte versprechen dazu nichts Neues. In Doku und „Umgesetzt“ steht genau das: Sterne und Freischaltung
+bleiben vollständig; der Karteikasten bleibt bis auf einzelne Einträge zu alt 1, 2, 4, 5.
+
+Anzupassen: jede Stelle mit der Liste der Marker (`fresh()`, Tests), `mergeLevel` (behält heute nur `stars`,
+`best`, `played` – hier wird nichts zusammengeführt, der Eintrag wandert als Ganzes), ARCHITEKTUR „Fortschritt“
+mit der Regel W-C6 („Umbenennungen nehmen `rep`, `basics`, `basicsOk`, `klasse.dran` und `klasseOffen` mit“).
+
+### 11. Statistik, Notenkarte, Blitz
+
+- `HEAT_NOTES = { treble, bass, acc }`: `treble` = Vorrat Stufe 5, `bass` = Stufe 10 (wie bisher alt 3 und 6),
+  `acc` = Stufe 12 und Stufe 14 (16 Noten). Die Statistik zeigt statt „Vorzeichen (Stufe 7)“ zwei Listen
+  „Vorzeichen im Violinschlüssel“ und „Vorzeichen im Bassschlüssel“ (keine Stufennummer im Text). Die Schlüssel
+  unterscheiden sich schon („Fis (fis', Violin)“ / „Fis (fis, Bass)“), alte Einträge bleiben gültig.
+  `NOTE_KEYS` (Hinweis der Startseite) und „schwache Noten“ nehmen die neuen Noten von selbst auf.
+- **Blitz bleibt** bei den 26 Stammtönen beider Schlüssel (Stufe 5 und 10), gezählt wird nur der Buchstabe.
+  Vorzeichen bräuchten in 60 Sekunden das Namensraster; der Rekord bliebe nicht vergleichbar. `BLITZ_POOL` und
+  `HEAT_NOTES` benennen ihre Vorräte künftig mit Namen statt `RAW[2]`.
+- Statistik „je Stufe“ und Sterne-Summe (54 Stufen, 162 Sterne) folgen aus dem Paket.
+
+### 12. Feinplan je Schritt
+
+Je Schritt ein eigener Opus-Agent (etwa 30 bis 60 Minuten), danach Prüfung und Korrektur; parallele Schritte in
+eigenen `git worktree`-Ordnern mit der festen Dateiaufteilung unten, der Koordinator führt zusammen und trägt die
+Zeile „Umgesetzt“ ein. Vor jedem Commit `npm test`; Commits klein und sofort (LESSONS). Lokaler Server je Agent
+auf eigenem Port 8100–8199. Keine Musiktheorie und keine Daten erfinden: Alles, was eine Stufe zeigt oder sagt,
+steht in diesem Plan oder wird aus `music.js`/`staffPos` gerechnet; Unklares als [OFFEN] in den Commit.
+
+#### Schritt 0 – Engine: Denkschritt mit Noteneingabe (parallel zu Schritt 1)
+- Dateien: `src/engine.js`, `src/views/practice.js` (nur `keysHint`, `lettersLabel`), `test/engine.test.js`,
+  `test/views/practice.test.js`. Nicht: Pakete, `store.js`, CSS (nur falls nötig der Abschnitt der Antworten).
+- Inhalt: Abschnitt 6 („Engine-Erweiterung“): `stepInput`, `checkStep`, Antwortbereich je Schritt, Klaviatur nur
+  in Noten-Schritten, Tastatur je Schrittart, `#pTyped` nur bei „names“, `markRight` für Knopf und Taste,
+  `level.keysHint`, Beschriftung der Wahl („Buchstaben“/„Namen“) nach den Schritten der Stufe.
+  Dazu `level.helpTable` auch als Funktion `(ctx) => HTML` (`helpsHtml` über `textOf`, wie `helpText`; `helpsTitle`
+  prüft nur, ob es das Feld gibt).
+- Akzeptanz: die 545 Tests unverändert grün (kein vorhandener Test wird angepasst); neue Tests mit einer
+  Probe-Stufe [Auswahl, „letters“] und [„letters“, „names“]: Reihenfolge der Antwortbereiche, Schritt 1 daneben →
+  „Weiter zu Schritt 2“, Teilerfolg, Klaviatur an/aus je Schritt und Wechsel der Eingabe mitten in Schritt 2,
+  Buchstabe in einem Auswahl-Schritt wird nicht gewertet, getippter Name mit Enter im Schritt „names“, ungültiger
+  Name zählt nicht, Fokus bleibt im Antwortbereich; gemischte Runde unverändert. Browser (420 und 320 px): eine
+  vorhandene zweischrittige Stufe (Intervalle 3, Notenwerte 1) verhält sich wie vorher.
+
+#### Schritt 1 – Spielstand und Gewichtung (parallel zu Schritt 0)
+- Dateien: `src/store.js`, `src/adapt.js`, `test/store.test.js`, `test/adapt.test.js`.
+- Inhalt: `MIGRATION_NOTEN`, `RENAMED_NOTEN`, `DRAN_NOTEN`, `migrateNoten(s)` nach Abschnitt 10 (als Funktion
+  fertig und getestet, aber noch **nicht** in `migrateAll` und `fresh()` – das Paket hat noch die alten Nummern);
+  `isUnlocked` mit dem Merker `offen`; `pickWeighted(items, keyOf, notes, prev, rand, heute)` reicht `heute` an
+  `weight` (W-C4; ohne `heute` wie bisher).
+- Akzeptanz: die fünf Zusagen aus Abschnitt 10 als Tests gegen einen Stummel des neuen Pakets (15 Stufen der
+  Reihe nach, Hilfen in 1, 2, 4, 6, 7, 9, 11, 13); alle vorhandenen Tests grün.
+
+#### Schritt 2 – Paket-Gerüst und Umnummerierung (nach 0 und 1; allein)
+- Dateien: `src/packs/noten.js`, neu `src/packs/noten-lage.js` (Rechenkern, in diesem Schritt fertig),
+  `src/packs/noten-hilfen.js` und `src/packs/noten-demo.js` (Gerüste mit den endgültigen Namen der Exporte:
+  `merkleiste`, `namensleiste`, `vorzeichenRegel`, `lageDemo`, `zaehlDemo`, `vorzeichenDemo`, `boards`; sie liefern
+  schon gültige, schlichte Ausgaben), `src/packs/intervalle.js`,
+  `tonleitern.js`, `akkorde.js` (nur `VORAUSSETZUNGEN`), `src/klasse.js` (nur die Tabelle und ihr Kommentar),
+  `src/store.js` (nur: `migrateNoten` in `migrateAll`, Marker in `fresh()`, Marker in `migrateV1` entfernen),
+  `sw.js` (nur die drei neuen Dateien in `PRECACHE`), `css/style.css` (nur drei leere, beschriftete Abschnitte am
+  Ende: „Noten lesen: Schritte“, „Noten lesen: Hilfen“, „Noten lesen: Vorführung“, mit Leerzeilen getrennt), alle
+  Tests mit Stufen-IDs von „Noten lesen“ (`test/repeat.test.js`, `repeat.sim.test.js`, `store.test.js`,
+  `klasse.test.js`, `engine.test.js`, `views/home.test.js`, `views/practice.test.js`, `views/stats.test.js`,
+  `packs/*.test.js`).
+- Inhalt: die 15 Stufen aus Abschnitt 2 mit Vorräten, Titeln, Untertiteln, Hinweisen, `acc` (11–15), `helps` mit
+  `helpsTitle`/`helpText`/`helpTable` aus dem Gerüst (1, 2, 4, 6, 7, 9, 11, 13), `demo` aus dem Gerüst,
+  `VORAUSSETZUNGEN` (Abschnitt 7), Kanten der anderen Pakete, `noten: 15` in `klasse.js`, `HEAT_NOTES` und
+  `BLITZ_POOL` mit benannten Vorräten (Inhalt von `HEAT_NOTES.acc` schon 16 Noten), `pickWeighted` mit `ctx.heute`.
+  Dazu der gemeinsame Rechenkern `noten-lage.js`, den `noten.js`, die Hilfen und die Vorführungen einbinden (eine
+  eigene Datei, damit kein Kreis zwischen `noten.js` und `noten-demo.js` entsteht) und den die Schritte 3 bis 5
+  nur benutzen: `lage(n, clef)` (Art und Nummer aus `staffPos`), `bezug(n, clef)` (nächste äußere Linie und die
+  Noten von dort bis n), `stammton(n)`, `displayName`, `lageText`, `spruchId` (aus `noten.js` dorthin verschoben,
+  `noten.js` reicht sie weiter), die Namen der Schritte als Konstanten (`SCHRITTE.lage = ["1 · Lage", "2 · Name"]`
+  usw.). Alle Stufen in diesem
+  Schritt noch **einschrittig** (die Stufen mit Hilfen warten schon auf „Nächste Aufgabe“).
+- Tests: Anzahl und Inhalt jedes Vorrats (Abschnitt 2, jede Note mit ihrer Lage), Stufe 4/9 = Stufe 5/10 ohne
+  Stufe 3/8, Stufe 15 = 5 + 10 + 12 + 14, keine Note doppelt; Tabelle der Kanten als Ganzes, kein Kreis, jedes
+  Ziel ohne Hilfen; `boxIds` 30 Stufen; alte Stände durch `load` (mit dem echten Paket) – Zusagen 1 bis 5 aus
+  Abschnitt 10 noch einmal gegen `PACKS`; Jahrgang 5 öffnet alle 15; PRECACHE-Test.
+- Akzeptanz: `npm test` grün; Browser: jede der 15 Stufen startet und läuft eine Runde, Hilfen gehen auf, alter
+  Spielstand (alle acht Stufen geschafft; nur 1 und 2 geschafft; 2 geschafft und 3 offen) wird richtig umgestellt,
+  „Heute“ und Statistik zeigen die neuen Stufen; andere Pakete unverändert.
+
+#### Schritt 3 – Zweischrittige Aufgaben und Rückmeldungen (parallel zu 4, 5, 6)
+- Dateien: `src/packs/noten.js` (Aufgaben, Texte), `test/packs/noten.test.js`, `css/style.css` nur Abschnitt
+  „Noten lesen: Schritte“. Nicht: `noten-lage.js`, `noten-hilfen.js`, `noten-demo.js` (fehlt im Rechenkern etwas,
+  meldet der Agent es dem Koordinator, statt die Datei zu ändern).
+- Inhalt: Abschnitt 6 „Die Schritte je Stufe“: `steps`, `ok`/`bad`, `display`, `reveal`, `revealParts` (markiertes
+  Wort bleibt), `partial`, `twoSteps`, `keysHint` für 1, 2, 4, 6, 7, 9, 11, 13; Auflösung der einschrittigen
+  Stufen mit Zählweg außerhalb der Zeile.
+- Tests (über **alle** Aufgaben jeder Stufe, nicht Stichproben): Schritt 1 und 2 eindeutig; jeder Knopf der
+  Leisten 1.–5. bzw. 1.–4. ist bei genau einer Note richtig; kein Text nach Schritt 1 enthält den Namen aus
+  Schritt 2 (auch nicht im Merkspruch: nach Schritt 1 wird kein Spruch gezeigt); Bezugston = `bezug`; Zählweg
+  lückenlos im Alphabet; Stammton und Name passen zu `gName`; „aus H wird B“, „aus E wird Es“, „aus A wird As“;
+  `okWaits` falsch für 3, 5, 8, 10, 12, 14, 15 (laufen nach „richtig“ weiter); Wortliste (`texte.test.js`); ein
+  eigener Merkspruch mit „<b>“ erscheint nur als Text.
+- Akzeptanz: Browser 420 und 320 px, hell und dunkel: in jeder der acht Stufen eine Aufgabe ganz richtig, eine mit
+  Schritt 1 daneben (danach Teilerfolg), eine mit Schritt 2 daneben; mit Klaviatur, mit Tastatur (Ziffer, dann
+  Buchstabe; „fis“ + Enter), keine Konsolenfehler.
+
+#### Schritt 4 – Hilfen (parallel zu 3, 5, 6)
+- Dateien: `src/packs/noten-hilfen.js`, neu `test/packs/noten-hilfen.test.js`, `css/style.css` nur Abschnitt
+  „Noten lesen: Hilfen“.
+- Inhalt: Abschnitt 3 (Merkleiste, Namensleiste, Vorzeichen-Regel mit einer Oktave Klaviatur).
+- Tests: Merkleiste hat je Stufe genau so viele Zeilen wie der Spruch Wörter (5 bzw. 4), oben die höchste Stelle;
+  jedes Wort an seiner Stelle beginnt mit dem Namen der Note dieser Stelle (gegen `staffPos`, beide Schlüssel,
+  jeder Vorschlag und ein eigener Spruch); Zeile des Schlüssels nur bei den Linien (2. bzw. 4. Linie); keine Hilfe
+  enthält eine Hervorhebung oder hängt von der Aufgabe ab (gleiches HTML für alle Aufgaben der Stufe); eigener
+  Spruch mit HTML-Zeichen wird maskiert; Regel-Tabelle nennt Es, As, B.
+- Akzeptanz: Browser 320 und 420 px, hell und dunkel: Hilfen aller acht Stufen auf und zu, ein eigener Spruch mit
+  80 Zeichen bricht um und läuft nicht über; Schriftgrößen wie in den Hilfen der Notenwerte; Farben nur aus Tokens
+  (`css.test.js`).
+
+#### Schritt 5 – Vorführungen, Lerntafeln, Reiter „Tonhöhen“ (parallel zu 3, 4, 6)
+- Dateien: `src/packs/noten-demo.js`, neu `test/packs/noten-demo.test.js`, `src/views/learn.js` und `index.html`
+  (nur Kopf des Reiters „Tonhöhen“ und Platz der Schlüsselwahl, J-C7), `test/views/learn.test.js`,
+  `css/style.css` nur Abschnitt „Noten lesen: Vorführung“. `noten.js` nennt die Tafeln schon über `boards` aus
+  dem Gerüst; Reihenfolge und Titel der Tafeln stehen in `noten-demo.js`.
+- Inhalt: Abschnitte 4 und 5.
+- Tests: Bilderfolge jeder Vorführung für **jede** Note ihrer Stufen (Anzahl ≤ 5, Schritte 0 → 1 → 2 → Ergebnis,
+  Marken in der Farbe ihres Schritts, Ergebnis-Titel = `displayName`, Töne = die Noten des Bilds); Zählweg der
+  `zaehlDemo` lückenlos von der Bezugsnote zur Note; Lerntafel-Beispiele gegen `staffPos`; Tafeln je Schlüssel;
+  `data-nl-board`; eigener Spruch maskiert.
+- Akzeptanz: Browser: alle Lerntafel-Vorführungen in beiden Schlüsseln bis zum letzten Bild, „Vorführen“ in je
+  einer Aufgabe der acht Stufen (nach der Antwort, „Nächste Aufgabe“ nur einmal), Knöpfe und Bildzähler bei
+  320 px in einer Zeile, Reiterwechsel hält die Vorführung an.
+
+#### Schritt 6 – Statistik, Notenkarte, Browser-Skripte (parallel zu 3, 4, 5)
+- Dateien: `src/views/stats.js`, `test/views/stats.test.js`, `docs/screens/ueberlauf.mjs`, `pruefung.mjs`,
+  `uhr40.mjs`, `screenshots.mjs`, `spiel.mjs`.
+- Inhalt: Abschnitt 11 (zwei Listen der Vorzeichen-Noten); in den Skripten alle Stufen-IDs von „Noten lesen“ nach
+  `RENAMED_NOTEN`, Spielstände der Skripte mit den neuen Stufen (erfundene Zahlen wie bisher, nur zur
+  Darstellung), `START_CARDS` mit `noten-12` statt `noten-7`, dazu `noten-4` und `noten-13`; `spiel.mjs` kann
+  einen Schritt mit Noteneingabe beantworten (Buchstaben, Namensraster, Klaviatur); `pruefung.mjs` leitet die
+  Stufen von „Noten lesen“ aus dem Paket ab (LESSONS: Abdeckung aus den Listen im Code), Ausgabe nach
+  `/tmp/notenheld-pruefung-w12/`.
+- Akzeptanz: `npm test` grün; `node docs/screens/ueberlauf.mjs --selftest` in Ordnung (der volle Lauf folgt in
+  Schritt 7).
+
+#### Schritt 7 – Zusammenführen, Doku, Cache, Bildschirmfotos (zuletzt, allein)
+- Zusammenführen der Arbeitsbäume 3 bis 6 (Konflikte nur in den vereinbarten Abschnitten zu erwarten), `npm test`.
+- Doku: `docs/ARCHITEKTUR.md` (Paket „Noten lesen“ mit 15 Stufen, Schritt mit Noteneingabe, `keysHint`, Merker
+  `offen`, `migrateNoten` und die Regel W-C6, Baukasten-Abschnitt „Noten lesen (Welle 12)“, Verzeichnis mit den
+  drei neuen Dateien), `docs/KONZEPT.md` („Die acht Stufen …“ → 15 Stufen, „ab Stufe 7“ → „ab Stufe 11“),
+  `README.md`, `CLAUDE.md` (Stand Welle 12; in „Feste Entscheidungen“ nur die Stufennummer „ab Stufe 7“ → „ab
+  Stufe 11“), dieser Plan („Umgesetzt“, Zahlen nachgerechnet), `LESSONS.md` über den Rückblick (step-retro).
+- `sw.js`: `CACHE = "notenheld-v0.2.0-15"`; PRECACHE-Test grün (drei neue Dateien).
+- Browser (Server läuft): `node docs/screens/ueberlauf.mjs` bei 320 px (dunkel) und 420 px (hell), je 0 Treffer
+  und 0 Konsolenfehler, Zeitlimit 25 Minuten, im Hintergrund (LESSONS); `uhr40.mjs` Kuala Lumpur und Berlin wie
+  erwartet; `pruefung.mjs` (alle Ansichten, 420 hell und 320 dunkel) nach `/tmp/notenheld-pruefung-w12/` für die
+  Prüfung aus drei Perspektiven; `screenshots.mjs` für die README-Bilder.
+- Danach wie in Welle 10 und 11: Prüfung aus drei Perspektiven (Lehrkraft, Jugendliche, Wissenschaft) über jede
+  Stufe, Hilfe, Vorführung und Lerntafel des Pakets, Korrektur, Nachprüfung. Push und Deploy nur mit Sandras Ja.
+
+**Akzeptanz der Welle.** `npm test` grün; alle 15 Stufen je eine Runde bei 420 und 320 px, hell und dunkel; in den
+acht Stufen mit Hilfen Hilfen auf/zu, beide Schritte, „Vorführen“ bis zum Ergebnis; Lerntafeln in beiden
+Schlüsseln; alter Spielstand richtig umgestellt (Zusagen 1 bis 5); Runde „Wiederholen“ und „Grundlagen
+wiederholen“ mit Stufen von „Noten lesen“; Intervalle 4, Tonleitern 3 und 5 nennen auf der Startkarte die
+Vorzeichen im Bassschlüssel; kein waagrechter Überlauf, keine Konsolenfehler; andere Pakete in Aufgaben, Hilfen
+und Vorführungen unverändert (nur ihre Kanten); Wortliste; Farben nur über Tokens.
+
+**Entscheidungen des Feinplans (ohne Rückfrage, jeweils begründet oben).**
+- 15 Stufen; je Schlüssel eine Festigungsstufe „Linien und Zwischenräume“ (wie Notenwerte 3) und eine eigene
+  Stufe mit Hilfen für die Noten außerhalb der Zeile.
+- Engine: ein Denkschritt darf die Noteneingabe der Stufe benutzen (Klaviatur und Tippen bleiben überall möglich).
+- Merkleiste senkrecht in der Reihenfolge der Zeile; gezählt wird beim Bezugston mit Namen, nicht mit Zahlen.
+- Hilfen ohne Markierung; die Klaviatur der Vorzeichen-Hilfe eine Oktave.
+- Blitz unverändert; Notenkarte mit 16 Vorzeichen-Noten.
+- Merker `offen` statt `requires`, damit die Stufen für neue Spielstände streng der Reihe nach öffnen.
+- Alte Lehrkraft-Links mit eigener Auswahl für „Noten lesen“ werden mit den neuen Nummern gelesen (Abschnitt 9).
+- Nicht in dieser Welle: Auflösungszeichen, Altschlüssel, Noten jenseits von c' bis a'' bzw. E bis c' (Fragen 4
+  und 5), Teil-Stufen im Kasten (L-C5), Hörstufen.
+
+### 13. Offen für Sandra (Welle 12)
+
+Gebaut wird jeweils die **Voreinstellung**, solange Sandra nichts anderes entscheidet.
+
+1. **Die zwei Denkschritte bei Linien und Zwischenräumen (Stufen 1, 2, 6, 7).** Deine Tabelle im KONZEPT nennt
+   „Schlüssel → Bezugston (g' / f)“ und „Stufen zählen → Name“, als Hilfe aber die Merkleiste mit Merkspruch.
+   - a) Schritt 1 „Auf welcher Linie liegt die Note?“ (1. bis 5., von unten), Schritt 2 der Name über den
+     Merkspruch – so wie die Rückmeldung seit Welle 10. **(Voreinstellung)**
+   - b) Wie im KONZEPT: Schritt 1 „Wo liegt die Note vom Bezugston g' (bzw. f) aus – tiefer, genau darauf,
+     höher?“, Schritt 2 vom Bezugston zählen → Name; der Merkspruch steht nur in den Hilfen.
+   - c) Diese vier Stufen bleiben einschrittig (nur „Wie heißt die Note?“), aber mit Hilfen und Vorführung.
+2. **Bezugston für die Noten über und unter der Zeile (Stufen 4, 9).**
+   - a) Die nächste äußere Linie der Zeile (unterste bzw. oberste), von dort zählen: zum c' zwei Stellen.
+     **(Voreinstellung)**
+   - b) Immer der Ton des Schlüssels (g' bzw. f), wie im KONZEPT: zum c' vier Stellen.
+   - c) Das c' auf der Hilfslinie als eigener Bezugston, den man auswendig weiß; die übrigen drei Noten von der
+     äußeren Linie aus.
+3. **Welche Noten in „Vorzeichen im Bassschlüssel“ (Stufen 13, 14)?**
+   - a) Acht Noten in der Zeile, dieselben Namen wie im Violinschlüssel: fis, cis, gis, dis · B, es, as, des.
+     **(Voreinstellung)**
+   - b) Zehn: dazu Gis und As der großen Oktave (1. Linie, 1. Zwischenraum).
+   - c) Achtzehn: alle Vorzeichen-Noten, die Intervalle, Tonleitern und Dreiklänge heute im Bassschlüssel zeigen
+     (Es, Fis, Ges, Gis, As, Ais, B, cis, des, dis, es, fis, ges, gis, as, ais, b, cis') – dann auch mit Noten
+     außerhalb der Zeile.
+4. **Auflösungszeichen ♮.** Der Lehrplan nennt es in Jahrgang 5 zusammen mit ♯ und ♭; in der App kommt es nur in
+   Intervalle 5 und 6 vor. Eine einzelne Note mit ♮ ergibt keine Aufgabe, es bräuchte zwei Noten hintereinander.
+   - a) Nicht in dieser Welle; als eigene spätere Stufe notiert. **(Voreinstellung)**
+   - b) Nur eine Zeile mit Bild in der Lerntafel „Vorzeichen ♯ und ♭“ („♮ hebt ein ♯ oder ♭ wieder auf“), keine
+     Stufe.
+   - c) Eigene Stufe in dieser Welle (zwei Noten, die zweite mit ♮, gefragt ist die zweite) – dann 16 bzw. 17
+     Stufen und ein weiterer Schritt im Feinplan.
+5. **Tonumfang.** Die Tonleitern zeigen im Violinschlüssel das b unter dem c' (Tonleitern 2 bis 9) und im
+   Bassschlüssel das d' über dem c' (Tonleitern 3, 5, 7, 9); beide Stellen übt „Noten lesen“ nicht.
+   - a) Umfang bleibt c' bis a'' und E bis c' wie heute. **(Voreinstellung)**
+   - b) h im Violinschlüssel und d' im Bassschlüssel in die Stufen 4/5 und 9/10 aufnehmen (je eine Note mehr).
+   - c) Wie b, dazu b (Violinschlüssel) in die Vorzeichen-Stufen 11/12.
+6. **Karteikasten beim Update.** „Linien“ und „Zwischenräume“ (alt 1, 2, 4, 5) haben künftig Hilfen und stehen
+   deshalb nicht mehr im Kasten.
+   - a) Waren beide Stufen eines Schlüssels im Kasten, wandern sie zusammen in die neue Stufe „Linien und
+     Zwischenräume“ (vorsichtig: kleineres Fach, früherer Tag). Ein einzelner Eintrag entfällt; die Wiederholung
+     kommt wieder, sobald die neue Stufe 3 bzw. 8 geschafft ist. **(Voreinstellung)**
+   - b) Alle Einträge zu diesen vier Stufen entfallen (einfacher; wer „mit Hilfslinien“ schon im Kasten hat,
+     wiederholt die Noten dort ohnehin).
+   - c) Auch ein einzelner Eintrag wandert in die neue Stufe (dann kommen in der Wiederholung auch Noten vor, die
+     noch nicht geschafft waren).
+7. **Umfang des Pakets: 15 Stufen.**
+   - a) 15 Stufen wie in Abschnitt 2. **(Voreinstellung)**
+   - b) 13 Stufen: ohne die eigenen Stufen „über und unter der Zeile“ (4, 9); die Hilfslinien kommen dann wie
+     heute direkt in „mit Hilfslinien“ ohne Hilfen dazu.
+   - c) 13 Stufen: „Vorzeichen im Bassschlüssel“ nur als eine Stufe ohne Hilfen (die Regel ist aus dem
+     Violinschlüssel bekannt), dafür „Linien und Zwischenräume“ (3, 8) wie geplant.
+
 ## Vorgaben für die nächsten Wellen (Sandra, 26.11.2026)
 
 Aus „Offen für Sandra“ (Welle 11, Abschnitt 8, Punkte 7 und 17). In Welle 11 wird davon nichts gebaut; die
@@ -3746,8 +4359,8 @@ Einzelheiten legt jeweils der Feinplan fest.
 2. **Paket „Noten lesen“ (nächste Welle): Vorzeichen auch im Bassschlüssel** (Punkt 17): Heute stehen „Noten mit
    Vorzeichen“ (`noten-7`) und der Vorzeichen-Anteil von `noten-8` nur im Violinschlüssel, während Intervalle 4
    und 6, Tonleitern 3, 5, 7, 9 und Dreiklänge 1–4, 6 Noten mit ♯/♭ im Bassschlüssel zeigen (am Vorrat geprüft,
-   Prüfung Schritt 5). Das Paket „Noten lesen“ nimmt Vorzeichen im Bassschlüssel auf. [OFFEN Feinplan] in
-   welchen Stufen und mit welchen Kanten.
+   Prüfung Schritt 5). Das Paket „Noten lesen“ nimmt Vorzeichen im Bassschlüssel auf. Festgelegt im Feinplan
+   Welle 12: Stufen `noten-13` und `noten-14`, Kanten in Abschnitt 7 dort.
 
 ## Vorgabe für das Paket „Dreiklänge Schritt für Schritt“ (nach Welle 11): bis zum Dominantseptakkord
 
