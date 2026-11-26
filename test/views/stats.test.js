@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { weakList, levelRow, levelGroups, levelRowText, heatRows, heatCell, heatAccList, heatX, HEAT_CLS, HEAT_LEGEND, boxHtml, lastText, BOX_NOTE } from "../../src/views/stats.js";
 import { N } from "../../src/music.js";
 import { PACKS } from "../../src/packs/index.js";
@@ -140,6 +141,16 @@ test("levelRow mit Karteikasten: Fach nur ohne Hilfen, „zuletzt geübt am“ a
   // der spätere von beiden
   r = levelRow(l, { best: 9, played: 3, day: "2026-11-20" }, { fach: 3, faellig: "2026-12-01", zuletzt: "2026-12-05" });
   assert.equal(r.fach, 3); assert.equal(lastText(r.zuletzt), "zuletzt geübt am 5.12.");
+  // Uhr vorgestellt und wieder zurück (Nachprüfung Welle 11): Tage nach heute zählen nicht – der andere Tag oder keiner
+  r = levelRow(l, { best: 9, played: 3, day: "2026-11-20" }, { fach: 3, faellig: "2030-01-02", zuletzt: "2029-12-30" }, "2026-11-26");
+  assert.equal(lastText(r.zuletzt), "zuletzt geübt am 20.11.");
+  r = levelRow(l, { best: 9, played: 3, day: "2029-12-30" }, { fach: 3, faellig: "2030-01-02", zuletzt: "2029-12-30" }, "2026-11-26");
+  assert.equal(r.zuletzt, null); assert.equal(lastText(r.zuletzt), "");
+  // heute selbst zählt
+  assert.equal(levelRow(l, { played: 1, day: "2026-11-26" }, { fach: 1, faellig: "2026-11-27", zuletzt: "2026-11-26" }, "2026-11-26").zuletzt, "2026-11-26");
+  // levelGroups reicht heute durch; die Statistik übergibt today()
+  assert.equal(levelGroups(PACKS, { "noten-3": { played: 1, day: "2029-12-30" } }, { "noten-3": { fach: 2, faellig: "2030-01-02", zuletzt: "2029-12-30" } }, "2026-11-26")[0].rows[2].zuletzt, null);
+  assert.match(readFileSync(new URL("../../src/views/stats.js", import.meta.url), "utf8"), /levelGroups\(ctx\.packs, s\.levels, s\.rep, today\(\)\)/);
   // Stufe mit Hilfen: nie im Kasten; ohne Eintrag kein Fach; ungültiges Fach gilt als 1 bzw. höchstens 5
   assert.equal(levelRow(h, { played: 1 }, { fach: 2, faellig: "2026-11-26", zuletzt: null }).fach, null);
   assert.equal(levelRow(l, { played: 1 }).fach, null);
