@@ -36,15 +36,19 @@ export const startMore = (level, ctx) => (level && level.hintMore
 // Tastatur-Hinweis auf der Startkarte (rein, getestet): ohne Vorzeichen Buchstaben, mit Namensraster
 // der ganze Name und Enter
 const kbd = (t) => `<span class="kbd">${t}</span>`;
-// Stufen mit level.digits (Grobbestimmung Prime … Oktave): Ziffern 1 bis 8
-export const keysHint = (level) => (level && level.digits
+// Stufen mit level.digits (Grobbestimmung Prime … Oktave): Ziffern 1 bis 8.
+// level.keysHint (optional, HTML, Welle 12) ersetzt den Hinweis, z. B. bei Schritten mit Ziffern und Buchstaben.
+export const keysHint = (level) => (level && level.keysHint
+  ? level.keysHint
+  : level && level.digits
   ? `Tastatur: ${kbd("1")} Prime, ${kbd("2")} Sekunde … ${kbd("8")} Oktave`
   : engine.usesNames(level)
   ? `Tastatur: Namen tippen, z. B. ${kbd("fis")} ${kbd("es")} ${kbd("b")}, dann ${kbd("Enter")}. ${kbd("⌫")} löscht, ${kbd("Esc")} leert.`
   : `Tastatur: ${kbd("C")} ${kbd("D")} ${kbd("E")} … ${kbd("H")}`);
 
-// Beschriftung der Wahl Buchstaben/Klaviatur (rein, getestet): mit Namensraster „Namen“
-export const lettersLabel = (level) => (engine.usesNames(level) ? "Namen" : "Buchstaben");
+// Beschriftung der Wahl Buchstaben/Klaviatur (rein, getestet): mit Namensraster „Namen“; seit Welle 12 auch, wenn
+// ein Schritt der Stufe das Namensraster benutzt (engine.levelNoteSteps)
+export const lettersLabel = (level) => (engine.usesNames(level) || engine.levelNoteSteps(level).includes("names") ? "Namen" : "Buchstaben");
 
 // Ergebniskarte (rein, getestet, Welle 10, A7): nächste Stufe der Reihe nach (Knopf nur, wenn sie offen
 // ist) und eine eigene, gut lesbare Zeile zur Freischaltung (note). Die Regel bleibt: beste Runde ≥ 8 in

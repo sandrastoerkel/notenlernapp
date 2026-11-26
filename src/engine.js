@@ -236,6 +236,44 @@ export const choiceSet = (q, step = 0) => (q.steps ? q.steps[step] : q);
 // ohne cols wie bisher (choicesClass)
 export const setClass = (set) => (set.cols ? "choices cols" : choicesClass(set.choices));
 
+// Denkschritt mit Noteneingabe (Welle 12, Schritt 0): Ein Schritt darf statt Auswahlknöpfen die Noteneingabe
+// der Stufe benutzen – set.note = "letters" (C … H, Klaviatur, Buchstaben-Tasten) oder "names" (Namensraster mit
+// 21 Namen, Klaviatur, getippter Name mit Enter); set.answer ist dann { letter, acc }.
+export const NOTE_STEPS = ["letters", "names"];
+// Art des Antwortbereichs im Schritt i (rein, getestet): "choices" | "letters" | "names". Ohne q.steps gilt die
+// Eingabe der Stufe (level, optional): Auswahlknöpfe, Namensraster (usesNames) oder Buchstaben.
+export function stepInput(q, i = 0, level) {
+  if (q && q.steps) {
+    const set = q.steps[i];
+    return set && NOTE_STEPS.includes(set.note) ? set.note : "choices";
+  }
+  if (level && level.input === "choices") return "choices";
+  return usesNames(level) ? "names" : "letters";
+}
+// Antwort eines Schritts prüfen (rein, getestet). Auswahl: genau der Text von set.answer (wie bisher). Noteneingabe:
+// { letter, acc } genau gleich (Buchstabe und Vorzeichen), eine Taste der Klaviatur (Zahl: Halbtöne über C) nach
+// Tonklasse wie checkNote in „Noten lesen“ (Fis = Ges); bei "letters" zählt ein Name mit Vorzeichen nicht.
+export function checkStep(set, value) {
+  if (!set) return false;
+  if (!NOTE_STEPS.includes(set.note)) return value === set.answer;
+  const a = set.answer;
+  if (!a || typeof a !== "object" || !a.letter) return false;
+  if (typeof value === "number") return ((midi(N(a.letter, 4, a.acc || 0)) % 12) + 12) % 12 === ((value % 12) + 12) % 12;
+  return !!value && typeof value === "object" && value.letter === a.letter && (value.acc || 0) === (a.acc || 0);
+}
+// Noteneingaben in den Schritten einer Stufe (rein, getestet, gemerkt): z. B. ["letters", "names"]. Nur Stufen mit
+// Buchstaben-Eingabe und twoSteps werden befragt (eine Aufgabe als Probe; alle Aufgaben einer Stufe haben dieselben
+// Schritte), sonst [].
+const noteStepCache = new WeakMap();
+export function levelNoteSteps(level) {
+  if (!level || !level.twoSteps || (level.input || "letters") !== "letters" || typeof level.question !== "function") return [];
+  if (!noteStepCache.has(level)) {
+    const q = level.question(null, { notes: {}, round: [] });
+    noteStepCache.set(level, q && q.steps ? [...new Set(q.steps.map((s) => s.note).filter((n) => NOTE_STEPS.includes(n)))] : []);
+  }
+  return noteStepCache.get(level);
+}
+
 // Zweischrittig: Rückmeldung nach dem letzten Schritt. oks = Ergebnis je Schritt. Alles richtig wie
 // bisher; nur der erste Schritt daneben und der letzte richtig: q.partial (falls gesetzt); sonst q.reveal.
 // Ein Satz Knöpfe genügt auch (steps.length === 1, z. B. Intervalle bei nur einem möglichen Intervall):
@@ -266,7 +304,8 @@ export const HELP_OCTAVES = 2;
 // Violinschlüssel beginnt auf b, D-Dur im Bassschlüssel reicht bis d'), sonst HELP_FROM[q.clef]
 export const helpFrom = (q) => (typeof q.helpFrom === "number" ? q.helpFrom : HELP_FROM[q.clef] ?? HELP_FROM.treble);
 export const hasHelps = (level) => !!(level && level.helps && level.helps.length);
-// Überschrift des Bereichs (ui.helpsTitle, das <summary>): nennt nur, was die Stufe wirklich zeigt. Mit Klaviatur
+// Überschrift des Bereichs (ui.helpsTitle, das <summary>): nennt nur, was die Stufe wirklich zeigt (eine Tabelle als
+// Funktion zählt als vorhanden; geprüft wird nur das Feld). Mit Klaviatur
 // und Tabelle wie bisher „Hilfen: Klaviatur und Tabelle“, nur mit Klaviatur „Hilfen: Klaviatur“ (Tonleitern
 // Stufe 12). level.helpsTitle (optional) setzt einen eigenen Text.
 export const HELPS_TITLE = "Hilfen";
@@ -335,7 +374,9 @@ export function helpsHtml(level, q, ctx) {
     const marks = (q.helpMarks || []).map(midi);
     grid += `<div class="help-keys">${pianoSvg({ from: helpFrom(q), octaves: HELP_OCTAVES, marks, interactive: false, fit: marks.length > 1 ? marks : null })}</div>`;
   }
-  if (level.helps.includes("tabelle") && level.helpTable) grid += `<div class="help-table-wrap">${level.helpTable}</div>`;
+  // level.helpTable darf wie helpText eine Funktion (ctx) => HTML sein (Welle 12: Merkleiste mit dem gewählten Spruch)
+  const table = level.helps.includes("tabelle") ? textOf(level.helpTable, ctx) : "";
+  if (table) grid += `<div class="help-table-wrap">${table}</div>`;
   if (grid) out += `<div class="help-grid">${grid}</div>`;
   if (level.demo) out += `<div class="help-demo" hidden></div>`;
   return out;
@@ -466,12 +507,18 @@ export function setInput(pref) {
   applyInput(run);
 }
 
+// Art des Antwortbereichs jetzt: Schritt der Aufgabe (q.steps, stepInput), sonst die Eingabe der Stufe
+const kindNow = (r) => stepInput(r.items[r.idx], r.step || 0, cur(r));
+
 function applyInput(r) {
   const { answers, typed, piano } = r.ui;
-  const keys = r.input === "keys";
+  const kind = kindNow(r);
+  // Klaviatur nur in Noten-Schritten (Welle 12): in einem Auswahl-Schritt einer Stufe mit Buchstaben-Eingabe
+  // stehen die Knöpfe da, auch wenn „Klaviatur“ gewählt ist
+  const keys = r.input === "keys" && kind !== "choices";
   if (answers) answers.hidden = keys;
-  // Getippte Namen gehen auch bei der Klaviatur; die Zeile gibt es nur bei Stufen mit Namensraster
-  if (typed) typed.hidden = !usesNames(cur(r));
+  // Getippte Namen gehen auch bei der Klaviatur; die Zeile gibt es nur bei Stufen bzw. Schritten mit Namensraster
+  if (typed) typed.hidden = kind !== "names";
   if (piano) piano.hidden = !keys;
 }
 
@@ -526,10 +573,13 @@ function setupAnswers(r, level) {
   }
   if (level.input === "choices") {
     if (ui.answers) ui.answers.innerHTML = "";
+    r.built = null;
   } else {
     if (ui.answers) ui.answers.innerHTML = usesNames(level) ? namesHtml() : lettersHtml();
     if (ui.answers) ui.answers.classList.toggle("names", usesNames(level));
     if (ui.piano) ui.piano.innerHTML = pianoSvg();
+    // was jetzt im Antwortbereich steht (Welle 12: Schritte mit Noteneingabe bauen ihn je Schritt neu)
+    r.built = usesNames(level) ? "names" : "letters";
   }
 }
 
@@ -558,7 +608,8 @@ function begin(r) {
   };
   if (ui.piano) ui.piano.onclick = (e) => {
     const k = e.target.closest("rect[data-semi]");
-    if (k && run === r) answer(r, +k.dataset.semi, k);
+    // in einem Auswahl-Schritt zählt die (verborgene) Klaviatur nicht
+    if (k && run === r && kindNow(r) !== "choices") answer(r, +k.dataset.semi, k);
   };
   // Vorführung in den Hilfen: „Vorführen“ (nach der Antwort) hält die Runde an, „Nächste Aufgabe“ geht weiter
   if (ui.helpsBody) ui.helpsBody.onclick = (e) => {
@@ -575,7 +626,8 @@ function begin(r) {
 
 function showChoices(r) {
   const { ui } = r, set = choiceSet(r.items[r.idx], r.step);
-  if (cur(r).input !== "choices" || !ui.answers) return;
+  if (cur(r).input !== "choices") return showStepAnswers(r);
+  if (!ui.answers) return;
   ui.answers.innerHTML = choicesHtml(set.choices);
   const cls = setClass(set);
   ui.answers.classList.add("choices");
@@ -608,9 +660,40 @@ function showQuestion(r) {
   if (ui.dots) ui.dots.innerHTML = dotsHtml(r.marks, r.idx, r.items.length);
   if (!r.mixed && ui.helpsBody && hasHelps(r.level)) ui.helpsBody.innerHTML = helpsHtml(r.level, q, { state: r.hooks.state });
   showChoices(r);
+  // Welle 12: Hatte die vorige Aufgabe zuletzt einen anderen Schritt (z. B. Namensraster, jetzt Auswahl), stimmen
+  // Knöpfe/Klaviatur und die Zeile #pTyped wieder für Schritt 1 (sonst ändert sich nichts)
+  if (!r.mixed) applyInput(r);
   all(ui.answers, ".btn").concat(all(ui.piano, "rect")).forEach(clearMark);
   r.buf = ""; showTyped(r, "");
   r.t0 = performance.now();
+}
+
+// Stufe mit Buchstaben-Eingabe (Welle 12, Schritt 0): Antwortbereich für den aktuellen Schritt aufbauen, wenn er
+// eine andere Art braucht als das, was dasteht (r.built) – Auswahlknöpfe, Buchstaben C … H oder Namensraster.
+// Stufen ohne q.steps bauen nie neu (wie bisher: einmal zu Beginn der Runde). true, wenn neu gebaut.
+function showStepAnswers(r) {
+  const { ui } = r, q = r.items[r.idx], kind = kindNow(r);
+  if (!ui.answers || kind === r.built) return false;
+  ui.answers.classList.remove("choices", "short", "names", "cols");
+  if (ui.answers.style) ui.answers.style.removeProperty("--cols");
+  if (kind === "choices") {
+    const set = choiceSet(q, r.step);
+    ui.answers.innerHTML = choicesHtml(set.choices);
+    const cls = setClass(set);
+    ui.answers.classList.add("choices");
+    ui.answers.classList.toggle("cols", cls.includes("cols"));
+    const short = cls.includes("short");
+    ui.answers.classList.toggle("short", short);
+    if (set.cols) ui.answers.style.setProperty("--cols", set.cols);
+    else if (short) ui.answers.style.setProperty("--cols", choiceCols(set.choices));
+    // Auswahlknöpfe hängen an der Aufgabe: beim nächsten Mal wieder neu bauen
+    r.built = null;
+  } else {
+    ui.answers.innerHTML = kind === "names" ? namesHtml() : lettersHtml();
+    ui.answers.classList.toggle("names", kind === "names");
+    r.built = kind;
+  }
+  return true;
 }
 
 // Auswahlknopf zur richtigen Antwort des aktuellen Schritts markieren
@@ -623,14 +706,16 @@ function markRight(r, q) {
   // Eingabe „Klaviatur“: die richtige Taste grün wie der richtige Knopf bei den anderen Eingaben (Korrektur nach
   // der Prüfung Welle 11, J-B4); beim oberen und unteren C beide, denn beide wären richtig gewesen
   if (r.ui.piano && !r.ui.piano.hidden) {
-    all(r.ui.piano, "rect[data-semi]").filter((k) => cur(r).check(q, +k.dataset.semi)).forEach((k) => markAnswer(k, "ok"));
+    // Noten-Schritt (Welle 12): die Taste zur Antwort des Schritts, nach Tonklasse (checkStep)
+    if (q.steps) all(r.ui.piano, "rect[data-semi]").filter((k) => checkStep(set, +k.dataset.semi)).forEach((k) => markAnswer(k, "ok"));
+    else all(r.ui.piano, "rect[data-semi]").filter((k) => cur(r).check(q, +k.dataset.semi)).forEach((k) => markAnswer(k, "ok"));
   }
 }
 
 // Zweischrittige Aufgabe: Schritt auswerten; nach dem letzten Schritt wie eine einfache Antwort weiter
 function answerStep(r, value, el) {
   const q = r.items[r.idx], { ui } = r, set = q.steps[r.step];
-  const ok = value === set.answer;
+  const ok = checkStep(set, value);
   r.oks.push(ok);
   if (el) markAnswer(el, ok ? "ok" : "bad");
   if (!ok) markRight(r, q);
@@ -643,13 +728,27 @@ function answerStep(r, value, el) {
     r.advance = null; r.waiting = false;
     if (ui.next) ui.next.hidden = true;
     r.locked = false; r.step++;
-    showChoices(r);
+    if (cur(r).input === "choices") showChoices(r);
+    else nextNoteStep(r);
     ui.feedback.textContent = q.steps[r.step].prompt || ""; ui.feedback.className = "feedback";
   };
   // Schritt 1 richtig: kurz weiter. Daneben: kein Zeitgeber, „Weiter zu Schritt 2“ (Knopf, Enter, Leertaste)
   if (ok) { later(r, toNextStep, DELAY_STEP_OK); return; }
   r.advance = toNextStep; r.waiting = true;
   if (ui.next) { ui.next.textContent = NEXT_STEP; ui.next.hidden = false; }
+}
+
+// Stufe mit Buchstaben-Eingabe: Wechsel zum nächsten Schritt (Welle 12, Schritt 0). Antwortbereich je nach Art
+// neu, Markierungen und getippter Name des vorigen Schritts weg, Eingabe (Knöpfe/Klaviatur, Zeile #pTyped) neu
+// setzen. Lag der Fokus im Antwortbereich oder auf der Klaviatur, bleibt er im sichtbaren Antwortbereich.
+function nextNoteStep(r) {
+  const { ui } = r;
+  const had = focusWithin(ui.answers) || focusWithin(ui.piano);
+  showStepAnswers(r);
+  all(ui.answers, ".btn").concat(all(ui.piano, "rect")).forEach(clearMark);
+  r.buf = ""; showTyped(r, "");
+  applyInput(r);
+  if (had) focusEl([ui.answers, ui.piano].find((e) => e && !e.hidden), { preventScroll: true });
 }
 
 function answer(r, value, el) {
@@ -822,16 +921,16 @@ export function handleKey(e) {
     return true;
   }
   if (run.locked) return false;
-  const level = cur(r);
-  if (level.input === "choices") {
-    // Ziffern bei Knopfsätzen mit digits (Prime … Oktave)
+  const kind = kindNow(r);
+  if (kind === "choices") {
+    // Ziffern bei Knopfsätzen mit digits (Prime … Oktave); in einem Auswahl-Schritt zählt kein Buchstabe
     const set = choiceSet(r.items[r.idx], r.step), i = digitAction(e, set);
     if (i === null) return false;
     e.preventDefault();
     answer(r, set.choices[i], all(r.ui.answers, ".btn[data-choice]")[i]);
     return true;
   }
-  if (usesNames(level)) {
+  if (kind === "names") {
     const k = nameKey(r.buf, e);
     if (!k) return false;
     e.preventDefault();
