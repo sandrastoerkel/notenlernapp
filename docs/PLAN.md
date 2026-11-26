@@ -3265,6 +3265,41 @@ er kleiner. 519 Tests grün. Offen für Sandra: 8.14 und 8.19.
   (Leitsatz 3). Ende mit Code 1 bei Abweichung. Der reine Lauf aus Schritt 4 bleibt Teil von `npm test`.
 - `docs/screens/screenshots.mjs` läuft weiter (README-Bilder neu, Stand mit Jahrgang und Karte „Heute“).
 
+**Umgesetzt (13a: Doku und Cache; 26.11.2026, Opus):** Commit d25504b. Die Skripte in `docs/screens/` und die
+Bildschirmfotos sind Teil 13b (eigener Arbeitsbaum) und hier nicht angefasst.
+- `docs/ARCHITEKTUR.md`: Verzeichnisse mit `repeat.js`, `klasse.js`, `qr.js`, `views/lehrkraft.js`; Stufe mit
+  `needs`, `stepNeeds`, `skill`, `guess`, `learnTab` (dazu `steps[i].needs`, `autoNext`), Lerntafel mit `tab`,
+  Absatz „Voraussetzungen“ (Tabelle `VORAUSSETZUNGEN` je Paket, Regeln) und „Gewichtete Auswahl in den
+  Paketen“; Engine: gemischte Runde (`makeMixed`, `startMixed`, `cur(r)`, `ui.origin`/`#pOrigin`, Protokoll
+  `r.log`, `perLevelOf`, Ergebnis von `onFinish`); Ansichten: `show(view, arg)`, Adress-Angaben `#lehrkraft` und
+  `#klasse=…` (Dialog, Hinweisleiste, `replaceState`), Startseite (Karte „Heute“, Abschnitte mit Jahrgang),
+  Üben (Startkarte mit Voraussetzungen, Ergebniskarten), Lernen (Reiter, ARIA-Tabs, `tabScroll`), Für
+  Lehrkräfte, Statistik (`fach`, `boxHtml`, `klasseNote`); neue Abschnitte zu `repeat.js`, `klasse.js` und
+  `qr.js`; Fortschritt mit `rep`, `klasse`, `basics`, `levels[id].last/day`, Marker `"wiederholen"`
+  (`migrateWiederholen`), örtlichem Datum, Freischaltung mit Jahrgang, vollständiger Liste der Exporte; Tests
+  der Welle. Berichtigt, weil der Code es inzwischen anders macht: „nur Noten lesen gewichtet“ (seit Schritt 9
+  auch Intervalle und Tonleitern, `pickAmong`, `weight(entry, heute)`), `migrateAll` (vier Umstellungen),
+  `levelRow`/`levelGroups` mit Karteikasten, `render(arg)`.
+- `docs/KONZEPT.md`: Abschnitte „Wiederholen ist der Kern“ und „Jahrgang“ (nach KONZEPT-gehirngerecht und den
+  Entscheidungen vom 24.11.2026); Ausbaustufe „Lehrkraft-Modus“ mit dem Hinweis auf den Link ohne Server.
+- `README.md`: Pakete als Liste in der neuen Reihenfolge (Noten lesen → Notenwerte und Pausen → Intervalle →
+  Tonleitern → Dreiklänge und Quintenzirkel), Abschnitt „Für Lehrkräfte“ mit
+  <https://sandrastoerkel.github.io/notenlernapp/#lehrkraft> und dem Datenschutz-Satz (nur Jahrgang und Auswahl
+  der Stufen, keine Namen, keine Ergebnisse, QR-Code im Gerät), Tabelle „Bereiche“ (Karte „Heute“, Reiter,
+  Fächer), Freischaltung mit Jahrgang, Module, Stand (`main` 2f3dfe8 live, Welle 11 auf `wiederholen-11`, Cache
+  -14). „Klasse 5 bis 12“ → „Jahrgang 5 bis 13“ (Entscheidung 5). Die Bildertabelle bleibt (neue Bilder: 13b).
+- `CLAUDE.md`: Stand Welle 11 (Schritte 0–12), Welle 10 als auf `main` vermerkt, „Danach“ laut Projektstand;
+  feste Entscheidungen vom 24.11.2026 (1–9, Leitsatz) und Wünsche vom 25.11.2026 (W1–W4).
+- `sw.js`: Cache `notenheld-v0.2.0-14`. `PRECACHE` war schon vollständig (die Schritte 10–12 hatten `qr.js`,
+  `repeat.js`, `klasse.js` und `views/lehrkraft.js` eingetragen; keine weitere neue Datei). `test/sw.test.js`
+  prüft die Vollständigkeit gegen den Dateibaum (gab es schon, mit den vier Dateien ausdrücklich) und neu „Cache
+  mindestens -14“. 520 Tests grün.
+- Commits je Schritt in den Vermerken „Umgesetzt“ und „Prüfung“ eingetragen (nur Hashes, die `git log` eindeutig
+  zuordnet): Schritte 0–5 neu (0: 8b7d499/679e454, 1: 1a4db0e/f188573, 2: 52234e0/fac2c1e, 3: 942a5f0, 4:
+  a266868/e234360, 5: 1e3d729/1f32217), 7: 5b768dd/d6c347f, 8: 1730832/bdfa074, 9: bcf50a8/e055125 (statt
+  „siehe `git log`“), 12: Prüfung aa4bfa5. Schritte 6, 10, 11 hatten ihre Hashes schon.
+- Keine Änderung an Oberfläche oder UI-Texten, deshalb kein Überlauf-Lauf.
+
 **Spielstände.** Kein Wechsel des Schlüssels (`notenheld.v2`). Neu: `rep`, `klasse`, `basics` und der Marker
 `"wiederholen"`. Stufen-IDs, `statKey`s, Sterne und Freischaltung bleiben; die Einstellung `klasse` öffnet nur.
 Test: alter Stand (ohne die neuen Felder, mit den drei alten Markern) lädt, bekommt einmal die Umstellung und
