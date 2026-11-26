@@ -63,16 +63,13 @@ export function revealParts(n, clef, state) {
 export const PROMPT = "Wie heißt die Note?";
 
 // Merkspruch zur Stelle der Note für die Vorführung „So liest du eine Note“ (noten-demo.js, Schritt 5): Die Engine
-// ruft level.demo(q) ohne Spielstand, deshalb trägt die Aufgabe den gewählten Spruch als reine Daten mit:
-// q.spruch = { id, nr, teile: [davor, Wort, danach] } – id die Kennung aus sprueche.js (z. B. "violin-linien"),
-// nr die Nummer der Linie bzw. des Zwischenraums von unten (1 …), teile der Spruch um das Wort dieser Stelle
-// (teileZu; Text des Kindes, nur als Text bzw. mit esc einsetzen). Ohne ctx.state der voreingestellte Spruch.
-// null für Noten außerhalb der Zeile und mit Vorzeichen (dort gibt es keinen Spruch).
+// ruft level.demo(q) ohne Spielstand, deshalb trägt die Aufgabe den gewählten Spruch als reinen Text mit:
+// q.spruch = spruch(state, spruchId(note, clef)) – der Spruch, der für die Linien bzw. Zwischenräume des Schlüssels
+// gilt (eigener Text des Kindes: nur als Text bzw. mit esc einsetzen). Ohne ctx.state der voreingestellte Spruch.
+// Fehlt bei Noten außerhalb der Zeile und mit Vorzeichen (spruchId null: dort gibt es keinen Spruch).
 export function spruchZu(n, clef, state) {
   const id = spruchId(n, clef);
-  if (!id) return null;
-  const p = staffPos(n, clef);
-  return { id, nr: Math.floor(p / 2) + 1, teile: teileZu(state, id, Math.floor(p / 2)) };
+  return id ? spruch(state, id) : null;
 }
 
 /* --- Zwei Denkschritte (Welle 12, Schritt 3; PLAN Abschnitt 1 und 6) ---
@@ -105,7 +102,7 @@ function zweiSchritte(art, n, clef, state) {
   const name = displayName(n);
   if (art === "lage") {
     const l = lage(n, clef), wort = LAGE_WORT[l.art], ort = `${l.nr}. ${wort}`;
-    const sp = spruchZu(n, clef, state), w = sp ? sp.teile[1] : "";
+    const w = teileZu(state, spruchId(n, clef), Math.floor(staffPos(n, clef) / 2))[1];
     return {
       steps: [
         { prompt: LAGE_PROMPT[l.art], choices: LAGE_CHOICES[l.art].slice(), digits: true, answer: `${l.nr}.`,
@@ -182,8 +179,9 @@ function makeQuestion(it, state, art) {
     note: it.n,
     clef: it.clef,
     statKey: statKey(it.n, it.clef),
-    spruch: spruchZu(it.n, it.clef, state),
   };
+  const sp = spruchZu(it.n, it.clef, state);
+  if (sp !== null) base.spruch = sp;
   if (!art) return base;
   const z = zweiSchritte(art, it.n, it.clef, state);
   return {
@@ -248,11 +246,11 @@ const mkVz = () => helps("Hilfen: Vorzeichen", H_VZ, () => vorzeichenRegel());
 
 // Vorführungen (PLAN Abschnitt 4; Gerüst bis Schritt 5): q ist die eben gelöste Aufgabe
 // art: die beiden Denkschritte der Stufe (zweiSchritte); keysHint ersetzt den Tastatur-Hinweis der Startkarte.
-// lageDemo bekommt als dritten Parameter den Spruch aus der Aufgabe (q.spruch, siehe spruchZu).
+// lageDemo(q) liest q.note, q.clef und q.spruch (siehe spruchZu).
 const kbd = (t) => `<span class="kbd">${t}</span>`;
 // Kurz: bei 320 px eine Zeile (Startkarte nicht länger als vor Schritt 3)
 const KEYS_LETTERS = `${kbd("C")} … ${kbd("H")}`;
-const D_LAGE = { art: "lage", demo: (q) => lageDemo(q.note, q.clef, q.spruch) };
+const D_LAGE = { art: "lage", demo: (q) => lageDemo(q) };
 const D_ZAEHLEN = { art: "zaehlen", demo: (q) => zaehlDemo(bezug(q.note, q.clef).ref, q.note, q.clef) };
 const D_VZ = { art: "vorzeichen", demo: (q) => vorzeichenDemo(q.note, q.clef),
   keysHint: `Tastatur: ${KEYS_LETTERS}, dann Namen tippen, z. B. ${kbd("fis")} ${kbd("Enter")}` };

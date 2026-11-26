@@ -439,15 +439,16 @@ test("Schritt 3: eigener Merkspruch mit HTML-Zeichen – Rückmeldung als Text, 
   const l = noten.levels[0];
   for (const q of alle(l, s)) {
     if (q.note.letter !== "G") continue;
-    assert.deepEqual(q.spruch, { id: "violin-linien", nr: 2, teile: ["Ein ", "<Gutes>", " Huhn Darf Fliegen"] });
+    assert.equal(q.spruch, "Ein <Gutes> Huhn Darf Fliegen");
     assert.ok(q.revealParts.some((x) => x.mark && x.t === "<Gutes>"));
     assert.ok(q.revealSvg.includes("&lt;Gutes&gt; → G") && !q.revealSvg.includes("<Gutes"));
   }
   // ohne Spielstand: voreingestellter Spruch; außerhalb der Zeile und mit Vorzeichen kein Spruch
   const g = alle(l).find((q) => q.note.letter === "G");
-  assert.deepEqual(g.spruch, { id: "violin-linien", nr: 2, teile: ["Es ", "Geht", " Hurtig Durch Fleiß"] });
-  assert.ok(alle(noten.levels[3]).every((q) => q.spruch === null));
-  assert.ok(alle(noten.levels[10]).every((q) => q.spruch === null));
+  assert.equal(g.spruch, "Es Geht Hurtig Durch Fleiß");
+  assert.ok(alle(noten.levels[3]).every((q) => !("spruch" in q)));
+  assert.ok(alle(noten.levels[10]).every((q) => !("spruch" in q)));
+  assert.equal(alle(noten.levels[6], s).find((q) => q.note.letter === "C").spruch, "Alle Clowns Essen Gern");
   // Vorführung bekommt den Spruch aus der Aufgabe (ohne Spielstand in der Engine)
   assert.ok(l.demo(g).frames.length >= 2);
 });
