@@ -451,3 +451,19 @@ test("„Grundlagen wiederholt“: Knopf zum Üben je Zeile mit Fehlern, Hauptkn
   assert.match(src, /const counted = afterBasicsLevels\(ctx\.state, ctx\.packs, res\.perLevel, today\(\)\);/);
   assert.match(src, /showBasicsResult\(res, levelId, only, counted\)/);
 });
+
+// Welle 12, Schritt 0: level.keysHint und die Beschriftung der Wahl nach den Schritten der Stufe
+test("level.keysHint ersetzt den Tastatur-Hinweis; „Namen“, wenn ein Schritt das Namensraster benutzt", () => {
+  const hint = `Tastatur: <span class="kbd">1</span> bis <span class="kbd">5</span> für die Linie, dann C D E … H`;
+  assert.equal(keysHint({ input: "letters", keysHint: hint }), hint);
+  assert.equal(keysHint({ input: "letters", acc: true, digits: true, keysHint: hint }), hint, "vor digits und Namensraster");
+  const stepQ = (notes) => () => ({ steps: notes.map((note) => (note ? { note, answer: { letter: "F", acc: 0 } } : { choices: ["1.", "2."], answer: "1." })) });
+  assert.equal(lettersLabel({ input: "letters", twoSteps: true, question: stepQ([null, "letters"]) }), "Buchstaben");
+  assert.equal(lettersLabel({ input: "letters", twoSteps: true, question: stepQ(["letters", "names"]) }), "Namen");
+  assert.equal(lettersLabel({ input: "letters", question: stepQ(["letters", "names"]) }), "Buchstaben", "nur Stufen mit twoSteps");
+  // bestehende Stufen: unverändert
+  for (const p of PACKS) for (const l of p.levels) {
+    assert.equal(lettersLabel(l), l.input === "letters" && l.acc ? "Namen" : "Buchstaben", l.id);
+    assert.ok(!l.keysHint, l.id);
+  }
+});

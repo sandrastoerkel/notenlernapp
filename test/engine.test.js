@@ -1398,3 +1398,382 @@ test("keepTogether: geschützte Leerzeichen und Wortverbinder nur für die Anzei
   // nicht angefasst: Strich mit Leerzeichen, Zahlen ohne Einheit, Bauplan
   for (const t of ["Ganz – Ganz – Halb", "2 + 1 = 3", "1 1 ½ 1 1 1 ½", "Stufe 1–8"]) assert.equal(keepTogether(t), t);
 });
+
+/* ---------- Welle 12, Schritt 0: Denkschritt mit Noteneingabe ---------- */
+
+import { stepInput, checkStep, levelNoteSteps, NOTE_STEPS, setInput } from "../src/engine.js";
+
+test("stepInput: Art des Antwortbereichs je Schritt; ohne q.steps die Eingabe der Stufe", () => {
+  const q = { steps: [{ choices: ["1.", "2."], answer: "2." }, { note: "letters", answer: { letter: "G", acc: 0 } }, { note: "names", answer: { letter: "F", acc: 1 } }] };
+  assert.deepEqual(NOTE_STEPS, ["letters", "names"]);
+  assert.equal(stepInput(q, 0), "choices");
+  assert.equal(stepInput(q, 1), "letters");
+  assert.equal(stepInput(q, 2), "names");
+  assert.equal(stepInput({ steps: [{ note: "keys", choices: ["a"] }] }, 0), "choices", "unbekannte Art: Auswahl");
+  assert.equal(stepInput({}, 0, { input: "choices" }), "choices");
+  assert.equal(stepInput({}, 0, { input: "letters" }), "letters");
+  assert.equal(stepInput({}, 0, { input: "letters", acc: true }), "names");
+  assert.equal(stepInput({}, 0), "letters");
+});
+
+test("checkStep: Auswahl genau, Noteneingabe { letter, acc } genau, Klaviatur nach Tonklasse", () => {
+  const ch = { choices: ["1.", "2."], answer: "2." };
+  assert.equal(checkStep(ch, "2."), true);
+  assert.equal(checkStep(ch, "1."), false);
+  assert.equal(checkStep(ch, { letter: "G", acc: 0 }), false);
+  const g = { note: "letters", answer: { letter: "G", acc: 0 } };
+  assert.equal(checkStep(g, { letter: "G", acc: 0 }), true);
+  assert.equal(checkStep(g, { letter: "G" }), true, "acc fehlt = 0");
+  assert.equal(checkStep(g, { letter: "G", acc: 1 }), false, "Gis ist nicht G");
+  assert.equal(checkStep(g, { letter: "A", acc: 0 }), false);
+  assert.equal(checkStep(g, 7), true, "Taste G (7 Halbtöne über C)");
+  assert.equal(checkStep(g, 8), false);
+  const fis = { note: "names", answer: { letter: "F", acc: 1 } };
+  assert.equal(checkStep(fis, { letter: "F", acc: 1 }), true);
+  assert.equal(checkStep(fis, { letter: "G", acc: -1 }), false, "Schreibweise zählt: Ges ist nicht Fis");
+  assert.equal(checkStep(fis, { letter: "F", acc: 0 }), false);
+  assert.equal(checkStep(fis, 6), true, "Klaviatur: Tonklasse wie checkNote");
+  const b = { note: "names", answer: { letter: "H", acc: -1 } };
+  assert.equal(checkStep(b, 10), true);
+  assert.equal(checkStep(b, 11), false);
+  const c = { note: "letters", answer: { letter: "C", acc: 0 } };
+  assert.equal(checkStep(c, 0), true, "oberes und unteres C (data-semi 0)");
+  assert.equal(checkStep(g, null), false);
+  assert.equal(checkStep(null, "2."), false);
+  assert.equal(checkStep({ note: "letters" }, { letter: "G", acc: 0 }), false, "ohne Antwort nie richtig");
+});
+
+// Probe-Stufen (nur für die Tests): [Auswahl mit Ziffern, Buchstaben] mit Hilfen und [Buchstaben, Namen] ohne Hilfen
+const probeA = (n = N("G", 4)) => ({
+  svg: "<svg></svg>", note: n, statKey: "probe:" + gName(n), display: "2. Linie → G", prompt: "Auf welcher Linie liegt die Note?",
+  reveal: "Das war ein G.", partial: "Der Name stimmt, die Linie nicht.",
+  steps: [
+    { prompt: "Auf welcher Linie liegt die Note?", choices: ["1.", "2.", "3.", "4.", "5."], digits: true, answer: "2.", ok: "Richtig: 2. Linie.", bad: "Nicht ganz: 2. Linie." },
+    { prompt: "Wie heißt die Note?", note: "letters", answer: { letter: n.letter, acc: n.acc } },
+  ],
+});
+const probeB = () => ({
+  svg: "<svg></svg>", note: N("F", 4, 1), statKey: "probe:fis", display: "F → Fis", prompt: "Stammton?",
+  reveal: "Das war ein Fis.", partial: "Der Name stimmt, der Stammton nicht.",
+  steps: [
+    { prompt: "Stammton?", note: "letters", answer: { letter: "F", acc: 0 }, ok: "Richtig: F.", bad: "Nicht ganz: F." },
+    { prompt: "Und mit dem Vorzeichen?", note: "names", answer: { letter: "F", acc: 1 } },
+  ],
+});
+const LEVEL_A = { id: "probe-a", no: 1, title: "Probe A", input: "letters", twoSteps: true, helps: ["tabelle"],
+  helpText: "Zähle von unten.", helpTable: (c) => `<table data-probe>${c && c.state ? "mit Spielstand" : ""}</table>`,
+  keysHint: "Tastatur: 1 bis 5, dann C D E … H", question: () => probeA(), check: () => false };
+const LEVEL_B = { id: "probe-b", no: 2, title: "Probe B", input: "letters", twoSteps: true, question: () => probeB(), check: () => false };
+
+test("levelNoteSteps: Noteneingaben der Schritte einer Stufe; bestehende Stufen ohne", () => {
+  assert.deepEqual(levelNoteSteps(LEVEL_A), ["letters"]);
+  assert.deepEqual(levelNoteSteps(LEVEL_B), ["letters", "names"]);
+  assert.deepEqual(levelNoteSteps({ input: "letters" }), []);
+  assert.deepEqual(levelNoteSteps(null), []);
+  for (const p of PACKS) for (const l of p.levels) assert.deepEqual(levelNoteSteps(l), [], l.id);
+});
+
+test("helpsHtml: level.helpTable als Funktion (ctx) => HTML; Text wie bisher; Überschrift mit „Tabelle“", () => {
+  const q = probeA();
+  const html = helpsHtml(LEVEL_A, q, { state: fresh() });
+  assert.ok(html.includes('<div class="help-table-wrap"><table data-probe>mit Spielstand</table></div>'));
+  assert.ok(helpsHtml(LEVEL_A, q).includes("<table data-probe></table>"), "ohne ctx: leeres ctx");
+  assert.ok(helpsHtml({ ...LEVEL_A, helpTable: "<table>fest</table>" }, q).includes("<table>fest</table>"));
+  assert.ok(!helpsHtml({ ...LEVEL_A, helpTable: () => "" }, q).includes("help-table-wrap"), "leere Tabelle: kein Rahmen");
+  assert.ok(!helpsHtml({ ...LEVEL_A, helps: ["klaviatur"] }, { ...q, clef: "treble" }).includes("data-probe"), "nur mit „tabelle“");
+  assert.equal(helpsTitle(LEVEL_A), "Hilfen: Tabelle");
+  assert.equal(helpsTitle({ ...LEVEL_A, helpsTitle: "Hilfen: Merkspruch für die Linien" }), "Hilfen: Merkspruch für die Linien");
+});
+
+// Ersatz-DOM mit Buchstaben, Namensraster, Auswahlknöpfen und Klaviatur (Tasten aus data-semi), Fokus über ein
+// Ersatz-Dokument
+function noteDom() {
+  const doc = { body: { isBody: true }, activeElement: null };
+  doc.activeElement = doc.body;
+  const marks = () => { const s = new Set(); return { set: s, add: (...c) => c.forEach((x) => s.add(x)), remove: (...c) => c.forEach((x) => s.delete(x)), toggle: (c, on) => (on ? s.add(c) : s.delete(c)), contains: (c) => s.has(c) }; };
+  const attrs = () => { const a = {}; return { getAttribute: (k) => (k in a ? a[k] : null), setAttribute: (k, v) => { a[k] = v; }, removeAttribute: (k) => { delete a[k]; } }; };
+  function el() {
+    const e = {
+      innerHTML: "", textContent: "", className: "", hidden: false, open: false, ownerDocument: doc,
+      style: { props: {}, setProperty(k, v) { this.props[k] = v; }, removeProperty(k) { delete this.props[k]; } },
+      classList: marks(), _html: null, _kids: [],
+      focus() { doc.activeElement = e; },
+      kids() {
+        if (e._html !== e.innerHTML) {
+          e._html = e.innerHTML;
+          const btns = [...e.innerHTML.matchAll(/<button class="btn"([^>]*)>([^<]*)<\/button>/g)].map((m) => {
+            const ds = {};
+            for (const [, k, v] of m[1].matchAll(/data-([a-z]+)="([^"]*)"/g)) ds[k] = v;
+            const b = { tagName: "BUTTON", kind: "btn", dataset: ds, textContent: m[2], classList: marks(), ...attrs(), closest() { return b; }, focus() { doc.activeElement = b; } };
+            return b;
+          });
+          const rects = [...e.innerHTML.matchAll(/<rect[^>]*data-semi="(\d+)"/g)].map((m) => {
+            const k = { tagName: "rect", kind: "rect", dataset: { semi: m[1] }, classList: marks(), ...attrs(), closest() { return k; } };
+            return k;
+          });
+          e._kids = btns.concat(rects);
+        }
+        return e._kids;
+      },
+      contains(x) { return x === e || e.kids().includes(x); },
+      querySelectorAll(sel) {
+        if (sel.startsWith("rect")) return e.kids().filter((k) => k.kind === "rect");
+        if (sel === ".btn[data-choice]") return e.kids().filter((k) => k.kind === "btn" && k.dataset.choice !== undefined);
+        if (sel === ".btn") return e.kids().filter((k) => k.kind === "btn");
+        return [];
+      },
+      querySelector(sel) {
+        const m = sel.match(/^\.btn\[data-letter="([A-H])"\](?:\[data-acc="(-?\d)"\])?(:not\(\[data-acc\]\))?$/);
+        if (!m) return null;
+        return e.kids().find((k) => k.kind === "btn" && k.dataset.letter === m[1] && (m[2] !== undefined ? k.dataset.acc === m[2] : m[3] ? k.dataset.acc === undefined : true)) || null;
+      },
+    };
+    return e;
+  }
+  const ui = { staff: el(), feedback: el(), count: el(), dots: el(), answers: el(), typed: el(), piano: el(), helps: el(), helpsBody: el(), next: el() };
+  ui.next.hidden = true;
+  return { ui, doc };
+}
+
+function runProbe(level, input = "letters") {
+  const { ui, doc } = noteDom();
+  const state = fresh(); state.input = input;
+  let finished = null;
+  startRound(level, ui, { state, save() {}, onFinish(res) { finished = res; } });
+  const btns = () => ui.answers.querySelectorAll(".btn");
+  const labels = () => btns().map((b) => b.textContent);
+  const btn = (text) => { const b = btns().find((x) => x.textContent === text); assert.ok(b, `Knopf ${text}`); return b; };
+  const click = (text) => { const b = btn(text); ui.answers.onclick({ target: b }); return b; };
+  const key = (k) => handleKey({ key: k, preventDefault() {} });
+  const rect = (semi) => ui.piano.querySelectorAll("rect").find((k) => k.dataset.semi === String(semi));
+  const tap = (semi) => { const k = rect(semi); ui.piano.onclick({ target: k }); return k; };
+  return { ui, doc, state, btns, labels, btn, click, key, rect, tap, next: () => ui.next.onclick(), done: () => finished };
+}
+
+test("Noten-Schritt [Auswahl, Buchstaben]: Reihenfolge der Antwortbereiche, Tastatur je Schritt, Teilerfolg", () => {
+  setMuted(true);
+  mock.timers.enable({ apis: ["setTimeout"] });
+  try {
+    const r = runProbe(LEVEL_A);
+    // Schritt 1: Auswahlknöpfe in einer Reihe, keine Zeile #pTyped, keine Klaviatur
+    assert.deepEqual(r.labels(), ["1.", "2.", "3.", "4.", "5."]);
+    assert.ok(r.ui.answers.classList.contains("choices") && r.ui.answers.classList.contains("short"));
+    assert.equal(r.ui.answers.style.props["--cols"], 5);
+    assert.equal(r.ui.answers.hidden, false); assert.equal(r.ui.piano.hidden, true); assert.equal(r.ui.typed.hidden, true);
+    assert.equal(r.ui.helps.hidden, false);
+    assert.ok(r.ui.helpsBody.innerHTML.includes("<table data-probe>mit Spielstand</table>"));
+    // Buchstabe in einem Auswahl-Schritt wird nicht gewertet
+    assert.equal(r.key("G"), false);
+    assert.equal(r.state.answered, 0); assert.equal(r.btns().filter((b) => b.classList.contains("ok") || b.classList.contains("bad")).length, 0);
+    // 1. Aufgabe: Ziffer 2 (richtig), dann Buchstabe G (richtig)
+    assert.equal(r.key("2"), true);
+    assert.equal(r.ui.feedback.textContent, "Richtig: 2. Linie.");
+    assert.equal(r.key("G"), false, "gesperrt in der Pause");
+    mock.timers.tick(DELAY_STEP_OK);
+    assert.deepEqual(r.labels(), [...LETTERS]);
+    assert.ok(!r.ui.answers.classList.contains("choices") && !r.ui.answers.classList.contains("names"));
+    assert.equal(r.ui.answers.style.props["--cols"], undefined);
+    assert.equal(r.ui.feedback.textContent, "Wie heißt die Note?");
+    assert.equal(r.key("5"), false, "Ziffern nur im Auswahl-Schritt");
+    assert.equal(r.key("G"), true);
+    assert.equal(r.state.answered, 1); assert.equal(r.state.correct, 1);
+    assert.equal(r.ui.feedback.textContent, keepTogether("Richtig! 2. Linie → G"));
+    assert.ok(r.btn("G").classList.contains("ok"));
+    assert.equal(isWaiting(), true, "Stufe mit Hilfen wartet");
+    r.next();
+    // 2. Aufgabe: wieder die Auswahl; Schritt 1 daneben → „Weiter zu Schritt 2“, richtiger Knopf markiert
+    assert.deepEqual(r.labels(), ["1.", "2.", "3.", "4.", "5."]);
+    const bad = r.click("3.");
+    assert.ok(bad.classList.contains("bad")); assert.ok(r.btn("2.").classList.contains("ok"));
+    assert.equal(r.ui.feedback.textContent, "Nicht ganz: 2. Linie.");
+    mock.timers.tick(100000);
+    assert.equal(r.ui.next.hidden, false); assert.equal(r.ui.next.textContent, NEXT_STEP);
+    assert.equal(r.key("G"), false, "während des Wartens zählt kein Buchstabe");
+    r.next();
+    assert.deepEqual(r.labels(), [...LETTERS]);
+    assert.equal(r.btns().filter((b) => b.classList.contains("ok") || b.classList.contains("bad")).length, 0, "neue Knöpfe ohne Markierung");
+    r.click("G");
+    assert.equal(r.state.answered, 2); assert.equal(r.state.correct, 1);
+    assert.equal(r.ui.feedback.textContent, "Der Name stimmt, die Linie nicht.");
+    assert.equal(r.ui.feedback.className, "feedback part");
+    r.next();
+    // 3. Aufgabe: Schritt 1 richtig, Schritt 2 daneben → richtige Note markiert, Auflösung
+    r.click("2."); mock.timers.tick(DELAY_STEP_OK);
+    const wrong = r.click("A");
+    assert.ok(wrong.classList.contains("bad")); assert.ok(r.btn("G").classList.contains("ok"));
+    assert.equal(r.btn("G").getAttribute("aria-label"), "G, richtig");
+    assert.equal(r.ui.feedback.textContent, "Das war ein G.");
+    assert.equal(r.ui.feedback.className, "feedback bad");
+    r.next();
+    for (let i = 3; i < ROUND_LENGTH; i++) { r.key("2"); mock.timers.tick(DELAY_STEP_OK); r.key("G"); r.next(); }
+    const res = r.done();
+    assert.ok(res);
+    assert.equal(res.correct, 8);
+    assert.deepEqual(res.log.slice(0, 3).map((e) => e.oks), [[true, true], [false, true], [true, false]]);
+    assert.deepEqual(res.results.slice(0, 3), [true, false, false]);
+  } finally { stop(); mock.timers.reset(); }
+});
+
+test("Noten-Schritt mit Klaviatur: nur im Noten-Schritt, richtige Taste markiert, Wechsel der Eingabe mitten in Schritt 2", () => {
+  setMuted(true);
+  mock.timers.enable({ apis: ["setTimeout"] });
+  try {
+    const r = runProbe(LEVEL_A, "keys");
+    // Schritt 1 (Auswahl): Knöpfe sichtbar, Klaviatur verborgen, eine Taste zählt nicht
+    assert.equal(r.ui.answers.hidden, false); assert.equal(r.ui.piano.hidden, true);
+    r.tap(7);
+    assert.equal(r.state.answered, 0); assert.equal(r.ui.feedback.textContent, "Auf welcher Linie liegt die Note?");
+    r.click("2."); mock.timers.tick(DELAY_STEP_OK);
+    // Schritt 2: Klaviatur statt Buchstaben
+    assert.equal(r.ui.answers.hidden, true); assert.equal(r.ui.piano.hidden, false); assert.equal(r.ui.typed.hidden, true);
+    const k = r.tap(7);
+    assert.ok(k.classList.contains("ok"));
+    assert.equal(r.state.correct, 1);
+    r.next();
+    // neue Aufgabe: wieder Knöpfe für Schritt 1, Klaviatur ohne Markierung und verborgen
+    assert.equal(r.ui.answers.hidden, false); assert.equal(r.ui.piano.hidden, true);
+    assert.deepEqual(r.labels(), ["1.", "2.", "3.", "4.", "5."]);
+    assert.ok(!r.rect(7).classList.contains("ok"));
+    r.click("2."); mock.timers.tick(DELAY_STEP_OK);
+    // daneben auf der Klaviatur: die richtige Taste (G) grün
+    const w = r.tap(9);
+    assert.ok(w.classList.contains("bad")); assert.ok(r.rect(7).classList.contains("ok"));
+    assert.equal(r.ui.feedback.textContent, "Das war ein G.");
+    r.next();
+    // Wechsel der Eingabe mitten in Schritt 2: Klaviatur → Buchstaben → Antwort per Knopf
+    r.click("2."); mock.timers.tick(DELAY_STEP_OK);
+    assert.equal(r.ui.piano.hidden, false);
+    setInput("letters");
+    assert.equal(r.ui.piano.hidden, true); assert.equal(r.ui.answers.hidden, false);
+    assert.deepEqual(r.labels(), [...LETTERS]);
+    r.click("G");
+    assert.equal(r.state.answered, 3); assert.equal(r.state.correct, 2);
+    r.next();
+    // und zurück: in Schritt 1 bleibt die Auswahl sichtbar, auch mit „Klaviatur“
+    setInput("keys");
+    assert.equal(r.ui.answers.hidden, false); assert.equal(r.ui.piano.hidden, true);
+    r.click("2."); mock.timers.tick(DELAY_STEP_OK);
+    assert.equal(r.ui.piano.hidden, false); assert.equal(r.ui.answers.hidden, true);
+  } finally { stop(); mock.timers.reset(); }
+});
+
+test("Noten-Schritt [Buchstaben, Namen]: Namensraster, getippter Name mit Enter, ungültiger Name zählt nicht", () => {
+  setMuted(true);
+  mock.timers.enable({ apis: ["setTimeout"] });
+  try {
+    const r = runProbe(LEVEL_B);
+    assert.equal(r.ui.helps.hidden, true);
+    // Schritt 1: Buchstaben C … H, keine Zeile #pTyped
+    assert.deepEqual(r.labels(), [...LETTERS]);
+    assert.ok(!r.ui.answers.classList.contains("names"));
+    assert.equal(r.ui.typed.hidden, true);
+    assert.equal(r.key("f"), true, "ein Buchstabe antwortet sofort");
+    assert.equal(r.ui.feedback.textContent, "Richtig: F.");
+    mock.timers.tick(DELAY_STEP_OK);
+    // Schritt 2: Namensraster mit 21 Namen, Zeile #pTyped sichtbar
+    assert.equal(r.btns().length, 21);
+    assert.ok(r.ui.answers.classList.contains("names"));
+    assert.equal(r.ui.typed.hidden, false);
+    assert.equal(r.ui.feedback.textContent, "Und mit dem Vorzeichen?");
+    // ungültiger Name: Hinweis, zählt nicht
+    r.key("x"); r.key("y");
+    assert.equal(r.ui.typed.textContent, typedText("xy"));
+    assert.equal(r.key("Enter"), true);
+    assert.equal(r.ui.typed.textContent, typedText("xy", true));
+    assert.equal(r.state.answered, 0);
+    r.key("Escape");
+    // richtiger Name: fis + Enter
+    r.key("f"); r.key("i"); r.key("s");
+    assert.equal(r.ui.typed.textContent, typedText("fis"));
+    r.key("Enter");
+    assert.equal(r.state.answered, 1); assert.equal(r.state.correct, 1);
+    const fis = r.btns().find((b) => b.dataset.letter === "F" && b.dataset.acc === "1");
+    assert.ok(fis.classList.contains("ok"));
+    assert.equal(r.ui.feedback.textContent, keepTogether("Richtig! F → Fis"));
+    // ohne Hilfen, kurze Rückmeldung: weiter von selbst; Schritt 1 wieder mit Buchstaben, ohne #pTyped
+    assert.equal(isWaiting(), false);
+    mock.timers.tick(DELAY_OK);
+    assert.equal(r.ui.count.textContent, "2 / 10");
+    assert.deepEqual(r.labels(), [...LETTERS]);
+    assert.ok(!r.ui.answers.classList.contains("names"));
+    assert.equal(r.ui.typed.hidden, true); assert.equal(r.ui.typed.textContent, "");
+    // Schritt 1 daneben (G) → F markiert, „Weiter zu Schritt 2“; Ges ist nicht Fis
+    r.click("G");
+    assert.ok(r.btn("F").classList.contains("ok"));
+    assert.equal(r.ui.next.textContent, NEXT_STEP);
+    r.next();
+    assert.equal(r.btns().length, 21);
+    r.click("Ges");
+    assert.equal(r.ui.feedback.textContent, "Das war ein Fis.");
+    assert.ok(r.btns().find((b) => b.dataset.letter === "F" && b.dataset.acc === "1").classList.contains("ok"));
+    r.next();
+    // Teilerfolg über das Raster
+    r.click("E"); r.next(); r.click("Fis");
+    assert.equal(r.ui.feedback.textContent, "Der Name stimmt, der Stammton nicht.");
+    assert.equal(r.ui.feedback.className, "feedback part");
+    assert.equal(r.state.answered, 3); assert.equal(r.state.correct, 1);
+  } finally { stop(); mock.timers.reset(); }
+});
+
+test("Noten-Schritt [Buchstaben, Namen] mit Klaviatur: #pTyped nur im Schritt „names“, Tippen geht auch dort", () => {
+  setMuted(true);
+  mock.timers.enable({ apis: ["setTimeout"] });
+  try {
+    const r = runProbe(LEVEL_B, "keys");
+    assert.equal(r.ui.piano.hidden, false); assert.equal(r.ui.answers.hidden, true); assert.equal(r.ui.typed.hidden, true);
+    r.tap(5); mock.timers.tick(DELAY_STEP_OK);
+    assert.equal(r.ui.piano.hidden, false); assert.equal(r.ui.typed.hidden, false);
+    r.key("f"); r.key("i"); r.key("s"); r.key("Enter");
+    assert.equal(r.state.correct, 1);
+    mock.timers.tick(DELAY_OK);
+    assert.equal(r.ui.typed.hidden, true);
+    // Wechsel mitten in Schritt 2 zum Namensraster
+    r.tap(5); mock.timers.tick(DELAY_STEP_OK);
+    setInput("letters");
+    assert.equal(r.ui.answers.hidden, false); assert.equal(r.ui.piano.hidden, true); assert.equal(r.ui.typed.hidden, false);
+    assert.equal(r.btns().length, 21);
+    r.click("Fis");
+    assert.equal(r.state.correct, 2);
+  } finally { stop(); mock.timers.reset(); }
+});
+
+test("Noten-Schritt: Fokus bleibt im Antwortbereich, wenn die Knöpfe neu entstehen", () => {
+  setMuted(true);
+  mock.timers.enable({ apis: ["setTimeout"] });
+  try {
+    const r = runProbe(LEVEL_A);
+    // Schritt 1 richtig per Knopf (Fokus auf dem Knopf), nach der Pause entstehen neue Knöpfe
+    const b = r.btn("2."); b.focus();
+    r.ui.answers.onclick({ target: b });
+    mock.timers.tick(DELAY_STEP_OK);
+    assert.equal(r.doc.activeElement, r.ui.answers, "Fokus auf dem Antwortbereich, nicht auf <body>");
+    r.key("G"); r.next();
+    // mit „Weiter zu Schritt 2“ (Fokus auf dem Knopf, der verschwindet)
+    r.click("3."); r.ui.next.focus(); r.next();
+    assert.equal(r.doc.activeElement, r.ui.answers);
+    stop();
+    // Klaviatur: nach Schritt 1 geht der Fokus auf die sichtbare Klaviatur
+    const k = runProbe(LEVEL_A, "keys");
+    const c = k.btn("2."); c.focus();
+    k.ui.answers.onclick({ target: c });
+    mock.timers.tick(DELAY_STEP_OK);
+    assert.equal(k.doc.activeElement, k.ui.piano);
+    // ohne Fokus im Antwortbereich wird nichts fokussiert
+    k.tap(7); k.next();
+    k.doc.activeElement = k.doc.body;
+    k.click("2."); mock.timers.tick(DELAY_STEP_OK);
+    assert.equal(k.doc.activeElement, k.doc.body);
+  } finally { stop(); mock.timers.reset(); }
+});
+
+test("Gemischte Runden: Stufen ohne Hilfen haben keine Schritte mit Noteneingabe", () => {
+  for (const p of PACKS) for (const l of p.levels) {
+    if (hasHelps(l)) continue;
+    let prev = null; const round = [];
+    for (let i = 0; i < 200; i++) {
+      prev = l.question(prev, { notes: {}, round });
+      round.push(prev);
+      assert.ok(!(prev.steps || []).some((s) => NOTE_STEPS.includes(s.note)), l.id);
+    }
+  }
+});
