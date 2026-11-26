@@ -77,13 +77,14 @@ export const countUnsure = (notes, keys) => keys.filter((k) => status((notes || 
 
 // Eine Aufgabe aus items wählen, nie dieselbe wie prev (Vergleich über keyOf, das Aufgaben und
 // prev versteht). Mit Wahrscheinlichkeit ANTEIL_ZUFALL gleichverteilt, sonst nach weight.
-// rand liefert Zahlen in [0, 1); ohne Angabe Math.random.
-export function pickWeighted(items, keyOf, notes, prev, rand = Math.random) {
+// rand liefert Zahlen in [0, 1); ohne Angabe Math.random. heute ("JJJJ-MM-TT", optional, Welle 12, W-C4) geht an
+// weight: Sichere Aufgaben, die TAGE_WIE_NEU Tage nicht dran waren, wiegen wie neu; ohne heute wie bisher.
+export function pickWeighted(items, keyOf, notes, prev, rand = Math.random, heute) {
   const pk = prev ? keyOf(prev) : null;
   const cand = items.filter((it) => keyOf(it) !== pk);
   const list = cand.length ? cand : items;
   if (!notes || rand() < ANTEIL_ZUFALL) return list[Math.min(list.length - 1, Math.floor(rand() * list.length))];
-  const ws = list.map((it) => weight(notes[keyOf(it)]));
+  const ws = list.map((it) => weight(notes[keyOf(it)], heute));
   let r = rand() * ws.reduce((a, b) => a + b, 0);
   for (let i = 0; i < list.length; i++) {
     r -= ws[i];

@@ -74,10 +74,11 @@ const andList = (xs) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join("
 // sonst (ohne Jahrgang oder wenn „Jetzt dran“ leer ist) die aktuelle Stufe wie bisher
 export const continueId = (state, packs) => nextUp(state, packs) || state.current;
 
-// „Weiter üben: Tonleitern, Stufe 6“ bzw. „Starten: Noten lesen, Stufe 1“ (nie gespielte Stufe)
+// „Weiter üben: Tonleitern, Stufe 6“ bzw. „Starten: Noten lesen, Stufe 1“ (nie gespielte Stufe). Gespielt heißt
+// played > 0: Ein Eintrag nur mit dem Merker offen (Welle 12, migrateNoten) zählt nicht als gespielt.
 export function continueText(state, packs) {
   const { pack, level } = findLevel(packs, continueId(state, packs));
-  return keepStufe(`${(state.levels || {})[level.id] ? "Weiter üben" : "Starten"}: ${packShort(pack)}, Stufe ${level.no}`);
+  return keepStufe(`${(((state.levels || {})[level.id] || {}).played || 0) > 0 ? "Weiter üben" : "Starten"}: ${packShort(pack)}, Stufe ${level.no}`);
 }
 
 // „10 Aufgaben aus Intervalle 4, Tonleitern 5 und Noten lesen 7“ (plan aus repeat.reviewPlan)

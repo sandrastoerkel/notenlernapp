@@ -184,3 +184,31 @@ test("pickAmong: lange nicht Geübtes und Unsicheres kommen öfter, Zufallsantei
   assert.ok(count.a > 1250 && count.a < 1600, `a=${count.a}`);
   for (const k of ["b", "c", "d"]) assert.ok(count[k] > 700 && count[k] < 1050, `${k}=${count[k]}`);
 });
+
+test("pickWeighted mit heute (Welle 12, W-C4): lange nicht Geübtes wiegt wie neu, ohne heute wie bisher", () => {
+  // a ist sicher, aber 10 Tage her; b, c, d sicher und gestern geübt
+  const alt = { a: { ...SICHER, last: "2026-11-15" }, b: { ...SICHER, last: "2026-11-24" }, c: { ...SICHER, last: "2026-11-24" }, d: { ...SICHER, last: "2026-11-24" } };
+  // gewichtet (0,5 ≥ 0,3); mit heute Gewichte 2, 1, 1, 1 (Summe 5); 0,3 · 5 = 1,5 → a
+  assert.equal(pickWeighted(ITEMS, keyOf, alt, null, seq(0.5, 0.3), "2026-11-25").k, "a");
+  // ohne heute Gewichte 1, 1, 1, 1; 0,3 · 4 = 1,2 → b (genau wie vor Welle 12)
+  assert.equal(pickWeighted(ITEMS, keyOf, alt, null, seq(0.5, 0.3)).k, "b");
+  assert.equal(pickWeighted(ITEMS, keyOf, alt, null, seq(0.5, 0.3), undefined).k, "b");
+  // genau 6 Tage: noch sicher (Gewicht 1) → wie ohne heute
+  assert.equal(pickWeighted(ITEMS, keyOf, alt, null, seq(0.5, 0.3), "2026-11-21").k, "b");
+  // die Regel zu prev gilt weiter: a war gerade dran und kommt nicht
+  for (const z of [0, 0.3, 0.6, 0.9999]) assert.notEqual(pickWeighted(ITEMS, keyOf, alt, { k: "a" }, seq(0.5, z), "2026-11-25").k, "a");
+  // Häufigkeit: a 0,3/4 + 0,7 · 2/5 = 0,355
+  const count = { a: 0, b: 0, c: 0, d: 0 }, rand = lcg(11);
+  for (let i = 0; i < 4000; i++) count[pickWeighted(ITEMS, keyOf, alt, null, rand, "2026-11-25").k]++;
+  assert.ok(count.a > 1250 && count.a < 1600, `a=${count.a}`);
+});
+
+test("pickWeighted ohne heute: für jeden festen Zufall dieselbe Wahl wie mit ungültigem heute", () => {
+  const notes = { a: { ...SICHER, last: "2026-01-01" }, b: { ok: 0, bad: 10 }, c: SICHER, d: {} };
+  for (let i = 0; i < 20; i++) for (let j = 0; j < 20; j++) {
+    const r = [i / 20, j / 20];
+    const ohne = pickWeighted(ITEMS, keyOf, notes, null, seq(...r)).k;
+    assert.equal(pickWeighted(ITEMS, keyOf, notes, null, seq(...r), null).k, ohne);
+    assert.equal(pickWeighted(ITEMS, keyOf, notes, null, seq(...r), "kein Tag").k, ohne);
+  }
+});
