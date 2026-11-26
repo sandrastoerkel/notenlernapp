@@ -249,22 +249,25 @@ test("Startkarte: „Dafür brauchst du: …“ mit Knöpfen, Knopf und Grund de
 
 test("Ergebniskarte: Zahlwörter, Orte, Satz zum Fehlermuster, Knöpfe", () => {
   assert.deepEqual([3, 4, 5, 6, 7, 8, 9, 10].map(countWord),
-    ["Dreimal", "Viermal", "Fünfmal", "Sechsmal", "Siebenmal", "Achtmal", "Neunmal", "Zehnmal"]);
+    ["Drei", "Vier", "Fünf", "Sechs", "Sieben", "Acht", "Neun", "Zehn"]);
   assert.equal(placesText(PACKS, ["intervall-2"]), "Intervalle, Stufe 2");
   assert.equal(placesText(PACKS, ["notenwerte-3", "notenwerte-5", "notenwerte-7"]), "Notenwerte, Stufen 3, 5 und 7");
   assert.equal(placesText(PACKS, ["intervall-2", "tonleitern-3"]), "Intervalle, Stufe 2 und in Tonleitern, Stufe 3");
   assert.equal(placesText(PACKS, ["akkorde-1", "intervall-4"]), "Dreiklänge, Stufe 1 und in Intervalle, Stufe 4");
-  // Beispiel aus docs/PLAN.md
+  // Korrektur nach der Prüfung Welle 11 (J-B7, W-B5): ohne Nachzählen; einschrittig keine Behauptung über die Ursache
   assert.equal(gapText(PACKS, { needs: ["intervall-2"], count: 3, step: 0 }),
-    `Dreimal lag der erste Schritt daneben (Notenstufen zählen). Das übst du in Intervalle, Stufe${NB}2.`);
+    `Der erste Schritt (Notenstufen zählen) hat oft nicht geklappt. Das übst du in Intervalle, Stufe${NB}2.`);
   assert.equal(gapText(PACKS, { needs: ["noten-7"], count: 4, step: 1 }),
-    `Viermal lag der zweite Schritt daneben (Noten mit Vorzeichen). Das übst du in Noten lesen, Stufe${NB}7.`);
+    `Der zweite Schritt (Noten mit Vorzeichen) hat oft nicht geklappt. Das übst du in Noten lesen, Stufe${NB}7.`);
   assert.equal(gapText(PACKS, { needs: ["noten-3"], count: 5, step: null }),
-    `Fünfmal lag die Antwort daneben. Das übst du in Noten lesen, Stufe${NB}3.`);
+    `Fünf Antworten lagen daneben. Die Grundlagen dazu findest du in Noten lesen, Stufe${NB}3.`);
   assert.equal(gapText(PACKS, { needs: ["intervall-3"], count: 3, step: 1, helps: true }),
-    `Dreimal lag der zweite Schritt daneben. Mit Hilfen übst du das in Stufe${NB}3.`);
+    `Der zweite Schritt hat oft nicht geklappt. Mit Hilfen übst du das in Stufe${NB}3.`);
   assert.equal(gapText(PACKS, { needs: ["notenwerte-5", "notenwerte-7"], count: 3, step: 0 }),
-    `Dreimal lag der erste Schritt daneben. Das übst du in Notenwerte, Stufen${NB}5 und${NB}7.`);
+    `Der erste Schritt hat oft nicht geklappt. Das übst du in Notenwerte, Stufen${NB}5 und${NB}7.`);
+  for (const g of [{ needs: ["intervall-2"], count: 10, step: 0 }, { needs: ["noten-3"], count: 8, step: null }]) {
+    assert.ok(!/mal lag|Zehnmal|Achtmal/.test(gapText(PACKS, g)));
+  }
   assert.equal(openLabel(PACKS, intervalle, "intervall-2"), `Stufe${NB}2 öffnen`);
   assert.equal(openLabel(PACKS, intervalle, "noten-7"), `Noten lesen 7 öffnen`);
   assert.equal(openLabel(PACKS, intervalle, "intervall-3", true), `Stufe${NB}3 mit Hilfen üben`);
@@ -275,7 +278,7 @@ test("Ergebniskarte: Zahlwörter, Orte, Satz zum Fehlermuster, Knöpfe", () => {
     [{ needs: ["a", "b"], count: 3, step: null, helps: false }, { needs: ["c"], count: 4, step: 0, helps: false }]);
 });
 
-test("Ergebniskarte: „Grundlagen wiederholen“ zuerst unter 5 Richtigen, sonst das Fehlermuster", () => {
+test("Ergebniskarte: „Grundlagen wiederholen“ zuerst unter 5 Richtigen, sonst höchstens ein Fehlermuster", () => {
   const log = (id, list) => list.map((oks) => ({ id, ok: oks.every(Boolean), oks }));
   const iv4 = lv(intervalle, 4);
   // unter 5, ohne Muster: Grundlagen-Knopf als erster
@@ -284,23 +287,36 @@ test("Ergebniskarte: „Grundlagen wiederholen“ zuerst unter 5 Richtigen, sons
   assert.equal(resultBasics(PACKS, intervalle, iv4, 5, []).first, false);
   // Stufe ohne Voraussetzungen: kein Knopf
   assert.equal(resultBasics(PACKS, noten, lv(noten, 1), 0, log("noten-1", Array(10).fill([false]))).first, false);
-  // mit Muster: genau diese Grundlage, kein zweiter allgemeiner Knopf
+  // zwei Muster (erster und zweiter Schritt): nur das zum ersten Schritt (J-B7/W-B6), „Grundlagen wiederholen“ übt
+  // genau diese Grundlage – kein Knopf „… öffnen“ mit demselben Inhalt
   r = resultBasics(PACKS, intervalle, iv4, 3, log("intervall-4", [[false, true], [false, true], [false, false], [true, false], [true, false]]));
   assert.equal(r.first, false);
-  assert.deepEqual(r.gaps.map((g) => [g.needs, g.helps, g.open]), [[["intervall-2"], false, "intervall-2"], [["intervall-3"], true, "intervall-3"]]);
-  assert.equal(r.gaps[0].text, `Dreimal lag der erste Schritt daneben (Notenstufen zählen). Das übst du in Intervalle, Stufe${NB}2.`);
-  // ein Knopf „Grundlagen wiederholen“ für alle Muster zusammen (ohne „mit Hilfen“)
+  assert.deepEqual(r.gaps.map((g) => [g.needs, g.helps, g.open]), [[["intervall-2"], false, null]]);
+  assert.equal(r.gaps[0].text, `Der erste Schritt (Notenstufen zählen) hat oft nicht geklappt. Das übst du in Intervalle, Stufe${NB}2.`);
   assert.deepEqual(r.only, ["intervall-2"]);
+  // der erste Schritt geht vor, auch wenn der zweite öfter danebenlag
+  r = resultBasics(PACKS, intervalle, iv4, 2, log("intervall-4", [[false, true], [false, true], [false, true], [true, false], [true, false], [true, false], [true, false], [true, false]]));
+  assert.deepEqual(r.gaps.map((g) => [g.needs, g.helps]), [[["intervall-2"], false]]);
+  // nur der zweite Schritt: „Stufe 3 mit Hilfen üben“ (open), kein „Grundlagen wiederholen“
+  r = resultBasics(PACKS, intervalle, iv4, 5, log("intervall-4", [[true, false], [true, false], [true, false]]));
+  assert.deepEqual(r.gaps.map((g) => [g.needs, g.helps, g.open]), [[["intervall-3"], true, "intervall-3"]]);
+  assert.deepEqual(r.only, []);
   r = resultBasics(PACKS, intervalle, lv(intervalle, 6), 7, log("intervall-6", [[false, false], [false, false], [false, false]]));
-  assert.deepEqual(r.gaps.map((g) => g.needs), [["intervall-2"], ["intervall-4"]]);
-  assert.deepEqual(r.only, ["intervall-2", "intervall-4"]);
-  // mehrere Grundlagen in einem Satz: kein Knopf „… öffnen“
+  assert.deepEqual(r.gaps.map((g) => g.needs), [["intervall-2"]]);
+  assert.deepEqual(r.only, ["intervall-2"]);
+  // mehrere Grundlagen in einem Satz: kein Knopf „… öffnen“, einschrittig neutral
   const nw10 = PACKS.find((p) => p.id === "notenwerte").levels[9];
   r = resultBasics(PACKS, PACKS[1], nw10, 6, log("notenwerte-10", [[false], [false], [false], [false]]));
   assert.equal(r.gaps.length, 1);
   assert.deepEqual(r.gaps[0].needs, ["notenwerte-3", "notenwerte-5", "notenwerte-7", "notenwerte-9"]);
   assert.equal(r.gaps[0].open, null);
-  assert.equal(r.gaps[0].text, `Viermal lag die Antwort daneben. Das übst du in Notenwerte, Stufen${NB}3, 5, 7 und${NB}9.`);
+  assert.equal(r.gaps[0].text, `Vier Antworten lagen daneben. Die Grundlagen dazu findest du in Notenwerte, Stufen${NB}3, 5, 7 und${NB}9.`);
+  // Ansicht: mit Muster der kurze Ergebnissatz, kein „Stufe n“-Knopf (höchstens drei Knöpfe); Satz ohne Rahmen
+  const src = readFileSync(new URL("../../src/views/practice.js", import.meta.url), "utf8");
+  assert.ok(src.includes("short: !!pattern || basics.first"));
+  assert.ok(src.includes("${nextOpen && !pattern ? "));
+  const css = readFileSync(new URL("../../css/style.css", import.meta.url), "utf8");
+  assert.doesNotMatch(css.match(/\.result \.gap-line \{([^}]*)\}/)[1], /border/);
 });
 
 // Welle 11, Schritt 8: Runde „Wiederholen“

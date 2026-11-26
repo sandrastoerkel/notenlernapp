@@ -578,7 +578,8 @@ section { display: grid; gap: 14px; }
 /* Ergebniskarte „Wiederholen“: je Stufe eine Zeile mit dem Urteil, bei „noch wacklig“ ein Knopf zum Üben */
 .result .review-item { justify-items: center; gap: 6px; max-width: 34rem; }
 .result .review-line { margin: 0; font-weight: 700; }
-.result .gap-line { margin: 0; padding: 8px 14px; border-radius: 12px; border: 1px solid var(--accent); color: var(--fg); font-weight: 700; }
+/* Satz zum Fehlermuster: Text ohne Rahmen, damit nur die Knöpfe wie Knöpfe aussehen (J-B7) */
+.result .gap-line { margin: 0; color: var(--fg); font-weight: 700; }
 /* Startkarte: „Dafür brauchst du: …“ (jeder Eintrag ein Knopf im Textfluss, durch Kommas getrennt, J-B1/J-C1) und
    der Grund der Empfehlung. Die Knöpfe stehen in der Zeile (inline-block, ohne Abstand nach oben und unten, damit
    die Zeilen nicht auseinanderrücken); die Tippfläche wächst über einen unsichtbaren Rand nach oben und unten. */
