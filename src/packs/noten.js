@@ -229,7 +229,14 @@ VORRAT.gemischt = [...VORRAT.violin, ...VORRAT.bass, ...VORRAT.violinVorzeichen,
 
 // Hinweise der Startkarte (PLAN Abschnitt 2). Bisherige Hinweise von alt 1 bis 8 unverändert übernommen.
 const merk = (c, id) => spruch(c && c.state, id);
-const VZ_REGEL = "♯ erhöht um einen Halbton und hängt „-is“ an: aus F wird Fis, ebenso Cis, Gis, Dis.\n♭ erniedrigt um einen Halbton: aus E wird Es, aus A wird As, aus D wird Des – und aus H wird B.";
+// Stufe 11 (mit Hilfen): der Weg und je ein Beispiel für ♯ und ♭ mit den drei Ausnahmen, im Wortlaut der Hilfe
+// „Vorzeichen“ (REGEL in noten-hilfen.js). Korrektur nach der Prüfung aus drei Perspektiven (J-B4, L-C2, offener
+// Punkt 1): vorher zehn Zeilen, „Runde starten“ bei 320 × 640 erst bei 593 px, mit Empfehlung der erste Knopf bei
+// 641 px (Grenze 580). Gemessen Zeile für Zeile: Hinweis mit „Beide Schritte müssen stimmen.“ 232 → 139 px. Die ganze
+// Regel steht in den Hilfen derselben Stufe, alle 21 Namen im Namensraster und in der Lerntafel.
+// Pfeile mit geschütztem Leerzeichen (bei 320 px brach „F →“ sonst vor „Fis“ um).
+const pf = (a, b) => `${a}\u00a0→\u00a0${b}`;
+const VZ_KURZ = `Lies erst den Stammton (ohne Vorzeichen), dann das Zeichen.\n♯ Halbton höher, „-is“: ${pf("F", "Fis")}.\n♭ Halbton tiefer, „-es“: ${pf("D", "Des")}, aber ${pf("E", "Es")}, ${pf("A", "As")}, ${pf("H", "B")}.`;
 // Stufe 12 mit dem Satz zur Eingabe; in Stufe 11 sagt ihn der Tastatur-Hinweis (keysHint), damit die Startkarte mit
 // „Beide Schritte müssen stimmen.“ nicht länger wird (Schritt 3, gemessen bei 320 px)
 // Stufe 12 (ohne Hilfen): dieselbe Regel in kürzerer Form (Schritt 7, gemessen bei 320 × 640 mit Empfehlung: erster
@@ -288,7 +295,7 @@ const RAW = [
   { clef: "bass", title: "Bassschlüssel mit Hilfslinien", items: VORRAT.bass,
     hint: "Das c' liegt im Bassschlüssel auf einer Hilfslinie über der Zeile, das E ganz unten." },
   { clef: "treble", title: "Vorzeichen im Violinschlüssel", acc: true, items: VORRAT.violinVorzeichen, ...mkVz(), ...D_VZ,
-    hint: `Lies erst den Stammton – die Note ohne Vorzeichen –, dann das Zeichen.\n${VZ_REGEL}` },
+    hint: VZ_KURZ },
   { clef: "treble", title: "Vorzeichen im Violinschlüssel ohne Hilfen", acc: true, items: VORRAT.violinVorzeichen, hint: VZ_HINT },
   { clef: "bass", title: "Vorzeichen im Bassschlüssel", acc: true, items: VORRAT.bassVorzeichen, ...mkVz(), ...D_VZ,
     hint: "♯ und ♭ bedeuten im Bassschlüssel dasselbe. Lies erst den Stammton, dann das Zeichen." },

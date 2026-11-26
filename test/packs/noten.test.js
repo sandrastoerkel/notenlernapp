@@ -275,9 +275,9 @@ test("Welle 12: Hinweise der Startkarten wie im Plan (Abschnitt 2)", async () =>
   // dazubekommt und bei 320 px nicht länger werden soll (gemessen; Zählregel und Eingabe stehen in Hilfen bzw. keysHint)
   assert.equal(h(4), "Neu sind vier Noten außerhalb der Zeile. Zähle vom Bezugston weiter, der nächstgelegenen Linie. Das c' liegt auf einer Hilfslinie unter der Zeile.");
   assert.equal(h(9), "Neu sind vier Noten außerhalb der Zeile. Zähle vom Bezugston weiter, der nächstgelegenen Linie. Das c' liegt auf einer Hilfslinie über der Zeile, das E auf einer darunter.");
-  assert.ok(h(11).startsWith("Lies erst den Stammton – die Note ohne Vorzeichen –, dann das Zeichen."));
-  // 11 = Satz zum Stammton + Regel (ohne den Satz zur Eingabe, den nennt in 11 der Tastatur-Hinweis)
-  assert.equal(h(11).split("\n").slice(1).join("\n"), "♯ erhöht um einen Halbton und hängt „-is“ an: aus F wird Fis, ebenso Cis, Gis, Dis.\n♭ erniedrigt um einen Halbton: aus E wird Es, aus A wird As, aus D wird Des – und aus H wird B.");
+  // 11 = Satz zu den zwei Schritten + je ein Beispiel für ♯ und ♭ mit den Ausnahmen (Korrektur nach der Prüfung aus
+  // drei Perspektiven, J-B4: Startkarte bei 320 × 640 gemessen; die ganze Regel steht in den Hilfen der Stufe)
+  assert.equal(h(11).replace(/\u00a0/g, " "), "Lies erst den Stammton (ohne Vorzeichen), dann das Zeichen.\n♯ Halbton höher, „-is“: F → Fis.\n♭ Halbton tiefer, „-es“: D → Des, aber E → Es, A → As, H → B.");
   // 12: dieselbe Regel kürzer, damit der erste Knopf bei 320 px im ersten Bildschirm beginnt (Schritt 7, gemessen);
   // das Beispiel zur Eingabe steht im Tastatur-Hinweis der Stufe
   assert.equal(h(12), "♯ erhöht um einen Halbton, „-is“: aus F wird Fis, ebenso Cis, Gis, Dis.\n♭ erniedrigt um einen Halbton: aus D wird Des, aus E wird Es, aus A wird As, aus H wird B. Tippe den ganzen Namen an oder schreib ihn.");
@@ -287,10 +287,18 @@ test("Welle 12: Hinweise der Startkarten wie im Plan (Abschnitt 2)", async () =>
   assert.ok(h(1).includes("Es Geht Hurtig Durch Fleiß") && h(7).includes("Alle Clowns Essen Gern"));
 });
 
-test("Abschlussprüfung Welle 10: Hinweis Vorzeichen (seit Welle 12 Stufe 11 und 12) erklärt -is und „aus H wird B“, nennt Dis", async () => {
+test("Abschlussprüfung Welle 10: Hinweis Vorzeichen (seit Welle 12 Stufe 12) erklärt -is und „aus H wird B“, nennt Dis; Stufe 11 kurz, die Regel in den Hilfen", async () => {
   const noten = (await import("../../src/packs/noten.js")).default;
   const { gName } = await import("../../src/music.js");
-  for (const l of [noten.levels[10], noten.levels[11]]) {
+  const { REGEL } = await import("../../src/packs/noten-hilfen.js");
+  // Stufe 11 (Korrektur nach der Prüfung, J-B4): Startkarte kurz – „-is“, „-es“ und die drei Ausnahmen wie in der
+  // Hilfe „Vorzeichen“ derselben Stufe; die Hilfe trägt die ganze Regel
+  const l11 = noten.levels[10];
+  const h11 = l11.hint.replace(/\u00a0/g, " ");
+  for (const w of ["„-is“: F → Fis", "„-es“: D → Des", "aber E → Es, A → As, H → B"]) assert.ok(h11.includes(w), w);
+  assert.ok(REGEL[0].join(" ").includes("„-is“: F → Fis") && REGEL[1].join(" ").includes("„-es“: D → Des · aber E → Es, A → As, H → B"));
+  assert.ok(l11.helpTable().includes("„-es“: D → Des · aber E → Es, A → As, H → B"));
+  for (const l of [noten.levels[11]]) {
     const h = l.hint;
     for (const w of ["aus F wird Fis", "Dis", "aus E wird Es", "aus A wird As", "aus H wird B"]) assert.ok(h.includes(w), w);
     // alle Namen des Vorrats stehen im Hinweis
