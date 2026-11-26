@@ -70,7 +70,7 @@ export function merkleiste(clef, art, state) {
 export const NAMEN_REIHE = Object.freeze(["C", "D", "E", "F", "G", "A", "H", "C"]);
 export const RICHTUNG = Object.freeze(["← tiefer", "höher →"]);
 export function namensleiste(clef, state) {
-  const table = tileTable({ head: [], rows: [{ label: "", cells: NAMEN_REIHE.map((t) => ({ text: t })) }], cls: "nl-namen" });
+  const table = tileTable({ head: [], rows: [{ label: "", cells: NAMEN_REIHE.map((t) => ({ text: t })) }], cls: "nl-reihe" });
   const linien = clef === "treble" || clef === "bass"
     ? `<p class="nl-cap nl-linien">Linien von unten: ${esc(spruch(state, merkId(clef, "linien")))}</p>` : "";
   return `<figure class="nl-namensleiste" data-nl-help="namensleiste" role="group" aria-label="Notennamen der Reihe nach: ${NAMEN_REIHE.join(" ")}">`
@@ -87,8 +87,8 @@ export const REGEL = Object.freeze([
 export const REGEL_KLAVIATUR = Object.freeze({ from: 60, octaves: 1, interactive: false });
 export function vorzeichenRegel(opts = {}) {
   const { klaviatur = true } = opts;
-  const rows = REGEL.map(([zeichen, wirkung, name]) => `<tr><th scope="row" class="nl-zeichen">${zeichen}</th><td class="nl-wirkung">${wirkung}</td><td class="nl-name">${name}</td></tr>`).join("");
+  const rows = REGEL.map(([zeichen, wirkung, name]) => `<tr><th scope="row" class="nl-zeichen">${zeichen}</th><td class="nl-wirkung">${wirkung}</td><td class="nl-endung">${name}</td></tr>`).join("");
   const table = `<table class="nl-regel"><tbody>${rows}</tbody></table>`;
-  const keys = klaviatur ? `<div class="help-keys nl-keys">${pianoSvg({ ...REGEL_KLAVIATUR })}</div>` : "";
+  const keys = klaviatur ? `<div class="help-keys nl-regel-keys">${pianoSvg({ ...REGEL_KLAVIATUR })}</div>` : "";
   return `<div class="nl-vorzeichen" data-nl-help="vorzeichen">${table}${keys}</div>`;
 }

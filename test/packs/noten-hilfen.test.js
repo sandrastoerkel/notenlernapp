@@ -1,6 +1,7 @@
 // Welle 12, Schritt 4: Hilfen „Noten lesen“ (PLAN Abschnitt 3) – Merkleiste, Namensleiste, Vorzeichen-Regel.
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import {
   merkleiste, namensleiste, vorzeichenRegel, merkId, stellen, noteAn, SCHLUESSEL_BEZUG, NAMEN_REIHE, RICHTUNG, REGEL,
   REGEL_KLAVIATUR,
@@ -166,4 +167,23 @@ test("Stufen mit Hilfen: keine Hervorhebung, gleiches HTML für jede Aufgabe der
   assert.ok(levels[0].helpTable({ state: s }).includes(EIGEN["violin-linien"]));
   assert.ok(levels[3].helpTable({ state: s }).includes("Gute Hunde Dürfen Fast Alles"));
   assert.ok(levels[4].helpTable({ state: s }).includes("Alle Clowns Essen Gern"));
+});
+
+// Prüfung Schritt 3/4: Nach dem Zusammenführen trafen Regeln der Vorführung (.nl-namen td { min-width: 4em },
+// .nl-name mit 16 px) die Hilfen – die Namensleiste lief bei 320 und 420 px über. Die Hilfen benutzen deshalb
+// keine Klasse, die der CSS-Abschnitt „Noten lesen: Vorführung“ als eigenen Selektor gestaltet.
+test("Hilfen: keine Klasse der Hilfen wird vom CSS-Abschnitt der Vorführung getroffen", () => {
+  const css = readFileSync(new URL("../../css/style.css", import.meta.url), "utf8");
+  const from = css.indexOf("Noten lesen: Vorführung");
+  assert.ok(from > 0, "Abschnitt „Noten lesen: Vorführung“ vorhanden");
+  const sec = css.slice(from).replace(/\/\*[\s\S]*?\*\//g, "");
+  // Klassen, die dort allein oder als letzter Teil eines Selektors stehen (nicht nur als Zusatz wie .nl-wort.s2)
+  const fremd = new Set();
+  for (const m of sec.matchAll(/([^{}]+)\{/g)) for (const selector of m[1].split(",")) {
+    for (const c of selector.matchAll(/\.(nl-[a-z0-9-]+)(?![a-z0-9-]|\.)/g)) fremd.add(c[1]);
+  }
+  assert.ok(fremd.has("nl-namen") && fremd.has("nl-name") && fremd.has("nl-keys"), "der Test liest den Abschnitt");
+  const html = [merkleiste("treble", "linien"), merkleiste("bass", "raeume"), namensleiste("treble"), namensleiste("bass"), vorzeichenRegel()].join("");
+  const eigen = new Set([...html.matchAll(/class="([^"]*)"/g)].flatMap((m) => m[1].split(/\s+/)).filter((c) => c.startsWith("nl-")));
+  assert.deepEqual([...eigen].filter((c) => fremd.has(c)), []);
 });
