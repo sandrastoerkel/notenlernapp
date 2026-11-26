@@ -732,3 +732,11 @@ svg.ok .beam { fill: var(--ok); } svg.bad .beam { fill: var(--bad); }
 .more > summary { cursor: pointer; list-style-position: inside; padding: 6px 0; }
 .more > summary h2 { display: inline; }
 .more > .levels { margin-top: 8px; }
+
+/* ---------- Noten lesen: Schritte (Welle 12, Schritt 3) ---------- */
+
+
+/* ---------- Noten lesen: Hilfen (Welle 12, Schritt 4) ---------- */
+
+
+/* ---------- Noten lesen: Vorführung (Welle 12, Schritt 5) ---------- */
