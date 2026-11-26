@@ -47,6 +47,9 @@ function position(packs, levelId) {
   return null;
 }
 
+// Ist ein Eintrag des Kastens heute fällig?
+export const isDueEntry = (e, heute) => !!e && typeof e.faellig === "string" && e.faellig <= heute;
+
 // Fällige Stufen (faellig <= heute), sortiert: am längsten fällig zuerst, bei Gleichstand Grundlagen vor dem, was
 // auf ihnen aufbaut (Reihenfolge der Pakete, dann der Stufen). Einträge zu Stufen, die es nicht (mehr) gibt oder
 // die Hilfen haben, bleiben außen vor.
@@ -226,6 +229,9 @@ export function basicsPlan(packs, levelId, n = RUNDE_GRUNDLAGEN, only = null) {
 //   in ganzen Tagen: eine schwache Runde am selben Tag wie die Grundlagen-Runde weckt die Empfehlung nicht.
 // „zuletzt“ ist level.last (seit Welle 11, Schritt 7); ältere Stände ohne last zählen mit der besten Runde.
 // Eine über den Jahrgang geöffnete, nie gespielte Stufe zählt als „nie gespielt“.
+// seit ist der spätere von zwei Tagen (Korrektur W-B4 a): der Merker der Zielstufe (state.basics[levelId]) und der
+// Tag, an dem in einer Grundlagen-Runde alle Aufgaben genau dieser Voraussetzung stimmten (state.basicsOk[id],
+// afterBasicsLevels) – gezeigtes Können zählt so auch für Nachbarstufen mit denselben Voraussetzungen.
 function needTrigger(state, id, heute, seit) {
   const st = (state.levels || {})[id] || {};
   const e = (state.rep || {})[id];
@@ -243,13 +249,17 @@ function needTrigger(state, id, heute, seit) {
 // solchen Voraussetzung (Reihenfolge von needsOf) oder null.
 export function basicsOffer(state, packs, levelId, heute) {
   const needs = needsOf(packs, levelId);
-  const seit = state.basics && typeof state.basics === "object" ? state.basics[levelId] || null : null;
+  const seit = dayOf(state.basics, levelId);
   for (const id of needs) {
-    const kind = needTrigger(state, id, heute, seit);
+    const ok = dayOf(state.basicsOk, id);
+    const kind = needTrigger(state, id, heute, !seit ? ok : !ok ? seit : ok > seit ? ok : seit);
     if (kind) return { show: true, recommend: true, reason: { kind, id } };
   }
   return { show: needs.length > 0, recommend: false, reason: null };
 }
+
+// Tag aus einem Merker-Objekt (state.basics, state.basicsOk) oder null
+const dayOf = (map, id) => (map && typeof map === "object" && !Array.isArray(map) && typeof map[id] === "string" ? map[id] : null);
 
 // Nach einer Grundlagen-Runde zu levelId: mit höchstens einem Fehler den Merker state.basics[levelId] = heute setzen
 // (die Empfehlung verschwindet, bis ein Auslöser neu zutrifft). Gibt true zurück, wenn der Merker gesetzt wurde.
@@ -259,6 +269,34 @@ export function afterBasics(state, levelId, correct, total, heute) {
   if (!state.basics || typeof state.basics !== "object" || Array.isArray(state.basics)) state.basics = {};
   state.basics[levelId] = heute;
   return true;
+}
+
+// Nach jeder Grundlagen-Runde (auch nur zu einem Teil der Grundlagen), je Voraussetzung (Korrektur W-B4).
+// perLevel = [{ id, n, ok }] aus engine (n Aufgaben dieser Voraussetzung, ok davon richtig).
+// (a) Stimmten alle ihre Aufgaben: state.basicsOk[id] = heute (basicsOffer nimmt den späteren Tag aus diesem und
+//     dem Merker der Zielstufe; die Empfehlung kommt dann auch bei Nachbarstufen erst wieder, wenn danach ein
+//     Auslöser neu zutrifft). Zählt zum Fortschritt (store.reset löscht ihn).
+// (b) War sie im Karteikasten fällig, hatte mindestens MIN_AUFGABEN_GRUNDLAGE Aufgaben und ist bestanden (passed,
+//     mit guess der Stufe): Das zählt als ihre Wiederholung (applyReview, ein Fach weiter). Nicht bestanden ändert
+//     den Kasten nicht (sie bleibt fällig; die Grundlagen-Runde stuft nicht zurück).
+// Gibt die Urteile aus (b) zurück ([{ id, n, richtig, urteil, … }], leer, wenn nichts eingetragen wurde).
+export const MIN_AUFGABEN_GRUNDLAGE = 3;
+export function afterBasicsLevels(state, packs, perLevel, heute) {
+  const out = [];
+  for (const e of perLevel || []) {
+    if (!e || !(e.n > 0)) continue;
+    if (e.ok === e.n) {
+      if (!state.basicsOk || typeof state.basicsOk !== "object" || Array.isArray(state.basicsOk)) state.basicsOk = {};
+      state.basicsOk[e.id] = heute;
+    }
+    const lv = levelOf(packs, e.id);
+    const entry = (state.rep || {})[e.id];
+    const guess = !!lv && lv.guess === true;
+    if (lv && inBox(lv) && entry && isDueEntry(entry, heute) && e.n >= MIN_AUFGABEN_GRUNDLAGE && passed(e.n, e.n - e.ok, guess)) {
+      out.push(...applyReview(state, [{ id: e.id, n: e.n, ok: e.ok, guess }], heute));
+    }
+  }
+  return out;
 }
 
 // Fehlermuster einer normalen Runde in level (log aus engine: je Aufgabe { id, ok, oks }). Je Aufgabe mit Schritt i

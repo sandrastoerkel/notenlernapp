@@ -1,7 +1,7 @@
 // Üben: Startkarte der Stufe, Runde über engine.js, Ergebniskarte
 import { isUnlocked, unlockedBy, unlocks, today, starsFor } from "../store.js";
 import * as engine from "../engine.js";
-import { needsOf, skillOf, basicsPlan, basicsOffer, afterBasics, gapsOf, RUNDE_GRUNDLAGEN,
+import { needsOf, skillOf, basicsPlan, basicsOffer, afterBasics, afterBasicsLevels, gapsOf, RUNDE_GRUNDLAGEN,
   reviewPlan, applyReview, afterRound, dueText, inBox, withGuess } from "../repeat.js";
 import { packShort } from "./home.js";
 
@@ -215,6 +215,8 @@ function startBasics(levelId, only) {
     // Empfehlung zu den übrigen stehen
     const all = needsOf(ctx.packs, levelId);
     if (!only || all.every((id) => [].concat(only).includes(id))) afterBasics(ctx.state, levelId, res.correct, res.total, today());
+    // je Voraussetzung: fehlerfrei gemerkt, eine fällige bestandene zählt als Wiederholung (Korrektur W-B4)
+    afterBasicsLevels(ctx.state, ctx.packs, res.perLevel, today());
     ctx.save();
     showBasicsResult(res, levelId, only);
   });

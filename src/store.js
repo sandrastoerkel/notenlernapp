@@ -38,6 +38,9 @@ export const fresh = () => ({
   // „Grundlagen wiederholen“ (Welle 11, Schritt 7, repeat.js afterBasics): je Stufe der Tag der letzten
   // Grundlagen-Runde mit höchstens einem Fehler. Fortschritt: wird beim Zurücksetzen gelöscht.
   basics: {},
+  // Je Voraussetzung der Tag, an dem in einer Grundlagen-Runde alle ihre Aufgaben stimmten (Korrektur W-B4,
+  // repeat.afterBasicsLevels). Fortschritt: wird beim Zurücksetzen gelöscht.
+  basicsOk: {},
 });
 
 // Alte Daten (Stufen 1 bis 8 als Zahl) in das Format mit Stufen-IDs übernehmen

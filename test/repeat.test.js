@@ -5,9 +5,9 @@ import {
   ABSTAENDE, FAECHER, RUNDE_WIEDERHOLEN, RUNDE_GRUNDLAGEN, MAX_STUFEN, MIN_AUFGABEN_RATEN,
   inBox, boxIds, enter, due, nextDue, reviewPlan, passed, applyReview, afterRound, dueText, dayText, withGuess, verdictOf,
   needsOf, stepNeedsOf, skillOf, needsText,
-  basicsPlan, basicsOffer, afterBasics, gapsOf, LUECKE_AB,
+  basicsPlan, basicsOffer, afterBasics, afterBasicsLevels, MIN_AUFGABEN_GRUNDLAGE, gapsOf, LUECKE_AB,
 } from "../src/repeat.js";
-import { fresh, addDays, UMSTELLUNG_JE_TAG } from "../src/store.js";
+import { fresh, addDays, UMSTELLUNG_JE_TAG, reset } from "../src/store.js";
 import { PACKS } from "../src/packs/index.js";
 
 const T = "2026-11-25";
@@ -533,6 +533,76 @@ test("basicsOffer und afterBasics: Empfehlung verschwindet nach einer Runde mit 
   assert.deepEqual(basicsOffer(s, PACKS, "akkorde-1", addDays(T, 3)).reason, { kind: "faellig", id: "intervall-4" });
   // Zurücksetzen löscht den Merker (Fortschritt)
   assert.deepEqual(fresh().basics, {});
+});
+
+test("W-B4 (a): fehlerfreie Grundlage zählt auch für die Nachbarstufe (Intervalle 3 → 4), nur fehlerfrei", () => {
+  // Bericht Wissenschaft B4: nach fehlerfreien Grundlagen zu Intervalle 3 empfahl Intervalle 4 sofort wieder
+  // „Noten mit Vorzeichen“ hast du hier noch nicht geübt.
+  assert.deepEqual(needsOf(PACKS, "intervall-3"), needsOf(PACKS, "intervall-4"));
+  const s = fresh();
+  assert.equal(basicsOffer(s, PACKS, "intervall-4", T).recommend, true);
+  const perLevel = [{ id: "intervall-2", n: 3, ok: 3 }, { id: "noten-7", n: 3, ok: 3 }];
+  afterBasics(s, "intervall-3", 6, 6, T);
+  assert.deepEqual(afterBasicsLevels(s, PACKS, perLevel, T), []);
+  assert.deepEqual(s.basicsOk, { "intervall-2": T, "noten-7": T });
+  assert.equal(basicsOffer(s, PACKS, "intervall-3", T).recommend, false);
+  assert.deepEqual(basicsOffer(s, PACKS, "intervall-4", T), { show: true, recommend: false, reason: null });
+  // nur fehlerfreie Grundlagen: noten-7 mit einem Fehler bleibt bei Intervalle 4 empfohlen („nie“)
+  const t = fresh();
+  afterBasics(t, "intervall-3", 5, 6, T);
+  afterBasicsLevels(t, PACKS, [{ id: "intervall-2", n: 3, ok: 3 }, { id: "noten-7", n: 3, ok: 2 }], T);
+  assert.deepEqual(t.basicsOk, { "intervall-2": T });
+  assert.equal(basicsOffer(t, PACKS, "intervall-3", T).recommend, false); // Merker der Zielstufe (höchstens ein Fehler)
+  assert.deepEqual(basicsOffer(t, PACKS, "intervall-4", T).reason, { kind: "nie", id: "noten-7" });
+  // eine Runde nur zu einer Grundlage (nach einem Fehlermuster) zählt für diese eine
+  afterBasicsLevels(t, PACKS, [{ id: "noten-7", n: 6, ok: 6 }], addDays(T, 1));
+  assert.equal(basicsOffer(t, PACKS, "intervall-4", addDays(T, 1)).recommend, false);
+  // später neu zutreffend: eine schwache normale Runde nach dem Tag weckt die Empfehlung wieder
+  played(t, "noten-7", 5, addDays(T, 2));
+  assert.deepEqual(basicsOffer(t, PACKS, "intervall-4", addDays(T, 2)).reason, { kind: "schwach", id: "noten-7" });
+  // derselbe Merker gilt für jede Stufe mit dieser Voraussetzung (Tonleitern 2 braucht noten-7)
+  const u = fresh();
+  afterBasicsLevels(u, PACKS, [{ id: "noten-7", n: 6, ok: 6 }], T);
+  assert.equal(basicsOffer(u, PACKS, "tonleitern-2", T).recommend, false);
+  // Fortschritt: Zurücksetzen löscht ihn
+  assert.deepEqual(reset(u).basicsOk, {});
+});
+
+test("W-B4 (b): fällige Grundlage mit mindestens 3 Aufgaben, bestanden → zählt als Wiederholung", () => {
+  assert.equal(MIN_AUFGABEN_GRUNDLAGE, 3);
+  const rep = () => ({ "noten-7": { fach: 2, faellig: T, zuletzt: "2026-11-22" }, "intervall-2": { fach: 1, faellig: T, zuletzt: "2026-11-24" } });
+  // bestanden (3 von 3), fällig: ein Fach weiter; nicht bestanden (2 von 3): bleibt fällig, kein Rückschritt
+  const s = withRep(rep());
+  const v = afterBasicsLevels(s, PACKS, [{ id: "intervall-2", n: 3, ok: 2 }, { id: "noten-7", n: 3, ok: 3 }], T);
+  assert.deepEqual(v.map((x) => [x.id, x.urteil, x.fach, x.inTagen]), [["noten-7", "sitzt", 3, 7]]);
+  assert.deepEqual(s.rep["noten-7"], { fach: 3, faellig: addDays(T, 7), zuletzt: T });
+  assert.deepEqual(s.rep["intervall-2"], rep()["intervall-2"]);
+  assert.deepEqual(due(s, PACKS, T), ["intervall-2"]);
+  // weniger als 3 Aufgaben (drei Voraussetzungen, 2 + 2 + 2): kein Urteil, bleibt fällig
+  const t = withRep(rep());
+  assert.deepEqual(afterBasicsLevels(t, PACKS, [{ id: "noten-7", n: 2, ok: 2 }], T), []);
+  assert.deepEqual(t.rep["noten-7"], rep()["noten-7"]);
+  // nicht fällig: nichts
+  const u = withRep({ "noten-7": { fach: 2, faellig: addDays(T, 2), zuletzt: "2026-11-24" } });
+  assert.deepEqual(afterBasicsLevels(u, PACKS, [{ id: "noten-7", n: 6, ok: 6 }], T), []);
+  assert.equal(u.rep["noten-7"].faellig, addDays(T, 2));
+  // nicht im Kasten: nichts (kein neuer Eintrag)
+  const w = fresh();
+  assert.deepEqual(afterBasicsLevels(w, PACKS, [{ id: "noten-7", n: 6, ok: 6 }], T), []);
+  assert.deepEqual(w.rep, {});
+  // 6 Aufgaben, ein Fehler: ⌊6 / 5⌋ = 1 → sitzt
+  const x = withRep(rep());
+  assert.equal(afterBasicsLevels(x, PACKS, [{ id: "noten-7", n: 6, ok: 5 }], T)[0].urteil, "sitzt");
+  // Ratestufe (Tonleitern 3) mit 3 Aufgaben: nur fehlerfrei
+  const g = withRep({ "tonleitern-3": { fach: 1, faellig: T, zuletzt: null } });
+  assert.deepEqual(afterBasicsLevels(g, PACKS, [{ id: "tonleitern-3", n: 6, ok: 5 }], T), []);
+  assert.equal(afterBasicsLevels(g, PACKS, [{ id: "tonleitern-3", n: 3, ok: 3 }], T)[0].urteil, "sitzt");
+  // danach ist die Empfehlung „ist wieder dran“ weg (nicht mehr fällig)
+  const y = withRep(rep());
+  played(y, "noten-7", 9); played(y, "intervall-2", 9);
+  assert.deepEqual(basicsOffer(y, PACKS, "intervall-3", T).reason, { kind: "faellig", id: "intervall-2" });
+  afterBasicsLevels(y, PACKS, [{ id: "intervall-2", n: 3, ok: 3 }, { id: "noten-7", n: 3, ok: 3 }], T);
+  assert.equal(basicsOffer(y, PACKS, "intervall-3", T).recommend, false);
 });
 
 // Rundenprotokoll wie engine.finish: je Aufgabe { id, ok, oks }
