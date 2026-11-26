@@ -161,7 +161,7 @@ test("Startkarte: zweischrittige Stufen sagen „Beide Schritte müssen stimmen.
     if (level.twoSteps) { two.push(level.id); assert.ok(startHint(level).endsWith(TWO_STEPS_NOTE), level.id); }
     else assert.equal(startHint(level), textOf(level.hint), level.id);
   }
-  assert.deepEqual(two, ["notenwerte-1", "notenwerte-4", "notenwerte-6", "notenwerte-8",
+  assert.deepEqual(two, ["noten-1", "noten-2", "noten-4", "noten-6", "noten-7", "noten-9", "noten-11", "noten-13", "notenwerte-1", "notenwerte-4", "notenwerte-6", "notenwerte-8",
     "intervall-3", "intervall-4", "intervall-5", "intervall-6", "intervall-7", "tonleitern-4", "tonleitern-10", "tonleitern-12"]);
   // die Startkarte nutzt startHint
   const src = readFileSync(new URL("../../src/views/practice.js", import.meta.url), "utf8");
@@ -465,10 +465,12 @@ test("level.keysHint ersetzt den Tastatur-Hinweis; „Namen“, wenn ein Schritt
   assert.equal(lettersLabel({ input: "letters", twoSteps: true, question: stepQ([null, "letters"]) }), "Buchstaben");
   assert.equal(lettersLabel({ input: "letters", twoSteps: true, question: stepQ(["letters", "names"]) }), "Namen");
   assert.equal(lettersLabel({ input: "letters", question: stepQ(["letters", "names"]) }), "Buchstaben", "nur Stufen mit twoSteps");
-  // bestehende Stufen: unverändert
+  // Welle 12, Schritt 3: keysHint genau in den Stufen 1, 2, 6, 7, 11, 13 von „Noten lesen“; 11 und 13 mit Namensraster
+  const MIT_HINWEIS = ["noten-1", "noten-2", "noten-6", "noten-7", "noten-11", "noten-13"];
   for (const p of PACKS) for (const l of p.levels) {
-    assert.equal(lettersLabel(l), l.input === "letters" && l.acc ? "Namen" : "Buchstaben", l.id);
-    assert.ok(!l.keysHint, l.id);
+    const namen = (l.input === "letters" && l.acc) || l.id === "noten-11" || l.id === "noten-13";
+    assert.equal(lettersLabel(l), namen ? "Namen" : "Buchstaben", l.id);
+    assert.equal(!!l.keysHint, MIT_HINWEIS.includes(l.id), l.id);
   }
 });
 

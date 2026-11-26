@@ -240,15 +240,16 @@ test("B3: Frage, Name der großen Oktave, Rückmeldung mit dem gewählten Spruch
   const s = fresh();
   assert.equal(revealText(N("G", 4), "treble", s), "Das war ein G (g') – 2. Linie von unten (Es Geht Hurtig Durch Fleiß).");
   assert.equal(revealText(N("A", 4), "treble", s), "Das war ein A (a') – 2. Zwischenraum von unten (Fritz Aß Citronen-Eis).");
-  assert.equal(revealText(N("C", 4), "treble", s), "Das war ein C (c') – auf der Hilfslinie unter der Zeile.");
-  assert.equal(revealText(N("D", 4), "treble", s), "Das war ein D (d') – unter der Zeile, ohne Hilfslinie.");
+  assert.equal(revealText(N("C", 4), "treble", s), "Das war ein C (c') – auf der Hilfslinie unter der Zeile (von der untersten Linie abwärts: E – D – C).");
+  assert.equal(revealText(N("D", 4), "treble", s), "Das war ein D (d') – unter der Zeile, ohne Hilfslinie (von der untersten Linie abwärts: E – D).");
   assert.equal(revealText(N("F", 4, 1), "treble", s), "Das war ein Fis (fis') – 1. Zwischenraum von unten, mit ♯: aus F wird Fis.");
   assert.equal(revealText(N("G", 2), "bass", s), "Das war ein G (großes G) – 1. Linie von unten (Gute Hunde Dürfen Fast Alles).");
   assert.equal(revealText(N("C", 3), "bass", s), "Das war ein C (c) – 2. Zwischenraum von unten (Alle Clowns Essen Gern).");
   // gewählter (eigener) Spruch in der Rückmeldung einer Runde
   setzeEigen(s, "violin-linien", "Ein Grüner Hase Döst Friedlich");
   for (const q of makeRound(noten.levels[0], 10, { notes: {}, state: s })) {
-    assert.equal(q.prompt, "Wie heißt die Note?");
+    // seit Welle 12 ist Stufe 1 zweischrittig (Lage → Name)
+    assert.equal(q.prompt, "Auf welcher Linie liegt die Note? Zähle von unten.");
     assert.ok(feedbackText(q, false).includes("(Ein Grüner Hase Döst Friedlich)"), q.reveal);
     assert.ok(feedbackText(q, true).length <= 45, "richtig: kurz, läuft von selbst weiter");
   }

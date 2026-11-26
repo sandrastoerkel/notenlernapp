@@ -1476,7 +1476,10 @@ test("levelNoteSteps: Noteneingaben der Schritte einer Stufe; bestehende Stufen 
   assert.deepEqual(levelNoteSteps(LEVEL_B), ["letters", "names"]);
   assert.deepEqual(levelNoteSteps({ input: "letters" }), []);
   assert.deepEqual(levelNoteSteps(null), []);
-  for (const p of PACKS) for (const l of p.levels) assert.deepEqual(levelNoteSteps(l), [], l.id);
+  // Welle 12, Schritt 3: zweischrittige Stufen in „Noten lesen“; alle anderen Stufen ohne Noten-Schritte
+  const NOTEN_SCHRITTE = { "noten-1": ["letters"], "noten-2": ["letters"], "noten-4": ["letters"], "noten-6": ["letters"],
+    "noten-7": ["letters"], "noten-9": ["letters"], "noten-11": ["letters", "names"], "noten-13": ["letters", "names"] };
+  for (const p of PACKS) for (const l of p.levels) assert.deepEqual(levelNoteSteps(l), NOTEN_SCHRITTE[l.id] || [], l.id);
 });
 
 test("helpsHtml: level.helpTable als Funktion (ctx) => HTML; Text wie bisher; Überschrift mit „Tabelle“", () => {
