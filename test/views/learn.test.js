@@ -16,11 +16,23 @@ test("Lerntafeln: Titel als Überschrift, Auswahl nach Schlüssel", () => {
     '<h3 class="legend-title">Bass</h3><div>b</div><h3 class="legend-title">Ohne Schlüssel</h3><p>x</p><p>ohne Titel</p>');
 });
 
-test("Lerntafeln von „Noten lesen“: Überschrift „Merkhilfen“, Inhalt unverändert", () => {
+test("Lerntafeln von „Noten lesen“: zuerst „So liest du eine Note“, dann „Merkhilfen“ (Inhalt unverändert)", () => {
   for (const clef of ["treble", "bass"]) {
-    const card = noten.learn.find((c) => c.clef === clef);
-    assert.ok(learnCardsHtml(PACKS, clef).startsWith(`<h3 class="legend-title">Merkhilfen</h3>${card.render()}`));
+    const [lage, merk] = noten.learn.filter((c) => c.clef === clef);
+    assert.ok(learnCardsHtml(PACKS, clef).startsWith(`<h3 class="legend-title">So liest du eine Note</h3>${lage.render()}<h3 class="legend-title">Merkhilfen</h3>${merk.render()}`));
   }
+});
+
+test("mountCards gibt { state } weiter; only wählt Tafeln aus (Welle 12: neu aufsetzen nach der Spruch-Wahl)", () => {
+  const seen = [], c = { state: { sprueche: {} } };
+  const packs = [{ id: "a", learn: [{ render: () => "", spruch: true, mount: (r, x) => seen.push(["s", r, x]) }, { render: () => "", mount: (r, x) => seen.push(["o", r, x]) }] }];
+  mountCards(packs, "treble", "ROOT", "a", c);
+  assert.deepEqual(seen, [["s", "ROOT", c], ["o", "ROOT", c]]);
+  seen.length = 0;
+  mountCards(packs, "treble", "ROOT", "a", c, (card) => card.spruch);
+  assert.deepEqual(seen, [["s", "ROOT", c]]);
+  // in „Noten lesen“ hängt genau „So liest du eine Note“ (je Schlüssel) vom Spruch ab
+  assert.deepEqual(noten.learn.filter((x) => x.spruch).map((x) => [x.title, x.clef]), [["So liest du eine Note", "treble"], ["So liest du eine Note", "bass"]]);
 });
 
 test("Lerntafeln mit mount werden nach dem Einsetzen verdrahtet (nur die sichtbaren)", () => {
@@ -30,13 +42,16 @@ test("Lerntafeln mit mount werden nach dem Einsetzen verdrahtet (nur die sichtba
   assert.deepEqual(seen, [["t", "ROOT"], ["all", "ROOT"]]);
   // Tafeln mit mount: die drei Vorführungen bei „Notenwerte“ (Welle 9), „So bestimmst du ein Intervall“ und die drei
   // bei „Tonleitern“ (Welle 8), in der Reihenfolge der Pakete (seit Welle 11 Intervalle vor Tonleitern)
+  // Welle 12: davor die drei Vorführungen von „Noten lesen“ je Schlüssel
+  const nl = ["So liest du eine Note", "So zählst du vom Bezugston", "So liest du eine Note mit Vorzeichen"];
   assert.deepEqual(PACKS.flatMap((p) => p.learn || []).filter((c) => c.mount).map((c) => c.title),
-    ["So erkennst du einen Notenwert", "So bestimmst du die Dauer", "So zählst du einen Takt", "So bestimmst du ein Intervall", "So baust du eine Dur-Tonleiter", "So findest du die Tonart", "So findest du die parallele Molltonart"]);
+    [...nl, ...nl, "So erkennst du einen Notenwert", "So bestimmst du die Dauer", "So zählst du einen Takt", "So bestimmst du ein Intervall", "So baust du eine Dur-Tonleiter", "So findest du die Tonart", "So findest du die parallele Molltonart"]);
   // die Tonleiter-Tafeln tragen ein eigenes Attribut: die Intervall-Tafel (data-demo-board) findet nur sich selbst
   const html = PACKS.flatMap((p) => p.learn || []).map((c) => c.render()).join("");
   assert.equal((html.match(/data-demo-board/g) || []).length, 1);
   assert.equal((html.match(/data-tl-board="/g) || []).length, 3);
   assert.equal((html.match(/data-nw-board="/g) || []).length, 3);
+  assert.equal((html.match(/data-nl-board="/g) || []).length, 6);
 });
 
 /* ---------- Reiter (Welle 11, Schritt 2, W3) ---------- */
@@ -62,7 +77,7 @@ test("Reiter: jede Lerntafel gehört zu genau einem Reiter, kein Reiter ist leer
 
 test("Reiter: Tafeln je Reiter und Schlüssel", () => {
   const want = {
-    noten: { treble: ["Merkhilfen"], bass: ["Merkhilfen"] },
+    noten: { both: ["So liest du eine Note", "Merkhilfen", "So zählst du vom Bezugston", "Vorzeichen ♯ und ♭", "So liest du eine Note mit Vorzeichen"] },
     notenwerte: { both: ["So erkennst du einen Notenwert", "Notenwerte und Pausen", "So bestimmst du die Dauer"] },
     takt: { both: ["So zählst du einen Takt", "Balken"] },
     intervalle: { treble: ["So bestimmst du ein Intervall", "Intervalle über c'"], bass: ["So bestimmst du ein Intervall", "Intervalle über c"] },

@@ -61,7 +61,9 @@ export function init(c) {
   });
   // Klick auf eine Linie oder einen Zwischenraum (Delegation)
   // Merkspruch-Wahl (Delegation am Bereich der Lerntafeln; ctx.state wird beim Zurücksetzen ersetzt)
-  wireSprueche($("#lLegend"), { get state() { return ctx.state; }, save: () => ctx.save() });
+  // Nach einer neuen Wahl setzt remountSpruch die Tafeln neu auf, die den Spruch zeigen (z. B. „So liest du
+  // eine Note“, Welle 12)
+  wireSprueche($("#lLegend"), { get state() { return ctx.state; }, save: () => { ctx.save(); remountSpruch(); } });
   $("#lStaff").addEventListener("click", (e) => {
     const r = e.target.closest(".hit[data-d]");
     if (!r) return;
@@ -127,10 +129,16 @@ export function wireSprueche(root, c) {
     refreshSprueche(root, c.state);
   });
 }
-// Tafeln mit mount (z. B. die Vorführung bei „Intervalle“) verdrahten ihre Knöpfe nach dem Einsetzen
-export const mountCards = (packs, clef, root, tab) => cardsOf(packs, tab)
-  .filter((card) => (!card.clef || card.clef === clef) && card.mount)
-  .forEach((card) => card.mount(root));
+// Tafeln mit mount (z. B. die Vorführung bei „Intervalle“) verdrahten ihre Knöpfe nach dem Einsetzen.
+// c (optional, Welle 12): { state } wie bei render, für Vorführungen mit dem gewählten Merkspruch.
+// only (optional): nur Tafeln, für die only(card) gilt
+export const mountCards = (packs, clef, root, tab, c, only) => cardsOf(packs, tab)
+  .filter((card) => (!card.clef || card.clef === clef) && card.mount && (!only || only(card)))
+  .forEach((card) => card.mount(root, c));
+// Tafeln mit spruch: true neu aufsetzen (nach der Wahl eines Merkspruchs), die übrigen bleiben stehen
+function remountSpruch() {
+  mountCards(ctx.packs, lClef, $("#lLegend"), lTab, { state: ctx.state }, (card) => card.spruch);
+}
 
 // Reiter wechseln: Vorführungen anhalten, nur die Tafeln des Reiters neu setzen und verdrahten;
 // focus: true bei der Tastatur (der Fokus geht mit dem Reiter)
@@ -151,7 +159,9 @@ function drawTabs() {
   }
   $("#lPanel").setAttribute("aria-labelledby", "ltab-" + lTab);
   const notes = lTab === "noten";
-  $("#lHead").textContent = notes ? "Tippe auf die Notenzeile" : LEARN_TABS.find((t) => t.id === lTab).label;
+  // Überschrift = Name des Reiters, im Reiter „Tonhöhen“ die Aufforderung als Zeile darunter (J-C7)
+  $("#lHead").textContent = LEARN_TABS.find((t) => t.id === lTab).label;
+  $("#lTip").hidden = !notes;
   $("#lStaff").hidden = !notes;
   $("#lNote").hidden = !notes;
   $("#lClefs").hidden = !tabHasClef(ctx.packs, lTab);
@@ -222,7 +232,7 @@ function draw(legend = true) {
   if (legend) {
     stopDemos();
     $("#lLegend").innerHTML = legendHtml();
-    mountCards(ctx.packs, lClef, $("#lLegend"), lTab);
+    mountCards(ctx.packs, lClef, $("#lLegend"), lTab, { state: ctx.state });
   }
   ctx.renderTop();
 }

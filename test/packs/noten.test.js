@@ -178,8 +178,9 @@ test("Blitz", () => {
 });
 
 test("Lerntafeln", () => {
-  assert.equal(noten.learn.length, 2);
-  assert.deepEqual(noten.learn.map((c) => c.clef), ["treble", "bass"]);
+  // Welle 12, Schritt 5: je Schlüssel fünf Tafeln (Reihenfolge und Titel in noten-demo.js, test/packs/noten-demo.test.js)
+  assert.equal(noten.learn.length, 10);
+  assert.deepEqual(noten.learn.map((c) => c.clef), [...Array(5).fill("treble"), ...Array(5).fill("bass")]);
   noten.learn.forEach((c) => assert.ok(c.render().includes("<div")));
 });
 
@@ -243,7 +244,7 @@ test("Lerntafeln: Zeilen zu Stellen der Zeile stimmen mit staffPos", () => {
     if (k in expect) assert.equal(staffPos(n, clef), expect[k], `${clef} ${k}`);
     if (k === "Hilfslinie oben") assert.equal(staffPos(n, clef), 10);
   }
-  const html = noten.learn[1].render();
+  const html = noten.learn.find((c) => c.clef === "bass" && c.title === "Merkhilfen").render();
   assert.ok(html.includes("Unterste Linie") && html.includes("Unter der Zeile, ohne Hilfslinie"));
 });
 
