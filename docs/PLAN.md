@@ -4295,6 +4295,12 @@ und Vorführungen unverändert (nur ihre Kanten); Wortliste; Farben nur über To
 
 ### 13. Offen für Sandra (Welle 12)
 
+**Entschieden (Sandra, 26.11.2026, 19:05 KL):** alle sieben Punkte mit der Voreinstellung –
+1 a) Lage → Name; 2 a) Bezugston ist die äußere Linie der Zeile; 3 a) acht Noten in der Zeile
+(fis, cis, gis, dis · B, es, as, des); 4 a) Auflösungszeichen ♮ nicht in dieser Welle; 5 a) Tonumfang bleibt
+c'–a'' und E–c'; 6 a) im Karteikasten wandert nur das Paar Linien + Zwischenräume eines Schlüssels;
+7 a) 15 Stufen.
+
 Gebaut wird jeweils die **Voreinstellung**, solange Sandra nichts anderes entscheidet.
 
 1. **Die zwei Denkschritte bei Linien und Zwischenräumen (Stufen 1, 2, 6, 7).** Deine Tabelle im KONZEPT nennt
