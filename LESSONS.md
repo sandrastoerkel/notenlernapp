@@ -8,6 +8,7 @@
 - 2026-11-26 | Anlass: Welle 11, Schritt 13b (Prüfung) | Lehre: Prüf- und Fotoskripte leiten ihre Abdeckung aus den Listen im Code ab (alle Eingabearten, alle Stufen, alle Startkarten), statt sie von Hand aufzuzählen – sonst fehlt still eine Eingabeart (hier: Klaviatur). | Zähler: 1
 - 2026-11-26 | Anlass: Welle 12, Schritt 0 (Engine: Denkschritt mit Noteneingabe) | Lehre: Vor dem Umformulieren von Engine-Code in `test/` nach Tests suchen, die Quelltext wörtlich lesen (`grep -rn readFileSync test/`) – solche Tests brechen schon bei gleichwertigem, anders geschriebenem Code, und „kein vorhandener Test wird angepasst“ gilt auch für sie. | Zähler: 1
 - 2026-11-26 | Anlass: Welle 12, Schritt 0 (Prüfung) | Lehre: Fokus-Regeln immer im echten Browser prüfen, nicht nur am Ersatz-DOM der Tests – dort nimmt jedes Element den Fokus an, im Browser nur eines mit `tabindex` (hier: `#pPiano`), und Knöpfe entstehen an mehr Stellen neu als nur beim Schrittwechsel (auch zur nächsten Aufgabe). | Zähler: 1
+- 2026-11-26 | Anlass: Welle 12, Schritt 2 (Umnummerierung der Stufen in allen Tests) | Lehre: Nach einer Umnummerierung jede Testdatei einzeln laufen lassen (`timeout 100 node --test <Datei>`), nicht nur `npm test` – so zeigt sich sofort, welche Datei hängt oder scheitert; und Ersetzungen in Tests über eindeutige Textstellen ansetzen, nicht über Zeilennummern (die verschieben sich mit jeder Änderung). | Zähler: 1
 
 ## Regelvorschläge
 

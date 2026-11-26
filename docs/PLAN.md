@@ -4221,6 +4221,43 @@ steht in diesem Plan oder wird aus `music.js`/`staffPos` gerechnet; Unklares als
 - Akzeptanz: `npm test` grün; Browser: jede der 15 Stufen startet und läuft eine Runde, Hilfen gehen auf, alter
   Spielstand (alle acht Stufen geschafft; nur 1 und 2 geschafft; 2 geschafft und 3 offen) wird richtig umgestellt,
   „Heute“ und Statistik zeigen die neuen Stufen; andere Pakete unverändert.
+- **Umgesetzt und geprüft (26.11.2026).** Wie geplant (e352518, 119317f, adb7b3f; Korrekturen der Prüfung 7333fb2,
+  6d88ac2); 589 Tests grün. Mit `node` nachgerechnet: Vorräte Note für Note mit Oktave und Lage in beiden Schlüsseln
+  (Stufe 13/14: fis 4. Linie, cis 2. Zwischenraum, gis 4. Zwischenraum, dis 3. Linie, B 2. Linie, es
+  3. Zwischenraum, as 5. Linie, des 3. Linie), Bezugston der Stufen 4/9 = äußere Linie (E/F bzw. G/A), Kanten aller
+  54 Stufen wie Abschnitt 7 und ohne Kreis, jedes Ziel ohne Hilfen, `noten: 15` in allen Jahrgängen. Browser
+  (320 dunkel, 420 hell): alle 15 Stufen je eine Runde, Hilfen auf, „Nächste Aufgabe“ einmal, kein Überlauf, keine
+  Konsolenfehler; alle 16 Vorzeichen-Noten im Bild geprüft (Zeichen auf der Höhe des Kopfs, Bassschlüssel nach
+  Bravura); drei alte Stände richtig umgestellt (alle acht geschafft; nur 1 und 2; 2 geschafft und 3 offen).
+  - Entscheidungen der Prüfung zu dem, was der Plan offen ließ – alle bleiben so:
+    - Untertitel bis Schritt 3 nur „· mit Hilfen“; **Schritt 3** setzt „· zwei Schritte · mit Hilfen“ (Abschnitt 2).
+    - `needs` steht nur, wo die Voreinstellung etwas anderes ergäbe (6, 7, 8 leer); `needsOf` liefert genau die
+      Tabelle aus Abschnitt 7 (Test über alle 54 Stufen). `skill` nur an Zielen.
+    - Der Vergleich „Dieselbe Linie wie im Violinschlüssel …“ steht schon jetzt in `legendHtml` der Bass-Tafel
+      (`LEGEND_NOTE`, `BASS_VERGLEICH`), damit er zwischen Schritt 2 und 5 nicht fehlt; Schritt 5 lässt ihn dort.
+    - `boards` liefert im Gerüst nur die zwei Tafeln „Merkhilfen“ (keine leeren Tafeln); Schritt 5 ergänzt.
+  - Korrekturen der Prüfung: Zusage 2 und 3 mit dem echten Paket über alle Zustände (Marke und `unlockAll`
+    unabhängig vom Fortschritt, alle 2⁸ Kasten-Teilmengen); der Satz unter der Bass-Tafel über die ganze Breite.
+  - Geänderte Erwartungen in vorhandenen Tests: jede durch die neue Nummerierung bzw. den neuen Aufbau begründet
+    (alt → neu nach `RENAMED_NOTEN`; Stufen mit Hilfen warten; vor Stufe 12 steht jetzt 11 mit Hilfen; Intervalle 4
+    und Tonleitern 5 brauchen dazu `noten-14`; „ohne Liste“ speichert `load` einmal wegen „noten-neu“). Der
+    J-C3-Test (geschütztes Leerzeichen vor ♯/♭) prüft die Regel an einer Stufe mit dem alten Titel, weil kein
+    Titel mehr ♯ oder ♭ trägt.
+  - **Vorgaben für die nächsten Schritte:**
+    - Schritt 3: die Ausnahme in `test/repeat.test.js` („stepNeeds hat so viele Einträge wie die Stufe Schritte“,
+      `noten-4`, `-9`, `-11`, `-13`) **entfernen**, sobald die Stufen zwei Schritte haben. Bis dahin findet
+      `gapsOf` in Stufe 4 und 9 kein Fehlermuster (Schritt 1 hat dort keine Grundlage) – nur Zwischenstand.
+    - Schritt 3/5: Die Engine ruft `level.demo(q)` ohne Spielstand (`engine.js`). `lageDemo(n, clef, state)`
+      braucht den gewählten Merkspruch: Schritt 3 legt ihn in die Aufgabe (z. B. `q.spruch` aus `teileZu`), oder
+      der Koordinator gibt `engine.js` für den zweiten Parameter frei.
+    - Schritt 3/7: Startkarte bei 320 px – „Runde starten“ endet in Stufe 4 bei 680 px, 9 bei 703, 11 bei 776,
+      12 bei 734 (Stufe 12 = alt 7, unverändert); ein `keysHint` darf das nicht verlängern, Schritt 7 misst mit
+      `ueberlauf.mjs`.
+    - Schritt 6: Statistik „Vorzeichen (Stufe 7)“ → zwei Listen; die Zeile der Stufe 3 bzw. 8 zeigt nach der
+      Umstellung „zuletzt geübt am …“ neben „noch nicht gespielt“ (Kasten-Eintrag aus dem Paar 1 + 2 bzw. 4 + 5) –
+      Wortlaut prüfen; `ueberlauf.mjs`, `uhr40.mjs`, `pruefung.mjs` haben bis dahin alte IDs (nicht laufen lassen).
+    - Für Sandra (klein, nicht dringend): Der übernommene Hinweis der Stufe 5 beginnt mit „Jetzt kommen Noten über
+      und unter der Zeile dazu.“ – die kommen jetzt schon in Stufe 4.
 
 #### Schritt 3 – Zweischrittige Aufgaben und Rückmeldungen (parallel zu 4, 5, 6)
 - Dateien: `src/packs/noten.js` (Aufgaben, Texte), `test/packs/noten.test.js`, `css/style.css` nur Abschnitt
