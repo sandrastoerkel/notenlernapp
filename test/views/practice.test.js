@@ -330,4 +330,6 @@ test("Runde „Wiederholen“: Kopf, Urteil je Stufe, Knopf bei „noch wacklig�
   assert.equal(repeatNote({ id: "noten-3", sitzt: true, fach: 1, inTagen: 1, neu: true }), "Geschafft – kommt morgen zum Wiederholen wieder.");
   assert.equal(repeatNote({ id: "noten-3", sitzt: true, fach: 2, inTagen: 3 }), `Wiederholung: sitzt · wieder in${NB}3${NB}Tagen.`);
   assert.equal(repeatNote({ id: "noten-3", sitzt: false, fach: 1, inTagen: 1 }), "Wiederholung: noch wacklig · morgen noch einmal.");
+  // nicht fällig, unter 8 Richtigen (W-B7): Fach bleibt, morgen wieder
+  assert.equal(repeatNote({ id: "noten-3", n: 10, richtig: 4, sitzt: false, fach: 4, inTagen: 1, vorgezogen: true }), "Wiederholung: morgen noch einmal.");
 });

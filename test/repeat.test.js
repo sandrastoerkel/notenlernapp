@@ -248,7 +248,10 @@ test("afterRound: normale Runde nimmt auf, zählt nur, wenn fällig", () => {
   assert.deepEqual(s.rep["intervall-2"], { fach: 1, faellig: "2026-11-26", zuletzt: T });
   // am selben Tag noch einmal gut: nicht fällig, nichts ändert sich
   assert.equal(afterRound(s, level("intervall-2"), 10, T), null);
-  assert.equal(afterRound(s, level("intervall-2"), 2, T), null);
+  assert.deepEqual(s.rep["intervall-2"], { fach: 1, faellig: "2026-11-26", zuletzt: T });
+  // am selben Tag schwach: schon morgen fällig, bleibt morgen (W-B7)
+  assert.deepEqual(afterRound(s, level("intervall-2"), 2, T),
+    { id: "intervall-2", n: 10, richtig: 2, sitzt: false, fach: 1, inTagen: 1, faellig: "2026-11-26", vorgezogen: true });
   assert.deepEqual(s.rep["intervall-2"], { fach: 1, faellig: "2026-11-26", zuletzt: T });
   // fällig und ≥ 8: wie bestanden
   assert.deepEqual(afterRound(s, level("intervall-2"), 8, "2026-11-26"),
@@ -257,6 +260,26 @@ test("afterRound: normale Runde nimmt auf, zählt nur, wenn fällig", () => {
   assert.deepEqual(afterRound(s, level("intervall-2"), 7, "2026-11-30"),
     { id: "intervall-2", n: 10, richtig: 7, urteil: "wacklig", sitzt: false, fach: 1, inTagen: 1, faellig: "2026-12-01" });
   assert.deepEqual(s.rep["intervall-2"], { fach: 1, faellig: "2026-12-01", zuletzt: "2026-11-30" });
+});
+
+test("afterRound (W-B7): schwache normale Runde in einer nicht fälligen Stufe → morgen fällig, Fach bleibt", () => {
+  // Bericht Wissenschaft B7: Fach 4, fällig in 9 Tagen, normale Runde 2 / 10 änderte nichts
+  const s = withRep({ "intervall-2": { fach: 4, faellig: addDays(T, 9), zuletzt: addDays(T, -5) } });
+  const v = afterRound(s, level("intervall-2"), 2, T);
+  assert.deepEqual(v, { id: "intervall-2", n: 10, richtig: 2, sitzt: false, fach: 4, inTagen: 1, faellig: addDays(T, 1), vorgezogen: true });
+  assert.deepEqual(s.rep["intervall-2"], { fach: 4, faellig: addDays(T, 1), zuletzt: addDays(T, -5) });
+  // 7 von 10 ebenso, ab 8 nichts
+  const t = withRep({ "intervall-2": { fach: 3, faellig: addDays(T, 4), zuletzt: T } });
+  assert.equal(afterRound(t, level("intervall-2"), 8, T), null);
+  assert.equal(t.rep["intervall-2"].faellig, addDays(T, 4));
+  assert.equal(afterRound(t, level("intervall-2"), 7, T).faellig, addDays(T, 1));
+  // morgen entscheidet die Wiederholung: bestanden → Fach 4 (14 Tage), nicht bestanden → Fach 2
+  const tomorrow = addDays(T, 1);
+  assert.deepEqual(due(t, PACKS, tomorrow), ["intervall-2"]);
+  const [r] = applyReview(t, [{ id: "intervall-2", n: 10, ok: 9 }], tomorrow);
+  assert.deepEqual([r.fach, r.inTagen], [4, 14]);
+  // Stufe mit Hilfen: weiter nichts
+  assert.equal(afterRound(t, level("intervall-1"), 0, T), null);
 });
 
 test("dueText und dayText", () => {

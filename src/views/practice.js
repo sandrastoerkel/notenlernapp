@@ -241,6 +241,7 @@ export const URTEIL_TEXT = { sitzt: "sitzt", fast: "fast", wacklig: "noch wackli
 // neu aufgenommen „geschafft · morgen zum Wiederholen“
 export function verdictText(v) {
   if (v.neu) return nb(`geschafft · ${dueText(v.inTagen)} zum Wiederholen`);
+  if (v.vorgezogen) return nb(`${dueText(v.inTagen)} noch einmal`);
   const u = urteilOf(v);
   return nb(u === "sitzt" ? `sitzt · wieder ${dueText(v.inTagen)}` : `${URTEIL_TEXT[u]} · ${dueText(v.inTagen)} noch einmal`);
 }
@@ -268,6 +269,7 @@ export function practiceOffer(packs, id) {
 
 // Satz auf der Ergebniskarte einer normalen Runde (v aus repeat.afterRound oder null, rein, getestet).
 // Neu geschafft: „Geschafft – kommt morgen zum Wiederholen wieder.“ (Korrektur J-B8, statt „Neu im Kasten“).
+// Nicht fällig, unter 8 Richtigen (W-B7): „Wiederholung: morgen noch einmal.“
 export function repeatNote(v) {
   if (!v) return "";
   if (v.neu) return nb(`Geschafft – kommt ${dueText(v.inTagen)} zum Wiederholen wieder.`);

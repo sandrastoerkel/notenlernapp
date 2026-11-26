@@ -2,7 +2,7 @@
 // Reines Modul ohne DOM und ohne Speicher: Die Funktionen lesen den übergebenen Zustand (state.rep) und die
 // übergebenen Pakete; nur enter, applyReview und afterRound verändern state.rep. Tage sind Texte "JJJJ-MM-TT"
 // (örtliches Datum, store.today). Nichts hier sperrt eine Stufe (Leitsatz: nichts Gelerntes wird je gesperrt).
-import { addDays } from "./store.js";
+import { addDays, dayDiff } from "./store.js";
 
 // Abstände je Fach in Tagen (Sandra, 24.11.2026): Fach 1 nach 1 Tag, … Fach 5 nach 30 Tagen
 export const ABSTAENDE = [1, 3, 7, 14, 30];
@@ -143,7 +143,10 @@ export function applyReview(state, perLevel, heute) {
 // - noch nicht im Kasten: ab 8 Richtigen in Fach 1, fällig morgen ({ id, sitzt: true, fach: 1, inTagen: 1, neu: true });
 // - im Kasten und fällig: zählt wie eine Wiederholung mit 10 Aufgaben (sitzt ab 8 Richtigen, sonst ein Fach zurück;
 //   „fast“ gibt es bei 10 Aufgaben nicht, ein Fehler sitzt);
-// - im Kasten, nicht fällig: nichts (viel Üben am selben Tag soll den Abstand nicht verlängern).
+// - im Kasten, nicht fällig, ab 8 Richtigen: nichts (viel Üben am selben Tag soll den Abstand nicht verlängern);
+// - im Kasten, nicht fällig, unter 8 Richtigen (Korrektur W-B7): ein deutliches Vergessen wird nicht übergangen –
+//   die Stufe ist morgen wieder fällig (faellig = min(faellig, morgen)), das Fach bleibt (die Wiederholung morgen
+//   entscheidet). Ergebnis { id, n, richtig, sitzt: false, fach, inTagen: 1, faellig, vorgezogen: true }.
 export function afterRound(state, level, correct, heute) {
   if (!inBox(level)) return null;
   const e = (state.rep || {})[level.id];
@@ -152,7 +155,15 @@ export function afterRound(state, level, correct, heute) {
     enter(state, level.id, heute);
     return { id: level.id, sitzt: true, fach: 1, inTagen: ABSTAENDE[0], neu: true };
   }
-  if (typeof e.faellig === "string" && e.faellig > heute) return null;
+  if (!isDueEntry(e, heute)) {
+    if (correct >= 8) return null;
+    const morgen = addDays(heute, 1);
+    const fach = clampFach(e.fach);
+    // nicht fällig heißt hier: faellig liegt nach heute, also mindestens morgen
+    const faellig = typeof e.faellig === "string" && e.faellig < morgen ? e.faellig : morgen;
+    state.rep[level.id] = { ...e, fach, faellig };
+    return { id: level.id, n: RUNDE_WIEDERHOLEN, richtig: correct, sitzt: false, fach, inTagen: dayDiff(heute, faellig), faellig, vorgezogen: true };
+  }
   return applyReview(state, [{ id: level.id, n: RUNDE_WIEDERHOLEN, ok: correct, guess: level.guess === true }], heute)[0];
 }
 
