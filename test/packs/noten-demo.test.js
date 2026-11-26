@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { N, dia, staffPos, gName, midi, same } from "../../src/music.js";
-import { SCHRITTE, displayName, lage, bezug, stammton } from "../../src/packs/noten-lage.js";
+import { SCHRITTE, displayName, dasName, lage, bezug, stammton } from "../../src/packs/noten-lage.js";
 import {
   lageDemo, zaehlDemo, vorzeichenDemo, boards, weg, bezugArt, lageNums, keyOf, spruchTeile, accBox,
   BEISPIELE, TAFELN, NAMEN_RASTER, namenTabelle, boardHtml, DEMO_PROMPT,
@@ -108,7 +108,8 @@ test("zaehlDemo: Bezugston = bezug() in Stufe 4 und 9, Zählweg lückenlos, Tön
     for (let i = 1; i < w.length; i++) assert.equal(Math.abs(dia(w[i]) - dia(w[i - 1])), 1);
     assert.ok(same(w[0], b.ref) && same(w.at(-1), n));
     const [, f1, f2] = d.frames;
-    assert.equal(f1.text, `Die ${b.linie} Linie ist das ${displayName(b.ref)}.`);
+    assert.equal(f1.text, `Die ${b.linie} Linie ist ${dasName(b.ref)}.`);
+    assert.ok(!/\(großes /.test(f1.text), f1.text);
     assert.ok(f1.body.includes("nl-refline"));
     assert.equal(f2.text, `Von ${b.ref.letter} ${b.richtung}: ${w.map(gName).join(" – ")}.`);
     assert.deepEqual(toneKeys(f2.tones), toneKeys(w));
@@ -120,6 +121,8 @@ test("zaehlDemo: Bezugston = bezug() in Stufe 4 und 9, Zählweg lückenlos, Tön
   const d = zaehlDemo(N("E", 4), N("C", 4), "treble");
   assert.equal(d.frames[1].text, "Die unterste Linie ist das E (e').");
   assert.equal(d.frames[2].text, "Von E abwärts: E – D – C.");
+  // große Oktave: der Name steht nur einmal im Satz (Welle 12, Schritt 7)
+  assert.equal(zaehlDemo(N("G", 2), N("E", 2), "bass").frames[1].text, "Die unterste Linie ist das große G.");
   // mehr als zwei Stellen: zwei Zähl-Bilder, zusammen der ganze Weg (Mitte doppelt), höchstens 5 Bilder
   const lang = zaehlDemo(N("G", 4), N("D", 5), "treble");
   assert.equal(lang.frames.length, 5);

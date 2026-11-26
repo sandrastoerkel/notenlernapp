@@ -17,6 +17,10 @@ export const UNTERSTE = 0, OBERSTE = 8;
 // Name mit Oktave für die Rückmeldung: „G (g')“; große Oktave „G (großes G)“ statt „G (G)“ (Welle 10, B3)
 export const displayName = (n) => (n.octave === 2 ? `${gName(n)} (großes ${gName(n)})` : `${gName(n)} (${helm(n)})`);
 
+// Name mit Artikel im Satz der Vorführung: „das E (e')“; große Oktave „das große G“ statt „das G (großes G)“, das den
+// Namen zweimal nennt (Welle 12, Schritt 7, C-Befund der Prüfung B)
+export const dasName = (n) => (n.octave === 2 ? `das große ${gName(n)}` : `das ${displayName(n)}`);
+
 // Die Note ohne ihr Vorzeichen (gleiche Stelle in der Zeile)
 export const stammton = (n) => N(n.letter, n.octave, 0);
 

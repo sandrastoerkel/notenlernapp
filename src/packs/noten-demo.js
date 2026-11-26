@@ -6,7 +6,7 @@ import { N, dia, fromDia, staffPos, gName, midi, pc } from "../music.js";
 import { staffSvg, noteSvg, pianoSvg, TOP, BOTTOM, S, X0, X1 } from "../staff.js";
 import { teileZu, esc } from "../sprueche.js";
 import { demoHtml, mountDemo } from "../demo.js";
-import { SCHRITTE, displayName, lage, stammton, spruchId } from "./noten-lage.js";
+import { SCHRITTE, displayName, dasName, lage, stammton, spruchId } from "./noten-lage.js";
 import { vorzeichenRegel } from "./noten-hilfen.js";
 
 export const DEMO_X = 170;
@@ -110,13 +110,13 @@ export function bezugArt(ref, clef) {
   return "linie";
 }
 function bezugSatz(ref, clef) {
-  const art = bezugArt(ref, clef), name = displayName(ref);
-  if (art === "unterste") return `Die unterste Linie ist das ${name}.`;
-  if (art === "oberste") return `Die oberste Linie ist das ${name}.`;
+  const art = bezugArt(ref, clef), name = dasName(ref);
+  if (art === "unterste") return `Die unterste Linie ist ${name}.`;
+  if (art === "oberste") return `Die oberste Linie ist ${name}.`;
   if (art === "schluessel") return clef === "treble"
-    ? `Der Kringel des Schlüssels umschließt die G-Linie: das ${name}.`
-    : `Die zwei Punkte des Schlüssels umschließen die F-Linie: das ${name}.`;
-  return `Auf der ${lage(ref, clef).nr}. Linie liegt das ${name}.`;
+    ? `Der Kringel des Schlüssels umschließt die G-Linie: ${name}.`
+    : `Die zwei Punkte des Schlüssels umschließen die F-Linie: ${name}.`;
+  return `Auf der ${lage(ref, clef).nr}. Linie liegt ${name}.`;
 }
 function bezugChip(ref, clef) {
   const art = bezugArt(ref, clef), L = ref.letter;
