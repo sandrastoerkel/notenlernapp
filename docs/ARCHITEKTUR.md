@@ -637,17 +637,21 @@ E bis c'); Vorzeichen je Schlüssel 8 (Violinschlüssel fis' cis'' gis' dis'' ·
 gis dis · B es as des, alle in der Zeile); „Alles gemischt“ 42 (Stufen 5, 10, 12, 14). Namensraster (`acc`) in 11–15.
 Drei Arten von Denkschritten (`ARTEN`, Marken `SCHRITTE` in `noten-lage.js`):
 - Lage → Name (1, 2, 6, 7): Schritt 1 Auswahl „1.“ … „5.“ bzw. „1.“ … „4.“ (`LAGE_PROMPT`, `LAGE_CHOICES`, Ziffern),
-  Schritt 2 `note: "letters"` (`PROMPT`).
-- Bezugston → Zählen (4, 9): Schritt 1 `note: "letters"` – die nächste äußere Linie der Zeile (`BEZUG_PROMPT`;
-  Violinschlüssel E bzw. F, Bassschlüssel G bzw. A), Schritt 2 `note: "letters"` (`ZAEHL_PROMPT`).
+  Schritt 2 `note: "letters"` (`lageNamePrompt(ort)`).
+- Bezugston → Zählen (4, 9): Schritt 1 `note: "letters"` – die nächstgelegene (äußere) Linie der Zeile (`BEZUG_PROMPT`;
+  Violinschlüssel E bzw. F, Bassschlüssel G bzw. A), Schritt 2 `note: "letters"` (`zaehlPrompt(ref)`).
 - Stammton → Vorzeichen (11, 13): Schritt 1 `note: "letters"` (`STAMM_PROMPT`), Schritt 2 `note: "names"`
-  (`VZ_PROMPT`, Namensraster oder getippter Name).
+  (`vzPrompt(st)`, Namensraster oder getippter Name).
+Seit der Korrektur nach der Prüfung Welle 12 (J-B3) nennt die Frage von Schritt 2 das Ergebnis von Schritt 1
+(`lageNamePrompt` „4. Linie – wie heißt die Note?“, `zaehlPrompt` „Zähle vom E weiter: Wie heißt die Note?“,
+`vzPrompt` „Stammton F – und mit dem Vorzeichen?“), nie die Antwort von Schritt 2.
 Die Texte nach Schritt 1 (`ok`/`bad`) nennen nie die Antwort von Schritt 2 (auch keinen Spruch); `display` nennt
 beide Schritte („2. Linie → G (g')“, „unterste Linie E · abwärts E – D – C → C (c')“, „Stammton H · ♭ erniedrigt →
 B (b')“), `partial` ebenso. `reveal`/`revealParts` sind in allen 15 Stufen dieselbe Auflösung (`revealText`, siehe
 Merksprüche), außerhalb der Zeile mit dem Zählweg (`zaehlWeg`). Nach der Antwort zeigt `q.revealSvg` der
 zweischrittigen Stufen Schritt 1 violett an der Zeile (Linie, Zwischenraum bzw. Bezugslinie) und darunter beide
-Schritte als Beschriftung (`WORT_MAX` = 12: ein längeres Wort des Spruchs entfällt dort, der Name bleibt). `keysHint`
+Schritte als Beschriftung, das Merkwort in Anführungszeichen (`merkPfeil`: „Es“ → E, L-B2; `WORT_MAX` = 11: ein
+längeres Wort des Spruchs entfällt dort, der Name bleibt). `keysHint`
 in 1, 2, 6, 7 (Ziffer, dann Buchstabe), 11 und 13 (Buchstabe, dann Name tippen); 4 und 9 behalten den üblichen
 Hinweis. Die Stufen mit Hilfen warten auf „Nächste Aufgabe“; die übrigen laufen nach „richtig“ von selbst weiter.
 Rechenkern `noten-lage.js` (rein, aus `staffPos`, `dia`, `fromDia`): `lage(n, clef)` (`{ pos, art, nr }`, Linie 1–5,
@@ -764,7 +768,8 @@ Stufen-ID.
   Zeitgeber**: `#pNext` erscheint mit der Aufschrift „Weiter zu Schritt 2“ (`NEXT_STEP`; Knopf, Enter oder
   Leertaste), danach heißt er wieder „Nächste Aufgabe“ (`DELAY_STEP_BAD` und `DELAY_BAD` gibt es in `engine.js` nicht mehr; „Blitz“ hat sein eigenes `DELAY_BAD` in `views/blitz.js`).
   Korrektur nach der Prüfung Welle 12: Nach dem Weitergehen über `#pNext`, Enter, Leertaste oder den Knopf am Ende
-  der Vorführung zählt `SWITCH_GUARD` = 380 ms lang keine Antwort (Doppeltipp, J-B2; `isGuarded()` für die
+  der Vorführung (auch beim Zuklappen der Hilfen während der Vorführung: alle Wege laufen über `resume`) zählt
+  `SWITCH_GUARD` = 380 ms lang keine Antwort (Knopf, Taste der Klaviatur, Tastatur; Doppeltipp, J-B2; `isGuarded()` für die
   Browser-Skripte). Erscheint `#pNext` nicht ganz im Bild (Fensterrand, unteres Menü), rollt `revealNext` ihn hinein
   (`block: "nearest"`, `scroll-margin-bottom` in `style.css`, ohne Bewegung bei „Bewegung reduzieren“, J-B1).
   Erst nach dem letzten Schritt zählt die Aufgabe, einmal, und nur richtig, wenn alle Schritte stimmen

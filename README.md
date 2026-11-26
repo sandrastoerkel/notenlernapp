@@ -97,7 +97,7 @@ Smartphone-Breite (420 px), helles Farbschema. Die dunklen Fassungen liegen dane
 14. Vorzeichen im Bassschlüssel ohne Hilfen
 15. Alles gemischt
 
-Das sind die Stufen von „Noten lesen“ (seit Welle 12; vorher 8). Die Stufen mit Hilfen fragen in zwei Schritten: erst die Lage (Linie bzw. Zwischenraum von unten), dann den Namen; über und unter der Zeile erst den Bezugston (die nächste Linie der Zeile), dann zählen; mit Vorzeichen erst den Stammton, dann den ganzen Namen. Die Pakete stehen in dieser Reihenfolge (Startseite, „Lernen“, Statistik):
+Das sind die Stufen von „Noten lesen“ (seit Welle 12; vorher 8). Die Stufen mit Hilfen fragen in zwei Schritten: erst die Lage (Linie bzw. Zwischenraum von unten), dann den Namen; über und unter der Zeile erst den Bezugston (die nächstgelegene Linie der Zeile), dann zählen; mit Vorzeichen erst den Stammton, dann den ganzen Namen. Die Pakete stehen in dieser Reihenfolge (Startseite, „Lernen“, Statistik):
 
 1. **Noten lesen** (15 Stufen, oben; immer erst mit Hilfen – Merkleiste mit Merkspruch, Namensleiste, Vorzeichen-Regel – dann ohne; drei Vorführungen als Lerntafeln)
 2. **Notenwerte und Pausen** (10 Stufen: Notenwerte, Pausen, Dauer in Schlägen, Punktierungen, Takt füllen; immer erst mit Hilfen – Merkmale, Notenwert-Pyramide, Zählleiste – dann ohne; drei Vorführungen als Lerntafeln)
